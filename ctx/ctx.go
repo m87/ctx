@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/m87/ctx/util"
 )
 
 
@@ -24,20 +25,30 @@ type Interval struct {
 
 
 type Context struct {
-  id string
-  description string
-  state ContextState
-  duration int32
-  intervals []Interval
+  Id string
+  Description string
+  State ContextState
+  Duration int32
+  Intervals []Interval
 }
 
 
 type State struct {
-  contexts []Context
-  current Context
+  Contexts []Context
+  Current Context
 }
 
 
+func Load() State {
+  data, err := os.ReadFile("test/state")
+  util.Check(err, "Unable to read state file");
+
+  state := State {}
+  err = json.Unmarshal(data, &state)
+  util.Check(err, "Unable to parse state file");
+
+  return state
+}
 
 func Save(state State) {
   data, err := json.Marshal(state)
@@ -45,5 +56,4 @@ func Save(state State) {
     panic(err)
   }
   os.WriteFile("test/state", data, 0644)
-
 }
