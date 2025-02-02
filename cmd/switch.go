@@ -6,14 +6,13 @@ package cmd
 import (
 	"log"
 
-	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx"
 	"github.com/spf13/cobra"
 )
 
-// createCmd represents the create command
-var createCmd = &cobra.Command{
-	Use:   "create",
+// switchCmd represents the switch command
+var switchCmd = &cobra.Command{
+	Use:   "switch",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -22,31 +21,24 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		id := args[0]
 		state := ctx.Load()
-
-		state.Contexts = append(state.Contexts, ctx.Context{
-			Id:          uuid.NewString(),
-			Description: args[0],
-			State:       ctx.ACTIVE,
-		})
-
+		ctx.Switch(id, &state)
+		log.Print(state)
 		ctx.Save(&state)
-
-		log.Print(ctx.Load())
-
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(createCmd)
+	rootCmd.AddCommand(switchCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// createCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// switchCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// switchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
