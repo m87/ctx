@@ -19,9 +19,9 @@ const (
 )
 
 type Interval struct {
-	start    int64
-	end      int64
-	duration int64
+	Start    int64
+	End      int64
+	Duration int64
 }
 
 type Context struct {
@@ -50,27 +50,22 @@ func Load() State {
 }
 
 func Switch(id string, state *State) {
-	for _, v := range state.Contexts {
-		if id == v.Id {
-			prev := state.Contexts[state.CurrentId]
-			now := time.Now().Local().UnixMilli()
-			if state.CurrentId != "" {
-				interval := prev.Intervals[len(prev.Intervals)-1]
-				interval.end = now
-				interval.duration = interval.end - interval.start
-				prev.Duration = prev.Duration + interval.duration
-			}
-			state.CurrentId = v.Id
-      if ctx, ok := state.Contexts[v.Id]; ok {
-        ctx.Intervals = append(ctx.Intervals, Interval{start: now})
-        state.Contexts[v.Id] = ctx
-      }
-
-      log.Println(state)
-			return
-		}
+	now := time.Now().Local().UnixMilli()
+	if state.CurrentId != "" {
+		prev := state.Contexts[state.CurrentId]
+		interval := prev.Intervals[len(prev.Intervals)-1]
+		interval.End = now
+		interval.Duration = interval.End - interval.Start
+		prev.Duration = prev.Duration + interval.Duration
 	}
-	log.Printf("context: %s, not found\n", id)
+
+	if ctx, ok := state.Contexts[id]; ok {
+		state.CurrentId = ctx.Id
+		ctx.Intervals = append(state.Contexts[id].Intervals, Interval{Start: now})
+		state.Contexts[id] = ctx
+	} else {
+		log.Printf("context: %s, not found\n", id)
+	}
 }
 
 func Save(state *State) {
