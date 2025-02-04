@@ -33,7 +33,7 @@ type Context struct {
 }
 
 type State struct {
-	Contexts  []Context
+	Contexts  map[string]Context
 	CurrentId string
 }
 
@@ -52,17 +52,21 @@ func Load() State {
 func Switch(id string, state *State) {
 	for _, v := range state.Contexts {
 		if id == v.Id {
-			prev := state.Current
+			prev := state.Contexts[state.CurrentId]
 			now := time.Now().Local().UnixMilli()
-			if state.Current.Id != "" {
+			if state.CurrentId != "" {
 				interval := prev.Intervals[len(prev.Intervals)-1]
 				interval.end = now
 				interval.duration = interval.end - interval.start
 				prev.Duration = prev.Duration + interval.duration
 			}
-			state.Current = v
-			state.Current.Intervals = append(state.Current.Intervals, Interval{start: now})
+			state.CurrentId = v.Id
+      if ctx, ok := state.Contexts[v.Id]; ok {
+        ctx.Intervals = append(ctx.Intervals, Interval{start: now})
+        state.Contexts[v.Id] = ctx
+      }
 
+      log.Println(state)
 			return
 		}
 	}

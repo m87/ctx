@@ -24,11 +24,13 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		state := ctx.Load()
 
-		state.Contexts = append(state.Contexts, ctx.Context{
+    id := uuid.NewString()
+    state.Contexts[id] = ctx.Context{
 			Id:          uuid.NewString(),
 			Description: args[0],
 			State:       ctx.ACTIVE,
-		})
+      Intervals: []ctx.Interval{},
+		}
 
 		ctx.Save(&state)
 
