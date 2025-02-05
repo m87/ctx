@@ -19,16 +19,16 @@ const (
 )
 
 type Interval struct {
-	Start    int64
-	End      int64
-	Duration int64
+	Start    time.Time
+	End      time.Time
+	Duration time.Duration
 }
 
 type Context struct {
 	Id          string
 	Description string
 	State       ContextState
-	Duration    int64
+	Duration    time.Duration
 	Intervals   []Interval
 }
 
@@ -50,13 +50,18 @@ func Load() State {
 }
 
 func Switch(id string, state *State) {
-	now := time.Now().Local().UnixMilli()
+	if state.CurrentId == id {
+		return
+	}
+	now := time.Now().Local()
 	if state.CurrentId != "" {
 		prev := state.Contexts[state.CurrentId]
 		interval := prev.Intervals[len(prev.Intervals)-1]
 		interval.End = now
-		interval.Duration = interval.End - interval.Start
+		interval.Duration = interval.End.Sub(interval.Start)
+		state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
 		prev.Duration = prev.Duration + interval.Duration
+		state.Contexts[state.CurrentId] = prev
 	}
 
 	if ctx, ok := state.Contexts[id]; ok {

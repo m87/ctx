@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/m87/ctx/ctx"
 	"github.com/spf13/cobra"
@@ -21,18 +22,24 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-    state := ctx.Load()
+		state := ctx.Load()
+		for _, v := range state.Contexts {
+			fmt.Printf("- [%s] %s\n", v.Id, v.Description)
 
+			if f, _ := cmd.Flags().GetBool("full"); f {
+				for _, interval := range v.Intervals {
+					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
+				}
+			}
 
-    for _, v := range state.Contexts {
-      fmt.Printf("- [%s] %s\n", v.Id, v.Description)
-    }
+		}
 
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+	listCmd.Flags().BoolP("full", "f", false, "show full list")
 
 	// Here you will define your flags and configuration settings.
 
