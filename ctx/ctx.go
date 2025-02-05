@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/m87/ctx/events"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/viper"
 )
@@ -18,12 +19,7 @@ const (
 	FINISHED
 )
 
-type EventType int
 
-const (
-	CREATE_CTX EventType = iota
-	SWITCH_CTX
-)
 
 type Interval struct {
 	Start    time.Time
@@ -44,16 +40,6 @@ type State struct {
 	CurrentId string
 }
 
-type Event struct {
-	DateTime time.Time
-	Data     map[string]string
-	Type     EventType
-}
-
-type EventRegistry struct {
-	Events []Event
-}
-
 func Load() State {
 	statePath := filepath.Join(viper.GetString("ctxPath"), "state")
 	data, err := os.ReadFile(statePath)
@@ -66,7 +52,7 @@ func Load() State {
 	return state
 }
 
-func Switch(id string, state *State) {
+func Switch(id string, state *State, eventsRegistry *events.EventRegistry) {
 	if state.CurrentId == id {
 		return
 	}
@@ -83,6 +69,13 @@ func Switch(id string, state *State) {
 
 	if ctx, ok := state.Contexts[id]; ok {
 		state.CurrentId = ctx.Id
+    events.Publish(events.Event{
+      DateTime: now,
+      Type: events.SWITCH_CTX,
+      Data: map[string]string{
+        "Description": ctx.Description,
+      },
+    }, eventsRegistry)
 		ctx.Intervals = append(state.Contexts[id].Intervals, Interval{Start: now})
 		state.Contexts[id] = ctx
 	} else {
@@ -98,3 +91,5 @@ func Save(state *State) {
 	}
 	os.WriteFile(statePath, data, 0644)
 }
+
+

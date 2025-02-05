@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/events"
 	"github.com/spf13/cobra"
 )
 
@@ -22,10 +23,12 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
+    eventsRegistry := events.Load()
 		state := ctx.Load()
-		ctx.Switch(id, &state)
+		ctx.Switch(id, &state, &eventsRegistry)
 		log.Print(state)
 		ctx.Save(&state)
+    events.Save(&eventsRegistry)
 	},
 }
 

@@ -34,6 +34,7 @@ to quickly create a Cobra application.`,
 			os.Mkdir(filepath.Join(home, ".ctx.d"), 0777)
 			os.WriteFile(filepath.Join(home, ".ctx"), []byte(fmt.Sprintf(`ctxPath: %s`, filepath.Join(home, ".ctx.d"))), 0777)
       os.WriteFile(filepath.Join(home, ".ctx.d", "state"), []byte("{\"Contexts\": {}}"), 0777)
+      os.WriteFile(filepath.Join(home, ".ctx.d", "events"), []byte("{\"Events\": {}}"), 0777)
 		}
 
 	},
