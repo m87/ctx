@@ -4,6 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -23,23 +24,33 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		state := ctx.Load()
-		for _, v := range state.Contexts {
-			fmt.Printf("- [%s] %s\n", v.Id, v.Description)
-
-			if f, _ := cmd.Flags().GetBool("full"); f {
-				for _, interval := range v.Intervals {
-					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
-				}
+		if j, _ := cmd.Flags().GetBool("json"); j {
+			v := make([]ctx.Context, 0, len(state.Contexts))
+			for _, c := range state.Contexts {
+				v = append(v, c)
 			}
+			s, _ := json.Marshal(v)
 
+			fmt.Printf("%s", string(s))
+		} else {
+			for _, v := range state.Contexts {
+				fmt.Printf("- [%s] %s\n", v.Id, v.Description)
+
+				if f, _ := cmd.Flags().GetBool("full"); f {
+					for _, interval := range v.Intervals {
+						fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
+					}
+				}
+
+			}
 		}
-
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
 	listCmd.Flags().BoolP("full", "f", false, "show full list")
+	listCmd.Flags().BoolP("json", "j", false, "show list as json")
 
 	// Here you will define your flags and configuration settings.
 

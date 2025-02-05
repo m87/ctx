@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -26,7 +25,6 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(viper.ConfigFileUsed()) > 0 {
-			log.Print(viper.ConfigFileUsed())
 		} else {
 			home, err := os.UserHomeDir()
 			util.Check(err, "Unable to get user home dir")
