@@ -18,6 +18,13 @@ const (
 	FINISHED
 )
 
+type EventType int
+
+const (
+	CREATE_CTX EventType = iota
+	SWITCH_CTX
+)
+
 type Interval struct {
 	Start    time.Time
 	End      time.Time
@@ -35,6 +42,16 @@ type Context struct {
 type State struct {
 	Contexts  map[string]Context
 	CurrentId string
+}
+
+type Event struct {
+	DateTime time.Time
+	Data     map[string]string
+	Type     EventType
+}
+
+type EventRegistry struct {
+	Events []Event
 }
 
 func Load() State {
