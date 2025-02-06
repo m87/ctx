@@ -19,8 +19,6 @@ const (
 	FINISHED
 )
 
-
-
 type Interval struct {
 	Start    time.Time
 	End      time.Time
@@ -52,6 +50,20 @@ func Load() State {
 	return state
 }
 
+func Stop(state *State) {
+	now := time.Now().Local()
+	if state.CurrentId != "" {
+		prev := state.Contexts[state.CurrentId]
+		interval := prev.Intervals[len(prev.Intervals)-1]
+		interval.End = now
+		interval.Duration = interval.End.Sub(interval.Start)
+		state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
+		prev.Duration = prev.Duration + interval.Duration
+		state.Contexts[state.CurrentId] = prev
+		state.CurrentId = ""
+	}
+}
+
 func Switch(id string, state *State, eventsRegistry *events.EventRegistry) {
 	if state.CurrentId == id {
 		return
@@ -69,13 +81,13 @@ func Switch(id string, state *State, eventsRegistry *events.EventRegistry) {
 
 	if ctx, ok := state.Contexts[id]; ok {
 		state.CurrentId = ctx.Id
-    events.Publish(events.Event{
-      DateTime: now,
-      Type: events.SWITCH_CTX,
-      Data: map[string]string{
-        "Description": ctx.Description,
-      },
-    }, eventsRegistry)
+		events.Publish(events.Event{
+			DateTime: now,
+			Type:     events.SWITCH_CTX,
+			Data: map[string]string{
+				"Description": ctx.Description,
+			},
+		}, eventsRegistry)
 		ctx.Intervals = append(state.Contexts[id].Intervals, Interval{Start: now})
 		state.Contexts[id] = ctx
 	} else {
@@ -91,5 +103,3 @@ func Save(state *State) {
 	}
 	os.WriteFile(statePath, data, 0644)
 }
-
-
