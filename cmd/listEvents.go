@@ -25,7 +25,7 @@ to quickly create a Cobra application.`,
 		eventsRegistry := events.Load()
 
 		for _, v := range eventsRegistry.Events {
-			fmt.Printf("[%s] %s\n", v.DateTime.Local().Format(time.DateTime), v.Data["Description"])
+			fmt.Printf("[%s] %s\n", v.DateTime.Local().Format(time.DateTime), v.Data["description"])
 		}
 	},
 }

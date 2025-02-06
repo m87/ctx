@@ -20,22 +20,22 @@ const (
 )
 
 type Interval struct {
-	Start    time.Time
-	End      time.Time
-	Duration time.Duration
+	Start    time.Time     `json:"start"`
+	End      time.Time     `json:"end"`
+	Duration time.Duration `json:"duration"`
 }
 
 type Context struct {
-	Id          string
-	Description string
-	State       ContextState
-	Duration    time.Duration
-	Intervals   []Interval
+	Id          string        `json:"id"`
+	Description string        `json:"description"`
+	State       ContextState  `json:"state"`
+	Duration    time.Duration `json:"duration"`
+	Intervals   []Interval    `json:"intervals"`
 }
 
 type State struct {
-	Contexts  map[string]Context
-	CurrentId string
+	Contexts  map[string]Context `json:"contexts"`
+	CurrentId string             `json:"currentId"`
 }
 
 func Load() State {

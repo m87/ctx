@@ -1,11 +1,14 @@
 package events
 
-import "time"
-import "os"
-import "github.com/m87/ctx/util"
-import "github.com/spf13/viper"
-import "path/filepath"
-import "encoding/json"
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/m87/ctx/util"
+	"github.com/spf13/viper"
+)
 
 type EventType int
 
@@ -15,15 +18,14 @@ const (
 )
 
 type Event struct {
-	DateTime time.Time
-	Data     map[string]string
-	Type     EventType
+	DateTime time.Time         `json:"dateTime"`
+	Data     map[string]string `json:"data"`
+	Type     EventType         `json:"type"`
 }
 
 type EventRegistry struct {
-	Events []Event
+	Events []Event `json:"events"`
 }
-
 
 func Load() EventRegistry {
 	registryPath := filepath.Join(viper.GetString("ctxPath"), "events")
@@ -37,7 +39,6 @@ func Load() EventRegistry {
 	return registry
 }
 
-
 func Save(registry *EventRegistry) {
 	registryPath := filepath.Join(viper.GetString("ctxPath"), "events")
 	data, err := json.Marshal(registry)
@@ -48,5 +49,5 @@ func Save(registry *EventRegistry) {
 }
 
 func Publish(event Event, registry *EventRegistry) {
-  registry.Events = append(registry.Events, event)
+	registry.Events = append(registry.Events, event)
 }
