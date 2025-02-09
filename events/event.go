@@ -18,9 +18,11 @@ const (
 )
 
 type Event struct {
-	DateTime time.Time         `json:"dateTime"`
-	Data     map[string]string `json:"data"`
-	Type     EventType         `json:"type"`
+	DateTime    time.Time         `json:"dateTime"`
+	CtxId       string            `json:"subject"`
+	Description string            `json:"description"`
+	Data        map[string]string `json:"data"`
+	Type        EventType         `json:"type"`
 }
 
 type EventRegistry struct {

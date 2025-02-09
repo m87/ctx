@@ -69,6 +69,7 @@ func Switch(id string, state *State, eventsRegistry *events.EventRegistry) {
 		return
 	}
 	now := time.Now().Local()
+	prevId := state.CurrentId
 	if state.CurrentId != "" {
 		prev := state.Contexts[state.CurrentId]
 		interval := prev.Intervals[len(prev.Intervals)-1]
@@ -82,10 +83,12 @@ func Switch(id string, state *State, eventsRegistry *events.EventRegistry) {
 	if ctx, ok := state.Contexts[id]; ok {
 		state.CurrentId = ctx.Id
 		events.Publish(events.Event{
-			DateTime: now,
-			Type:     events.SWITCH_CTX,
+			DateTime:    now,
+			Type:        events.SWITCH_CTX,
+			CtxId:       ctx.Id,
+			Description: ctx.Description,
 			Data: map[string]string{
-				"Description": ctx.Description,
+				"from": prevId,
 			},
 		}, eventsRegistry)
 		ctx.Intervals = append(state.Contexts[id].Intervals, Interval{Start: now})
