@@ -2,7 +2,7 @@ package ctx
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"os"
 	"path/filepath"
 	"time"
@@ -64,9 +64,9 @@ func Stop(state *State) {
 	}
 }
 
-func Switch(id string, state *State, eventsRegistry *events.EventRegistry) {
+func Switch(id string, state *State, eventsRegistry *events.EventRegistry) error {
 	if state.CurrentId == id {
-		return
+		return nil
 	}
 	now := time.Now().Local()
 	prevId := state.CurrentId
@@ -93,8 +93,9 @@ func Switch(id string, state *State, eventsRegistry *events.EventRegistry) {
 		}, eventsRegistry)
 		ctx.Intervals = append(state.Contexts[id].Intervals, Interval{Start: now})
 		state.Contexts[id] = ctx
+		return nil
 	} else {
-		log.Printf("context: %s, not found\n", id)
+		return errors.New("not found")
 	}
 }
 

@@ -5,9 +5,11 @@ package cmd
 
 import (
 	"log"
+	"strings"
 
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/events"
+	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +27,27 @@ to quickly create a Cobra application.`,
 		id := args[0]
 		eventsRegistry := events.Load()
 		state := ctx.Load()
-		ctx.Switch(id, &state, &eventsRegistry)
+
+		isDescription, _ := cmd.Flags().GetBool("description")
+		createIfNotFound, _ := cmd.Flags().GetBool("create")
+
+		if isDescription {
+			id = util.GenerateId(id)
+		}
+
+		err := ctx.Switch(id, &state, &eventsRegistry)
+
+		if isDescription && createIfNotFound && err != nil {
+			state.Contexts[id] = ctx.Context{
+				Id:          id,
+				Description: strings.TrimSpace(args[0]),
+				State:       ctx.ACTIVE,
+				Intervals:   []ctx.Interval{},
+			}
+
+			ctx.Switch(id, &state, &eventsRegistry)
+		}
+
 		log.Print(state)
 		ctx.Save(&state)
 		events.Save(&eventsRegistry)
@@ -34,6 +56,8 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(switchCmd)
+	switchCmd.Flags().BoolP("description", "d", false, "switch by description")
+	switchCmd.Flags().BoolP("create", "c", false, "create if not exists")
 
 	// Here you will define your flags and configuration settings.
 

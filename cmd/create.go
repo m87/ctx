@@ -4,23 +4,13 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"log"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-func generateId(desc string) string {
-	h := sha256.New()
-	h.Write([]byte(strings.ToLower(desc)))
-	bs := h.Sum(nil)
-	return hex.EncodeToString(bs)
-}
 
 // createCmd represents the create command
 var createCmd = &cobra.Command{
@@ -35,13 +25,10 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		state := ctx.Load()
 
-		id := generateId(args[0])
-		if viper.GetString("id") == "random" {
-			id = uuid.NewString()
-		}
+		id := util.GenerateId(args[0])
 		state.Contexts[id] = ctx.Context{
 			Id:          id,
-			Description: args[0],
+			Description: strings.TrimSpace(args[0]),
 			State:       ctx.ACTIVE,
 			Intervals:   []ctx.Interval{},
 		}
