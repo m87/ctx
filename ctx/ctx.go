@@ -125,6 +125,19 @@ func Stop(id string, state *State) {
 
 }
 
+func Rename(id string, newDescription string, state *State) {
+	newId := util.GenerateId(newDescription)
+	ctx := state.Contexts[id]
+	ctx.Id = newId
+	ctx.Description = newDescription
+	state.Contexts[newId] = ctx
+	delete(state.Contexts, id)
+	if state.CurrentId == id {
+		state.CurrentId = newId
+	}
+
+}
+
 func Delete(id string, state *State) {
 	if state.CurrentId == id {
 		state.CurrentId = ""
