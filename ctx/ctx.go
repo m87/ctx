@@ -50,7 +50,7 @@ func Load() State {
 	return state
 }
 
-func Stop(state *State) {
+func Pause(state *State) {
 	now := time.Now().Local()
 	if state.CurrentId != "" {
 		prev := state.Contexts[state.CurrentId]
@@ -106,4 +106,29 @@ func Save(state *State) {
 		panic(err)
 	}
 	os.WriteFile(statePath, data, 0644)
+}
+
+func Stop(id string, state *State) {
+	now := time.Now().Local()
+	if state.CurrentId == id {
+		prev := state.Contexts[state.CurrentId]
+		interval := prev.Intervals[len(prev.Intervals)-1]
+		interval.End = now
+		interval.Duration = interval.End.Sub(interval.Start)
+		state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
+		prev.Duration = prev.Duration + interval.Duration
+		state.Contexts[state.CurrentId] = prev
+		state.CurrentId = ""
+	}
+
+	//TODO create contexts history move to history
+
+}
+
+func Delete(id string, state *State) {
+	if state.CurrentId == id {
+		state.CurrentId = ""
+	}
+
+	delete(state.Contexts, id)
 }

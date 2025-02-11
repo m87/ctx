@@ -4,16 +4,13 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"strings"
-
 	"github.com/m87/ctx/ctx"
-	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
-// stopCmd represents the stop command
-var stopCmd = &cobra.Command{
-	Use:   "stop",
+// pauseCmd represents the pause command
+var pauseCmd = &cobra.Command{
+	Use:   "pause",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -22,34 +19,22 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		id := strings.TrimSpace(args[0])
-		if id == "" {
-			return
-		}
 		state := ctx.Load()
-
-		isDescription, _ := cmd.Flags().GetBool("description")
-
-		if isDescription {
-			id = util.GenerateId(id)
-		}
-
-		ctx.Stop(id, &state)
+		ctx.Pause(&state)
 		ctx.Save(&state)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(stopCmd)
-	stopCmd.Flags().BoolP("description", "d", false, "stop by description")
+	rootCmd.AddCommand(pauseCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// stopCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// pauseCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// stopCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// pauseCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

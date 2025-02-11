@@ -34,12 +34,14 @@ to quickly create a Cobra application.`,
 			fmt.Printf("%s", string(s))
 		} else {
 			for _, v := range state.Contexts {
-				fmt.Printf("- [%s] %s\n", v.Id, v.Description)
 
 				if f, _ := cmd.Flags().GetBool("full"); f {
+					fmt.Printf("- [%s] %s\n", v.Id, v.Description)
 					for _, interval := range v.Intervals {
 						fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
 					}
+				} else {
+					fmt.Printf("- %s\n", v.Description)
 				}
 
 			}

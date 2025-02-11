@@ -25,6 +25,10 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		state := ctx.Load()
 
+		if strings.TrimSpace(args[0]) == "" {
+			return
+		}
+
 		id := util.GenerateId(args[0])
 		state.Contexts[id] = ctx.Context{
 			Id:          id,

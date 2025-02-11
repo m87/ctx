@@ -25,6 +25,10 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
+		if strings.TrimSpace(args[0]) == "" {
+			return
+		}
+
 		eventsRegistry := events.Load()
 		state := ctx.Load()
 
@@ -56,8 +60,8 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(switchCmd)
-	switchCmd.Flags().BoolP("description", "d", false, "switch by description")
 	switchCmd.Flags().BoolP("create", "c", false, "create if not exists")
+	switchCmd.Flags().BoolP("description", "d", false, "stop by description")
 
 	// Here you will define your flags and configuration settings.
 
