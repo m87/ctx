@@ -28,6 +28,7 @@ type Interval struct {
 type Context struct {
 	Id          string        `json:"id"`
 	Description string        `json:"description"`
+	Comments    []string      `json:"comments"`
 	State       ContextState  `json:"state"`
 	Duration    time.Duration `json:"duration"`
 	Intervals   []Interval    `json:"intervals"`
@@ -97,6 +98,12 @@ func Switch(id string, state *State, eventsRegistry *events.EventRegistry) error
 	} else {
 		return errors.New("not found")
 	}
+}
+
+func Comment(id string, comment string, state *State) {
+	ctx := state.Contexts[id]
+	ctx.Comments = append(ctx.Comments, comment)
+	state.Contexts[id] = ctx
 }
 
 func Save(state *State) {
