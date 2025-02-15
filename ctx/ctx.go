@@ -1,57 +1,15 @@
 package ctx
 
 import (
-	"encoding/json"
 	"errors"
-	"os"
-	"path/filepath"
 	"time"
 
+	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/events"
 	"github.com/m87/ctx/util"
-	"github.com/spf13/viper"
 )
 
-type ContextState int
-
-const (
-	ACTIVE ContextState = iota
-	FINISHED
-)
-
-type Interval struct {
-	Start    time.Time     `json:"start"`
-	End      time.Time     `json:"end"`
-	Duration time.Duration `json:"duration"`
-}
-
-type Context struct {
-	Id          string        `json:"id"`
-	Description string        `json:"description"`
-	Comments    []string      `json:"comments"`
-	State       ContextState  `json:"state"`
-	Duration    time.Duration `json:"duration"`
-	Intervals   []Interval    `json:"intervals"`
-}
-
-type State struct {
-	Contexts  map[string]Context `json:"contexts"`
-	CurrentId string             `json:"currentId"`
-}
-
-func Load() State {
-	statePath := filepath.Join(viper.GetString("ctxPath"), "state")
-	data, err := os.ReadFile(statePath)
-	util.Check(err, "Unable to read state file")
-
-	state := State{}
-	err = json.Unmarshal(data, &state)
-	util.Check(err, "Unable to parse state file")
-
-	return state
-}
-
-func Pause(state *State) {
+func Pause(state *ctx_model.State) {
 	now := time.Now().Local()
 	if state.CurrentId != "" {
 		prev := state.Contexts[state.CurrentId]
@@ -65,7 +23,7 @@ func Pause(state *State) {
 	}
 }
 
-func Switch(id string, state *State, eventsRegistry *events.EventRegistry) error {
+func Switch(id string, state *ctx_model.State, eventsRegistry *events.EventRegistry) error {
 	if state.CurrentId == id {
 		return nil
 	}
@@ -92,7 +50,7 @@ func Switch(id string, state *State, eventsRegistry *events.EventRegistry) error
 				"from": prevId,
 			},
 		}, eventsRegistry)
-		ctx.Intervals = append(state.Contexts[id].Intervals, Interval{Start: now})
+		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Start: now})
 		state.Contexts[id] = ctx
 		return nil
 	} else {
@@ -100,22 +58,13 @@ func Switch(id string, state *State, eventsRegistry *events.EventRegistry) error
 	}
 }
 
-func Comment(id string, comment string, state *State) {
+func Comment(id string, comment string, state *ctx_model.State) {
 	ctx := state.Contexts[id]
 	ctx.Comments = append(ctx.Comments, comment)
 	state.Contexts[id] = ctx
 }
 
-func Save(state *State) {
-	statePath := filepath.Join(viper.GetString("ctxPath"), "state")
-	data, err := json.Marshal(state)
-	if err != nil {
-		panic(err)
-	}
-	os.WriteFile(statePath, data, 0644)
-}
-
-func Stop(id string, state *State) {
+func Stop(id string, state *ctx_model.State) {
 	now := time.Now().Local()
 	if state.CurrentId == id {
 		prev := state.Contexts[state.CurrentId]
@@ -132,7 +81,7 @@ func Stop(id string, state *State) {
 
 }
 
-func Rename(id string, newDescription string, state *State) {
+func Rename(id string, newDescription string, state *ctx_model.State) {
 	newId := util.GenerateId(newDescription)
 	ctx := state.Contexts[id]
 	ctx.Id = newId
@@ -145,7 +94,7 @@ func Rename(id string, newDescription string, state *State) {
 
 }
 
-func Delete(id string, state *State) {
+func Delete(id string, state *ctx_model.State) {
 	if state.CurrentId == id {
 		state.CurrentId = ""
 	}

@@ -3,9 +3,36 @@ package util
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"log"
 	"strings"
+
+	"github.com/m87/ctx/ctx_model"
+	"github.com/m87/ctx/ctx_store"
+	"github.com/spf13/cobra"
 )
+
+type patch func(*ctx_model.State)
+
+func ApplyPatch(fn patch) {
+	state := ctx_store.Load()
+	fn(&state)
+	ctx_store.Save(&state)
+}
+
+func Id(arg string, cmd *cobra.Command) (string, error) {
+	id := strings.TrimSpace(arg)
+	if id == "" {
+		return "", errors.New("")
+	}
+
+	isRaw, _ := cmd.Flags().GetBool("raw")
+
+	if !isRaw {
+		id = GenerateId(id)
+	}
+	return id, nil
+}
 
 func Check(err error, msg string) {
 	if err != nil {

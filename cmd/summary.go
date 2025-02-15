@@ -5,9 +5,8 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -23,31 +22,25 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		id := strings.TrimSpace(args[0])
-		if id == "" {
-			return
-		}
-		isDescription, _ := cmd.Flags().GetBool("description")
+		util.ApplyPatch(func(state *ctx_model.State) {
+			id, err := util.Id(args[0], cmd)
+			util.Check(err, "Unable to process id "+args[0])
 
-		if isDescription {
-			id = util.GenerateId(id)
-		}
+			ctx := state.Contexts[id]
+			fmt.Println(ctx.Description)
+			fmt.Println("------------------------")
+			fmt.Printf("duration: %s\n", ctx.Duration)
+			fmt.Println("comments:")
 
-		state := ctx.Load()
-		ctx := state.Contexts[id]
-		fmt.Println(ctx.Description)
-		fmt.Println("------------------------")
-		fmt.Printf("duration: %s\n", ctx.Duration)
-		fmt.Println("comments:")
+			for _, v := range ctx.Comments {
+				fmt.Printf("\t- %s\n", v)
+			}
+			fmt.Println("intervals:")
 
-		for _, v := range ctx.Comments {
-			fmt.Printf("\t- %s\n", v)
-		}
-		fmt.Println("intervals:")
-
-		for _, v := range ctx.Intervals {
-			fmt.Printf("\t [%s-%s] %s\n", v.Start, v.End, v.Duration)
-		}
+			for _, v := range ctx.Intervals {
+				fmt.Printf("\t [%s-%s] %s\n", v.Start, v.End, v.Duration)
+			}
+		})
 
 	},
 }

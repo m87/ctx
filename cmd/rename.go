@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -22,22 +23,18 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		id := strings.TrimSpace(args[0])
-		newDescription := strings.TrimSpace(args[1])
-		if id == "" || newDescription == "" {
-			return
-		}
-		state := ctx.Load()
+		util.ApplyPatch(func(state *ctx_model.State) {
+			id, err := util.Id(args[0], cmd)
+			util.Check(err, "Unable to process id "+args[0])
 
-		isDescription, _ := cmd.Flags().GetBool("description")
+			newDescription := strings.TrimSpace(args[1])
+			if newDescription == "" {
+				return
+			}
 
-		if isDescription {
-			id = util.GenerateId(id)
-		}
+			ctx.Rename(id, newDescription, state)
 
-		ctx.Rename(id, newDescription, &state)
-
-		ctx.Save(&state)
+		})
 	},
 }
 

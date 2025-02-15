@@ -4,10 +4,10 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
 	"strings"
 
 	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/events"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -24,37 +24,36 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		id := args[0]
-		if strings.TrimSpace(args[0]) == "" {
-			return
-		}
+		util.ApplyPatch(func(state *ctx_model.State) {
+			id, err := util.Id(args[0], cmd)
+			util.Check(err, "Unable to process id "+args[0])
 
-		eventsRegistry := events.Load()
-		state := ctx.Load()
+			eventsRegistry := events.Load()
+			createIfNotFound, _ := cmd.Flags().GetBool("create")
 
-		isDescription, _ := cmd.Flags().GetBool("description")
-		createIfNotFound, _ := cmd.Flags().GetBool("create")
-
-		if isDescription {
-			id = util.GenerateId(id)
-		}
-
-		err := ctx.Switch(id, &state, &eventsRegistry)
-
-		if isDescription && createIfNotFound && err != nil {
-			state.Contexts[id] = ctx.Context{
+			state.Contexts[id] = ctx_model.Context{
 				Id:          id,
 				Description: strings.TrimSpace(args[0]),
-				State:       ctx.ACTIVE,
-				Intervals:   []ctx.Interval{},
+				State:       ctx_model.ACTIVE,
+				Intervals:   []ctx_model.Interval{},
 			}
 
-			ctx.Switch(id, &state, &eventsRegistry)
-		}
+			err = ctx.Switch(id, state, &eventsRegistry)
 
-		log.Print(state)
-		ctx.Save(&state)
-		events.Save(&eventsRegistry)
+			if createIfNotFound && err != nil {
+				state.Contexts[id] = ctx_model.Context{
+					Id:          id,
+					Description: strings.TrimSpace(args[0]),
+					State:       ctx_model.ACTIVE,
+					Intervals:   []ctx_model.Interval{},
+				}
+
+				ctx.Switch(id, state, &eventsRegistry)
+			}
+
+			events.Save(&eventsRegistry)
+		})
+
 	},
 }
 
