@@ -18,6 +18,7 @@ const (
 )
 
 type Event struct {
+	UUID        string            `json:"uuid"`
 	DateTime    time.Time         `json:"dateTime"`
 	CtxId       string            `json:"subject"`
 	Description string            `json:"description"`

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/events"
 	"github.com/m87/ctx/util"
@@ -42,6 +43,7 @@ func Switch(id string, state *ctx_model.State, eventsRegistry *events.EventRegis
 	if ctx, ok := state.Contexts[id]; ok {
 		state.CurrentId = ctx.Id
 		events.Publish(events.Event{
+			UUID:        uuid.NewString(),
 			DateTime:    now,
 			Type:        events.SWITCH_CTX,
 			CtxId:       ctx.Id,
