@@ -52,12 +52,16 @@ func Archive(id string, state *ctx_model.State, eventsRegistry *events.EventRegi
 
 	eventsRegistry.Events = originalEvents
 	entryPath := filepath.Join(viper.GetString("ctxPath"), "archive", id+".ctx")
-	data, err := json.Marshal(
-		ArchiveEntry{
-			Context: context,
-			Events:  ctxEvents,
-		},
-	)
+
+	entry := loadArchive(entryPath)
+
+	entry.Context.Duration = entry.Context.Duration + context.Duration
+	entry.Context.Comments = append(entry.Context.Comments, context.Comments...)
+	entry.Context.Intervals = append(entry.Context.Intervals, context.Intervals...)
+	entry.Context.State = context.State
+	entry.Events = append(entry.Events, ctxEvents...)
+
+	data, err := json.Marshal(entry)
 	if err != nil {
 		panic(err)
 	}
@@ -78,6 +82,23 @@ func Archive(id string, state *ctx_model.State, eventsRegistry *events.EventRegi
 
 	ctx.Delete(id, state)
 
+}
+
+func loadArchive(path string) ArchiveEntry {
+	data, err := os.ReadFile(path)
+
+	if err != nil {
+		return ArchiveEntry{}
+	}
+
+	entry := ArchiveEntry{}
+	err = json.Unmarshal(data, &entry)
+
+	if err != nil {
+		log.Fatal("Uanble to parse entry file")
+	}
+
+	return entry
 }
 
 func loadEvents(path string) []events.Event {

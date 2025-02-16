@@ -22,21 +22,37 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		util.ApplyPatch(func(state *ctx_model.State) {
-			id, err := util.Id(args[0], cmd)
-			util.Check(err, "Unable to process id "+args[0])
+		if f, _ := cmd.Flags().GetBool("all"); f {
+			// st := ctx_store.Load()
+			// util.ApplyPatch(func(state *ctx_model.State) {
+			// 	for _, v := range st.Contexts {
+			// 		id, err := util.Id(v.Id, cmd)
+			// 		util.Check(err, "Unable to process id "+v.Id)
 
-			eventsRegistry := events.Load()
-			archive.Archive(id, state, &eventsRegistry)
-			events.Save(&eventsRegistry)
+			// 		eventsRegistry := events.Load()
+			// 		archive.Archive(id, state, &eventsRegistry)
+			// 		events.Save(&eventsRegistry)
+			// 	}
 
-		})
+			// })
+		} else {
+			util.ApplyPatch(func(state *ctx_model.State) {
+				id, err := util.Id(args[0], cmd)
+				util.Check(err, "Unable to process id "+args[0])
+
+				eventsRegistry := events.Load()
+				archive.Archive(id, state, &eventsRegistry)
+				events.Save(&eventsRegistry)
+
+			})
+		}
 
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(archiveCmd)
+	archiveCmd.Flags().BoolP("all", "a", false, "Show full info")
 
 	// Here you will define your flags and configuration settings.
 
