@@ -6,6 +6,7 @@ package cmd
 import (
 	"github.com/m87/ctx/archive"
 	"github.com/m87/ctx/ctx_model"
+	"github.com/m87/ctx/ctx_store"
 	"github.com/m87/ctx/events"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -23,18 +24,15 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if f, _ := cmd.Flags().GetBool("all"); f {
-			// st := ctx_store.Load()
-			// util.ApplyPatch(func(state *ctx_model.State) {
-			// 	for _, v := range st.Contexts {
-			// 		id, err := util.Id(v.Id, cmd)
-			// 		util.Check(err, "Unable to process id "+v.Id)
+			st := ctx_store.Load()
+			util.ApplyPatch(func(state *ctx_model.State) {
+				for _, v := range st.Contexts {
+					eventsRegistry := events.Load()
+					archive.Archive(v.Id, state, &eventsRegistry)
+					events.Save(&eventsRegistry)
+				}
 
-			// 		eventsRegistry := events.Load()
-			// 		archive.Archive(id, state, &eventsRegistry)
-			// 		events.Save(&eventsRegistry)
-			// 	}
-
-			// })
+			})
 		} else {
 			util.ApplyPatch(func(state *ctx_model.State) {
 				id, err := util.Id(args[0], cmd)
