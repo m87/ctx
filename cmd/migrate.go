@@ -4,6 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 
@@ -28,6 +29,8 @@ to quickly create a Cobra application.`,
 
 		if version == "" {
 			migrateV02()
+		} else {
+			log.Println("Config up to date")
 		}
 
 	},
@@ -48,6 +51,9 @@ func migrateV02() {
 
 	eventsRegsitry.Events = changedEvents
 	events.Save(&eventsRegsitry)
+
+	viper.Set("version", 0.2)
+	viper.WriteConfig()
 }
 
 func init() {
