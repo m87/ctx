@@ -24,7 +24,18 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		eventsRegistry := events.Load()
 
-		for _, v := range eventsRegistry.Events {
+		evs := []events.Event{}
+		if d, _ := cmd.Flags().GetString("day"); d != "" {
+			for _, v := range eventsRegistry.Events {
+				if v.DateTime.Local().Format(time.DateOnly) == d {
+					evs = append(evs, v)
+				}
+			}
+		} else {
+			evs = append(evs, eventsRegistry.Events...)
+		}
+
+		for _, v := range evs {
 			if f, _ := cmd.Flags().GetBool("full"); f {
 				fmt.Printf("[%s] %s (%s => %s)\n", v.DateTime.Local().Format(time.DateTime), v.Description, v.Data["from"], v.CtxId)
 			} else {
@@ -37,6 +48,7 @@ to quickly create a Cobra application.`,
 func init() {
 	eventsCmd.AddCommand(listEventsCmd)
 	listEventsCmd.Flags().BoolP("full", "f", false, "Show full info")
+	listEventsCmd.Flags().StringP("day", "d", "", "Show full info")
 
 	// Here you will define your flags and configuration settings.
 
