@@ -31,13 +31,6 @@ to quickly create a Cobra application.`,
 			eventsRegistry := events.Load()
 			createIfNotFound, _ := cmd.Flags().GetBool("create")
 
-			state.Contexts[id] = ctx_model.Context{
-				Id:          id,
-				Description: strings.TrimSpace(args[0]),
-				State:       ctx_model.ACTIVE,
-				Intervals:   []ctx_model.Interval{},
-			}
-
 			err = ctx.Switch(id, state, &eventsRegistry)
 
 			if createIfNotFound && err != nil {

@@ -26,8 +26,14 @@ func Pause(state *ctx_model.State) {
 
 func Switch(id string, state *ctx_model.State, eventsRegistry *events.EventRegistry) error {
 	if state.CurrentId == id {
-		return nil
+		return errors.New("already active")
 	}
+
+	if _, ok := state.Contexts[id]; !ok {
+		return errors.New("not found")
+
+	}
+
 	now := time.Now().Local()
 	prevId := state.CurrentId
 	if state.CurrentId != "" {
