@@ -12,12 +12,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type patch func(*ctx_model.State)
+type stateConsumer func(*ctx_model.State)
 
-func ApplyPatch(fn patch) {
+func ApplyPatch(fn stateConsumer) {
 	state := ctx_store.Load()
 	fn(&state)
 	ctx_store.Save(&state)
+}
+
+func Read(fn stateConsumer) {
+	state := ctx_store.Load()
+	fn(&state)
 }
 
 func Id(arg string, cmd *cobra.Command) (string, error) {
