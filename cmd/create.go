@@ -11,6 +11,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func createContext(state *ctx_model.State, input string, isRaw bool) {
+	id, err := util.Id(input, isRaw)
+	util.Check(err, "Unable to process id "+input)
+
+	state.Contexts[id] = ctx_model.Context{
+		Id:          id,
+		Description: strings.TrimSpace(input),
+		State:       ctx_model.ACTIVE,
+		Intervals:   []ctx_model.Interval{},
+	}
+}
+
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create",
@@ -23,15 +35,8 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		util.ApplyPatch(func(state *ctx_model.State) {
-			id, err := util.Id(args[0], cmd)
-			util.Check(err, "Unable to process id "+args[0])
-
-			state.Contexts[id] = ctx_model.Context{
-				Id:          id,
-				Description: strings.TrimSpace(args[0]),
-				State:       ctx_model.ACTIVE,
-				Intervals:   []ctx_model.Interval{},
-			}
+			isRaw, _ := cmd.Flags().GetBool("raw")
+			createContext(state, args[0], isRaw)
 		})
 	},
 }

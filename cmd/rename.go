@@ -12,6 +12,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func changeContextDescription(state *ctx_model.State, input string, description string, isRaw bool) {
+	id, err := util.Id(input, isRaw)
+	util.Check(err, "Unable to process id "+input)
+
+	newDescription := strings.TrimSpace(description)
+	if newDescription == "" {
+		return
+	}
+
+	ctx.Rename(id, newDescription, state)
+}
+
 // renameCmd represents the rename command
 var renameCmd = &cobra.Command{
 	Use:   "rename",
@@ -24,15 +36,8 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		util.ApplyPatch(func(state *ctx_model.State) {
-			id, err := util.Id(args[0], cmd)
-			util.Check(err, "Unable to process id "+args[0])
-
-			newDescription := strings.TrimSpace(args[1])
-			if newDescription == "" {
-				return
-			}
-
-			ctx.Rename(id, newDescription, state)
+			isRaw, _ := cmd.Flags().GetBool("raw")
+			changeContextDescription(state, args[0], args[1], isRaw)
 
 		})
 	},

@@ -12,6 +12,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func archiveContext(input string, isRaw bool, archiveAll bool) {
+	if archiveAll {
+		st := ctx_store.Load()
+		util.ApplyPatch(func(state *ctx_model.State) {
+			for _, v := range st.Contexts {
+				eventsRegistry := events.Load()
+				archive.Archive(v.Id, state, &eventsRegistry)
+				events.Save(&eventsRegistry)
+			}
+
+		})
+	} else {
+		util.ApplyPatch(func(state *ctx_model.State) {
+			id, err := util.Id(input, isRaw)
+			util.Check(err, "Unable to process id "+input)
+
+			eventsRegistry := events.Load()
+			archive.Archive(id, state, &eventsRegistry)
+			events.Save(&eventsRegistry)
+
+		})
+	}
+}
+
 // archiveCmd represents the archive command
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
@@ -23,28 +47,9 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if f, _ := cmd.Flags().GetBool("all"); f {
-			st := ctx_store.Load()
-			util.ApplyPatch(func(state *ctx_model.State) {
-				for _, v := range st.Contexts {
-					eventsRegistry := events.Load()
-					archive.Archive(v.Id, state, &eventsRegistry)
-					events.Save(&eventsRegistry)
-				}
-
-			})
-		} else {
-			util.ApplyPatch(func(state *ctx_model.State) {
-				id, err := util.Id(args[0], cmd)
-				util.Check(err, "Unable to process id "+args[0])
-
-				eventsRegistry := events.Load()
-				archive.Archive(id, state, &eventsRegistry)
-				events.Save(&eventsRegistry)
-
-			})
-		}
-
+		isRaw, _ := cmd.Flags().GetBool("raw")
+		archiveAll, _ := cmd.Flags().GetBool("all")
+		archiveContext(args[0], isRaw, archiveAll)
 	},
 }
 

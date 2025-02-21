@@ -9,7 +9,6 @@ import (
 
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/ctx_store"
-	"github.com/spf13/cobra"
 )
 
 type stateConsumer func(*ctx_model.State)
@@ -25,13 +24,11 @@ func Read(fn stateConsumer) {
 	fn(&state)
 }
 
-func Id(arg string, cmd *cobra.Command) (string, error) {
+func Id(arg string, isRaw bool) (string, error) {
 	id := strings.TrimSpace(arg)
 	if id == "" {
 		return "", errors.New("")
 	}
-
-	isRaw, _ := cmd.Flags().GetBool("raw")
 
 	if !isRaw {
 		id = GenerateId(id)

@@ -13,6 +13,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func switchContext(state *ctx_model.State, input string, isRawId bool, createIfNotFound bool) {
+	id, err := util.Id(input, isRawId)
+	util.Check(err, "Unable to process id "+id)
+
+	eventsRegistry := events.Load()
+
+	err = ctx.Switch(id, state, &eventsRegistry)
+
+	if createIfNotFound && err != nil {
+		state.Contexts[id] = ctx_model.Context{
+			Id:          id,
+			Description: strings.TrimSpace(input),
+			State:       ctx_model.ACTIVE,
+			Intervals:   []ctx_model.Interval{},
+		}
+
+		ctx.Switch(id, state, &eventsRegistry)
+	}
+
+	events.Save(&eventsRegistry)
+}
+
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
 	Use:   "switch",
@@ -25,26 +47,9 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		util.ApplyPatch(func(state *ctx_model.State) {
-			id, err := util.Id(args[0], cmd)
-			util.Check(err, "Unable to process id "+args[0])
-
-			eventsRegistry := events.Load()
+			isRaw, _ := cmd.Flags().GetBool("raw")
 			createIfNotFound, _ := cmd.Flags().GetBool("create")
-
-			err = ctx.Switch(id, state, &eventsRegistry)
-
-			if createIfNotFound && err != nil {
-				state.Contexts[id] = ctx_model.Context{
-					Id:          id,
-					Description: strings.TrimSpace(args[0]),
-					State:       ctx_model.ACTIVE,
-					Intervals:   []ctx_model.Interval{},
-				}
-
-				ctx.Switch(id, state, &eventsRegistry)
-			}
-
-			events.Save(&eventsRegistry)
+			switchContext(state, args[0], isRaw, createIfNotFound)
 		})
 
 	},

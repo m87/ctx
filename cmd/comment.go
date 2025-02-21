@@ -12,6 +12,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func commentContext(state *ctx_model.State, input string, commentInput string, isRaw bool) {
+	id, err := util.Id(input, isRaw)
+	util.Check(err, "Unable to process id "+input)
+
+	comment := strings.TrimSpace(commentInput)
+	if comment == "" {
+		return
+	}
+
+	ctx.Comment(id, comment, state)
+
+}
+
 // commentCmd represents the comment command
 var commentCmd = &cobra.Command{
 	Use:   "comment",
@@ -24,16 +37,8 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		util.ApplyPatch(func(state *ctx_model.State) {
-			id, err := util.Id(args[0], cmd)
-			util.Check(err, "Unable to process id "+args[0])
-
-			comment := strings.TrimSpace(args[1])
-			if comment == "" {
-				return
-			}
-
-			ctx.Comment(id, comment, state)
-
+			isRaw, _ := cmd.Flags().GetBool("raw")
+			commentContext(state, args[0], args[1], isRaw)
 		})
 	},
 }
