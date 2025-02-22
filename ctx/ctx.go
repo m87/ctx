@@ -10,6 +10,15 @@ import (
 	"github.com/m87/ctx/util"
 )
 
+func Create(state *ctx_model.State, id string, description string) {
+	state.Contexts[id] = ctx_model.Context{
+		Id:          id,
+		Description: description,
+		State:       ctx_model.ACTIVE,
+		Intervals:   []ctx_model.Interval{},
+	}
+}
+
 func Pause(state *ctx_model.State) {
 	now := time.Now().Local()
 	if state.CurrentId != "" {

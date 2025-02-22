@@ -31,3 +31,9 @@ func IsNotNil(t *testing.T, got any) {
 		t.Errorf("%v is nil", got)
 	}
 }
+
+func Size[V any](t *testing.T, got []V, size int) {
+	if len(got) != size {
+		t.Errorf("Expected size: %v, got: %v", size, len(got))
+	}
+}
