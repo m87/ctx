@@ -2,6 +2,8 @@ package util
 
 import (
 	"testing"
+
+	"github.com/m87/ctx/assert"
 )
 
 func TestGenerateShaFromDescription(t *testing.T) {
@@ -9,32 +11,23 @@ func TestGenerateShaFromDescription(t *testing.T) {
 	description := "test"
 
 	id, err := Id(description, false)
-
-	if err != nil || id != expected {
-		t.Fail()
-	}
+	assert.NoErr(t, err)
+	assert.Equal(t, id, expected)
 
 }
 
 func TestReturnErrIfEmptyDescription(t *testing.T) {
-
 	_, err := Id("", false)
-	if err == nil {
-		t.Fail()
-	}
+	assert.Err(t, err)
 
 	_, err = Id(" \t", false)
-	if err == nil {
-		t.Fail()
-	}
+	assert.Err(t, err)
 }
 
 func TestReturnIdAsIsIfIsRawFlagSet(t *testing.T) {
 	expected := "test"
 
 	id, err := Id(expected, true)
-
-	if err != nil || id != expected {
-		t.Fail()
-	}
+	assert.NoErr(t, err)
+	assert.Equal(t, id, expected)
 }
