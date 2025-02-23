@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/events"
+	"github.com/m87/ctx/events_model"
 	"github.com/m87/ctx/util"
 )
 
@@ -33,7 +34,7 @@ func Pause(state *ctx_model.State) {
 	}
 }
 
-func Switch(id string, state *ctx_model.State, eventsRegistry *events.EventRegistry) error {
+func Switch(id string, state *ctx_model.State, eventsRegistry *events_model.EventRegistry) error {
 	if state.CurrentId == id {
 		return errors.New("already active")
 	}
@@ -57,10 +58,10 @@ func Switch(id string, state *ctx_model.State, eventsRegistry *events.EventRegis
 
 	if ctx, ok := state.Contexts[id]; ok {
 		state.CurrentId = ctx.Id
-		events.Publish(events.Event{
+		events.Publish(events_model.Event{
 			UUID:        uuid.NewString(),
 			DateTime:    now,
-			Type:        events.SWITCH_CTX,
+			Type:        events_model.SWITCH_CTX,
 			CtxId:       ctx.Id,
 			Description: ctx.Description,
 			Data: map[string]string{

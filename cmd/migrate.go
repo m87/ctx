@@ -9,7 +9,8 @@ import (
 	"path/filepath"
 
 	"github.com/google/uuid"
-	"github.com/m87/ctx/events"
+	"github.com/m87/ctx/events_model"
+	"github.com/m87/ctx/events_store"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,9 +41,9 @@ func migrateV02() {
 	home, _ := os.UserHomeDir()
 	os.Mkdir(filepath.Join(home, ".ctx.d", "archive"), 0777)
 
-	eventsRegsitry := events.Load()
+	eventsRegsitry := events_store.Load()
 
-	changedEvents := []events.Event{}
+	changedEvents := []events_model.Event{}
 
 	for _, ev := range eventsRegsitry.Events {
 		ev.UUID = uuid.NewString()
@@ -50,7 +51,7 @@ func migrateV02() {
 	}
 
 	eventsRegsitry.Events = changedEvents
-	events.Save(&eventsRegsitry)
+	events_store.Save(&eventsRegsitry)
 
 	viper.Set("version", 0.2)
 	viper.WriteConfig()

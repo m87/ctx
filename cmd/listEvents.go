@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/m87/ctx/events"
+	"github.com/m87/ctx/events_model"
+	"github.com/m87/ctx/events_store"
 	"github.com/spf13/cobra"
 )
 
@@ -22,9 +23,9 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		eventsRegistry := events.Load()
+		eventsRegistry := events_store.Load()
 
-		evs := []events.Event{}
+		evs := []events_model.Event{}
 		if d, _ := cmd.Flags().GetString("day"); d != "" {
 			for _, v := range eventsRegistry.Events {
 				if v.DateTime.Local().Format(time.DateOnly) == d {

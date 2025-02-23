@@ -9,26 +9,26 @@ import (
 
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/events"
+	"github.com/m87/ctx/events_model"
 	"github.com/spf13/viper"
 )
 
 type ArchiveEntry struct {
-	Context ctx_model.Context `json:"context"`
-	Events  []events.Event    `json:"events"`
+	Context ctx_model.Context    `json:"context"`
+	Events  []events_model.Event `json:"events"`
 }
 
-func Archive(id string, state *ctx_model.State, eventsRegistry *events.EventRegistry) {
+func Archive(id string, state *ctx_model.State, eventsRegistry *events_model.EventRegistry) {
 
 	if id == state.CurrentId {
 		log.Fatalf("context %s is active", id)
 	}
 
 	context := state.Contexts[id]
-	var ctxEvents []events.Event
-	evnetsByDate := map[string][]events.Event{}
+	var ctxEvents []events_model.Event
+	evnetsByDate := map[string][]events_model.Event{}
 
-	originalEvents := append([]events.Event{}, eventsRegistry.Events...)
+	originalEvents := append([]events_model.Event{}, eventsRegistry.Events...)
 
 	for _, event := range eventsRegistry.Events {
 		if event.CtxId == id {
@@ -101,13 +101,13 @@ func loadArchive(path string) ArchiveEntry {
 	return entry
 }
 
-func loadEvents(path string) []events.Event {
+func loadEvents(path string) []events_model.Event {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return []events.Event{}
+		return []events_model.Event{}
 	}
 
-	events := []events.Event{}
+	events := []events_model.Event{}
 	err = json.Unmarshal(data, &events)
 	if err != nil {
 		log.Fatal("Unable to parse state file")

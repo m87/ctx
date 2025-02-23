@@ -1,13 +1,10 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"github.com/m87/ctx/archive"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/ctx_store"
-	"github.com/m87/ctx/events"
+	"github.com/m87/ctx/events_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -17,9 +14,9 @@ func archiveContext(input string, isRaw bool, archiveAll bool) {
 		st := ctx_store.Load()
 		util.ApplyPatch(func(state *ctx_model.State) {
 			for _, v := range st.Contexts {
-				eventsRegistry := events.Load()
-				archive.Archive(v.Id, state, &eventsRegistry)
-				events.Save(&eventsRegistry)
+				util.ApplyEventsPatch(func(eventsRegistry *events_model.EventRegistry) {
+					archive.Archive(v.Id, state, eventsRegistry)
+				})
 			}
 
 		})
@@ -28,15 +25,14 @@ func archiveContext(input string, isRaw bool, archiveAll bool) {
 			id, err := util.Id(input, isRaw)
 			util.Check(err, "Unable to process id "+input)
 
-			eventsRegistry := events.Load()
-			archive.Archive(id, state, &eventsRegistry)
-			events.Save(&eventsRegistry)
+			util.ApplyEventsPatch(func(eventsRegistry *events_model.EventRegistry) {
+				archive.Archive(id, state, eventsRegistry)
+			})
 
 		})
 	}
 }
 
-// archiveCmd represents the archive command
 var archiveCmd = &cobra.Command{
 	Use:   "archive",
 	Short: "A brief description of your command",
@@ -56,14 +52,4 @@ to quickly create a Cobra application.`,
 func init() {
 	rootCmd.AddCommand(archiveCmd)
 	archiveCmd.Flags().BoolP("all", "a", false, "Show full info")
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// archiveCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// archiveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

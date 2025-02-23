@@ -8,7 +8,7 @@ import (
 
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/events"
+	"github.com/m87/ctx/events_store"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ func switchContext(state *ctx_model.State, input string, isRawId bool, createIfN
 	id, err := util.Id(input, isRawId)
 	util.Check(err, "Unable to process id "+id)
 
-	eventsRegistry := events.Load()
+	eventsRegistry := events_store.Load()
 
 	err = ctx.Switch(id, state, &eventsRegistry)
 
@@ -32,7 +32,7 @@ func switchContext(state *ctx_model.State, input string, isRawId bool, createIfN
 		ctx.Switch(id, state, &eventsRegistry)
 	}
 
-	events.Save(&eventsRegistry)
+	events_store.Save(&eventsRegistry)
 }
 
 // switchCmd represents the switch command

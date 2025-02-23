@@ -9,17 +9,32 @@ import (
 
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/ctx_store"
+	"github.com/m87/ctx/events_model"
+	"github.com/m87/ctx/events_store"
 )
 
-type stateConsumer func(*ctx_model.State)
+type statePatch func(*ctx_model.State)
 
-func ApplyPatch(fn stateConsumer) {
+type eventsPatch func(*events_model.EventRegistry)
+
+func ApplyEventsPatch(fn eventsPatch) {
+	eventsRegisty := events_store.Load()
+	fn(&eventsRegisty)
+	events_store.Save(&eventsRegisty)
+}
+
+func ApplyPatch(fn statePatch) {
 	state := ctx_store.Load()
 	fn(&state)
 	ctx_store.Save(&state)
 }
 
-func Read(fn stateConsumer) {
+func ReadEvents(fn eventsPatch) {
+	eventsRegistry := events_store.Load()
+	fn(&eventsRegistry)
+}
+
+func Read(fn statePatch) {
 	state := ctx_store.Load()
 	fn(&state)
 }
