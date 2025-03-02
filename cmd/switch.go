@@ -4,8 +4,10 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"log"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/events_store"
@@ -16,6 +18,13 @@ import (
 func switchContext(state *ctx_model.State, input string, isRawId bool, createIfNotFound bool) {
 	id, err := util.Id(input, isRawId)
 	util.Check(err, "Unable to process id "+input)
+
+	if err != nil {
+		log.Println("Unable to process id " + input)
+		placeholder := uuid.NewString()
+		id, err = util.Id(placeholder, isRawId)
+		util.Check(err, "Unable to process placeholder "+placeholder)
+	}
 
 	eventsRegistry := events_store.Load()
 
