@@ -57,6 +57,12 @@ func Check(err error, msg string) {
 	}
 }
 
+func Warn(err error, msg string) {
+	if err != nil {
+		log.Println(msg)
+	}
+}
+
 func GenerateId(desc string) string {
 	h := sha256.New()
 	h.Write([]byte(strings.ToLower(desc)))

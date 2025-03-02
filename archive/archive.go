@@ -2,6 +2,7 @@ package archive
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,10 +19,19 @@ type ArchiveEntry struct {
 	Events  []events_model.Event `json:"events"`
 }
 
-func Archive(id string, state *ctx_model.State, eventsRegistry *events_model.EventRegistry) {
+func ArchiveAll(state *ctx_model.State, eventsRegistry *events_model.EventRegistry) {
+	for _, v := range state.Contexts {
+		err := Archive(v.Id, state, eventsRegistry)
+		if err != nil {
+			log.Printf("Active context %s, skipping\n", v.Id)
+		}
+	}
+}
+
+func Archive(id string, state *ctx_model.State, eventsRegistry *events_model.EventRegistry) error {
 
 	if id == state.CurrentId {
-		log.Fatalf("context %s is active", id)
+		return errors.New("context is active")
 	}
 
 	context := state.Contexts[id]
@@ -81,7 +91,7 @@ func Archive(id string, state *ctx_model.State, eventsRegistry *events_model.Eve
 	}
 
 	ctx.Delete(id, state)
-
+	return nil
 }
 
 func loadArchive(path string) ArchiveEntry {
@@ -95,7 +105,7 @@ func loadArchive(path string) ArchiveEntry {
 	err = json.Unmarshal(data, &entry)
 
 	if err != nil {
-		log.Fatal("Uanble to parse entry file")
+		panic("Uanble to parse entry file")
 	}
 
 	return entry
@@ -110,7 +120,7 @@ func loadEvents(path string) []events_model.Event {
 	events := []events_model.Event{}
 	err = json.Unmarshal(data, &events)
 	if err != nil {
-		log.Fatal("Unable to parse state file")
+		panic("Unable to parse state file")
 	}
 
 	return events

@@ -15,7 +15,7 @@ import (
 
 func switchContext(state *ctx_model.State, input string, isRawId bool, createIfNotFound bool) {
 	id, err := util.Id(input, isRawId)
-	util.Check(err, "Unable to process id "+id)
+	util.Check(err, "Unable to process id "+input)
 
 	eventsRegistry := events_store.Load()
 
