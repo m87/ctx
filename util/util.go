@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/ctx_store"
@@ -13,9 +14,36 @@ import (
 	"github.com/m87/ctx/events_store"
 )
 
+type TimeProvider interface {
+	Now() time.Time
+}
+
+type Time struct{}
+
+func (Time) Now() time.Time { return time.Now().Local() }
+
+type PatchContext struct {
+	state          ctx_model.State
+	eventsRegistry events_model.EventRegistry
+	timeProvider   TimeProvider
+}
+
+type patch func(appContext *PatchContext)
+
 type statePatch func(*ctx_model.State)
 
 type eventsPatch func(*events_model.EventRegistry)
+
+func Apply(fn patch) {
+	patchContext := PatchContext{
+		state:          ctx_store.Load(),
+		eventsRegistry: events_store.Load(),
+		timeProvider:   Time{},
+	}
+	fn(&patchContext)
+	ctx_store.Save(&patchContext.state)
+	events_store.Save(&patchContext.eventsRegistry)
+}
 
 func ApplyEventsPatch(fn eventsPatch) {
 	eventsRegisty := events_store.Load()
