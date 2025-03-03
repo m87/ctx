@@ -53,7 +53,7 @@ func Id(arg string, isRaw bool) (string, error) {
 
 func Check(err error, msg string) {
 	if err != nil {
-		log.Fatal(msg)
+		log.Panicln(msg)
 	}
 }
 

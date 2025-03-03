@@ -1,37 +1,18 @@
 package archive
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
-	"os"
-	"path/filepath"
 	"time"
 
+	"github.com/m87/ctx/archive_model"
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/events_model"
-	"github.com/spf13/viper"
 )
 
-type ArchiveEntry struct {
-	Context ctx_model.Context    `json:"context"`
-	Events  []events_model.Event `json:"events"`
-}
-
-func ArchiveAll(state *ctx_model.State, eventsRegistry *events_model.EventRegistry) {
-	for _, v := range state.Contexts {
-		err := Archive(v.Id, state, eventsRegistry)
-		if err != nil {
-			log.Printf("Active context %s, skipping\n", v.Id)
-		}
-	}
-}
-
-func Archive(id string, state *ctx_model.State, eventsRegistry *events_model.EventRegistry) error {
-
+func Archive(id string, state *ctx_model.State, eventsRegistry *events_model.EventRegistry, entry *archive_model.ArchiveEntry) (map[string][]events_model.Event, error) {
 	if id == state.CurrentId {
-		return errors.New("context is active")
+		return nil, errors.New("context is active")
 	}
 
 	context := state.Contexts[id]
@@ -61,67 +42,13 @@ func Archive(id string, state *ctx_model.State, eventsRegistry *events_model.Eve
 	}
 
 	eventsRegistry.Events = originalEvents
-	entryPath := filepath.Join(viper.GetString("ctxPath"), "archive", id+".ctx")
-
-	entry := loadArchive(entryPath)
-
+	entry.Context.Id = context.Id
 	entry.Context.Duration = entry.Context.Duration + context.Duration
 	entry.Context.Comments = append(entry.Context.Comments, context.Comments...)
 	entry.Context.Intervals = append(entry.Context.Intervals, context.Intervals...)
 	entry.Context.State = context.State
 	entry.Events = append(entry.Events, ctxEvents...)
 
-	data, err := json.Marshal(entry)
-	if err != nil {
-		panic(err)
-	}
-	os.WriteFile(entryPath, data, 0644)
-
-	for d, e := range evnetsByDate {
-		path := filepath.Join(viper.GetString("ctxPath"), "archive", d+".events")
-		savedEvents := loadEvents(path)
-		savedEvents = append(savedEvents, e...)
-		data, err := json.Marshal(savedEvents)
-		if err != nil {
-			panic(err)
-		}
-
-		os.WriteFile(path, data, 0644)
-
-	}
-
 	ctx.Delete(id, state)
-	return nil
-}
-
-func loadArchive(path string) ArchiveEntry {
-	data, err := os.ReadFile(path)
-
-	if err != nil {
-		return ArchiveEntry{}
-	}
-
-	entry := ArchiveEntry{}
-	err = json.Unmarshal(data, &entry)
-
-	if err != nil {
-		panic("Uanble to parse entry file")
-	}
-
-	return entry
-}
-
-func loadEvents(path string) []events_model.Event {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return []events_model.Event{}
-	}
-
-	events := []events_model.Event{}
-	err = json.Unmarshal(data, &events)
-	if err != nil {
-		panic("Unable to parse state file")
-	}
-
-	return events
+	return evnetsByDate, nil
 }
