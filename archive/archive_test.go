@@ -28,6 +28,8 @@ func TestArchiveContextWithEvents(t *testing.T) {
 
 	eventsByDate, err := Archive(test.TestId, &state, &eventsRegistry, &entry)
 
+	assert.Equal(t, len(state.Contexts), 0)
+	assert.Size(t, eventsRegistry.Events, 0)
 	assert.NoErr(t, err)
 	assert.Equal(t, entry.Context.Id, test.TestId)
 	assert.Size(t, entry.Events, 1)
@@ -50,6 +52,7 @@ func TestArchiveContextWithoutEvents(t *testing.T) {
 
 	eventsByDate, err := Archive(test.TestId, &state, &eventsRegistry, &entry)
 
+	assert.Equal(t, len(state.Contexts), 0)
 	assert.NoErr(t, err)
 	assert.Equal(t, entry.Context.Id, test.TestId)
 	assert.Size(t, entry.Events, 0)
