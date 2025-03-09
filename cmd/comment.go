@@ -4,26 +4,8 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"strings"
-
-	"github.com/m87/ctx/ctx"
-	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
-
-func commentContext(state *ctx_model.State, input string, commentInput string, isRaw bool) {
-	id, err := util.Id(input, isRaw)
-	util.Check(err, "Unable to process id "+input)
-
-	comment := strings.TrimSpace(commentInput)
-	if comment == "" {
-		return
-	}
-
-	ctx.Comment(id, comment, state)
-
-}
 
 // commentCmd represents the comment command
 var commentCmd = &cobra.Command{
@@ -36,10 +18,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		util.ApplyPatch(func(state *ctx_model.State) {
-			isRaw, _ := cmd.Flags().GetBool("raw")
-			commentContext(state, args[0], args[1], isRaw)
-		})
 	},
 }
 

@@ -4,12 +4,6 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
-	"strconv"
-	"time"
-
-	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
@@ -24,30 +18,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		id := args[0]
-		index, _ := strconv.Atoi(args[1])
-		value := args[2]
-		changeEnd, _ := cmd.Flags().GetBool("end")
-
-		util.ApplyPatch(func(state *ctx_model.State) {
-			context := state.Contexts[id]
-			interval := context.Intervals[index]
-
-			if context.Id == state.CurrentId {
-				log.Fatalln("Cannont modify active context")
-			}
-
-			if changeEnd {
-				newTime, _ := time.ParseInLocation(time.DateTime, value, time.Local)
-				newDuration := newTime.Sub(interval.Start)
-				interval.End = newTime
-				diff := interval.Duration - newDuration
-				interval.Duration = newDuration
-				context.Duration = context.Duration - diff
-				context.Intervals[index] = interval
-				state.Contexts[id] = context
-			}
-		})
 	},
 }
 
