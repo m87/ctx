@@ -34,3 +34,19 @@ func Save(state *ctx_model.State) {
 	}
 	os.WriteFile(statePath, data, 0644)
 }
+
+type LocalContextStore struct {
+	path string
+}
+
+func New(path string) *LocalContextStore {
+	return &LocalContextStore{
+		path: path,
+	}
+}
+
+func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) {
+	state := Load()
+	fn(&state)
+	Save(&state)
+}

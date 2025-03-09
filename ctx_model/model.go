@@ -28,3 +28,5 @@ type State struct {
 	Contexts  map[string]Context `json:"contexts"`
 	CurrentId string             `json:"currentId"`
 }
+
+type StatePatch func(*State)

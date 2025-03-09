@@ -10,12 +10,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/events_store"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
-func switchContext(state *ctx_model.State, input string, isRawId bool, createIfNotFound bool) {
+func switchContext(patchContext *util.PatchContext, input string, isRawId bool, createIfNotFound bool) {
 	id, err := util.Id(input, isRawId)
 	util.Check(err, "Unable to process id "+input)
 
@@ -26,22 +25,18 @@ func switchContext(state *ctx_model.State, input string, isRawId bool, createIfN
 		util.Check(err, "Unable to process placeholder "+placeholder)
 	}
 
-	eventsRegistry := events_store.Load()
-
-	err = ctx.Switch(id, state, &eventsRegistry)
+	err = ctx.Switch(id, patchContext)
 
 	if createIfNotFound && err != nil {
-		state.Contexts[id] = ctx_model.Context{
+		patchContext.State.Contexts[id] = ctx_model.Context{
 			Id:          id,
 			Description: strings.TrimSpace(input),
 			State:       ctx_model.ACTIVE,
 			Intervals:   []ctx_model.Interval{},
 		}
 
-		ctx.Switch(id, state, &eventsRegistry)
+		ctx.Switch(id, patchContext)
 	}
-
-	events_store.Save(&eventsRegistry)
 }
 
 // switchCmd represents the switch command
@@ -55,12 +50,11 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		util.ApplyPatch(func(state *ctx_model.State) {
-			isRaw, _ := cmd.Flags().GetBool("raw")
-			createIfNotFound, _ := cmd.Flags().GetBool("create")
-			switchContext(state, args[0], isRaw, createIfNotFound)
+		isRaw, _ := cmd.Flags().GetBool("raw")
+		createIfNotFound, _ := cmd.Flags().GetBool("create")
+		util.Apply(func(patchContext *util.PatchContext) {
+			switchContext(patchContext, args[0], isRaw, createIfNotFound)
 		})
-
 	},
 }
 

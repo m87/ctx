@@ -11,6 +11,45 @@ import (
 	"github.com/m87/ctx/util"
 )
 
+type TimeProvider interface {
+	Now() time.Time
+}
+
+type ContextStore interface {
+	Apply(fn ctx_model.StatePatch)
+}
+
+type EventsRegistryStore interface {
+}
+
+type ArchiveStore interface {
+}
+
+type ContextManager struct {
+	contextStore ContextStore
+	timeProvider TimeProvider
+}
+
+func New(contextStore ContextStore, timeProvider TimeProvider) *ContextManager {
+	return &ContextManager{
+		contextStore: contextStore,
+		timeProvider: timeProvider,
+	}
+}
+
+func (manager *ContextManager) CreateContext(id string, description string) {
+	manager.contextStore.Apply(
+		func(state *ctx_model.State) {
+			state.Contexts[id] = ctx_model.Context{
+				Id:          id,
+				Description: description,
+				State:       ctx_model.ACTIVE,
+				Intervals:   []ctx_model.Interval{},
+			}
+		},
+	)
+}
+
 func Create(state *ctx_model.State, id string, description string) {
 	state.Contexts[id] = ctx_model.Context{
 		Id:          id,
@@ -34,7 +73,10 @@ func Pause(state *ctx_model.State) {
 	}
 }
 
-func Switch(id string, state *ctx_model.State, eventsRegistry *events_model.EventRegistry) error {
+func Switch(id string, patchContext *util.PatchContext) error {
+	state := patchContext.State
+	eventsRegistry := patchContext.EventsRegistry
+
 	if state.CurrentId == id {
 		return errors.New("already active")
 	}
@@ -67,9 +109,13 @@ func Switch(id string, state *ctx_model.State, eventsRegistry *events_model.Even
 			Data: map[string]string{
 				"from": prevId,
 			},
-		}, eventsRegistry)
+		}, &eventsRegistry)
 		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Start: now})
 		state.Contexts[id] = ctx
+
+		patchContext.State = state
+		patchContext.EventsRegistry = eventsRegistry
+
 		return nil
 	} else {
 		return errors.New("not found")

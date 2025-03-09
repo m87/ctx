@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/ctx_store"
 	"github.com/m87/ctx/events_model"
@@ -22,10 +23,31 @@ type Time struct{}
 
 func (Time) Now() time.Time { return time.Now().Local() }
 
+type Runtime struct {
+	time TimeProvider
+}
+
+type Providers struct {
+	time TimeProvider
+}
+
+type Context interface {
+}
+
+type ContextImpl struct {
+	state          *ctx_model.Context
+	eventsRegistry *events_model.EventRegistry
+	providers      Providers
+}
+
+func CreateContext() (*Context, error) {
+	return nil, nil
+}
+
 type PatchContext struct {
-	state          ctx_model.State
-	eventsRegistry events_model.EventRegistry
-	timeProvider   TimeProvider
+	State          ctx_model.State
+	EventsRegistry events_model.EventRegistry
+	TimeProvider   TimeProvider
 }
 
 type patch func(appContext *PatchContext)
@@ -36,13 +58,13 @@ type eventsPatch func(*events_model.EventRegistry)
 
 func Apply(fn patch) {
 	patchContext := PatchContext{
-		state:          ctx_store.Load(),
-		eventsRegistry: events_store.Load(),
-		timeProvider:   Time{},
+		State:          ctx_store.Load(),
+		EventsRegistry: events_store.Load(),
+		TimeProvider:   Time{},
 	}
 	fn(&patchContext)
-	ctx_store.Save(&patchContext.state)
-	events_store.Save(&patchContext.eventsRegistry)
+	ctx_store.Save(&patchContext.State)
+	events_store.Save(&patchContext.EventsRegistry)
 }
 
 func ApplyEventsPatch(fn eventsPatch) {
@@ -96,4 +118,8 @@ func GenerateId(desc string) string {
 	h.Write([]byte(strings.ToLower(desc)))
 	bs := h.Sum(nil)
 	return hex.EncodeToString(bs)
+}
+
+func CreateManager() *ctx.ContextManager {
+
 }
