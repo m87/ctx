@@ -4,36 +4,38 @@ import (
 	"time"
 
 	"github.com/m87/ctx/ctx_model"
+	"github.com/m87/ctx/ctx_store"
+	"github.com/spf13/viper"
 )
 
-type TimeProvider interface {
-	Now() time.Time
+type RealTimeProvider struct{}
+
+func (provider *RealTimeProvider) Now() time.Time {
+	return time.Now().Local()
 }
 
-type ContextStore interface {
-	Apply(fn ctx_model.StatePatch)
+func NewTimer() *RealTimeProvider {
+	return &RealTimeProvider{}
 }
 
-type EventsRegistryStore interface {
-}
-
-type ArchiveStore interface {
+func CreateManager() *ContextManager {
+	return New(ctx_store.New(viper.GetString("path")), NewTimer())
 }
 
 type ContextManager struct {
-	contextStore ContextStore
-	timeProvider TimeProvider
+	ContextStore ctx_model.ContextStore
+	TimeProvider ctx_model.TimeProvider
 }
 
-func New(contextStore ContextStore, timeProvider TimeProvider) *ContextManager {
+func New(contextStore ctx_model.ContextStore, timeProvider ctx_model.TimeProvider) *ContextManager {
 	return &ContextManager{
-		contextStore: contextStore,
-		timeProvider: timeProvider,
+		ContextStore: contextStore,
+		TimeProvider: timeProvider,
 	}
 }
 
 func (manager *ContextManager) CreateContext(id string, description string) {
-	manager.contextStore.Apply(
+	manager.ContextStore.Apply(
 		func(state *ctx_model.State) {
 			state.Contexts[id] = ctx_model.Context{
 				Id:          id,

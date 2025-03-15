@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/m87/ctx/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateShaFromDescription(t *testing.T) {
@@ -11,23 +11,23 @@ func TestGenerateShaFromDescription(t *testing.T) {
 	description := "test"
 
 	id, err := Id(description, false)
-	assert.NoErr(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, id, expected)
 
 }
 
 func TestReturnErrIfEmptyDescription(t *testing.T) {
 	_, err := Id("", false)
-	assert.Err(t, err)
+	assert.Error(t, err)
 
 	_, err = Id(" \t", false)
-	assert.Err(t, err)
+	assert.Error(t, err)
 }
 
 func TestReturnIdAsIsIfIsRawFlagSet(t *testing.T) {
 	expected := "test"
 
 	id, err := Id(expected, true)
-	assert.NoErr(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, id, expected)
 }

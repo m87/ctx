@@ -3,8 +3,8 @@ package cmd
 import (
 	"strings"
 
+	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/util"
-	"github.com/m87/ctx/util2"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ var createCmd = &cobra.Command{
 		id, err := util.Id(description, false)
 		util.Check(err, "Unable to process id "+description)
 
-		util2.CreateManager().CreateContext(id, description)
+		ctx.CreateManager().CreateContext(id, description)
 	},
 }
 

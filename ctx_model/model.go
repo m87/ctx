@@ -30,3 +30,22 @@ type State struct {
 }
 
 type StatePatch func(*State)
+
+type TimeProvider interface {
+	Now() time.Time
+}
+
+type ContextStore interface {
+	Apply(fn StatePatch)
+}
+
+type EventsRegistryStore interface {
+}
+
+type ArchiveStore interface {
+}
+
+type ContextManager struct {
+	ContextStore ContextStore
+	TimeProvider TimeProvider
+}
