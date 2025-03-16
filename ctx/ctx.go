@@ -1,12 +1,57 @@
 package ctx
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/ctx_store"
 	"github.com/spf13/viper"
 )
+
+type ContextState int
+
+const (
+	ACTIVE ContextState = iota
+	FINISHED
+)
+
+type Interval struct {
+	Start    time.Time     `json:"start"`
+	End      time.Time     `json:"end"`
+	Duration time.Duration `json:"duration"`
+}
+
+type Context struct {
+	Id          string        `json:"id"`
+	Description string        `json:"description"`
+	Comments    []string      `json:"comments"`
+	State       ContextState  `json:"state"`
+	Duration    time.Duration `json:"duration"`
+	Intervals   []Interval    `json:"intervals"`
+}
+
+type State struct {
+	Contexts  map[string]Context `json:"contexts"`
+	CurrentId string             `json:"currentId"`
+}
+
+type StatePatch func(*State)
+
+type TimeProvider interface {
+	Now() time.Time
+}
+
+type ContextStore interface {
+	Apply(fn StatePatch)
+}
+
+type EventsRegistryStore interface {
+}
+
+type ArchiveStore interface {
+}
 
 type RealTimeProvider struct{}
 
@@ -43,6 +88,43 @@ func (manager *ContextManager) CreateContext(id string, description string) {
 				State:       ctx_model.ACTIVE,
 				Intervals:   []ctx_model.Interval{},
 			}
+		},
+	)
+}
+
+func (manager *ContextManager) List() {
+	manager.ContextStore.Read(
+		func(state *ctx_model.State) {
+			for _, v := range state.Contexts {
+				fmt.Printf("- %s\n", v.Description)
+			}
+		},
+	)
+}
+
+func (manager *ContextManager) ListFull() {
+	manager.ContextStore.Read(
+		func(state *ctx_model.State) {
+			for _, v := range state.Contexts {
+				fmt.Printf("- [%s] %s\n", v.Id, v.Description)
+				for _, interval := range v.Intervals {
+					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
+				}
+			}
+		},
+	)
+}
+
+func (manager *ContextManager) ListJson() {
+	manager.ContextStore.Read(
+		func(state *ctx_model.State) {
+			v := make([]ctx_model.Context, 0, len(state.Contexts))
+			for _, c := range state.Contexts {
+				v = append(v, c)
+			}
+			s, _ := json.Marshal(v)
+
+			fmt.Printf("%s", string(s))
 		},
 	)
 }

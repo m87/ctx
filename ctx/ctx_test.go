@@ -26,6 +26,10 @@ func (store *TestContextStore) Apply(fn ctx_model.StatePatch) {
 	fn(&store.state)
 }
 
+func (store *TestContextStore) Read(fn ctx_model.StatePatch) {
+	fn(&store.state)
+}
+
 func TestCreateContext(t *testing.T) {
 
 	cs := NewTestContextStore()

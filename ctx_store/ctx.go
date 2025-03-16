@@ -50,3 +50,8 @@ func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) {
 	fn(&state)
 	Save(&state)
 }
+
+func (store *LocalContextStore) Read(fn ctx_model.StatePatch) {
+	state := Load()
+	fn(&state)
+}

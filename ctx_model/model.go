@@ -37,15 +37,11 @@ type TimeProvider interface {
 
 type ContextStore interface {
 	Apply(fn StatePatch)
+	Read(fn StatePatch)
 }
 
 type EventsRegistryStore interface {
 }
 
 type ArchiveStore interface {
-}
-
-type ContextManager struct {
-	ContextStore ContextStore
-	TimeProvider TimeProvider
 }
