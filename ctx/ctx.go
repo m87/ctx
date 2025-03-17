@@ -2,6 +2,7 @@ package ctx
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -37,14 +38,14 @@ type State struct {
 	CurrentId string             `json:"currentId"`
 }
 
-type StatePatch func(*State)
+type StatePatch func(*State) error
 
 type TimeProvider interface {
 	Now() time.Time
 }
 
 type ContextStore interface {
-	Apply(fn StatePatch)
+	Apply(fn StatePatch) error
 }
 
 type EventsRegistryStore interface {
@@ -79,45 +80,52 @@ func New(contextStore ctx_model.ContextStore, timeProvider ctx_model.TimeProvide
 	}
 }
 
-func (manager *ContextManager) CreateContext(id string, description string) {
-	manager.ContextStore.Apply(
-		func(state *ctx_model.State) {
-			state.Contexts[id] = ctx_model.Context{
-				Id:          id,
-				Description: description,
-				State:       ctx_model.ACTIVE,
-				Intervals:   []ctx_model.Interval{},
+func (manager *ContextManager) CreateContext(id string, description string) error {
+	return manager.ContextStore.Apply(
+		func(state *ctx_model.State) error {
+			if _, ok := state.Contexts[id]; ok {
+				return errors.New("Context already exists")
+			} else {
+				state.Contexts[id] = ctx_model.Context{
+					Id:          id,
+					Description: description,
+					State:       ctx_model.ACTIVE,
+					Intervals:   []ctx_model.Interval{},
+				}
 			}
+			return nil
 		},
 	)
 }
 
 func (manager *ContextManager) List() {
 	manager.ContextStore.Read(
-		func(state *ctx_model.State) {
+		func(state *ctx_model.State) error {
 			for _, v := range state.Contexts {
 				fmt.Printf("- %s\n", v.Description)
 			}
+			return nil
 		},
 	)
 }
 
 func (manager *ContextManager) ListFull() {
 	manager.ContextStore.Read(
-		func(state *ctx_model.State) {
+		func(state *ctx_model.State) error {
 			for _, v := range state.Contexts {
 				fmt.Printf("- [%s] %s\n", v.Id, v.Description)
 				for _, interval := range v.Intervals {
 					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
 				}
 			}
+			return nil
 		},
 	)
 }
 
 func (manager *ContextManager) ListJson() {
 	manager.ContextStore.Read(
-		func(state *ctx_model.State) {
+		func(state *ctx_model.State) error {
 			v := make([]ctx_model.Context, 0, len(state.Contexts))
 			for _, c := range state.Contexts {
 				v = append(v, c)
@@ -125,6 +133,25 @@ func (manager *ContextManager) ListJson() {
 			s, _ := json.Marshal(v)
 
 			fmt.Printf("%s", string(s))
+			return nil
 		},
 	)
+}
+
+func (manager *ContextManager) Switch(id string) error {
+	return manager.ContextStore.Apply(
+		func(state *ctx_model.State) error {
+			if _, ok := state.Contexts[id]; ok {
+
+			}
+			return nil
+
+		})
+}
+
+func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string) error {
+	return manager.ContextStore.Apply(
+		func(s *ctx_model.State) error {
+			return nil
+		})
 }

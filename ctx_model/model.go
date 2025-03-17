@@ -29,14 +29,14 @@ type State struct {
 	CurrentId string             `json:"currentId"`
 }
 
-type StatePatch func(*State)
+type StatePatch func(*State) error
 
 type TimeProvider interface {
 	Now() time.Time
 }
 
 type ContextStore interface {
-	Apply(fn StatePatch)
+	Apply(fn StatePatch) error
 	Read(fn StatePatch)
 }
 

@@ -18,9 +18,9 @@ var createCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		description := strings.TrimSpace(args[0])
 		id, err := util.Id(description, false)
-		util.Check(err, "Unable to process id "+description)
+		util.Checkm(err, "Unable to process id "+description)
 
-		ctx.CreateManager().CreateContext(id, description)
+		util.Check(ctx.CreateManager().CreateContext(id, description))
 	},
 }
 

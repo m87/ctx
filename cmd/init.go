@@ -19,7 +19,7 @@ var initCmd = &cobra.Command{
 		if len(viper.ConfigFileUsed()) > 0 {
 		} else {
 			home, err := os.UserHomeDir()
-			util.Check(err, "Unable to get user home dir")
+			util.Checkm(err, "Unable to get user home dir")
 
 			os.Mkdir(filepath.Join(home, ".ctx.d"), 0777)
 			os.Mkdir(filepath.Join(home, ".ctx.d", "archive"), 0777)

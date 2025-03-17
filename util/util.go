@@ -20,9 +20,15 @@ func Id(arg string, isRaw bool) (string, error) {
 	return id, nil
 }
 
-func Check(err error, msg string) {
+func Checkm(err error, msg string) {
 	if err != nil {
 		log.Panicln(msg)
+	}
+}
+
+func Check(err error) {
+	if err != nil {
+		log.Panicln(err)
 	}
 }
 

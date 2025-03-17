@@ -14,7 +14,7 @@ var resetCmd = &cobra.Command{
 	Short: "Deletes all app files",
 	Run: func(cmd *cobra.Command, args []string) {
 		home, err := os.UserHomeDir()
-		util.Check(err, "Unable to get user home dir")
+		util.Checkm(err, "Unable to get user home dir")
 
 		os.RemoveAll(viper.GetString("ctxPath"))
 		os.Remove(filepath.Join(home, ".ctx"))

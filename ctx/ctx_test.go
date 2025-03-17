@@ -1,6 +1,7 @@
 package ctx
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -22,8 +23,8 @@ func NewTestContextStore() *TestContextStore {
 	}
 }
 
-func (store *TestContextStore) Apply(fn ctx_model.StatePatch) {
-	fn(&store.state)
+func (store *TestContextStore) Apply(fn ctx_model.StatePatch) error {
+	return fn(&store.state)
 }
 
 func (store *TestContextStore) Read(fn ctx_model.StatePatch) {
@@ -31,7 +32,6 @@ func (store *TestContextStore) Read(fn ctx_model.StatePatch) {
 }
 
 func TestCreateContext(t *testing.T) {
-
 	cs := NewTestContextStore()
 	cm := New(cs, NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
@@ -44,4 +44,13 @@ func TestCreateContext(t *testing.T) {
 	assert.Equal(t, createdContext.Duration, time.Duration(0))
 	assert.Len(t, createdContext.Intervals, 0)
 	assert.Len(t, createdContext.Comments, 0)
+}
+
+func TestCreateExistingId(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTimer())
+	cm.CreateContext(test.TestId, test.TestDescription)
+	err := cm.CreateContext(test.TestId, test.TestDescription)
+
+	assert.Error(t, errors.New("Context already exists"), err)
 }

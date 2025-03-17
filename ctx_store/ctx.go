@@ -45,10 +45,15 @@ func New(path string) *LocalContextStore {
 	}
 }
 
-func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) {
+func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) error {
 	state := Load()
-	fn(&state)
-	Save(&state)
+	err := fn(&state)
+	if err != nil {
+		return err
+	} else {
+		Save(&state)
+		return nil
+	}
 }
 
 func (store *LocalContextStore) Read(fn ctx_model.StatePatch) {
