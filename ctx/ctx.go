@@ -158,6 +158,8 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 		state.CurrentId = ctx.Id
 		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Start: now})
 		state.Contexts[id] = ctx
+	} else {
+		return errors.New("Context does not exist")
 	}
 	return nil
 }
@@ -178,6 +180,7 @@ func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description
 		func(state *ctx_model.State) error {
 			if _, ok := state.Contexts[id]; !ok {
 				err := manager.CreateContext(id, description)
+				// TODO test wont check nested applies. Load  Load Save Save
 				if err != nil {
 					return err
 				}
