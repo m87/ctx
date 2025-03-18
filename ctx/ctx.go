@@ -138,20 +138,50 @@ func (manager *ContextManager) ListJson() {
 	)
 }
 
+func (manager *ContextManager) switchInternal(state *ctx_model.State, id string) error {
+	if state.CurrentId == id {
+		return errors.New("Context already active")
+	}
+
+	now := manager.TimeProvider.Now()
+	if state.CurrentId != "" {
+		prev := state.Contexts[state.CurrentId]
+		interval := prev.Intervals[len(prev.Intervals)-1]
+		interval.End = now
+		interval.Duration = interval.End.Sub(interval.Start)
+		state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
+		prev.Duration = prev.Duration + interval.Duration
+		state.Contexts[state.CurrentId] = prev
+	}
+
+	if ctx, ok := state.Contexts[id]; ok {
+		state.CurrentId = ctx.Id
+		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Start: now})
+		state.Contexts[id] = ctx
+	}
+	return nil
+}
+
 func (manager *ContextManager) Switch(id string) error {
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			if _, ok := state.Contexts[id]; ok {
-
+				return manager.switchInternal(state, id)
+			} else {
+				return errors.New("Context does not exists")
 			}
-			return nil
-
 		})
 }
 
-func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string) error {
+func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description string) error {
 	return manager.ContextStore.Apply(
-		func(s *ctx_model.State) error {
-			return nil
+		func(state *ctx_model.State) error {
+			if _, ok := state.Contexts[id]; !ok {
+				err := manager.CreateContext(id, description)
+				if err != nil {
+					return err
+				}
+			}
+			return manager.switchInternal(state, id)
 		})
 }
