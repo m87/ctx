@@ -198,6 +198,7 @@ func TestIntervals(t *testing.T) {
 	tp.Current = dt2
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state = cs.Load()
+	prevCtx = state.Contexts[test.TestId]
 	assert.Equal(t, prevCtx.Intervals[0].Start, dt1)
 	assert.Equal(t, prevCtx.Intervals[0].End, dt2)
 	assert.Equal(t, test.PrevTestId, state.CurrentId)
@@ -209,6 +210,7 @@ func TestIntervals(t *testing.T) {
 	tp.Current = dt3
 	cm.Switch(test.TestId)
 	state = cs.Load()
+	nextCtx = state.Contexts[test.PrevTestId]
 	assert.Equal(t, nextCtx.Intervals[0].Start, dt2)
 	assert.Equal(t, nextCtx.Intervals[0].End, dt3)
 	assert.Equal(t, test.TestId, state.CurrentId)

@@ -80,20 +80,24 @@ func New(contextStore ctx_model.ContextStore, timeProvider ctx_model.TimeProvide
 	}
 }
 
+func (manager *ContextManager) createContetxtInternal(state *ctx_model.State, id string, description string) error {
+	if _, ok := state.Contexts[id]; ok {
+		return errors.New("Context already exists")
+	} else {
+		state.Contexts[id] = ctx_model.Context{
+			Id:          id,
+			Description: description,
+			State:       ctx_model.ACTIVE,
+			Intervals:   []ctx_model.Interval{},
+		}
+	}
+	return nil
+}
+
 func (manager *ContextManager) CreateContext(id string, description string) error {
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
-			if _, ok := state.Contexts[id]; ok {
-				return errors.New("Context already exists")
-			} else {
-				state.Contexts[id] = ctx_model.Context{
-					Id:          id,
-					Description: description,
-					State:       ctx_model.ACTIVE,
-					Intervals:   []ctx_model.Interval{},
-				}
-			}
-			return nil
+			return manager.createContetxtInternal(state, id, description)
 		},
 	)
 }
@@ -179,8 +183,7 @@ func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			if _, ok := state.Contexts[id]; !ok {
-				err := manager.CreateContext(id, description)
-				// TODO test wont check nested applies. Load  Load Save Save
+				err := manager.createContetxtInternal(state, id, description)
 				if err != nil {
 					return err
 				}
