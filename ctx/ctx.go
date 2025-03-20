@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/ctx_store"
+	"github.com/m87/ctx/localstore"
 	"github.com/spf13/viper"
 )
 
@@ -38,22 +39,6 @@ type State struct {
 	CurrentId string             `json:"currentId"`
 }
 
-type StatePatch func(*State) error
-
-type TimeProvider interface {
-	Now() time.Time
-}
-
-type ContextStore interface {
-	Apply(fn StatePatch) error
-}
-
-type EventsRegistryStore interface {
-}
-
-type ArchiveStore interface {
-}
-
 type RealTimeProvider struct{}
 
 func (provider *RealTimeProvider) Now() time.Time {
@@ -65,17 +50,19 @@ func NewTimer() *RealTimeProvider {
 }
 
 func CreateManager() *ContextManager {
-	return New(ctx_store.New(viper.GetString("path")), NewTimer())
+	return New(localstore.NewContextStore(viper.GetString("path")), localstore.NewEventsStore(viper.GetString("path")), NewTimer())
 }
 
 type ContextManager struct {
 	ContextStore ctx_model.ContextStore
+	EventsStore  ctx_model.EventsStore
 	TimeProvider ctx_model.TimeProvider
 }
 
-func New(contextStore ctx_model.ContextStore, timeProvider ctx_model.TimeProvider) *ContextManager {
+func New(contextStore ctx_model.ContextStore, eventsStore ctx_model.EventsStore, timeProvider ctx_model.TimeProvider) *ContextManager {
 	return &ContextManager{
 		ContextStore: contextStore,
+		EventsStore:  eventsStore,
 		TimeProvider: timeProvider,
 	}
 }
@@ -90,6 +77,7 @@ func (manager *ContextManager) createContetxtInternal(state *ctx_model.State, id
 			State:       ctx_model.ACTIVE,
 			Intervals:   []ctx_model.Interval{},
 		}
+		manager.PublishContextEvent(state.Contexts[id], manager.TimeProvider.Now(), ctx_model.CREATE_CTX, nil)
 	}
 	return nil
 }
@@ -148,6 +136,7 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 	}
 
 	now := manager.TimeProvider.Now()
+	prevId := state.CurrentId
 	if state.CurrentId != "" {
 		prev := state.Contexts[state.CurrentId]
 		interval := prev.Intervals[len(prev.Intervals)-1]
@@ -156,11 +145,18 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 		state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
 		prev.Duration = prev.Duration + interval.Duration
 		state.Contexts[state.CurrentId] = prev
+		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.END_INTERVAL, map[string]string{
+			"duration": string(interval.Duration),
+		})
 	}
 
 	if ctx, ok := state.Contexts[id]; ok {
 		state.CurrentId = ctx.Id
+		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.SWITCH_CTX, map[string]string{
+			"from": prevId,
+		})
 		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Start: now})
+		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.START_INTERVAL, nil)
 		state.Contexts[id] = ctx
 	} else {
 		return errors.New("Context does not exist")
@@ -190,4 +186,22 @@ func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description
 			}
 			return manager.switchInternal(state, id)
 		})
+}
+
+func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
+	return manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
+		event.UUID = uuid.NewString()
+		er.Events = append(er.Events, event)
+		return nil
+	})
+}
+
+func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime time.Time, eventType ctx_model.EventType, data map[string]string) error {
+	return manager.PublishEvent(ctx_model.Event{
+		DateTime:    dateTime,
+		Type:        eventType,
+		CtxId:       context.Id,
+		Description: context.Description,
+		Data:        data,
+	})
 }
