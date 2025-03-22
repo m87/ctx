@@ -83,6 +83,7 @@ func (manager *ContextManager) createContetxtInternal(state *ctx_model.State, id
 }
 
 func (manager *ContextManager) CreateContext(id string, description string) error {
+	//TODO check empty
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			return manager.createContetxtInternal(state, id, description)
@@ -146,7 +147,7 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 		prev.Duration = prev.Duration + interval.Duration
 		state.Contexts[state.CurrentId] = prev
 		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.END_INTERVAL, map[string]string{
-			"duration": string(interval.Duration),
+			"duration": interval.Duration.String(),
 		})
 	}
 
@@ -165,6 +166,7 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 }
 
 func (manager *ContextManager) Switch(id string) error {
+	// TODO check empty/existance?
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			if _, ok := state.Contexts[id]; ok {
@@ -205,3 +207,5 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 		Data:        data,
 	})
 }
+
+func (manager *ContextManager) ListEvents() {}

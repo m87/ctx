@@ -31,6 +31,10 @@ type TestContextStore struct {
 	store []byte
 }
 
+type TestEventsStore struct {
+	store []byte
+}
+
 func (cs *TestContextStore) Load() ctx_model.State {
 	state := ctx_model.State{}
 	err := json.Unmarshal(cs.store, &state)
@@ -74,9 +78,51 @@ func (store *TestContextStore) Read(fn ctx_model.StatePatch) {
 	fn(&state)
 }
 
+func NewTestEventsStore() *TestEventsStore {
+	tes := TestEventsStore{}
+	tes.Save(&ctx_model.EventRegistry{
+		Events: []ctx_model.Event{},
+	})
+	return &tes
+}
+
+func (es *TestEventsStore) Apply(fn ctx_model.EventsPatch) error {
+	registry := es.Load()
+	err := fn(&registry)
+	if err != nil {
+		return err
+	} else {
+		es.Save(&registry)
+		return nil
+	}
+}
+
+func (es *TestEventsStore) Read(fn ctx_model.EventsPatch) {
+	registry := es.Load()
+	fn(&registry)
+}
+
+func (es *TestEventsStore) Save(eventsRegistry *ctx_model.EventRegistry) {
+	data, err := json.Marshal(eventsRegistry)
+	if err != nil {
+		panic(err)
+	}
+	es.store = data
+}
+
+func (es *TestEventsStore) Load() ctx_model.EventRegistry {
+	eventsRegistry := ctx_model.EventRegistry{}
+	err := json.Unmarshal(es.store, &eventsRegistry)
+	if err != nil {
+		log.Fatal("Unable to parse state store")
+	}
+
+	return eventsRegistry
+}
+
 func TestCreateContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	state := cs.Load()
@@ -92,16 +138,29 @@ func TestCreateContext(t *testing.T) {
 
 func TestCreateExistingId(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 	err := cm.CreateContext(test.TestId, test.TestDescription)
 
 	assert.Error(t, errors.New("Context already exists"), err)
 }
 
+func TestEmitCreateEvent(t *testing.T) {
+	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(NewTestContextStore(), es, NewTestTimerProvider("2025-03-13 13:00:00"))
+	cm.CreateContext(test.TestId, test.TestDescription)
+
+	registry := es.Load()
+	assert.Len(t, registry.Events, 1)
+	assert.Equal(t, registry.Events[0].Type, ctx_model.CREATE_CTX)
+	assert.Equal(t, registry.Events[0].CtxId, test.TestId)
+	assert.Equal(t, registry.Events[0].DateTime, dt1)
+}
+
 func TestSwitchContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	err := cm.Switch(test.TestId)
@@ -114,7 +173,7 @@ func TestSwitchContext(t *testing.T) {
 
 func TestSwitchNotExistingContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTimer())
 	cm.CreateContext(test.PrevTestId, test.TestDescription)
 
 	cm.Switch(test.PrevTestId)
@@ -127,7 +186,7 @@ func TestSwitchNotExistingContext(t *testing.T) {
 }
 func TestSwitchCreateIfNotExists(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTimer())
 
 	err := cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
@@ -147,7 +206,7 @@ func TestSwitchCreateIfNotExists(t *testing.T) {
 }
 func TestSwitchCreateIfNotExistsOnExistingContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	err := cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
@@ -158,7 +217,7 @@ func TestSwitchCreateIfNotExistsOnExistingContext(t *testing.T) {
 
 func TestSwitchAlreadyActiveContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	err := cm.Switch(test.TestId)
@@ -183,7 +242,7 @@ func TestIntervals(t *testing.T) {
 	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
 
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
-	cm := New(cs, tp)
+	cm := New(cs, NewTestEventsStore(), tp)
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	tp.Current = dt1
@@ -218,5 +277,33 @@ func TestIntervals(t *testing.T) {
 	assert.Len(t, prevCtx.Intervals, 2)
 	assert.Equal(t, prevCtx.Intervals[1].Start, dt3)
 	assert.True(t, prevCtx.Intervals[1].End.IsZero())
+
+}
+
+func TestIntervalsEvents(t *testing.T) {
+	es := NewTestEventsStore()
+	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
+	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	cm := New(NewTestContextStore(), es, tp)
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.PrevDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	tp.Current = dt3
+	cm.Switch(test.TestId)
+
+	registry := es.Load()
+	assert.Len(t, registry.Events, 10)
+	assert.Equal(t, registry.Events[0].Type, ctx_model.CREATE_CTX)
+	assert.Equal(t, registry.Events[1].Type, ctx_model.SWITCH_CTX)
+	assert.Equal(t, registry.Events[2].Type, ctx_model.START_INTERVAL)
+	assert.Equal(t, registry.Events[3].Type, ctx_model.CREATE_CTX)
+	assert.Equal(t, registry.Events[4].Type, ctx_model.END_INTERVAL)
+	assert.Equal(t, registry.Events[5].Type, ctx_model.SWITCH_CTX)
+	assert.Equal(t, registry.Events[6].Type, ctx_model.START_INTERVAL)
+	assert.Equal(t, registry.Events[7].Type, ctx_model.END_INTERVAL)
+	assert.Equal(t, registry.Events[8].Type, ctx_model.SWITCH_CTX)
+	assert.Equal(t, registry.Events[9].Type, ctx_model.START_INTERVAL)
 
 }
