@@ -199,6 +199,18 @@ func TestDontSwitchWithEmptyId(t *testing.T) {
 	assert.Equal(t, "", state.CurrentId)
 }
 
+func TestDontSwitchIfDoesNotExists(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTimer())
+	cm.CreateContext(test.TestId, test.TestDescription)
+	cm.Switch(test.TestId)
+	err := cm.Switch("test")
+
+	state := cs.Load()
+	assert.Error(t, err, errors.New("context does not exist"))
+	assert.Equal(t, test.TestId, state.CurrentId)
+}
+
 func TestSwitchNotExistingContext(t *testing.T) {
 	cs := NewTestContextStore()
 	cm := New(cs, NewTestEventsStore(), NewTimer())
@@ -358,4 +370,30 @@ func TestEventsFlow(t *testing.T) {
 	assert.Equal(t, registry.Events[8].Type, ctx_model.SWITCH_CTX)
 	assert.Equal(t, registry.Events[9].Type, ctx_model.START_INTERVAL)
 
+}
+
+func TestFree(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTestTimerProvider("2025-03-13 13:00:00"))
+	dt, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	assert.Equal(t, test.TestId, cs.Load().CurrentId)
+
+	cm.Free()
+	state := cs.Load()
+	assert.Equal(t, "", state.CurrentId)
+	assert.Equal(t, dt, state.Contexts[test.TestId].Intervals[0].Start)
+	assert.Equal(t, dt, state.Contexts[test.TestId].Intervals[0].End)
+
+}
+
+func TestFreeWithNowCurrentContext(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTimer())
+
+	cm.CreateContext(test.TestId, test.TestDescription)
+	assert.Equal(t, "", cs.Load().CurrentId)
+	err := cm.Free()
+	assert.Error(t, err, errors.New("no active context"))
 }

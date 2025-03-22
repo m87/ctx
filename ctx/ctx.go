@@ -138,6 +138,19 @@ func (manager *ContextManager) ListJson() {
 	)
 }
 
+func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now time.Time) {
+	prev := state.Contexts[state.CurrentId]
+	interval := prev.Intervals[len(prev.Intervals)-1]
+	interval.End = now
+	interval.Duration = interval.End.Sub(interval.Start)
+	state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
+	prev.Duration = prev.Duration + interval.Duration
+	state.Contexts[state.CurrentId] = prev
+	manager.PublishContextEvent(state.Contexts[id], now, ctx_model.END_INTERVAL, map[string]string{
+		"duration": interval.Duration.String(),
+	})
+}
+
 func (manager *ContextManager) switchInternal(state *ctx_model.State, id string) error {
 	if len(strings.TrimSpace(id)) == 0 {
 		return errors.New("empty id")
@@ -147,19 +160,14 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 		return errors.New("context already active")
 	}
 
+	if _, ok := state.Contexts[id]; !ok {
+		return errors.New("context does not exist")
+	}
+
 	now := manager.TimeProvider.Now()
 	prevId := state.CurrentId
 	if state.CurrentId != "" {
-		prev := state.Contexts[state.CurrentId]
-		interval := prev.Intervals[len(prev.Intervals)-1]
-		interval.End = now
-		interval.Duration = interval.End.Sub(interval.Start)
-		state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
-		prev.Duration = prev.Duration + interval.Duration
-		state.Contexts[state.CurrentId] = prev
-		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.END_INTERVAL, map[string]string{
-			"duration": interval.Duration.String(),
-		})
+		manager.endInterval(state, id, now)
 	}
 
 	if ctx, ok := state.Contexts[id]; ok {
@@ -170,14 +178,11 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Start: now})
 		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.START_INTERVAL, nil)
 		state.Contexts[id] = ctx
-	} else {
-		return errors.New("context does not exist")
 	}
 	return nil
 }
 
 func (manager *ContextManager) Switch(id string) error {
-	// TODO check empty/existance?
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			if _, ok := state.Contexts[id]; ok {
@@ -220,3 +225,17 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 }
 
 func (manager *ContextManager) ListEvents() {}
+
+func (manager *ContextManager) Free() error {
+	return manager.ContextStore.Apply(
+		func(state *ctx_model.State) error {
+			if state.CurrentId == "" {
+				return errors.New("no active context")
+			}
+
+			now := manager.TimeProvider.Now()
+			manager.endInterval(state, state.CurrentId, now)
+			state.CurrentId = ""
+			return nil
+		})
+}
