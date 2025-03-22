@@ -33,6 +33,20 @@ const (
 	END_INTERVAL
 )
 
+func EventAsString(event EventType) string {
+	switch event {
+	case CREATE_CTX:
+		return "CREATE"
+	case SWITCH_CTX:
+		return "SWITCH"
+	case START_INTERVAL:
+		return "START INTERVAL"
+	case END_INTERVAL:
+		return "END INTERVAL"
+	}
+	panic("undefined event type")
+}
+
 type Event struct {
 	UUID        string            `json:"uuid"`
 	DateTime    time.Time         `json:"dateTime"`

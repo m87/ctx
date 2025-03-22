@@ -224,7 +224,57 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 	})
 }
 
-func (manager *ContextManager) ListEvents() {}
+func (manager *ContextManager) eventsByDate(er *ctx_model.EventRegistry, date string) []ctx_model.Event {
+	evs := []ctx_model.Event{}
+	for _, v := range er.Events {
+		if v.DateTime.Local().Format(time.DateOnly) == date {
+			evs = append(evs, v)
+		}
+	}
+	return evs
+}
+
+func (manager *ContextManager) ListEvents(date string) {
+	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+		evs := er.Events
+		if date != "" {
+			evs = manager.eventsByDate(er, date)
+		}
+
+		for _, v := range evs {
+			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description)
+		}
+		return nil
+	})
+}
+func (manager *ContextManager) ListEventsJson(date string) {
+	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+		evs := er.Events
+		if date != "" {
+			evs = manager.eventsByDate(er, date)
+		}
+
+		s, _ := json.Marshal(evs)
+
+		fmt.Printf("%s", string(s))
+
+		return nil
+	})
+}
+
+func (manager *ContextManager) ListEventsFull(date string) {
+	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+		evs := er.Events
+		if date != "" {
+			evs = manager.eventsByDate(er, date)
+		}
+
+		for _, v := range evs {
+			fmt.Printf("[%s] [%s] %s (%s => %s)\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, v.Data["from"], v.CtxId)
+		}
+		return nil
+	})
+}
 
 func (manager *ContextManager) Free() error {
 	return manager.ContextStore.Apply(
