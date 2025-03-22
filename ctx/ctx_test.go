@@ -142,7 +142,23 @@ func TestCreateExistingId(t *testing.T) {
 	cm.CreateContext(test.TestId, test.TestDescription)
 	err := cm.CreateContext(test.TestId, test.TestDescription)
 
-	assert.Error(t, errors.New("Context already exists"), err)
+	assert.Error(t, err, errors.New("context already exists"))
+}
+
+func TestDontCreateContextWithEmptyDescription(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTimer())
+	err := cm.CreateContext(test.TestId, "  \t")
+
+	assert.Error(t, err, errors.New("empty description"))
+}
+
+func TestDontCreateContextWithEmptyId(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTimer())
+	err := cm.CreateContext(" \t", test.TestDescription)
+
+	assert.Error(t, err, errors.New("empty id"))
 }
 
 func TestEmitCreateEvent(t *testing.T) {
@@ -171,6 +187,18 @@ func TestSwitchContext(t *testing.T) {
 
 }
 
+func TestDontSwitchWithEmptyId(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTimer())
+	cm.CreateContext(test.TestId, test.TestDescription)
+
+	err := cm.Switch("\t")
+
+	state := cs.Load()
+	assert.Error(t, err, errors.New("empty id"))
+	assert.Equal(t, "", state.CurrentId)
+}
+
 func TestSwitchNotExistingContext(t *testing.T) {
 	cs := NewTestContextStore()
 	cm := New(cs, NewTestEventsStore(), NewTimer())
@@ -180,7 +208,7 @@ func TestSwitchNotExistingContext(t *testing.T) {
 	err := cm.Switch(test.TestId)
 
 	state := cs.Load()
-	assert.Error(t, errors.New("Context does not exist"), err)
+	assert.Error(t, err, errors.New("context does not exist"))
 	assert.Equal(t, test.PrevTestId, state.CurrentId)
 
 }
@@ -204,15 +232,39 @@ func TestSwitchCreateIfNotExists(t *testing.T) {
 	assert.Len(t, createdContext.Comments, 0)
 
 }
+
+func TestDontSwitchOrCreateWithEmptyId(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTimer())
+
+	err := cm.CreateIfNotExistsAndSwitch("\t", test.TestDescription)
+
+	state := cs.Load()
+	assert.Error(t, err, errors.New("empty id"))
+	assert.Equal(t, "", state.CurrentId)
+}
+
+func TestDontSwitchOrCreateWithEmptyDescription(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTimer())
+
+	err := cm.CreateIfNotExistsAndSwitch(test.TestId, " \t ")
+
+	state := cs.Load()
+	assert.Error(t, err, errors.New("empty id"))
+	assert.Equal(t, "", state.CurrentId)
+}
+
 func TestSwitchCreateIfNotExistsOnExistingContext(t *testing.T) {
 	cs := NewTestContextStore()
 	cm := New(cs, NewTestEventsStore(), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
+	assert.Equal(t, cs.Load().CurrentId, "")
 	err := cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
-	assert.Error(t, errors.New("Context already exists"), err)
-
+	assert.Equal(t, cs.Load().CurrentId, test.TestId)
+	assert.NoError(t, err)
 }
 
 func TestSwitchAlreadyActiveContext(t *testing.T) {
@@ -225,12 +277,12 @@ func TestSwitchAlreadyActiveContext(t *testing.T) {
 
 	err = cm.Switch(test.TestId)
 	state := cs.Load()
-	assert.Error(t, errors.New("Context already active"), err)
+	assert.Error(t, err, errors.New("context already active"))
 	assert.Len(t, state.Contexts[test.TestId].Intervals, 1)
 
 	err = cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	state = cs.Load()
-	assert.Error(t, errors.New("Context already active"), err)
+	assert.Error(t, err, errors.New("context already active"))
 	assert.Len(t, state.Contexts[test.TestId].Intervals, 1)
 
 }
@@ -280,7 +332,7 @@ func TestIntervals(t *testing.T) {
 
 }
 
-func TestIntervalsEvents(t *testing.T) {
+func TestEventsFlow(t *testing.T) {
 	es := NewTestEventsStore()
 	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
 	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,8 +69,15 @@ func New(contextStore ctx_model.ContextStore, eventsStore ctx_model.EventsStore,
 }
 
 func (manager *ContextManager) createContetxtInternal(state *ctx_model.State, id string, description string) error {
+	if len(strings.TrimSpace(id)) == 0 {
+		return errors.New("empty id")
+	}
+	if len(strings.TrimSpace(description)) == 0 {
+		return errors.New("empty description")
+	}
+
 	if _, ok := state.Contexts[id]; ok {
-		return errors.New("Context already exists")
+		return errors.New("context already exists")
 	} else {
 		state.Contexts[id] = ctx_model.Context{
 			Id:          id,
@@ -83,7 +91,6 @@ func (manager *ContextManager) createContetxtInternal(state *ctx_model.State, id
 }
 
 func (manager *ContextManager) CreateContext(id string, description string) error {
-	//TODO check empty
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			return manager.createContetxtInternal(state, id, description)
@@ -132,8 +139,12 @@ func (manager *ContextManager) ListJson() {
 }
 
 func (manager *ContextManager) switchInternal(state *ctx_model.State, id string) error {
+	if len(strings.TrimSpace(id)) == 0 {
+		return errors.New("empty id")
+	}
+
 	if state.CurrentId == id {
-		return errors.New("Context already active")
+		return errors.New("context already active")
 	}
 
 	now := manager.TimeProvider.Now()
@@ -160,7 +171,7 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.START_INTERVAL, nil)
 		state.Contexts[id] = ctx
 	} else {
-		return errors.New("Context does not exist")
+		return errors.New("context does not exist")
 	}
 	return nil
 }
@@ -172,7 +183,7 @@ func (manager *ContextManager) Switch(id string) error {
 			if _, ok := state.Contexts[id]; ok {
 				return manager.switchInternal(state, id)
 			} else {
-				return errors.New("Context does not exists")
+				return errors.New("context does not exists")
 			}
 		})
 }
