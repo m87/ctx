@@ -301,3 +301,25 @@ func (manager *ContextManager) Free() error {
 			return nil
 		})
 }
+
+func (manager *ContextManager) Archive(id string) error {
+	return manager.ContextStore.Apply(
+		func(state *ctx_model.State) error {
+			if _, ok := state.Contexts[id]; ok {
+				//TODO archive
+				return nil
+			} else {
+				return errors.New("context does not exists")
+			}
+		})
+}
+
+func (manager *ContextManager) ArchiveAll() error {
+	return manager.ContextStore.Apply(
+		func(state *ctx_model.State) error {
+			for _, ctx := range state.Contexts {
+				manager.Archive(ctx.Id)
+			}
+			return nil
+		})
+}
