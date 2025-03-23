@@ -1,6 +1,9 @@
 package ctx_model
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type ContextState int
 
@@ -40,9 +43,23 @@ func EventAsString(event EventType) string {
 	case SWITCH_CTX:
 		return "SWITCH"
 	case START_INTERVAL:
-		return "START INTERVAL"
+		return "START_INTERVAL"
 	case END_INTERVAL:
-		return "END INTERVAL"
+		return "END_INTERVAL"
+	}
+	panic("undefined event type")
+}
+
+func StringAsEvent(event string) EventType {
+	switch strings.ToUpper(event) {
+	case "CREATE":
+		return CREATE_CTX
+	case "SWITCH":
+		return SWITCH_CTX
+	case "START_INTERVAL":
+		return START_INTERVAL
+	case "END_INTERVAL":
+		return END_INTERVAL
 	}
 	panic("undefined event type")
 }
@@ -58,6 +75,11 @@ type Event struct {
 
 type EventRegistry struct {
 	Events []Event `json:"events"`
+}
+
+type EventsFilter struct {
+	Date  string
+	Types []string
 }
 
 type State struct {

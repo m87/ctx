@@ -224,22 +224,40 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 	})
 }
 
-func (manager *ContextManager) eventsByDate(er *ctx_model.EventRegistry, date string) []ctx_model.Event {
-	evs := []ctx_model.Event{}
-	for _, v := range er.Events {
-		if v.DateTime.Local().Format(time.DateOnly) == date {
-			evs = append(evs, v)
+func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter ctx_model.EventsFilter) []ctx_model.Event {
+	evs := er.Events
+	tmpEvs := []ctx_model.Event{}
+
+	if filter.Date != "" {
+		for _, v := range evs {
+			if v.DateTime.Local().Format(time.DateOnly) == filter.Date {
+				tmpEvs = append(tmpEvs, v)
+			}
 		}
+		evs = tmpEvs
 	}
+
+	tmpEvs = []ctx_model.Event{}
+
+	if len(filter.Types) > 0 {
+
+		for _, v := range evs {
+			for _, t := range filter.Types {
+				if v.Type == ctx_model.StringAsEvent(t) {
+					tmpEvs = append(tmpEvs, v)
+				}
+			}
+
+		}
+		evs = tmpEvs
+	}
+
 	return evs
 }
 
-func (manager *ContextManager) ListEvents(date string) {
+func (manager *ContextManager) ListEvents(filter ctx_model.EventsFilter) {
 	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
-		evs := er.Events
-		if date != "" {
-			evs = manager.eventsByDate(er, date)
-		}
+		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
 			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description)
@@ -247,12 +265,9 @@ func (manager *ContextManager) ListEvents(date string) {
 		return nil
 	})
 }
-func (manager *ContextManager) ListEventsJson(date string) {
+func (manager *ContextManager) ListEventsJson(filter ctx_model.EventsFilter) {
 	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
-		evs := er.Events
-		if date != "" {
-			evs = manager.eventsByDate(er, date)
-		}
+		evs := manager.filterEvents(er, filter)
 
 		s, _ := json.Marshal(evs)
 
@@ -262,12 +277,9 @@ func (manager *ContextManager) ListEventsJson(date string) {
 	})
 }
 
-func (manager *ContextManager) ListEventsFull(date string) {
+func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
 	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
-		evs := er.Events
-		if date != "" {
-			evs = manager.eventsByDate(er, date)
-		}
+		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
 			fmt.Printf("[%s] [%s] %s (%s => %s)\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, v.Data["from"], v.CtxId)

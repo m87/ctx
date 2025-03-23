@@ -391,9 +391,71 @@ func TestFree(t *testing.T) {
 func TestFreeWithNowCurrentContext(t *testing.T) {
 	cs := NewTestContextStore()
 	cm := New(cs, NewTestEventsStore(), NewTimer())
-
 	cm.CreateContext(test.TestId, test.TestDescription)
 	assert.Equal(t, "", cs.Load().CurrentId)
 	err := cm.Free()
 	assert.Error(t, err, errors.New("no active context"))
+}
+
+func TestEventFilter(t *testing.T) {
+	es := NewTestEventsStore()
+	cm := New(NewTestContextStore(), es, NewTimer())
+	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	dt2, _ := time.Parse(time.DateTime, "2025-03-14 13:00:00")
+	cm.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
+		er.Events = append(er.Events, ctx_model.Event{
+			DateTime: dt1, Description: "test1", Type: ctx_model.CREATE_CTX,
+		})
+		er.Events = append(er.Events, ctx_model.Event{
+			DateTime: dt2, Description: "test2", Type: ctx_model.SWITCH_CTX,
+		})
+		er.Events = append(er.Events, ctx_model.Event{
+			DateTime: dt1, Description: "test3", Type: ctx_model.SWITCH_CTX,
+		})
+		er.Events = append(er.Events, ctx_model.Event{
+			DateTime: dt2, Description: "test4", Type: ctx_model.START_INTERVAL,
+		})
+		return nil
+	})
+
+	er := es.Load()
+	assert.Len(t, er.Events, 4)
+	events := cm.filterEvents(&er, ctx_model.EventsFilter{
+		Date: "2025-03-14",
+	})
+
+	assert.Len(t, events, 2)
+	assert.Equal(t, dt2, events[0].DateTime)
+	assert.Equal(t, "test2", events[0].Description)
+	assert.Equal(t, dt2, events[1].DateTime)
+	assert.Equal(t, "test4", events[1].Description)
+
+	events = cm.filterEvents(&er, ctx_model.EventsFilter{
+		Date:  "2025-03-13",
+		Types: []string{"CREATE"},
+	})
+
+	assert.Len(t, events, 1)
+	assert.Equal(t, dt1, events[0].DateTime)
+	assert.Equal(t, "test1", events[0].Description)
+
+	events = cm.filterEvents(&er, ctx_model.EventsFilter{
+		Types: []string{"SWITCH"},
+	})
+
+	assert.Len(t, events, 2)
+	assert.Equal(t, dt2, events[0].DateTime)
+	assert.Equal(t, "test2", events[0].Description)
+	assert.Equal(t, dt1, events[1].DateTime)
+	assert.Equal(t, "test3", events[1].Description)
+
+	events = cm.filterEvents(&er, ctx_model.EventsFilter{
+		Types: []string{"CREATE", "START_INTERVAL"},
+	})
+
+	assert.Len(t, events, 2)
+	assert.Equal(t, dt1, events[0].DateTime)
+	assert.Equal(t, "test1", events[0].Description)
+	assert.Equal(t, dt2, events[1].DateTime)
+	assert.Equal(t, "test4", events[1].Description)
 }
