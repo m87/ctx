@@ -35,6 +35,10 @@ type TestEventsStore struct {
 	store []byte
 }
 
+type TestArchiveStore struct {
+  store[]byte
+}
+
 func (cs *TestContextStore) Load() ctx_model.State {
 	state := ctx_model.State{}
 	err := json.Unmarshal(cs.store, &state)

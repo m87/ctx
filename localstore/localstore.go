@@ -2,6 +2,7 @@ package localstore
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,6 +44,10 @@ type LocalEventsStore struct {
 	path string
 }
 
+type LocalArchiveStore struct {
+  path string
+}
+
 func NewContextStore(path string) *LocalContextStore {
 	return &LocalContextStore{
 		path: path,
@@ -53,6 +58,76 @@ func NewEventsStore(path string) *LocalEventsStore {
 	return &LocalEventsStore{
 		path: path,
 	}
+}
+
+func NewArchiveStore(path string) *LocalArchiveStore {
+  return &LocalArchiveStore {
+    path: path,
+  }
+}
+
+func (store *LocalArchiveStore) saveArchive(entry *ctx_model.ArchiveEntry, path string) error{
+  data, err := json.Marshal(entry)
+  if err != nil {
+    return errors.New("unable to marshal archive for " + entry.Context.Id )
+  }
+
+  os.WriteFile(path, data, 0644)
+
+  return nil
+}
+
+func (store *LocalArchiveStore) loadArchive(path string) (*ctx_model.ArchiveEntry, error) {
+  data, err := os.ReadFile(path)
+
+  if err != nil {
+    return nil, errors.New("unable to read archive file " + path)
+  }
+
+  entry := ctx_model.ArchiveEntry{}
+  err = json.Unmarshal(data, &entry)
+  
+  if err != nil {
+    return nil, errors.New("unable to parse archive file " + path)
+  }
+
+  return &entry, nil
+
+}
+
+func (store *LocalArchiveStore) updateArchive(entry *ctx_model.ArchiveEntry, path string) error {
+  entry2Update, err := store.loadArchive(path)
+
+  if err != nil {
+    return err
+  }
+
+  if entry2Update.Context.Id != entry.Context.Id {
+    return errors.New("contexts mismatch, entry to update: " + entry2Update.Context.Id + ", entry to archive: " + entry.Context.Id)
+  }
+
+  entry2Update.Context.Duration = entry2Update.Context.Duration + entry.Context.Duration 
+  entry2Update.Context.Comments = append(entry2Update.Context.Comments, entry.Context.Comments...)
+  entry2Update.Context.Intervals = append(entry2Update.Context.Intervals, entry.Context.Intervals...)
+  entry2Update.Context.State = entry.Context.State
+  entry2Update.Events = append(entry2Update.Events, entry.Events...)
+
+
+  return store.saveArchive(entry2Update, path)
+}
+
+
+func (store *LocalArchiveStore) UpsertArchive(entry *ctx_model.ArchiveEntry) error {
+  path := filepath.Join(store.path, "archive", entry.Context.Id + ".ctx")
+  if _, err := os.Stat(path); err == nil {
+    return store.updateArchive(entry, path)
+  } else {
+    return store.saveArchive(entry, path)
+  }
+}
+
+func (store *LocalArchiveStore) UpsertEventsArchive(events []ctx_model.Event) error {
+  return nil
 }
 
 func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) error {

@@ -51,19 +51,21 @@ func NewTimer() *RealTimeProvider {
 }
 
 func CreateManager() *ContextManager {
-	return New(localstore.NewContextStore(viper.GetString("path")), localstore.NewEventsStore(viper.GetString("path")), NewTimer())
+	return New(localstore.NewContextStore(viper.GetString("path")), localstore.NewEventsStore(viper.GetString("path")), localstore.NewArchiveStore(viper.GetString("path")), NewTimer())
 }
 
 type ContextManager struct {
 	ContextStore ctx_model.ContextStore
 	EventsStore  ctx_model.EventsStore
+  ArchiveStore ctx_model.ArchiveStore
 	TimeProvider ctx_model.TimeProvider
 }
 
-func New(contextStore ctx_model.ContextStore, eventsStore ctx_model.EventsStore, timeProvider ctx_model.TimeProvider) *ContextManager {
+func New(contextStore ctx_model.ContextStore, eventsStore ctx_model.EventsStore, archiveStore ctx_model.ArchiveStore, timeProvider ctx_model.TimeProvider) *ContextManager {
 	return &ContextManager{
 		ContextStore: contextStore,
 		EventsStore:  eventsStore,
+    ArchiveStore: archiveStore,
 		TimeProvider: timeProvider,
 	}
 }

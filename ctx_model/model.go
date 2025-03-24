@@ -77,6 +77,11 @@ type EventRegistry struct {
 	Events []Event `json:"events"`
 }
 
+type ArchiveEntry struct {
+  Context Context     `json:"context"`
+  Events []Event      `json:"events"`
+}
+
 type EventsFilter struct {
 	Date  string
 	Types []string
@@ -106,4 +111,6 @@ type EventsStore interface {
 }
 
 type ArchiveStore interface {
+  UpsertArchive(entry *ArchiveEntry) error
+  UpsertEventsArchive(events []Event) error
 }
