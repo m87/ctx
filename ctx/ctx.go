@@ -57,7 +57,7 @@ func CreateManager() *ContextManager {
 type ContextManager struct {
 	ContextStore ctx_model.ContextStore
 	EventsStore  ctx_model.EventsStore
-  ArchiveStore ctx_model.ArchiveStore
+	ArchiveStore ctx_model.ArchiveStore
 	TimeProvider ctx_model.TimeProvider
 }
 
@@ -65,7 +65,7 @@ func New(contextStore ctx_model.ContextStore, eventsStore ctx_model.EventsStore,
 	return &ContextManager{
 		ContextStore: contextStore,
 		EventsStore:  eventsStore,
-    ArchiveStore: archiveStore,
+		ArchiveStore: archiveStore,
 		TimeProvider: timeProvider,
 	}
 }
@@ -230,6 +230,15 @@ func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter 
 	evs := er.Events
 	tmpEvs := []ctx_model.Event{}
 
+	if filter.CtxId != "" {
+		for _, v := range evs {
+			if v.CtxId == filter.CtxId {
+				tmpEvs = append(tmpEvs, v)
+			}
+		}
+		evs = tmpEvs
+	}
+
 	if filter.Date != "" {
 		for _, v := range evs {
 			if v.DateTime.Local().Format(time.DateOnly) == filter.Date {
@@ -304,11 +313,26 @@ func (manager *ContextManager) Free() error {
 		})
 }
 
-func (manager *ContextManager) Archive(id string) error {
+func (manager *ContextManager) deleteEvents(id string) error {
+	return manager.EventsStore.Apply(
+		func(er *ctx_model.EventRegistry) error {
+			tmpEvs := []ctx_model.Event{}
+			for _, v := range er.Events {
+				if v.CtxId != id {
+					tmpEvs = append(tmpEvs, v)
+				}
+			}
+			er.Events = tmpEvs
+			return nil
+		})
+}
+
+func (manager *ContextManager) Delete(id string) error {
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			if _, ok := state.Contexts[id]; ok {
-				//TODO archive
+				delete(state.Contexts, id)
+				manager.deleteEvents(id)
 				return nil
 			} else {
 				return errors.New("context does not exists")
@@ -316,11 +340,43 @@ func (manager *ContextManager) Archive(id string) error {
 		})
 }
 
+func (manager *ContextManager) Archive(id string) error {
+	if err := manager.ContextStore.Read(
+		func(state *ctx_model.State) error {
+			if _, ok := state.Contexts[id]; ok {
+				return manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+					archiveEntry := ctx_model.ArchiveEntry{
+						Context: state.Contexts[id],
+						Events:  manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id}),
+					}
+
+					if err := manager.ArchiveStore.UpsertArchive(&archiveEntry); err != nil {
+						return err
+					}
+
+					return manager.ArchiveStore.UpsertEventsArchive(manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id}))
+				})
+			} else {
+				return errors.New("context does not exists")
+			}
+		}); err != nil {
+		return err
+	}
+
+	if err := manager.Delete(id); err != nil {
+		return err
+	}
+
+	return manager.deleteEvents(id)
+}
+
 func (manager *ContextManager) ArchiveAll() error {
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
 			for _, ctx := range state.Contexts {
-				manager.Archive(ctx.Id)
+				if err := manager.Archive(ctx.Id); err != nil {
+					return err
+				}
 			}
 			return nil
 		})

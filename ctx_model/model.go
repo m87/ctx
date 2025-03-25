@@ -78,13 +78,14 @@ type EventRegistry struct {
 }
 
 type ArchiveEntry struct {
-  Context Context     `json:"context"`
-  Events []Event      `json:"events"`
+	Context Context `json:"context"`
+	Events  []Event `json:"events"`
 }
 
 type EventsFilter struct {
 	Date  string
 	Types []string
+	CtxId string
 }
 
 type State struct {
@@ -102,15 +103,15 @@ type TimeProvider interface {
 
 type ContextStore interface {
 	Apply(fn StatePatch) error
-	Read(fn StatePatch)
+	Read(fn StatePatch) error
 }
 
 type EventsStore interface {
 	Apply(fn EventsPatch) error
-	Read(fn EventsPatch)
+	Read(fn EventsPatch) error
 }
 
 type ArchiveStore interface {
-  UpsertArchive(entry *ArchiveEntry) error
-  UpsertEventsArchive(events []Event) error
+	UpsertArchive(entry *ArchiveEntry) error
+	UpsertEventsArchive(events []Event) error
 }
