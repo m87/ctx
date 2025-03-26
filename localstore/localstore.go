@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/m87/ctx/ctx_model"
 	"github.com/spf13/viper"
@@ -78,7 +77,26 @@ func (store *LocalArchiveStore) saveArchive(entry *ctx_model.ArchiveEntry, path 
 	return nil
 }
 
+func (store *LocalArchiveStore) saveEventsArchive(entry []ctx_model.Event, path string) error {
+	data, err := json.Marshal(entry)
+	if err != nil {
+		return errors.New("unable to marshal events archive for " + path)
+	}
+
+	os.WriteFile(path, data, 0644)
+
+	return nil
+}
+
 func (store *LocalArchiveStore) loadArchive(path string) (*ctx_model.ArchiveEntry, error) {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return &ctx_model.ArchiveEntry{}, nil
+		} else {
+			return nil, errors.New("unable to read archive file " + path)
+		}
+	}
+
 	data, err := os.ReadFile(path)
 
 	if err != nil {
@@ -96,62 +114,59 @@ func (store *LocalArchiveStore) loadArchive(path string) (*ctx_model.ArchiveEntr
 
 }
 
-func (store *LocalArchiveStore) updateArchive(entry *ctx_model.ArchiveEntry, path string) error {
-	entry2Update, err := store.loadArchive(path)
+func (store *LocalArchiveStore) loadEventsArchive(path string) ([]ctx_model.Event, error) {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return []ctx_model.Event{}, nil
+		} else {
+			return nil, errors.New("unable to read events archive file " + path)
+		}
+	}
+	data, err := os.ReadFile(path)
+
+	if err != nil {
+		return nil, errors.New("unable to read events archive file " + path)
+	}
+
+	entry := []ctx_model.Event{}
+	err = json.Unmarshal(data, &entry)
+
+	if err != nil {
+		return nil, errors.New("unable to parse events archive file " + path)
+	}
+
+	return entry, nil
+
+}
+
+func (store *LocalArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) error {
+	path := filepath.Join(store.path, "archive", id+".ctx")
+	entry, err := store.loadArchive(path)
 
 	if err != nil {
 		return err
 	}
 
-	if entry2Update.Context.Id != entry.Context.Id {
-		return errors.New("contexts mismatch, entry to update: " + entry2Update.Context.Id + ", entry to archive: " + entry.Context.Id)
+	if err := fn(entry); err != nil {
+		return err
 	}
 
-	entry2Update.Context.Duration = entry2Update.Context.Duration + entry.Context.Duration
-	entry2Update.Context.Comments = append(entry2Update.Context.Comments, entry.Context.Comments...)
-	entry2Update.Context.Intervals = append(entry2Update.Context.Intervals, entry.Context.Intervals...)
-	entry2Update.Context.State = entry.Context.State
-	entry2Update.Events = append(entry2Update.Events, entry.Events...)
-
-	return store.saveArchive(entry2Update, path)
+	return store.saveArchive(entry, path)
 }
 
-func (store *LocalArchiveStore) UpsertArchive(entry *ctx_model.ArchiveEntry) error {
-	path := filepath.Join(store.path, "archive", entry.Context.Id+".ctx")
-	if _, err := os.Stat(path); err == nil {
-		return store.updateArchive(entry, path)
-	} else {
-		return store.saveArchive(entry, path)
-	}
-}
+func (store *LocalArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEventsPatch) error {
+	path := filepath.Join(store.path, "archive", date+".events")
+	events, err := store.loadEventsArchive(path)
 
-func (store *LocalArchiveStore) groupEventsByDate(events []ctx_model.Event) map[string][]ctx_model.Event {
-	eventsByDate := make(map[string][]ctx_model.Event)
-	for _, event := range events {
-		date := event.DateTime.Format(time.DateOnly)
-		eventsByDate[date] = append(eventsByDate[date], event)
+	if err != nil {
+		return err
 	}
 
-	return eventsByDate
-}
-
-func (store *LocalArchiveStore) saveGroupedEventsInFilesByDate(eventsByDate map[string][]ctx_model.Event, path string) error {
-	for date, events := range eventsByDate {
-		data, err := json.Marshal(events)
-		if err != nil {
-			return errors.New("unable to marshal events for " + date)
-		}
-
-		datePath := filepath.Join(path, date+".events")
-		os.WriteFile(datePath, data, 0644)
+	if err := fn(events); err != nil {
+		return err
 	}
 
-	return nil
-}
-
-func (store *LocalArchiveStore) UpsertEventsArchive(events []ctx_model.Event) error {
-	path := filepath.Join(store.path, "archive")
-	return store.saveGroupedEventsInFilesByDate(store.groupEventsByDate(events), path)
+	return store.saveEventsArchive(events, path)
 }
 
 func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) error {

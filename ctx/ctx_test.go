@@ -36,7 +36,8 @@ type TestEventsStore struct {
 }
 
 type TestArchiveStore struct {
-	store []byte
+	store       []byte
+	storeEvents []byte
 }
 
 func (cs *TestContextStore) Load() ctx_model.State {
@@ -111,12 +112,62 @@ func NewTestArchiveStore() *TestArchiveStore {
 	return &tas
 }
 
-func (as *TestArchiveStore) UpsertArchive(entry *ctx_model.ArchiveEntry) error {
-	return nil
+func (as *TestArchiveStore) Load() ctx_model.ArchiveEntry {
+	state := ctx_model.ArchiveEntry{}
+	err := json.Unmarshal(as.store, &state)
+	if err != nil {
+		log.Fatal("Unable to parse archvie store")
+	}
+
+	return state
 }
 
-func (as *TestArchiveStore) UpsertEventsArchive(events []ctx_model.Event) error {
-	return nil
+func (as *TestArchiveStore) Save(archive *ctx_model.ArchiveEntry) {
+	data, err := json.Marshal(archive)
+	if err != nil {
+		panic(err)
+	}
+	as.store = data
+}
+
+func (as *TestArchiveStore) LoadEvents() []ctx_model.Event {
+	events := []ctx_model.Event{}
+	err := json.Unmarshal(as.storeEvents, &events)
+	if err != nil {
+		log.Fatal("Unable to parse archvie store")
+	}
+
+	return events
+}
+
+func (as *TestArchiveStore) SaveEvents(events []ctx_model.Event) {
+	data, err := json.Marshal(events)
+	if err != nil {
+		panic(err)
+	}
+	as.storeEvents = data
+}
+
+func (store *TestArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) error {
+	archive := store.Load()
+	err := fn(&archive)
+	if err != nil {
+		return err
+	} else {
+		store.Save(&archive)
+		return nil
+	}
+}
+
+func (store *TestArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEventsPatch) error {
+	archive := store.LoadEvents()
+	err := fn(archive)
+	if err != nil {
+		return err
+	} else {
+		store.SaveEvents(archive)
+		return nil
+	}
 }
 
 func (es *TestEventsStore) Save(eventsRegistry *ctx_model.EventRegistry) {

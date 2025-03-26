@@ -340,6 +340,43 @@ func (manager *ContextManager) Delete(id string) error {
 		})
 }
 
+func (manager *ContextManager) groupEventsByDate(events []ctx_model.Event) map[string][]ctx_model.Event {
+	eventsByDate := make(map[string][]ctx_model.Event)
+	for _, event := range events {
+		date := event.DateTime.Format(time.DateOnly)
+		eventsByDate[date] = append(eventsByDate[date], event)
+	}
+
+	return eventsByDate
+}
+
+func (manager *ContextManager) upsertArchive(entry *ctx_model.ArchiveEntry) error {
+	return manager.ArchiveStore.Apply(entry.Context.Id, func(entry2Update *ctx_model.ArchiveEntry) error {
+		if entry2Update.Context.Id != entry.Context.Id {
+			return errors.New("contexts mismatch, entry to update: " + entry2Update.Context.Id + ", entry to archive: " + entry.Context.Id)
+		}
+
+		entry2Update.Context.Id = entry.Context.Id
+		entry2Update.Context.Description = entry.Context.Description
+		entry2Update.Context.Duration = entry2Update.Context.Duration + entry.Context.Duration
+		entry2Update.Context.Comments = append(entry2Update.Context.Comments, entry.Context.Comments...)
+		entry2Update.Context.Intervals = append(entry2Update.Context.Intervals, entry.Context.Intervals...)
+		entry2Update.Context.State = entry.Context.State
+		entry2Update.Events = append(entry2Update.Events, entry.Events...)
+		return nil
+	})
+}
+
+func (manager *ContextManager) upsertEventsArchive(eventsByDate map[string][]ctx_model.Event) error {
+	for k, v := range eventsByDate {
+		return manager.ArchiveStore.ApplyEvents(k, func(events []ctx_model.Event) error {
+			events = append(events, v...)
+			return nil
+		})
+	}
+	return nil
+}
+
 func (manager *ContextManager) Archive(id string) error {
 	if err := manager.ContextStore.Read(
 		func(state *ctx_model.State) error {
@@ -350,11 +387,11 @@ func (manager *ContextManager) Archive(id string) error {
 						Events:  manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id}),
 					}
 
-					if err := manager.ArchiveStore.UpsertArchive(&archiveEntry); err != nil {
+					if err := manager.upsertArchive(&archiveEntry); err != nil {
 						return err
 					}
 
-					return manager.ArchiveStore.UpsertEventsArchive(manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id}))
+					return manager.upsertEventsArchive(manager.groupEventsByDate(manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id})))
 				})
 			} else {
 				return errors.New("context does not exists")

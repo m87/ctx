@@ -97,6 +97,10 @@ type StatePatch func(*State) error
 
 type EventsPatch func(*EventRegistry) error
 
+type ArchivePatch func(*ArchiveEntry) error
+
+type ArchiveEventsPatch func([]Event) error
+
 type TimeProvider interface {
 	Now() time.Time
 }
@@ -112,6 +116,6 @@ type EventsStore interface {
 }
 
 type ArchiveStore interface {
-	UpsertArchive(entry *ArchiveEntry) error
-	UpsertEventsArchive(events []Event) error
+	Apply(id string, fn ArchivePatch) error
+	ApplyEvents(date string, fn ArchiveEventsPatch) error
 }
