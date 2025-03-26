@@ -380,6 +380,10 @@ func (manager *ContextManager) upsertEventsArchive(eventsByDate map[string][]ctx
 func (manager *ContextManager) Archive(id string) error {
 	if err := manager.ContextStore.Read(
 		func(state *ctx_model.State) error {
+			if state.CurrentId == id {
+				return errors.New("context is active")
+			}
+
 			if _, ok := state.Contexts[id]; ok {
 				return manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
 					archiveEntry := ctx_model.ArchiveEntry{

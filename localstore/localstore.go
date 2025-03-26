@@ -88,10 +88,14 @@ func (store *LocalArchiveStore) saveEventsArchive(entry []ctx_model.Event, path 
 	return nil
 }
 
-func (store *LocalArchiveStore) loadArchive(path string) (*ctx_model.ArchiveEntry, error) {
+func (store *LocalArchiveStore) loadArchive(id string, path string) (*ctx_model.ArchiveEntry, error) {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return &ctx_model.ArchiveEntry{}, nil
+			return &ctx_model.ArchiveEntry{
+				Context: ctx_model.Context{
+					Id: id,
+				},
+			}, nil
 		} else {
 			return nil, errors.New("unable to read archive file " + path)
 		}
@@ -119,7 +123,7 @@ func (store *LocalArchiveStore) loadEventsArchive(path string) ([]ctx_model.Even
 		if os.IsNotExist(err) {
 			return []ctx_model.Event{}, nil
 		} else {
-			return nil, errors.New("unable to read events archive file " + path)
+			return nil, errors.New("unable to read eventsarchive file " + path)
 		}
 	}
 	data, err := os.ReadFile(path)
@@ -141,7 +145,7 @@ func (store *LocalArchiveStore) loadEventsArchive(path string) ([]ctx_model.Even
 
 func (store *LocalArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) error {
 	path := filepath.Join(store.path, "archive", id+".ctx")
-	entry, err := store.loadArchive(path)
+	entry, err := store.loadArchive(id, path)
 
 	if err != nil {
 		return err

@@ -107,12 +107,18 @@ func (es *TestEventsStore) Read(fn ctx_model.EventsPatch) error {
 	return fn(&registry)
 }
 
-func NewTestArchiveStore() *TestArchiveStore {
+func NewTestArchiveStore(id string) *TestArchiveStore {
 	tas := TestArchiveStore{}
+	tas.Save(&ctx_model.ArchiveEntry{
+		Context: ctx_model.Context{
+			Id: id,
+		},
+	})
+	tas.SaveEvents([]ctx_model.Event{})
 	return &tas
 }
 
-func (as *TestArchiveStore) Load() ctx_model.ArchiveEntry {
+func (as *TestArchiveStore) Load(id string) ctx_model.ArchiveEntry {
 	state := ctx_model.ArchiveEntry{}
 	err := json.Unmarshal(as.store, &state)
 	if err != nil {
@@ -134,7 +140,7 @@ func (as *TestArchiveStore) LoadEvents() []ctx_model.Event {
 	events := []ctx_model.Event{}
 	err := json.Unmarshal(as.storeEvents, &events)
 	if err != nil {
-		log.Fatal("Unable to parse archvie store")
+		log.Fatal("Unable to parse events archvie store")
 	}
 
 	return events
@@ -149,7 +155,7 @@ func (as *TestArchiveStore) SaveEvents(events []ctx_model.Event) {
 }
 
 func (store *TestArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) error {
-	archive := store.Load()
+	archive := store.Load(id)
 	err := fn(&archive)
 	if err != nil {
 		return err
@@ -190,7 +196,7 @@ func (es *TestEventsStore) Load() ctx_model.EventRegistry {
 
 func TestCreateContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	state := cs.Load()
@@ -206,7 +212,7 @@ func TestCreateContext(t *testing.T) {
 
 func TestCreateExistingId(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 	err := cm.CreateContext(test.TestId, test.TestDescription)
 
@@ -215,7 +221,7 @@ func TestCreateExistingId(t *testing.T) {
 
 func TestDontCreateContextWithEmptyDescription(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	err := cm.CreateContext(test.TestId, "  \t")
 
 	assert.Error(t, err, errors.New("empty description"))
@@ -223,7 +229,7 @@ func TestDontCreateContextWithEmptyDescription(t *testing.T) {
 
 func TestDontCreateContextWithEmptyId(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	err := cm.CreateContext(" \t", test.TestDescription)
 
 	assert.Error(t, err, errors.New("empty id"))
@@ -232,7 +238,7 @@ func TestDontCreateContextWithEmptyId(t *testing.T) {
 func TestEmitCreateEvent(t *testing.T) {
 	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
 	es := NewTestEventsStore()
-	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), NewTestTimerProvider("2025-03-13 13:00:00"))
+	cm := New(NewTestContextStore(), es, NewTestArchiveStore(test.TestId), NewTestTimerProvider("2025-03-13 13:00:00"))
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	registry := es.Load()
@@ -244,7 +250,7 @@ func TestEmitCreateEvent(t *testing.T) {
 
 func TestSwitchContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	err := cm.Switch(test.TestId)
@@ -257,7 +263,7 @@ func TestSwitchContext(t *testing.T) {
 
 func TestDontSwitchWithEmptyId(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	err := cm.Switch("\t")
@@ -269,7 +275,7 @@ func TestDontSwitchWithEmptyId(t *testing.T) {
 
 func TestDontSwitchIfDoesNotExists(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 	cm.Switch(test.TestId)
 	err := cm.Switch("test")
@@ -281,7 +287,7 @@ func TestDontSwitchIfDoesNotExists(t *testing.T) {
 
 func TestSwitchNotExistingContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.PrevTestId, test.TestDescription)
 
 	cm.Switch(test.PrevTestId)
@@ -294,7 +300,7 @@ func TestSwitchNotExistingContext(t *testing.T) {
 }
 func TestSwitchCreateIfNotExists(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 
 	err := cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
@@ -315,7 +321,7 @@ func TestSwitchCreateIfNotExists(t *testing.T) {
 
 func TestDontSwitchOrCreateWithEmptyId(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 
 	err := cm.CreateIfNotExistsAndSwitch("\t", test.TestDescription)
 
@@ -326,7 +332,7 @@ func TestDontSwitchOrCreateWithEmptyId(t *testing.T) {
 
 func TestDontSwitchOrCreateWithEmptyDescription(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 
 	err := cm.CreateIfNotExistsAndSwitch(test.TestId, " \t ")
 
@@ -337,7 +343,7 @@ func TestDontSwitchOrCreateWithEmptyDescription(t *testing.T) {
 
 func TestSwitchCreateIfNotExistsOnExistingContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	assert.Equal(t, cs.Load().CurrentId, "")
@@ -349,7 +355,7 @@ func TestSwitchCreateIfNotExistsOnExistingContext(t *testing.T) {
 
 func TestSwitchAlreadyActiveContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	err := cm.Switch(test.TestId)
@@ -374,7 +380,7 @@ func TestIntervals(t *testing.T) {
 	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
 
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), tp)
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), tp)
 	cm.CreateContext(test.TestId, test.TestDescription)
 
 	tp.Current = dt1
@@ -418,7 +424,7 @@ func TestEventsFlow(t *testing.T) {
 	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
 
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
-	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), tp)
+	cm := New(NewTestContextStore(), es, NewTestArchiveStore(test.TestId), tp)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.PrevDescription)
 	tp.Current = dt2
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
@@ -442,7 +448,7 @@ func TestEventsFlow(t *testing.T) {
 
 func TestFree(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTestTimerProvider("2025-03-13 13:00:00"))
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTestTimerProvider("2025-03-13 13:00:00"))
 	dt, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
@@ -458,7 +464,7 @@ func TestFree(t *testing.T) {
 
 func TestFreeWithNowCurrentContext(t *testing.T) {
 	cs := NewTestContextStore()
-	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(test.TestId), NewTimer())
 	cm.CreateContext(test.TestId, test.TestDescription)
 	assert.Equal(t, "", cs.Load().CurrentId)
 	err := cm.Free()
@@ -467,7 +473,7 @@ func TestFreeWithNowCurrentContext(t *testing.T) {
 
 func TestEventFilter(t *testing.T) {
 	es := NewTestEventsStore()
-	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), NewTimer())
+	cm := New(NewTestContextStore(), es, NewTestArchiveStore(test.TestId), NewTimer())
 	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
 	dt2, _ := time.Parse(time.DateTime, "2025-03-14 13:00:00")
 	cm.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
@@ -526,4 +532,39 @@ func TestEventFilter(t *testing.T) {
 	assert.Equal(t, "test1", events[0].Description)
 	assert.Equal(t, dt2, events[1].DateTime)
 	assert.Equal(t, "test4", events[1].Description)
+}
+
+func TestArchiveContext(t *testing.T) {
+	as := NewTestArchiveStore(test.TestId)
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	cm := New(cs, NewTestEventsStore(), as, tp)
+	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
+	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	tp.Current = dt3
+	cm.Switch(test.TestId)
+	cm.Switch(test.PrevTestId)
+	cm.Archive(test.TestId)
+
+	archive := as.Load(test.TestId)
+	assert.Len(t, archive.Events, 6)
+	assert.Equal(t, archive.Context.Id, test.TestId)
+	assert.Equal(t, archive.Context.Description, test.TestDescription)
+	assert.Equal(t, archive.Events[0].DateTime, dt1)
+	assert.Equal(t, archive.Events[0].Type, ctx_model.CREATE_CTX)
+	assert.Equal(t, archive.Events[1].DateTime, dt1)
+	assert.Equal(t, archive.Events[1].Type, ctx_model.SWITCH_CTX)
+	assert.Equal(t, archive.Events[2].DateTime, dt1)
+	assert.Equal(t, archive.Events[2].Type, ctx_model.START_INTERVAL)
+	assert.Equal(t, archive.Events[3].DateTime, dt3)
+	assert.Equal(t, archive.Events[3].Type, ctx_model.END_INTERVAL)
+	assert.Equal(t, archive.Events[4].DateTime, dt3)
+	assert.Equal(t, archive.Events[4].Type, ctx_model.SWITCH_CTX)
+	assert.Equal(t, archive.Events[5].DateTime, dt3)
+	assert.Equal(t, archive.Events[5].Type, ctx_model.START_INTERVAL)
 }
