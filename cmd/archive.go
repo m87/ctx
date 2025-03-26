@@ -12,16 +12,15 @@ var archiveCmd = &cobra.Command{
 	Use:   "archive",
 	Short: "Archive all contexts",
 	Run: func(cmd *cobra.Command, args []string) {
-		description := strings.TrimSpace(args[0])
-		byId, _ := cmd.Flags().GetBool("id")
-		id, err := util.Id(description, byId)
-		util.Checkm(err, "Unable to process id "+description)
-
 		cm := ctx.CreateManager()
 		if all, _ := cmd.Flags().GetBool("all"); all {
-			cm.ArchiveAll()
+			util.Check(cm.ArchiveAll())
 		} else {
-			cm.Archive(id)
+			description := strings.TrimSpace(args[0])
+			byId, _ := cmd.Flags().GetBool("id")
+			id, err := util.Id(description, byId)
+			util.Checkm(err, "Unable to process id "+description)
+			util.Check(cm.Archive(id))
 		}
 	},
 }

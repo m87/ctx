@@ -12,7 +12,7 @@ import (
 )
 
 func LoadState() ctx_model.State {
-	statePath := filepath.Join(viper.GetString("ctxPath"), "state")
+	statePath := filepath.Join(viper.GetString("storePath"), "state")
 	data, err := os.ReadFile(statePath)
 	if err != nil {
 		log.Fatal("Unable to read state file")
@@ -28,12 +28,12 @@ func LoadState() ctx_model.State {
 }
 
 func SaveState(state *ctx_model.State) {
-	statePath := filepath.Join(viper.GetString("ctxPath"), "state")
+	statePath := filepath.Join(viper.GetString("storePath"), "state")
 	data, err := json.Marshal(state)
 	if err != nil {
 		panic(err)
 	}
-	os.WriteFile(statePath, data, 0644)
+	os.WriteFile(statePath, data, 0777)
 }
 
 type LocalContextStore struct {
@@ -72,7 +72,7 @@ func (store *LocalArchiveStore) saveArchive(entry *ctx_model.ArchiveEntry, path 
 		return errors.New("unable to marshal archive for " + entry.Context.Id)
 	}
 
-	os.WriteFile(path, data, 0644)
+	os.WriteFile(path, data, 0777)
 
 	return nil
 }
@@ -83,7 +83,7 @@ func (store *LocalArchiveStore) saveEventsArchive(entry []ctx_model.Event, path 
 		return errors.New("unable to marshal events archive for " + path)
 	}
 
-	os.WriteFile(path, data, 0644)
+	os.WriteFile(path, data, 0777)
 
 	return nil
 }
@@ -190,7 +190,7 @@ func (store *LocalContextStore) Read(fn ctx_model.StatePatch) error {
 }
 
 func LoadEvents() ctx_model.EventRegistry {
-	eventsPath := filepath.Join(viper.GetString("ctxPath"), "events")
+	eventsPath := filepath.Join(viper.GetString("storePath"), "events")
 	data, err := os.ReadFile(eventsPath)
 	if err != nil {
 		log.Fatal("Unable to read state file")
@@ -206,12 +206,12 @@ func LoadEvents() ctx_model.EventRegistry {
 }
 
 func SaveEvents(eventsRegistry *ctx_model.EventRegistry) {
-	eventsPath := filepath.Join(viper.GetString("ctxPath"), "events")
+	eventsPath := filepath.Join(viper.GetString("storePath"), "events")
 	data, err := json.Marshal(eventsRegistry)
 	if err != nil {
 		panic(err)
 	}
-	os.WriteFile(eventsPath, data, 0644)
+	os.WriteFile(eventsPath, data, 0777)
 }
 
 func (store *LocalEventsStore) Apply(fn ctx_model.EventsPatch) error {

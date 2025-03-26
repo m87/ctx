@@ -16,7 +16,7 @@ var resetCmd = &cobra.Command{
 		home, err := os.UserHomeDir()
 		util.Checkm(err, "Unable to get user home dir")
 
-		os.RemoveAll(viper.GetString("ctxPath"))
+		os.RemoveAll(viper.GetString("storePath"))
 		os.Remove(filepath.Join(home, ".ctx"))
 	},
 }
