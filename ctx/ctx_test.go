@@ -167,11 +167,11 @@ func (store *TestArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) error
 
 func (store *TestArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEventsPatch) error {
 	archive := store.LoadEvents()
-	err := fn(archive)
+	changeEvents, err := fn(archive)
 	if err != nil {
 		return err
 	} else {
-		store.SaveEvents(archive)
+		store.SaveEvents(changeEvents)
 		return nil
 	}
 }
@@ -549,8 +549,9 @@ func TestArchiveContext(t *testing.T) {
 	tp.Current = dt3
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
-	cm.Archive(test.TestId)
+	err := cm.Archive(test.TestId)
 
+	assert.NoError(t, err)
 	archive := as.Load(test.TestId)
 	assert.Len(t, archive.Events, 6)
 	assert.Equal(t, archive.Context.Id, test.TestId)
@@ -567,4 +568,38 @@ func TestArchiveContext(t *testing.T) {
 	assert.Equal(t, archive.Events[4].Type, ctx_model.SWITCH_CTX)
 	assert.Equal(t, archive.Events[5].DateTime, dt3)
 	assert.Equal(t, archive.Events[5].Type, ctx_model.START_INTERVAL)
+}
+
+func TestArchiveEvents(t *testing.T) {
+	as := NewTestArchiveStore(test.TestId)
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	cm := New(cs, NewTestEventsStore(), as, tp)
+	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
+	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	tp.Current = dt3
+	cm.Switch(test.TestId)
+	cm.Switch(test.PrevTestId)
+	err := cm.Archive(test.TestId)
+
+	assert.NoError(t, err)
+	events := as.LoadEvents()
+	assert.Len(t, events, 6)
+	assert.Equal(t, events[0].DateTime, dt1)
+	assert.Equal(t, events[0].Type, ctx_model.CREATE_CTX)
+	assert.Equal(t, events[1].DateTime, dt1)
+	assert.Equal(t, events[1].Type, ctx_model.SWITCH_CTX)
+	assert.Equal(t, events[2].DateTime, dt1)
+	assert.Equal(t, events[2].Type, ctx_model.START_INTERVAL)
+	assert.Equal(t, events[3].DateTime, dt3)
+	assert.Equal(t, events[3].Type, ctx_model.END_INTERVAL)
+	assert.Equal(t, events[4].DateTime, dt3)
+	assert.Equal(t, events[4].Type, ctx_model.SWITCH_CTX)
+	assert.Equal(t, events[5].DateTime, dt3)
+	assert.Equal(t, events[5].Type, ctx_model.START_INTERVAL)
 }

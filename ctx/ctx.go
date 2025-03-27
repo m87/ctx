@@ -369,9 +369,9 @@ func (manager *ContextManager) upsertArchive(entry *ctx_model.ArchiveEntry) erro
 
 func (manager *ContextManager) upsertEventsArchive(eventsByDate map[string][]ctx_model.Event) error {
 	for k, v := range eventsByDate {
-		return manager.ArchiveStore.ApplyEvents(k, func(events []ctx_model.Event) error {
+		return manager.ArchiveStore.ApplyEvents(k, func(events []ctx_model.Event) ([]ctx_model.Event, error) {
 			events = append(events, v...)
-			return nil
+			return events, nil
 		})
 	}
 	return nil
@@ -404,11 +404,7 @@ func (manager *ContextManager) Archive(id string) error {
 		return err
 	}
 
-	if err := manager.Delete(id); err != nil {
-		return err
-	}
-
-	return manager.deleteEvents(id)
+	return manager.Delete(id)
 }
 
 func (manager *ContextManager) ArchiveAll() error {

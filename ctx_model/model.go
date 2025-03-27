@@ -99,7 +99,7 @@ type EventsPatch func(*EventRegistry) error
 
 type ArchivePatch func(*ArchiveEntry) error
 
-type ArchiveEventsPatch func([]Event) error
+type ArchiveEventsPatch func([]Event) ([]Event, error)
 
 type TimeProvider interface {
 	Now() time.Time

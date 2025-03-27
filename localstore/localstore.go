@@ -166,11 +166,11 @@ func (store *LocalArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEve
 		return err
 	}
 
-	if err := fn(events); err != nil {
+	if changeEvents, err := fn(events); err != nil {
 		return err
+	} else {
+		return store.saveEventsArchive(changeEvents, path)
 	}
-
-	return store.saveEventsArchive(events, path)
 }
 
 func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) error {
