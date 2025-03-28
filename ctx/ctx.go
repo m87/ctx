@@ -330,6 +330,10 @@ func (manager *ContextManager) deleteEvents(id string) error {
 func (manager *ContextManager) Delete(id string) error {
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
+			if state.CurrentId == id {
+				return errors.New("context is active")
+			}
+
 			if _, ok := state.Contexts[id]; ok {
 				delete(state.Contexts, id)
 				manager.deleteEvents(id)
@@ -408,7 +412,7 @@ func (manager *ContextManager) Archive(id string) error {
 }
 
 func (manager *ContextManager) ArchiveAll() error {
-	return manager.ContextStore.Apply(
+	return manager.ContextStore.Read(
 		func(state *ctx_model.State) error {
 			for _, ctx := range state.Contexts {
 				if err := manager.Archive(ctx.Id); err != nil {

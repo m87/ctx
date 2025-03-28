@@ -83,8 +83,8 @@ type ContextArchive struct {
 }
 
 type EventsArchive struct {
-  Date string   `json:"date"`
-  Events []Event `json:"events"`
+	Date   string  `json:"date"`
+	Events []Event `json:"events"`
 }
 
 type EventsFilter struct {
