@@ -77,9 +77,14 @@ type EventRegistry struct {
 	Events []Event `json:"events"`
 }
 
-type ArchiveEntry struct {
+type ContextArchive struct {
 	Context Context `json:"context"`
 	Events  []Event `json:"events"`
+}
+
+type EventsArchive struct {
+  Date string   `json:"date"`
+  Events []Event `json:"events"`
 }
 
 type EventsFilter struct {
@@ -97,9 +102,9 @@ type StatePatch func(*State) error
 
 type EventsPatch func(*EventRegistry) error
 
-type ArchivePatch func(*ArchiveEntry) error
+type ArchivePatch func(*ContextArchive) error
 
-type ArchiveEventsPatch func([]Event) ([]Event, error)
+type ArchiveEventsPatch func(*EventsArchive) error
 
 type TimeProvider interface {
 	Now() time.Time

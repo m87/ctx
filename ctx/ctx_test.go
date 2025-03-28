@@ -109,17 +109,17 @@ func (es *TestEventsStore) Read(fn ctx_model.EventsPatch) error {
 
 func NewTestArchiveStore(id string) *TestArchiveStore {
 	tas := TestArchiveStore{}
-	tas.Save(&ctx_model.ArchiveEntry{
+	tas.Save(&ctx_model.ContextArchive{
 		Context: ctx_model.Context{
 			Id: id,
 		},
 	})
-	tas.SaveEvents([]ctx_model.Event{})
+	tas.SaveEvents(&ctx_model.EventsArchive{})
 	return &tas
 }
 
-func (as *TestArchiveStore) Load(id string) ctx_model.ArchiveEntry {
-	state := ctx_model.ArchiveEntry{}
+func (as *TestArchiveStore) Load(id string) ctx_model.ContextArchive {
+	state := ctx_model.ContextArchive{}
 	err := json.Unmarshal(as.store, &state)
 	if err != nil {
 		log.Fatal("Unable to parse archvie store")
@@ -128,7 +128,7 @@ func (as *TestArchiveStore) Load(id string) ctx_model.ArchiveEntry {
 	return state
 }
 
-func (as *TestArchiveStore) Save(archive *ctx_model.ArchiveEntry) {
+func (as *TestArchiveStore) Save(archive *ctx_model.ContextArchive) {
 	data, err := json.Marshal(archive)
 	if err != nil {
 		panic(err)
@@ -136,18 +136,18 @@ func (as *TestArchiveStore) Save(archive *ctx_model.ArchiveEntry) {
 	as.store = data
 }
 
-func (as *TestArchiveStore) LoadEvents() []ctx_model.Event {
-	events := []ctx_model.Event{}
+func (as *TestArchiveStore) LoadEvents() *ctx_model.EventsArchive {
+	events := ctx_model.EventsArchive{}
 	err := json.Unmarshal(as.storeEvents, &events)
 	if err != nil {
 		log.Fatal("Unable to parse events archvie store")
 	}
 
-	return events
+	return &events
 }
 
-func (as *TestArchiveStore) SaveEvents(events []ctx_model.Event) {
-	data, err := json.Marshal(events)
+func (as *TestArchiveStore) SaveEvents(entry *ctx_model.EventsArchive) {
+	data, err := json.Marshal(entry)
 	if err != nil {
 		panic(err)
 	}
@@ -167,11 +167,11 @@ func (store *TestArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) error
 
 func (store *TestArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEventsPatch) error {
 	archive := store.LoadEvents()
-	changeEvents, err := fn(archive)
+	err := fn(archive)
 	if err != nil {
 		return err
 	} else {
-		store.SaveEvents(changeEvents)
+		store.SaveEvents(archive)
 		return nil
 	}
 }
@@ -588,7 +588,7 @@ func TestArchiveEvents(t *testing.T) {
 	err := cm.Archive(test.TestId)
 
 	assert.NoError(t, err)
-	events := as.LoadEvents()
+	events := as.LoadEvents().Events
 	assert.Len(t, events, 6)
 	assert.Equal(t, events[0].DateTime, dt1)
 	assert.Equal(t, events[0].Type, ctx_model.CREATE_CTX)

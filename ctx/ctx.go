@@ -350,8 +350,8 @@ func (manager *ContextManager) groupEventsByDate(events []ctx_model.Event) map[s
 	return eventsByDate
 }
 
-func (manager *ContextManager) upsertArchive(entry *ctx_model.ArchiveEntry) error {
-	return manager.ArchiveStore.Apply(entry.Context.Id, func(entry2Update *ctx_model.ArchiveEntry) error {
+func (manager *ContextManager) upsertArchive(entry *ctx_model.ContextArchive) error {
+	return manager.ArchiveStore.Apply(entry.Context.Id, func(entry2Update *ctx_model.ContextArchive) error {
 		if entry2Update.Context.Id != entry.Context.Id {
 			return errors.New("contexts mismatch, entry to update: " + entry2Update.Context.Id + ", entry to archive: " + entry.Context.Id)
 		}
@@ -369,9 +369,9 @@ func (manager *ContextManager) upsertArchive(entry *ctx_model.ArchiveEntry) erro
 
 func (manager *ContextManager) upsertEventsArchive(eventsByDate map[string][]ctx_model.Event) error {
 	for k, v := range eventsByDate {
-		return manager.ArchiveStore.ApplyEvents(k, func(events []ctx_model.Event) ([]ctx_model.Event, error) {
-			events = append(events, v...)
-			return events, nil
+		return manager.ArchiveStore.ApplyEvents(k, func(entry *ctx_model.EventsArchive) error {
+			entry.Events = append(entry.Events, v...)
+			return nil
 		})
 	}
 	return nil
@@ -386,7 +386,7 @@ func (manager *ContextManager) Archive(id string) error {
 
 			if _, ok := state.Contexts[id]; ok {
 				return manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
-					archiveEntry := ctx_model.ArchiveEntry{
+					archiveEntry := ctx_model.ContextArchive{
 						Context: state.Contexts[id],
 						Events:  manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id}),
 					}

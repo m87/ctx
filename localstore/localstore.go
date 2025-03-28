@@ -66,7 +66,7 @@ func NewArchiveStore(path string) *LocalArchiveStore {
 	}
 }
 
-func (store *LocalArchiveStore) saveArchive(entry *ctx_model.ArchiveEntry, path string) error {
+func (store *LocalArchiveStore) saveArchive(entry *ctx_model.ContextArchive, path string) error {
 	data, err := json.Marshal(entry)
 	if err != nil {
 		return errors.New("unable to marshal archive for " + entry.Context.Id)
@@ -77,7 +77,7 @@ func (store *LocalArchiveStore) saveArchive(entry *ctx_model.ArchiveEntry, path 
 	return nil
 }
 
-func (store *LocalArchiveStore) saveEventsArchive(entry []ctx_model.Event, path string) error {
+func (store *LocalArchiveStore) saveEventsArchive(entry *ctx_model.EventsArchive, path string) error {
 	data, err := json.Marshal(entry)
 	if err != nil {
 		return errors.New("unable to marshal events archive for " + path)
@@ -88,10 +88,10 @@ func (store *LocalArchiveStore) saveEventsArchive(entry []ctx_model.Event, path 
 	return nil
 }
 
-func (store *LocalArchiveStore) loadArchive(id string, path string) (*ctx_model.ArchiveEntry, error) {
+func (store *LocalArchiveStore) loadArchive(id string, path string) (*ctx_model.ContextArchive, error) {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return &ctx_model.ArchiveEntry{
+			return &ctx_model.ContextArchive{
 				Context: ctx_model.Context{
 					Id: id,
 				},
@@ -107,7 +107,7 @@ func (store *LocalArchiveStore) loadArchive(id string, path string) (*ctx_model.
 		return nil, errors.New("unable to read archive file " + path)
 	}
 
-	entry := ctx_model.ArchiveEntry{}
+	entry := ctx_model.ContextArchive{}
 	err = json.Unmarshal(data, &entry)
 
 	if err != nil {
@@ -118,10 +118,12 @@ func (store *LocalArchiveStore) loadArchive(id string, path string) (*ctx_model.
 
 }
 
-func (store *LocalArchiveStore) loadEventsArchive(path string) ([]ctx_model.Event, error) {
+func (store *LocalArchiveStore) loadEventsArchive(path string) (*ctx_model.EventsArchive, error) {
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
-			return []ctx_model.Event{}, nil
+			return &ctx_model.EventsArchive{
+        Events: []ctx_model.Event{},
+      }, nil
 		} else {
 			return nil, errors.New("unable to read eventsarchive file " + path)
 		}
@@ -132,14 +134,14 @@ func (store *LocalArchiveStore) loadEventsArchive(path string) ([]ctx_model.Even
 		return nil, errors.New("unable to read events archive file " + path)
 	}
 
-	entry := []ctx_model.Event{}
+	entry := ctx_model.EventsArchive{}
 	err = json.Unmarshal(data, &entry)
 
 	if err != nil {
 		return nil, errors.New("unable to parse events archive file " + path)
 	}
 
-	return entry, nil
+	return &entry, nil
 
 }
 
@@ -166,10 +168,10 @@ func (store *LocalArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEve
 		return err
 	}
 
-	if changeEvents, err := fn(events); err != nil {
+	if err := fn(events); err != nil {
 		return err
 	} else {
-		return store.saveEventsArchive(changeEvents, path)
+		return store.saveEventsArchive(events, path)
 	}
 }
 
