@@ -9,8 +9,9 @@ import (
 )
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
-	Short: "Delete context",
+	Use:     "delete",
+	Aliases: []string{"del", "d"},
+	Short:   "Delete context",
 	Run: func(cmd *cobra.Command, args []string) {
 		description := strings.TrimSpace(args[0])
 		id, err := util.Id(description, false)

@@ -7,9 +7,10 @@ import (
 )
 
 var listEventsCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List events",
-	Long:  `List events.`,
+	Use:     "list",
+	Aliases: []string{"l", "ls"},
+	Short:   "List events",
+	Long:    `List events.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		date, _ := cmd.Flags().GetString("date")
 		types, _ := cmd.Flags().GetStringArray("types")
