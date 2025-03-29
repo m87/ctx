@@ -208,6 +208,17 @@ func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description
 		})
 }
 
+func (manager *ContextManager) Ctx(id string) (ctx_model.Context, error) {
+  ctx := ctx_model.Context{}
+
+  manager.ContextStore.Read(func(s *ctx_model.State) error {
+    ctx = s.Contexts[id]
+    return nil
+  })
+
+  return ctx ,nil
+} 
+
 func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
 	return manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
 		event.UUID = uuid.NewString()
@@ -224,6 +235,20 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 		Description: context.Description,
 		Data:        data,
 	})
+}
+
+func (manager *ContextManager) FilterEvents(filter ctx_model.EventsFilter) []ctx_model.Event {
+  evs := []ctx_model.Event{}
+  
+  manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+    
+    evs = manager.filterEvents(er, filter)
+
+    return nil
+  },
+  )
+
+  return evs
 }
 
 func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter ctx_model.EventsFilter) []ctx_model.Event {
@@ -433,3 +458,4 @@ func (manager *ContextManager) ArchiveAll() error {
 			return nil
 		})
 }
+
