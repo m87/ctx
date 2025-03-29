@@ -288,12 +288,23 @@ func (manager *ContextManager) ListEventsJson(filter ctx_model.EventsFilter) {
 	})
 }
 
+func (manager *ContextManager) formatEventData(event ctx_model.Event) string {
+	if len(event.Data) == 0 {
+		return ""
+	}
+	data, err := json.Marshal(event.Data)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
 func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
 	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s (%s => %s)\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, v.Data["from"], v.CtxId)
+			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
 		}
 		return nil
 	})

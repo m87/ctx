@@ -614,6 +614,18 @@ func TestArchiveContext(t *testing.T) {
 	assert.Len(t, es.Load().Events, 7)
 }
 
+func TestDontArchiveActiveContext(t *testing.T) {
+	as := NewTestArchiveStore()
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, as, tp)
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	err := cm.Archive(test.TestId)
+
+	assert.Error(t, err, errors.New("context is active"))
+}
+
 func TestArchiveAll(t *testing.T) {
 	as := NewTestArchiveStore()
 	cs := NewTestContextStore()
@@ -639,3 +651,4 @@ func TestArchiveAll(t *testing.T) {
 	assert.Len(t, events, 14)
 	assert.Len(t, cs.Load().Contexts, 0)
 }
+	
