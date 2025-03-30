@@ -15,34 +15,36 @@ var summarizeDayCmd = &cobra.Command{
 	Aliases: []string{"d", "day"},
 	Short:   "Summarize day",
 	Run: func(cmd *cobra.Command, args []string) {
-    date := strings.TrimSpace(args[0])
+		date := strings.TrimSpace(args[0])
 
 		filter := ctx_model.EventsFilter{
-			Date:  date,
+			Date: date,
 		}
 
 		mgr := ctx.CreateManager()
-    events := mgr.FilterEvents(filter)
+		events := mgr.FilterEvents(filter)
 
-    durations := map[string]time.Duration{}
+		durations := map[string]time.Duration{}
+		overallDuration := time.Duration(0)
 
-    for _, e := range events {
-      if e.Type == ctx_model.END_INTERVAL {
-      duration, _ := time.ParseDuration(e.Data["duration"])
-      if _, ok := durations[e.CtxId]; ok {
-        durations[e.CtxId] = durations[e.CtxId] + duration
-      } else {
-        durations[e.CtxId] = duration
-      }
+		for _, e := range events {
+			if e.Type == ctx_model.END_INTERVAL {
+				duration, _ := time.ParseDuration(e.Data["duration"])
+				if _, ok := durations[e.CtxId]; ok {
+					durations[e.CtxId] = durations[e.CtxId] + duration
+				} else {
+					durations[e.CtxId] = duration
+				}
+				overallDuration = overallDuration + duration
+			}
+		}
 
-    }
-    }
+		for c, d := range durations {
+			ctx, _ := mgr.Ctx(c)
+			fmt.Printf("- %s: %s\n", ctx.Description, d)
+		}
 
-    for c, d := range durations {
-      ctx, _ := mgr.Ctx(c)
-      fmt.Printf("- %s: %s\n", ctx.Description , d)
-    }
-
+		fmt.Printf("Overall: %s\n", overallDuration)
 	},
 }
 
