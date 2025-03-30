@@ -13,8 +13,9 @@ import (
 
 // switchCmd represents the switch command
 var switchCmd = &cobra.Command{
-	Use:   "switch",
-	Short: "Switch context",
+	Use:     "switch",
+	Aliases: []string{"sw", "s"},
+	Short:   "Switch context",
 	Long: `Switch context:
 	- switch description, created if not exists
 	- switch -i id"`,

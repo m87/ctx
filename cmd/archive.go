@@ -9,8 +9,9 @@ import (
 )
 
 var archiveCmd = &cobra.Command{
-	Use:   "archive",
-	Short: "Archive all contexts",
+	Use:     "archive",
+	Aliases: []string{"arc", "a"},
+	Short:   "Archive all contexts",
 	Run: func(cmd *cobra.Command, args []string) {
 		cm := ctx.CreateManager()
 		if all, _ := cmd.Flags().GetBool("all"); all {

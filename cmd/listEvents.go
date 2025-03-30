@@ -7,9 +7,10 @@ import (
 )
 
 var listEventsCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List events",
-	Long:  `List events.`,
+	Use:     "list",
+	Aliases: []string{"l", "ls"},
+	Short:   "List events",
+	Long:    `List events.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		date, _ := cmd.Flags().GetString("date")
 		types, _ := cmd.Flags().GetStringArray("types")
@@ -22,7 +23,7 @@ var listEventsCmd = &cobra.Command{
 		mgr := ctx.CreateManager()
 		if j, _ := cmd.Flags().GetBool("json"); j {
 			mgr.ListEventsJson(filter)
-		} else if f, _ := cmd.Flags().GetBool("full"); f {
+		} else if f, _ := cmd.Flags().GetBool("verbose"); f {
 			mgr.ListEventsFull(filter)
 		} else {
 			mgr.ListEvents(filter)
@@ -34,6 +35,6 @@ func init() {
 	eventsCmd.AddCommand(listEventsCmd)
 	listEventsCmd.Flags().StringP("date", "d", "", "show for date")
 	listEventsCmd.Flags().StringArrayP("types", "t", []string{}, "show for date")
-	listEventsCmd.Flags().BoolP("full", "f", false, "show full list")
+	listEventsCmd.Flags().BoolP("verbose", "v", false, "show full list")
 	listEventsCmd.Flags().BoolP("json", "j", false, "show list as json")
 }

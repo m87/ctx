@@ -9,8 +9,9 @@ import (
 )
 
 var createCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create new context",
+	Use:     "create",
+	Aliases: []string{"new", "c"},
+	Short:   "Create new context",
 	Long: `Create new context from given description. Passed description is used to generate contextId with sha256. For example:
 	ctx create new-context
 	ctx create "new context with spaces"

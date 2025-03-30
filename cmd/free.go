@@ -7,8 +7,9 @@ import (
 )
 
 var freeCmd = &cobra.Command{
-	Use:   "free",
-	Short: "Stop current context",
+	Use:     "free",
+	Aliases: []string{"f"},
+	Short:   "Stop current context",
 	Run: func(cmd *cobra.Command, args []string) {
 		util.Check(ctx.CreateManager().Free())
 	},

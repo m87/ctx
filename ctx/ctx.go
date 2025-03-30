@@ -208,6 +208,17 @@ func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description
 		})
 }
 
+func (manager *ContextManager) Ctx(id string) (ctx_model.Context, error) {
+  ctx := ctx_model.Context{}
+
+  manager.ContextStore.Read(func(s *ctx_model.State) error {
+    ctx = s.Contexts[id]
+    return nil
+  })
+
+  return ctx ,nil
+} 
+
 func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
 	return manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
 		event.UUID = uuid.NewString()
@@ -224,6 +235,20 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 		Description: context.Description,
 		Data:        data,
 	})
+}
+
+func (manager *ContextManager) FilterEvents(filter ctx_model.EventsFilter) []ctx_model.Event {
+  evs := []ctx_model.Event{}
+  
+  manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+    
+    evs = manager.filterEvents(er, filter)
+
+    return nil
+  },
+  )
+
+  return evs
 }
 
 func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter ctx_model.EventsFilter) []ctx_model.Event {
@@ -288,12 +313,23 @@ func (manager *ContextManager) ListEventsJson(filter ctx_model.EventsFilter) {
 	})
 }
 
+func (manager *ContextManager) formatEventData(event ctx_model.Event) string {
+	if len(event.Data) == 0 {
+		return ""
+	}
+	data, err := json.Marshal(event.Data)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
 func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
 	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s (%s => %s)\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, v.Data["from"], v.CtxId)
+			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
 		}
 		return nil
 	})
@@ -330,6 +366,10 @@ func (manager *ContextManager) deleteEvents(id string) error {
 func (manager *ContextManager) Delete(id string) error {
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
+			if state.CurrentId == id {
+				return errors.New("context is active")
+			}
+
 			if _, ok := state.Contexts[id]; ok {
 				delete(state.Contexts, id)
 				manager.deleteEvents(id)
@@ -408,7 +448,7 @@ func (manager *ContextManager) Archive(id string) error {
 }
 
 func (manager *ContextManager) ArchiveAll() error {
-	return manager.ContextStore.Apply(
+	return manager.ContextStore.Read(
 		func(state *ctx_model.State) error {
 			for _, ctx := range state.Contexts {
 				if err := manager.Archive(ctx.Id); err != nil {
@@ -418,3 +458,4 @@ func (manager *ContextManager) ArchiveAll() error {
 			return nil
 		})
 }
+

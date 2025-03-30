@@ -12,9 +12,10 @@ import (
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize environment",
-	Long:  `Creates default directories and config file`,
+	Use:     "init",
+	Aliases: []string{"i"},
+	Short:   "Initialize environment",
+	Long:    `Creates default directories and config file`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(viper.ConfigFileUsed()) > 0 {
 		} else {

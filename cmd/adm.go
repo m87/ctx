@@ -5,10 +5,9 @@ import (
 )
 
 var admCmd = &cobra.Command{
-	Use:   "admin",
-	Short: "Admin command",
-	Run: func(cmd *cobra.Command, args []string) {
-	},
+	Use:     "admin",
+	Aliases: []string{"adm"},
+	Short:   "Admin command",
 }
 
 func init() {
