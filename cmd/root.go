@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/ctx_model"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -12,6 +15,14 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use: "ctx",
 	Run: func(cmd *cobra.Command, args []string) {
+    mgr := ctx.CreateManager()
+
+    mgr.ContextStore.Read(func(s *ctx_model.State) error {
+      if s.CurrentId != "" {
+        fmt.Println(s.Contexts[s.CurrentId].Description)
+      }
+      return nil
+    })
 	},
 }
 
