@@ -463,8 +463,8 @@ func (manager *ContextManager) ArchiveAll() error {
 		})
 }
 
-func (manager *ContextManager) MergeContext(from string, to string) {
-	manager.ContextStore.Apply(func(state *ctx_model.State) error {
+func (manager *ContextManager) MergeContext(from string, to string) error {
+	return manager.ContextStore.Apply(func(state *ctx_model.State) error {
 		if from == to {
 			return errors.New("contexts are the same")
 		}
@@ -488,16 +488,37 @@ func (manager *ContextManager) MergeContext(from string, to string) {
 		toCtx.Intervals = append(toCtx.Intervals, fromCtx.Intervals...)
 
 		manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
+			events := []ctx_model.Event{}
 			for _, v := range er.Events {
+				if v.CtxId == from && v.Type == ctx_model.CREATE_CTX {
+					continue
+				}
+
 				if v.CtxId == from {
 					v.CtxId = to
 				}
+
+				if v.Type == ctx_model.SWITCH_CTX && v.Data["from"] == from {
+					v.Data["from"] = to
+				}
+
+				if v.Type == ctx_model.SWITCH_CTX && v.Data["from"] == to {
+					v.Data["from"] = ""
+				}
+
+				events = append(events, v)
 			}
+			er.Events = events
 			return nil
 		})
 
 		state.Contexts[to] = toCtx
 		manager.deleteInternal(state, from)
+
+		manager.PublishContextEvent(state.Contexts[to], manager.TimeProvider.Now(), ctx_model.MERGE_CTX, map[string]string{
+			"from": from,
+			"to":   to,
+		})
 
 		return nil
 	},

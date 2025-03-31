@@ -5,3 +5,5 @@ var TestDescription = "test"
 
 var PrevTestId string = "27273a33c268fa97fcf0e3ddc424bd8037d7da9a08d64ff5ca4ce8c67d875897"
 var PrevDescription = "prevtest"
+
+var TestIdExtra string = "27273a33c268fa97fcf0e3ddc424bd8037d7da9a08d64ff5ca4ce8c67d875898"

@@ -1,40 +1,33 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	"fmt"
+	"strings"
 
+	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
-// mergeCmd represents the merge command
 var mergeCmd = &cobra.Command{
-	Use:   "merge",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:     "merge",
+	Aliases: []string{"m", "combine"},
+	Short:   "Merge two contexts",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("merge called")
+		fromDescription := strings.TrimSpace(args[0])
+		fromId, err := util.Id(fromDescription, false)
+		util.Checkm(err, "Unable to process id "+fromDescription)
+
+		toDescription := strings.TrimSpace(args[1])
+		toId, err := util.Id(toDescription, false)
+		util.Checkm(err, "Unable to process id "+toDescription)
+
+		mgr := ctx.CreateManager()
+
+		err = mgr.MergeContext(fromId, toId)
+		util.Check(err)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(mergeCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// mergeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// mergeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

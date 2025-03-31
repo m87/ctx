@@ -651,4 +651,42 @@ func TestArchiveAll(t *testing.T) {
 	assert.Len(t, events, 14)
 	assert.Len(t, cs.Load().Contexts, 0)
 }
-	
+
+func TestMergeContexts(t *testing.T) {
+	as := NewTestArchiveStore()
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, as, tp)
+	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
+	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	cm.CreateIfNotExistsAndSwitch(test.TestIdExtra, test.PrevDescription)
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	tp.Current = dt3
+	cm.Switch(test.TestId)
+	cm.Switch(test.PrevTestId)
+	cm.Free()
+	assert.Len(t, es.Load().Events, 21)
+	assert.Len(t, cs.Load().Contexts, 3)
+	assert.Equal(t, cs.Load().Contexts[test.PrevTestId].Duration, dt3.Sub(dt2))
+
+	err := cm.MergeContext(test.TestId, test.PrevTestId)
+
+	assert.NoError(t, err)
+	assert.Equal(t, cs.Load().Contexts[test.PrevTestId].Duration, dt3.Sub(dt2)*2)
+	events := es.Load().Events
+	assert.Len(t, events, 21)
+	assert.Len(t, cs.Load().Contexts, 2)
+	for _, event := range events {
+		if event.Type == ctx_model.SWITCH_CTX {
+			assert.NotEqual(t, event.Data["from"], test.TestId)
+			if v, ok := event.Data["from"]; ok && v != "" && event.CtxId == test.TestIdExtra {
+				assert.Equal(t, v, test.PrevTestId)
+			}
+		}
+	}
+}

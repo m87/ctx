@@ -34,6 +34,7 @@ const (
 	SWITCH_CTX
 	START_INTERVAL
 	END_INTERVAL
+	MERGE_CTX
 )
 
 func EventAsString(event EventType) string {
@@ -46,6 +47,8 @@ func EventAsString(event EventType) string {
 		return "START_INTERVAL"
 	case END_INTERVAL:
 		return "END_INTERVAL"
+	case MERGE_CTX:
+		return "MERGE_CTX"
 	}
 	panic("undefined event type")
 }
@@ -60,6 +63,8 @@ func StringAsEvent(event string) EventType {
 		return START_INTERVAL
 	case "END_INTERVAL":
 		return END_INTERVAL
+	case "MERGE_CTX":
+		return MERGE_CTX
 	}
 	panic("undefined event type")
 }
