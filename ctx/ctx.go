@@ -209,15 +209,15 @@ func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description
 }
 
 func (manager *ContextManager) Ctx(id string) (ctx_model.Context, error) {
-  ctx := ctx_model.Context{}
+	ctx := ctx_model.Context{}
 
-  manager.ContextStore.Read(func(s *ctx_model.State) error {
-    ctx = s.Contexts[id]
-    return nil
-  })
+	manager.ContextStore.Read(func(s *ctx_model.State) error {
+		ctx = s.Contexts[id]
+		return nil
+	})
 
-  return ctx ,nil
-} 
+	return ctx, nil
+}
 
 func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
 	return manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
@@ -238,17 +238,17 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 }
 
 func (manager *ContextManager) FilterEvents(filter ctx_model.EventsFilter) []ctx_model.Event {
-  evs := []ctx_model.Event{}
-  
-  manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
-    
-    evs = manager.filterEvents(er, filter)
+	evs := []ctx_model.Event{}
 
-    return nil
-  },
-  )
+	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
 
-  return evs
+		evs = manager.filterEvents(er, filter)
+
+		return nil
+	},
+	)
+
+	return evs
 }
 
 func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter ctx_model.EventsFilter) []ctx_model.Event {
@@ -363,20 +363,24 @@ func (manager *ContextManager) deleteEvents(id string) error {
 		})
 }
 
+func (manager *ContextManager) deleteInternal(state *ctx_model.State, id string) error {
+	if state.CurrentId == id {
+		return errors.New("context is active")
+	}
+
+	if _, ok := state.Contexts[id]; ok {
+		delete(state.Contexts, id)
+		manager.deleteEvents(id)
+		return nil
+	} else {
+		return errors.New("context does not exists")
+	}
+}
+
 func (manager *ContextManager) Delete(id string) error {
 	return manager.ContextStore.Apply(
 		func(state *ctx_model.State) error {
-			if state.CurrentId == id {
-				return errors.New("context is active")
-			}
-
-			if _, ok := state.Contexts[id]; ok {
-				delete(state.Contexts, id)
-				manager.deleteEvents(id)
-				return nil
-			} else {
-				return errors.New("context does not exists")
-			}
+			return manager.deleteInternal(state, id)
 		})
 }
 
@@ -459,3 +463,43 @@ func (manager *ContextManager) ArchiveAll() error {
 		})
 }
 
+func (manager *ContextManager) MergeContext(from string, to string) {
+	manager.ContextStore.Apply(func(state *ctx_model.State) error {
+		if from == to {
+			return errors.New("contexts are the same")
+		}
+
+		if from == state.CurrentId {
+			return errors.New("from context is active")
+		}
+
+		if _, ok := state.Contexts[from]; !ok {
+			return errors.New("context does not exists: " + from)
+		}
+		if _, ok := state.Contexts[to]; !ok {
+			return errors.New("context does not exists: " + to)
+		}
+
+		fromCtx := state.Contexts[from]
+		toCtx := state.Contexts[to]
+
+		toCtx.Comments = append(toCtx.Comments, fromCtx.Comments...)
+		toCtx.Duration = toCtx.Duration + fromCtx.Duration
+		toCtx.Intervals = append(toCtx.Intervals, fromCtx.Intervals...)
+
+		manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
+			for _, v := range er.Events {
+				if v.CtxId == from {
+					v.CtxId = to
+				}
+			}
+			return nil
+		})
+
+		state.Contexts[to] = toCtx
+		manager.deleteInternal(state, from)
+
+		return nil
+	},
+	)
+}
