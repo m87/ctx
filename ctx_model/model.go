@@ -35,6 +35,7 @@ const (
 	START_INTERVAL
 	END_INTERVAL
 	MERGE_CTX
+	DELETE_CTX
 )
 
 func EventAsString(event EventType) string {
@@ -49,6 +50,8 @@ func EventAsString(event EventType) string {
 		return "END_INTERVAL"
 	case MERGE_CTX:
 		return "MERGE_CTX"
+	case DELETE_CTX:
+		return "DELETE_CTX"
 	}
 	panic("undefined event type")
 }
@@ -65,6 +68,8 @@ func StringAsEvent(event string) EventType {
 		return END_INTERVAL
 	case "MERGE_CTX":
 		return MERGE_CTX
+	case "DELETE_CTX":
+		return DELETE_CTX
 	}
 	panic("undefined event type")
 }
@@ -84,7 +89,6 @@ type EventRegistry struct {
 
 type ContextArchive struct {
 	Context Context `json:"context"`
-	Events  []Event `json:"events"`
 }
 
 type EventsArchive struct {

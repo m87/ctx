@@ -169,7 +169,7 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 	now := manager.TimeProvider.Now()
 	prevId := state.CurrentId
 	if state.CurrentId != "" {
-		manager.endInterval(state, id, now)
+		manager.endInterval(state, state.CurrentId, now)
 	}
 
 	if ctx, ok := state.Contexts[id]; ok {
@@ -349,28 +349,15 @@ func (manager *ContextManager) Free() error {
 		})
 }
 
-func (manager *ContextManager) deleteEvents(id string) error {
-	return manager.EventsStore.Apply(
-		func(er *ctx_model.EventRegistry) error {
-			tmpEvs := []ctx_model.Event{}
-			for _, v := range er.Events {
-				if v.CtxId != id {
-					tmpEvs = append(tmpEvs, v)
-				}
-			}
-			er.Events = tmpEvs
-			return nil
-		})
-}
-
 func (manager *ContextManager) deleteInternal(state *ctx_model.State, id string) error {
 	if state.CurrentId == id {
 		return errors.New("context is active")
 	}
 
 	if _, ok := state.Contexts[id]; ok {
+		context := state.Contexts[id]
 		delete(state.Contexts, id)
-		manager.deleteEvents(id)
+		manager.PublishContextEvent(context, manager.TimeProvider.Now(), ctx_model.DELETE_CTX, nil)
 		return nil
 	} else {
 		return errors.New("context does not exists")
@@ -406,7 +393,6 @@ func (manager *ContextManager) upsertArchive(entry *ctx_model.ContextArchive) er
 		entry2Update.Context.Comments = append(entry2Update.Context.Comments, entry.Context.Comments...)
 		entry2Update.Context.Intervals = append(entry2Update.Context.Intervals, entry.Context.Intervals...)
 		entry2Update.Context.State = entry.Context.State
-		entry2Update.Events = append(entry2Update.Events, entry.Events...)
 		return nil
 	})
 }
@@ -429,21 +415,18 @@ func (manager *ContextManager) Archive(id string) error {
 			}
 
 			if _, ok := state.Contexts[id]; ok {
-				return manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
-					archiveEntry := ctx_model.ContextArchive{
-						Context: state.Contexts[id],
-						Events:  manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id}),
-					}
+				archiveEntry := ctx_model.ContextArchive{
+					Context: state.Contexts[id],
+				}
 
-					if err := manager.upsertArchive(&archiveEntry); err != nil {
-						return err
-					}
+				if err := manager.upsertArchive(&archiveEntry); err != nil {
+					return err
+				}
 
-					return manager.upsertEventsArchive(manager.groupEventsByDate(manager.filterEvents(er, ctx_model.EventsFilter{CtxId: id})))
-				})
 			} else {
 				return errors.New("context does not exists")
 			}
+			return nil
 		}); err != nil {
 		return err
 	}
@@ -451,8 +434,20 @@ func (manager *ContextManager) Archive(id string) error {
 	return manager.Delete(id)
 }
 
+func (manager *ContextManager) ArchiveAllEvents() error {
+	return manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
+		eventsByDate := manager.groupEventsByDate(er.Events)
+		err := manager.upsertEventsArchive(eventsByDate)
+		if err != nil {
+			return err
+		}
+		er.Events = []ctx_model.Event{}
+		return nil
+	})
+}
+
 func (manager *ContextManager) ArchiveAll() error {
-	return manager.ContextStore.Read(
+	err := manager.ContextStore.Read(
 		func(state *ctx_model.State) error {
 			for _, ctx := range state.Contexts {
 				if err := manager.Archive(ctx.Id); err != nil {
@@ -461,6 +456,12 @@ func (manager *ContextManager) ArchiveAll() error {
 			}
 			return nil
 		})
+
+	if err != nil {
+		return err
+	}
+
+	return manager.ArchiveAllEvents()
 }
 
 func (manager *ContextManager) MergeContext(from string, to string) error {
@@ -486,31 +487,6 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 		toCtx.Comments = append(toCtx.Comments, fromCtx.Comments...)
 		toCtx.Duration = toCtx.Duration + fromCtx.Duration
 		toCtx.Intervals = append(toCtx.Intervals, fromCtx.Intervals...)
-
-		manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
-			events := []ctx_model.Event{}
-			for _, v := range er.Events {
-				if v.CtxId == from && v.Type == ctx_model.CREATE_CTX {
-					continue
-				}
-
-				if v.CtxId == from {
-					v.CtxId = to
-				}
-
-				if v.Type == ctx_model.SWITCH_CTX && v.Data["from"] == from {
-					v.Data["from"] = to
-				}
-
-				if v.Type == ctx_model.SWITCH_CTX && v.Data["from"] == to {
-					v.Data["from"] = ""
-				}
-
-				events = append(events, v)
-			}
-			er.Events = events
-			return nil
-		})
 
 		state.Contexts[to] = toCtx
 		manager.deleteInternal(state, from)

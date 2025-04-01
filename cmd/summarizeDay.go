@@ -7,6 +7,7 @@ import (
 
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
+	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
@@ -15,33 +16,34 @@ var summarizeDayCmd = &cobra.Command{
 	Aliases: []string{"d", "day"},
 	Short:   "Summarize day",
 	Run: func(cmd *cobra.Command, args []string) {
-		date := strings.TrimSpace(args[0])
+		rawDate := strings.TrimSpace(args[0])
 
-		filter := ctx_model.EventsFilter{
-			Date: date,
-		}
+		date, err := time.Parse(time.DateOnly, rawDate)
+		util.Checkm(err, "Unable to parse date "+rawDate)
 
 		mgr := ctx.CreateManager()
-		events := mgr.FilterEvents(filter)
 
 		durations := map[string]time.Duration{}
 		overallDuration := time.Duration(0)
 
-		for _, e := range events {
-			if e.Type == ctx_model.END_INTERVAL {
-				duration, _ := time.ParseDuration(e.Data["duration"])
-				if _, ok := durations[e.CtxId]; ok {
-					durations[e.CtxId] = durations[e.CtxId] + duration
-				} else {
-					durations[e.CtxId] = duration
+		mgr.ContextStore.Read(func(s *ctx_model.State) error {
+			for ctxId, ctx := range s.Contexts {
+				durations[ctxId] = time.Duration(0)
+				for _, interval := range ctx.Intervals {
+					if interval.End.Year() == date.Year() && interval.End.Month() == date.Month() && interval.End.Day() == date.Day() {
+						durations[ctxId] += interval.Duration
+						overallDuration += interval.Duration
+					}
 				}
-				overallDuration = overallDuration + duration
 			}
-		}
+			return nil
+		})
 
 		for c, d := range durations {
 			ctx, _ := mgr.Ctx(c)
-			fmt.Printf("- %s: %s\n", ctx.Description, d)
+			if d > 0 {
+				fmt.Printf("- %s: %s\n", ctx.Description, d)
+			}
 		}
 
 		fmt.Printf("Overall: %s\n", overallDuration)
