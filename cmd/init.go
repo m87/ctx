@@ -24,7 +24,8 @@ var initCmd = &cobra.Command{
 
 			os.Mkdir(filepath.Join(home, ".ctx.d"), 0777)
 			os.Mkdir(filepath.Join(home, ".ctx.d", "archive"), 0777)
-			os.WriteFile(filepath.Join(home, ".ctx"), []byte(fmt.Sprintf(`storePath: %s`, filepath.Join(home, ".ctx.d"))), 0777)
+			os.WriteFile(filepath.Join(home, ".ctx"), []byte(fmt.Sprintf(`version: 0.1
+storePath: %s`, filepath.Join(home, ".ctx.d"))), 0777)
 			os.WriteFile(filepath.Join(home, ".ctx.d", "state"), []byte("{\"contexts\": {}}"), 0777)
 			os.WriteFile(filepath.Join(home, ".ctx.d", "events"), []byte("{\"events\": []}"), 0777)
 		}
