@@ -7,7 +7,6 @@ import (
 
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
@@ -16,11 +15,14 @@ var summarizeDayCmd = &cobra.Command{
 	Aliases: []string{"d", "day"},
 	Short:   "Summarize day",
 	Run: func(cmd *cobra.Command, args []string) {
-		rawDate := strings.TrimSpace(args[0])
+		date := time.Now()
+		if len(args) > 0 {
+			rawDate := strings.TrimSpace(args[0])
 
-		date, err := time.Parse(time.DateOnly, rawDate)
-		util.Checkm(err, "Unable to parse date "+rawDate)
-
+			if rawDate != "" {
+				date, _ = time.Parse(time.DateOnly, rawDate)
+			}
+		}
 		mgr := ctx.CreateManager()
 
 		durations := map[string]time.Duration{}
