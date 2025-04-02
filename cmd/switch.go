@@ -20,6 +20,10 @@ var switchCmd = &cobra.Command{
 	- switch description, created if not exists
 	- switch -i id"`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			panic("Please provide a description or id")
+		}
+
 		description := strings.TrimSpace(args[0])
 		byId, _ := cmd.Flags().GetBool("id")
 		id, err := util.Id(description, byId)
