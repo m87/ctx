@@ -500,3 +500,35 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 	},
 	)
 }
+
+func (manager *ContextManager) EditContextInterval(id string, intervalIndex int, start time.Time, end time.Time) error {
+	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+		if s.CurrentId == id {
+			return errors.New("context is active")
+		}
+
+		oldDuration := s.Contexts[id].Intervals[intervalIndex].Duration
+    oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Format(time.DateTime)
+    oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Format(time.DateTime)
+
+		ctx := s.Contexts[id]
+
+		ctx.Intervals[intervalIndex].Start = start
+		ctx.Intervals[intervalIndex].End = end
+		ctx.Intervals[intervalIndex].Duration = ctx.Intervals[intervalIndex].End.Sub(ctx.Intervals[intervalIndex].Start)
+
+		durationDiff := ctx.Intervals[intervalIndex].Duration - oldDuration
+
+		ctx.Duration = ctx.Duration + durationDiff
+
+		s.Contexts[id] = ctx
+		manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
+      "old.start": oldStart,
+      "old.end": oldEnd,
+      "new.start": ctx.Intervals[intervalIndex].Start.Format(time.DateTime),
+      "new.end": ctx.Intervals[intervalIndex].End.Format(time.DateTime),
+    })
+		return nil
+	})
+
+}

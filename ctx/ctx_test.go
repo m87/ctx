@@ -704,3 +704,74 @@ func TestArchiveAllEvents(t *testing.T) {
 	assert.Len(t, events, 14)
 	assert.Len(t, es.Load().Events, 0)
 }
+
+func TestErrorOnEditCurrentContextInterval(t *testing.T) {
+	as := NewTestArchiveStore()
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, as, tp)
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+
+	err := cm.EditContextInterval(test.TestId, 0, time.Now().Local(), time.Now().Local())
+
+	assert.Error(t, err, errors.New("context is active"))
+
+}
+
+func TestEditContextInterval(t *testing.T) {
+	as := NewTestArchiveStore()
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, as, tp)
+	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
+	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.TestDescription)
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt3
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.TestDescription)
+
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt1)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt2)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt2.Sub(dt1))
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration + cs.Load().Contexts[test.TestId].Intervals[1].Duration)
+
+	err := cm.EditContextInterval(test.TestId, 0, dt1, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt1)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt1))
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration + cs.Load().Contexts[test.TestId].Intervals[1].Duration)
+	assert.NoError(t, err, errors.New("context is active"))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt2.Format(time.DateTime))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.DateTime))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
+
+	err = cm.EditContextInterval(test.TestId, 0, dt2, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt2)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt2))
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration + cs.Load().Contexts[test.TestId].Intervals[1].Duration)
+	assert.NoError(t, err, errors.New("context is active"))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Format(time.DateTime))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Format(time.DateTime))
+  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
+}
