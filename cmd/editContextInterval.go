@@ -15,8 +15,6 @@ var editContextIntervalCmd = &cobra.Command{
 	Use:   "interval",
 	Short: "Edit selected interval",
 	Run: func(cmd *cobra.Command, args []string) {
-    //TODO publish event (edit interval from to)Println 
-
 	  description := strings.TrimSpace(args[0])
 		id, err := util.Id(description, false)
 		util.Checkm(err, "Unable to process id "+description)
