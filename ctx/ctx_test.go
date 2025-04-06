@@ -775,3 +775,28 @@ func TestEditContextInterval(t *testing.T) {
   assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Format(time.DateTime))
   assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
 }
+
+
+func TestRename(t *testing.T) {
+  as := NewTestArchiveStore()
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, as, tp)
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+
+  cm.RenameContext(test.TestId, test.PrevTestId, test.PrevDescription)
+
+  state := cs.Load()
+  assert.Contains(t, state.Contexts, test.PrevTestId)
+  assert.NotContains(t, state.Contexts, test.TestId)
+  assert.Len(t, state.Contexts[test.PrevTestId].Intervals, 1)
+  assert.Equal(t, state.Contexts[test.PrevTestId].Description, test.PrevDescription)
+
+}
+
+
+
+
+

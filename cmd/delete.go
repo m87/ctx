@@ -10,7 +10,7 @@ import (
 
 var deleteCmd = &cobra.Command{
 	Use:     "delete",
-	Aliases: []string{"del", "d"},
+	Aliases: []string{"del", "d", "rm"},
 	Short:   "Delete context",
 	Run: func(cmd *cobra.Command, args []string) {
 		description := strings.TrimSpace(args[0])

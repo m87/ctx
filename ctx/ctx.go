@@ -532,3 +532,28 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 	})
 
 }
+
+func (manager *ContextManager) RenameContext(srcId string, targetId string, name string) error {
+  return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+    s.Contexts[targetId] = ctx_model.Context{
+      Id: targetId,
+      Description: name,     
+      Intervals: append([]ctx_model.Interval{}, s.Contexts[srcId].Intervals...),
+      State: s.Contexts[srcId].State,
+      Duration: s.Contexts[srcId].Duration,
+      Comments: append([]string{}, s.Contexts[srcId].Comments...),
+    }
+
+    ctx := s.Contexts[srcId]
+    delete(s.Contexts, srcId)
+    manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.RENAME_CTX, map[string]string{
+      "src.id": ctx.Id,
+      "src.description": ctx.Description,
+      "target.id": targetId,
+      "target:description": name,
+    })
+
+    return nil
+  })
+
+}
