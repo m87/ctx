@@ -15,7 +15,7 @@ var summarizeDayCmd = &cobra.Command{
 	Aliases: []string{"d", "day"},
 	Short:   "Summarize day",
 	Run: func(cmd *cobra.Command, args []string) {
-		date := time.Now()
+		date := time.Now().Local()
 		if len(args) > 0 {
 			rawDate := strings.TrimSpace(args[0])
 
@@ -29,14 +29,8 @@ var summarizeDayCmd = &cobra.Command{
 		overallDuration := time.Duration(0)
 
 		mgr.ContextStore.Read(func(s *ctx_model.State) error {
-			for ctxId, ctx := range s.Contexts {
-				durations[ctxId] = time.Duration(0)
-				for _, interval := range ctx.Intervals {
-					if interval.End.Year() == date.Year() && interval.End.Month() == date.Month() && interval.End.Day() == date.Day() {
-						durations[ctxId] += interval.Duration
-						overallDuration += interval.Duration
-					}
-				}
+			for ctxId, _ := range s.Contexts {
+				durations[ctxId], _ = mgr.GetIntervalDurationsByDate(s, ctxId, date)
 			}
 			return nil
 		})

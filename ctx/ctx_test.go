@@ -743,7 +743,7 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration + cs.Load().Contexts[test.TestId].Intervals[1].Duration)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 
 	err := cm.EditContextInterval(test.TestId, 0, dt1, dt3)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt1)
@@ -752,13 +752,13 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration + cs.Load().Contexts[test.TestId].Intervals[1].Duration)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt2.Format(time.DateTime))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.DateTime))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt2.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
 
 	err = cm.EditContextInterval(test.TestId, 0, dt2, dt3)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt2)
@@ -767,18 +767,17 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration + cs.Load().Contexts[test.TestId].Intervals[1].Duration)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Format(time.DateTime))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Format(time.DateTime))
-  assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
 }
 
-
 func TestRename(t *testing.T) {
-  as := NewTestArchiveStore()
+	as := NewTestArchiveStore()
 	cs := NewTestContextStore()
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
@@ -786,17 +785,32 @@ func TestRename(t *testing.T) {
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
-  cm.RenameContext(test.TestId, test.PrevTestId, test.PrevDescription)
+	cm.RenameContext(test.TestId, test.PrevTestId, test.PrevDescription)
 
-  state := cs.Load()
-  assert.Contains(t, state.Contexts, test.PrevTestId)
-  assert.NotContains(t, state.Contexts, test.TestId)
-  assert.Len(t, state.Contexts[test.PrevTestId].Intervals, 1)
-  assert.Equal(t, state.Contexts[test.PrevTestId].Description, test.PrevDescription)
+	state := cs.Load()
+	assert.Contains(t, state.Contexts, test.PrevTestId)
+	assert.NotContains(t, state.Contexts, test.TestId)
+	assert.Len(t, state.Contexts[test.PrevTestId].Intervals, 1)
+	assert.Equal(t, state.Contexts[test.PrevTestId].Description, test.PrevDescription)
 
 }
 
+func TestGetIntervalDurationForDateInBetween(t *testing.T) {
 
+}
 
+func TestGetIntervalDurationForDateOutOfBounds(t *testing.T) {
 
+}
 
+func TestGetIntervalDurationForDateBefore(t *testing.T) {
+
+}
+
+func TestGetIntervalDurationForDateAfter(t *testing.T) {
+
+}
+
+func TestGetIntervalDurationForDateEqual(t *testing.T) {
+
+}

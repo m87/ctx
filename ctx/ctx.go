@@ -508,8 +508,8 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 		}
 
 		oldDuration := s.Contexts[id].Intervals[intervalIndex].Duration
-    oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Format(time.DateTime)
-    oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Format(time.DateTime)
+		oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Format(time.DateTime)
+		oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Format(time.DateTime)
 
 		ctx := s.Contexts[id]
 
@@ -523,37 +523,57 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 
 		s.Contexts[id] = ctx
 		manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
-      "old.start": oldStart,
-      "old.end": oldEnd,
-      "new.start": ctx.Intervals[intervalIndex].Start.Format(time.DateTime),
-      "new.end": ctx.Intervals[intervalIndex].End.Format(time.DateTime),
-    })
+			"old.start": oldStart,
+			"old.end":   oldEnd,
+			"new.start": ctx.Intervals[intervalIndex].Start.Format(time.DateTime),
+			"new.end":   ctx.Intervals[intervalIndex].End.Format(time.DateTime),
+		})
 		return nil
 	})
 
 }
 
 func (manager *ContextManager) RenameContext(srcId string, targetId string, name string) error {
-  return manager.ContextStore.Apply(func(s *ctx_model.State) error {
-    s.Contexts[targetId] = ctx_model.Context{
-      Id: targetId,
-      Description: name,     
-      Intervals: append([]ctx_model.Interval{}, s.Contexts[srcId].Intervals...),
-      State: s.Contexts[srcId].State,
-      Duration: s.Contexts[srcId].Duration,
-      Comments: append([]string{}, s.Contexts[srcId].Comments...),
-    }
+	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+		s.Contexts[targetId] = ctx_model.Context{
+			Id:          targetId,
+			Description: name,
+			Intervals:   append([]ctx_model.Interval{}, s.Contexts[srcId].Intervals...),
+			State:       s.Contexts[srcId].State,
+			Duration:    s.Contexts[srcId].Duration,
+			Comments:    append([]string{}, s.Contexts[srcId].Comments...),
+		}
 
-    ctx := s.Contexts[srcId]
-    delete(s.Contexts, srcId)
-    manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.RENAME_CTX, map[string]string{
-      "src.id": ctx.Id,
-      "src.description": ctx.Description,
-      "target.id": targetId,
-      "target:description": name,
-    })
+		ctx := s.Contexts[srcId]
+		delete(s.Contexts, srcId)
+		manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.RENAME_CTX, map[string]string{
+			"src.id":             ctx.Id,
+			"src.description":    ctx.Description,
+			"target.id":          targetId,
+			"target:description": name,
+		})
 
-    return nil
-  })
+		return nil
+	})
 
+}
+
+func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date time.Time) (time.Duration, error) {
+	var duration time.Duration = 0
+	if ctx, ok := s.Contexts[id]; ok {
+		for _, interval := range ctx.Intervals {
+			if interval.Start.Day() == date.Day() && interval.Start.Month() == date.Month() && interval.Start.Year() == date.Year() && interval.End.Day() == date.Day() && interval.End.Month() == date.Month() && interval.End.Year() == date.Year() {
+				duration += interval.Duration
+				// } else if interval.Start.Before(date) && interval.End.Day() == date.Day() && interval.End.Month() == date.Month() && interval.End.Year() == date.Year() {
+				// 	duration += date.Sub(interval.End)
+				// } else if interval.Start.Day() == date.Day() && interval.Start.Month() == date.Month() && interval.Start.Year() == date.Year() && interval.End.After(date) {
+				// 	duration += 24*time.Hour - date.Sub(interval.Start)
+			} else if interval.Start.Before(date) && interval.End.After(date) {
+				duration += 24 * time.Hour
+			}
+		}
+	} else {
+		return 0, errors.New("context does not exist")
+	}
+	return duration, nil
 }
