@@ -20,7 +20,7 @@ var summarizeDayCmd = &cobra.Command{
 			rawDate := strings.TrimSpace(args[0])
 
 			if rawDate != "" {
-				date, _ = time.Parse(time.DateOnly, rawDate)
+				date, _ = time.ParseInLocation(time.DateOnly, rawDate, time.Local)
 			}
 		}
 		mgr := ctx.CreateManager()

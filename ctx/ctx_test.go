@@ -17,7 +17,7 @@ type TestTimeProvider struct {
 }
 
 func NewTestTimerProvider(dateTime string) *TestTimeProvider {
-	dt, _ := time.Parse(time.DateTime, dateTime)
+	dt, _ := time.ParseInLocation(time.DateTime, dateTime, time.Local)
 	return &TestTimeProvider{
 		Current: dt,
 	}
@@ -242,7 +242,7 @@ func TestDontCreateContextWithEmptyId(t *testing.T) {
 }
 
 func TestEmitCreateEvent(t *testing.T) {
-	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
 	es := NewTestEventsStore()
 	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), NewTestTimerProvider("2025-03-13 13:00:00"))
 	cm.CreateContext(test.TestId, test.TestDescription)
@@ -381,9 +381,9 @@ func TestSwitchAlreadyActiveContext(t *testing.T) {
 
 func TestIntervals(t *testing.T) {
 	cs := NewTestContextStore()
-	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
-	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), tp)
@@ -426,8 +426,8 @@ func TestIntervals(t *testing.T) {
 
 func TestEventsFlow(t *testing.T) {
 	es := NewTestEventsStore()
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
-	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), tp)
@@ -455,7 +455,7 @@ func TestEventsFlow(t *testing.T) {
 func TestFree(t *testing.T) {
 	cs := NewTestContextStore()
 	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTestTimerProvider("2025-03-13 13:00:00"))
-	dt, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	dt, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	assert.Equal(t, test.TestId, cs.Load().CurrentId)
@@ -514,8 +514,8 @@ func TestDeleteNotExistingContext(t *testing.T) {
 func TestEventFilter(t *testing.T) {
 	es := NewTestEventsStore()
 	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), NewTimer())
-	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
-	dt2, _ := time.Parse(time.DateTime, "2025-03-14 13:00:00")
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-14 13:00:00", time.Local)
 	cm.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
 		er.Events = append(er.Events, ctx_model.Event{
 			DateTime: dt1, Description: "test1", Type: ctx_model.CREATE_CTX,
@@ -580,8 +580,8 @@ func TestArchiveContext(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
-	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
@@ -621,8 +621,8 @@ func TestArchiveAll(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
-	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
@@ -647,8 +647,8 @@ func TestMergeContexts(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
-	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	cm.CreateIfNotExistsAndSwitch(test.TestIdExtra, test.PrevDescription)
@@ -685,8 +685,8 @@ func TestArchiveAllEvents(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
-	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
@@ -726,9 +726,9 @@ func TestEditContextInterval(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt1, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:05:00")
-	dt3, _ := time.Parse(time.DateTime, "2025-03-13 13:10:00")
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
@@ -800,12 +800,12 @@ func TestGetIntervalDurationForDateInBetween(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:05:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.Parse(time.DateOnly, "2025-03-14")
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-14", time.Local)
 	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
 	assert.NoError(t, err)
 	assert.Equal(t, 24*time.Hour, duration)
@@ -816,16 +816,16 @@ func TestGetIntervalDurationForDateOutOfBounds(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:05:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.Parse(time.DateOnly, "2025-03-16")
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-16", time.Local)
 	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
 	assert.NoError(t, err)
 	assert.Equal(t, time.Duration(0), duration)
-	date, _ = time.Parse(time.DateOnly, "2025-03-12")
+	date, _ = time.ParseInLocation(time.DateOnly, "2025-03-12", time.Local)
 	duration, err = cm.GetIntervalDurationsByDate(&state, test.TestId, date)
 	assert.NoError(t, err)
 	assert.Equal(t, time.Duration(0), duration)
@@ -836,12 +836,12 @@ func TestGetIntervalDurationForDateBefore(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 10:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:00:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.Parse(time.DateOnly, "2025-03-15")
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-15", time.Local)
 	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
 	assert.NoError(t, err)
 	assert.Equal(t, 13*time.Hour, duration)
@@ -852,12 +852,12 @@ func TestGetIntervalDurationForDateAfter(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 10:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:00:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.Parse(time.DateOnly, "2025-03-13")
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", time.Local)
 	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
 	assert.NoError(t, err)
 	assert.Equal(t, 14*time.Hour, duration)
@@ -868,12 +868,12 @@ func TestGetIntervalDurationForDateEqual(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 10:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	tp.Current = dt2
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.Parse(time.DateOnly, "2025-03-13")
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", time.Local)
 	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
 	assert.NoError(t, err)
 	assert.Equal(t, 3*time.Hour, duration)

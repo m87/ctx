@@ -508,8 +508,8 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 		}
 
 		oldDuration := s.Contexts[id].Intervals[intervalIndex].Duration
-		oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Format(time.DateTime)
-		oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Format(time.DateTime)
+		oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Format(time.RFC3339Nano)
+		oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Format(time.RFC3339Nano)
 
 		ctx := s.Contexts[id]
 
@@ -525,8 +525,8 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 		manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
 			"old.start": oldStart,
 			"old.end":   oldEnd,
-			"new.start": ctx.Intervals[intervalIndex].Start.Format(time.DateTime),
-			"new.end":   ctx.Intervals[intervalIndex].End.Format(time.DateTime),
+			"new.start": ctx.Intervals[intervalIndex].Start.Format(time.RFC3339Nano),
+			"new.end":   ctx.Intervals[intervalIndex].End.Format(time.RFC3339Nano),
 		})
 		return nil
 	})
