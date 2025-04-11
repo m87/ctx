@@ -796,21 +796,85 @@ func TestRename(t *testing.T) {
 }
 
 func TestGetIntervalDurationForDateInBetween(t *testing.T) {
-
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:05:00")
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	state := cs.Load()
+	date, _ := time.Parse(time.DateOnly, "2025-03-14")
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	assert.NoError(t, err)
+	assert.Equal(t, 24*time.Hour, duration)
 }
 
 func TestGetIntervalDurationForDateOutOfBounds(t *testing.T) {
-
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:05:00")
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	state := cs.Load()
+	date, _ := time.Parse(time.DateOnly, "2025-03-16")
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	assert.NoError(t, err)
+	assert.Equal(t, time.Duration(0), duration)
+	date, _ = time.Parse(time.DateOnly, "2025-03-12")
+	duration, err = cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	assert.NoError(t, err)
+	assert.Equal(t, time.Duration(0), duration)
 }
 
 func TestGetIntervalDurationForDateBefore(t *testing.T) {
-
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 10:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:00:00")
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	state := cs.Load()
+	date, _ := time.Parse(time.DateOnly, "2025-03-15")
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	assert.NoError(t, err)
+	assert.Equal(t, 13*time.Hour, duration)
 }
 
 func TestGetIntervalDurationForDateAfter(t *testing.T) {
-
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 10:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+	dt2, _ := time.Parse(time.DateTime, "2025-03-15 13:00:00")
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	state := cs.Load()
+	date, _ := time.Parse(time.DateOnly, "2025-03-13")
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	assert.NoError(t, err)
+	assert.Equal(t, 14*time.Hour, duration)
 }
 
 func TestGetIntervalDurationForDateEqual(t *testing.T) {
-
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 10:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+	dt2, _ := time.Parse(time.DateTime, "2025-03-13 13:00:00")
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	state := cs.Load()
+	date, _ := time.Parse(time.DateOnly, "2025-03-13")
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	assert.NoError(t, err)
+	assert.Equal(t, 3*time.Hour, duration)
 }

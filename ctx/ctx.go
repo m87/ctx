@@ -560,15 +560,16 @@ func (manager *ContextManager) RenameContext(srcId string, targetId string, name
 
 func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date time.Time) (time.Duration, error) {
 	var duration time.Duration = 0
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
 	if ctx, ok := s.Contexts[id]; ok {
 		for _, interval := range ctx.Intervals {
-			if interval.Start.Day() == date.Day() && interval.Start.Month() == date.Month() && interval.Start.Year() == date.Year() && interval.End.Day() == date.Day() && interval.End.Month() == date.Month() && interval.End.Year() == date.Year() {
+			if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
 				duration += interval.Duration
-				// } else if interval.Start.Before(date) && interval.End.Day() == date.Day() && interval.End.Month() == date.Month() && interval.End.Year() == date.Year() {
-				// 	duration += date.Sub(interval.End)
-				// } else if interval.Start.Day() == date.Day() && interval.Start.Month() == date.Month() && interval.Start.Year() == date.Year() && interval.End.After(date) {
-				// 	duration += 24*time.Hour - date.Sub(interval.Start)
-			} else if interval.Start.Before(date) && interval.End.After(date) {
+			} else if interval.Start.Before(startOfDay) && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
+				duration += interval.End.Sub(startOfDay)
+			} else if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.After(startOfDay) {
+				duration += 24*time.Hour - interval.Start.Sub(startOfDay)
+			} else if interval.Start.Before(startOfDay) && interval.End.After(startOfDay) {
 				duration += 24 * time.Hour
 			}
 		}
