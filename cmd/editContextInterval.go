@@ -45,7 +45,7 @@ var editContextIntervalCmd = &cobra.Command{
 			mgr.EditContextInterval(id, intervalIndex, startDT, endDT)
 		} else {
 			for index, interval := range ctx.Intervals {
-				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Format(time.DateTime), interval.End.Format(time.DateTime))
+				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Format(time.RFC3339Nano), interval.End.Format(time.RFC3339Nano))
 			}
 		}
 

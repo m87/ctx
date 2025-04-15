@@ -755,10 +755,10 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt2.Format(time.DateTime))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.DateTime))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt2.Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.RFC3339Nano))
 
 	err = cm.EditContextInterval(test.TestId, 0, dt2, dt3)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt2)
@@ -770,10 +770,10 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.DateTime))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Format(time.DateTime))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Format(time.DateTime))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.DateTime))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Local().Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Local().Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Local().Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Local().Format(time.RFC3339Nano))
 }
 
 func TestRename(t *testing.T) {
@@ -877,4 +877,60 @@ func TestGetIntervalDurationForDateEqual(t *testing.T) {
 	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
 	assert.NoError(t, err)
 	assert.Equal(t, 3*time.Hour, duration)
+}
+
+func TestDeleteINtervalActiveContext(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	err := cm.DeleteInterval(test.TestId, 0)
+
+	assert.Error(t, err, errors.New("context is active"))
+}
+
+func TestDeleteIntervalNotExistingContext(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	err := cm.DeleteInterval(test.TestId, 0)
+
+	assert.Error(t, err, errors.New("context does not exist"))
+}
+
+func TestDeleteIntervalOutOfBounds(t *testing.T) {
+	cs := NewTestContextStore()
+	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTimer())
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	err := cm.DeleteInterval(test.TestId, 0)
+
+	assert.Error(t, err, errors.New("interval out of bounds"))
+}
+
+func TestDeleteInterval(t *testing.T) {
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	dt4, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:15:00", time.Local)
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	tp.Current = dt3
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt4
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+
+	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 2)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration.Seconds(), time.Duration(600000000000).Seconds())
+
+	err := cm.DeleteInterval(test.TestId, 0)
+
+	assert.NoError(t, err)
+	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 1)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt4)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration.Seconds(), time.Duration(300000000000).Seconds())
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_INTERVAL)
 }

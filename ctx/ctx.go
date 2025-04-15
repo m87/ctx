@@ -117,7 +117,7 @@ func (manager *ContextManager) ListFull() {
 			for _, v := range state.Contexts {
 				fmt.Printf("- [%s] %s\n", v.Id, v.Description)
 				for _, interval := range v.Intervals {
-					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
+					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.RFC3339Nano), interval.End.Local().Format(time.RFC3339Nano))
 				}
 			}
 			return nil
@@ -296,7 +296,7 @@ func (manager *ContextManager) ListEvents(filter ctx_model.EventsFilter) {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description)
+			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Local().Format(time.RFC3339Nano), ctx_model.EventAsString(v.Type), v.Description)
 		}
 		return nil
 	})
@@ -329,7 +329,7 @@ func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
+			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Local().Format(time.RFC3339Nano), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
 		}
 		return nil
 	})
@@ -577,4 +577,31 @@ func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id
 		return 0, errors.New("context does not exist")
 	}
 	return duration, nil
+}
+
+func (manager *ContextManager) DeleteInterval(id string, index int) error {
+	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+		if s.CurrentId == id {
+			return errors.New("context is active")
+		}
+
+		if _, ok := s.Contexts[id]; ok {
+			if index < 0 || index >= len(s.Contexts[id].Intervals) {
+				return errors.New("index out of range")
+			}
+			ctx := s.Contexts[id]
+			interval := ctx.Intervals[index]
+			ctx.Intervals = append(ctx.Intervals[:index], ctx.Intervals[index+1:]...)
+			ctx.Duration = ctx.Duration - interval.Duration
+			s.Contexts[id] = ctx
+			manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.DELETE_CTX_INTERVAL, map[string]string{
+				"start":    interval.Start.Format(time.RFC3339Nano),
+				"end":      interval.End.Format(time.RFC3339Nano),
+				"duration": interval.Duration.String(),
+			})
+		} else {
+			return errors.New("context does not exists")
+		}
+		return nil
+	})
 }

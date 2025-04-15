@@ -36,8 +36,9 @@ const (
 	END_INTERVAL
 	MERGE_CTX
 	DELETE_CTX
-  EDIT_CTX_INTERVAL
-  RENAME_CTX
+	EDIT_CTX_INTERVAL
+	RENAME_CTX
+	DELETE_CTX_INTERVAL
 )
 
 func EventAsString(event EventType) string {
@@ -54,10 +55,12 @@ func EventAsString(event EventType) string {
 		return "MERGE_CTX"
 	case DELETE_CTX:
 		return "DELETE_CTX"
-  case EDIT_CTX_INTERVAL:
-    return "EDIT_CTX_INTERVAL"
-  case RENAME_CTX:
-    return "RENAME_CTX"
+	case EDIT_CTX_INTERVAL:
+		return "EDIT_CTX_INTERVAL"
+	case RENAME_CTX:
+		return "RENAME_CTX"
+	case DELETE_CTX_INTERVAL:
+		return "DELETE_CTX_INTERVAL"
 	}
 	panic("undefined event type")
 }
@@ -76,10 +79,12 @@ func StringAsEvent(event string) EventType {
 		return MERGE_CTX
 	case "DELETE_CTX":
 		return DELETE_CTX
-  case "EDIT_CTX_INTERVAL":
-    return EDIT_CTX_INTERVAL
-  case "RENAME_CTX":
-    return RENAME_CTX
+	case "EDIT_CTX_INTERVAL":
+		return EDIT_CTX_INTERVAL
+	case "RENAME_CTX":
+		return RENAME_CTX
+	case "DELETE_CTX_INTERVAL":
+		return DELETE_CTX_INTERVAL
 	}
 	panic("undefined event type")
 }
