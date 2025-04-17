@@ -579,6 +579,25 @@ func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id
 	return duration, nil
 }
 
+func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date time.Time) []Interval {
+	intervals := []Interval{}
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
+	if ctx, ok := s.Contexts[id]; ok {
+		for _, interval := range ctx.Intervals {
+			if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
+				intervals = append(intervals, Interval(interval))
+			} else if interval.Start.Before(startOfDay) && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
+				intervals = append(intervals, Interval(interval))
+			} else if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.After(startOfDay) {
+				intervals = append(intervals, Interval(interval))
+			} else if interval.Start.Before(startOfDay) && interval.End.After(startOfDay) {
+				intervals = append(intervals, Interval(interval))
+			}
+		}
+	}
+	return intervals
+}
+
 func (manager *ContextManager) DeleteInterval(id string, index int) error {
 	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		if s.CurrentId == id {

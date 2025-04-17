@@ -9,9 +9,9 @@ import (
 )
 
 var renameCmd = &cobra.Command{
-	Use:   "rename",
-  Aliases: []string{"r"},
-	Short: "Rename context",
+	Use:     "rename",
+	Aliases: []string{"r"},
+	Short:   "Rename context",
 	Run: func(cmd *cobra.Command, args []string) {
 		src := strings.TrimSpace(args[0])
 		srcId, err := util.Id(src, false)
@@ -21,9 +21,9 @@ var renameCmd = &cobra.Command{
 		targetId, err := util.Id(target, false)
 		util.Checkm(err, "Unable to process id "+target)
 
-    mgr := ctx.CreateManager()
+		mgr := ctx.CreateManager()
 
-    util.Check(mgr.RenameContext(srcId, targetId, target))
+		util.Check(mgr.RenameContext(srcId, targetId, target))
 
 	},
 }

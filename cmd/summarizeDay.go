@@ -39,6 +39,15 @@ var summarizeDayCmd = &cobra.Command{
 			ctx, _ := mgr.Ctx(c)
 			if d > 0 {
 				fmt.Printf("- %s: %s\n", ctx.Description, d)
+				overallDuration += d
+				if f, _ := cmd.Flags().GetBool("verbose"); f {
+					mgr.ContextStore.Read(func(s *ctx_model.State) error {
+						for _, interval := range mgr.GetIntervalsByDate(s, c, date) {
+							fmt.Printf("\t- %s - %s\n", interval.Start.Format(time.RFC3339Nano), interval.End.Format(time.RFC3339Nano))
+						}
+						return nil
+					})
+				}
 			}
 		}
 
@@ -48,4 +57,5 @@ var summarizeDayCmd = &cobra.Command{
 
 func init() {
 	summarizeCmd.AddCommand(summarizeDayCmd)
+	summarizeDayCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
 }
