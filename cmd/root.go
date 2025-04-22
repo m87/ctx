@@ -13,16 +13,17 @@ import (
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Use: "ctx",
+	Use:     "ctx",
+	Version: ctx.Version,
 	Run: func(cmd *cobra.Command, args []string) {
-    mgr := ctx.CreateManager()
+		mgr := ctx.CreateManager()
 
-    mgr.ContextStore.Read(func(s *ctx_model.State) error {
-      if s.CurrentId != "" {
-        fmt.Println(s.Contexts[s.CurrentId].Description)
-      }
-      return nil
-    })
+		mgr.ContextStore.Read(func(s *ctx_model.State) error {
+			if s.CurrentId != "" {
+				fmt.Println(s.Contexts[s.CurrentId].Description)
+			}
+			return nil
+		})
 	},
 }
 
@@ -36,6 +37,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ctx.yaml)")
+	rootCmd.SetVersionTemplate("{{.Version}}\n")
 }
 
 func initConfig() {

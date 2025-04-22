@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const Version = "0.1.0"
+
 type ContextState int
 
 const (
