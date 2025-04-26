@@ -119,7 +119,7 @@ func (manager *ContextManager) ListFull() {
 			for _, v := range state.Contexts {
 				fmt.Printf("- [%s] %s\n", v.Id, v.Description)
 				for _, interval := range v.Intervals {
-					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.RFC3339Nano), interval.End.Local().Format(time.RFC3339Nano))
+					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
 				}
 			}
 			return nil
@@ -298,7 +298,7 @@ func (manager *ContextManager) ListEvents(filter ctx_model.EventsFilter) {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Local().Format(time.RFC3339Nano), ctx_model.EventAsString(v.Type), v.Description)
+			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description)
 		}
 		return nil
 	})
@@ -331,7 +331,7 @@ func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Local().Format(time.RFC3339Nano), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
+			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
 		}
 		return nil
 	})
