@@ -19,6 +19,12 @@ var initCmd = &cobra.Command{
 	Long:    `Creates default directories and config file`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(viper.ConfigFileUsed()) > 0 {
+			path := viper.GetString("storePath")
+
+			os.Mkdir(path, 0777)
+			os.Mkdir(filepath.Join(path, "archive"), 0777)
+			os.WriteFile(filepath.Join(path, "state"), []byte("{\"contexts\": {}}"), 0777)
+			os.WriteFile(filepath.Join(path, "events"), []byte("{\"events\": []}"), 0777)
 		} else {
 			home, err := os.UserHomeDir()
 			util.Checkm(err, "Unable to get user home dir")
