@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -59,7 +60,14 @@ var summarizeDayCmd = &cobra.Command{
 			return nil
 		})
 
-		for c, d := range durations {
+		sortedIds := make([]string, 0, len(durations))
+		for k := range durations {
+			sortedIds = append(sortedIds, k)
+		}
+		sort.Strings(sortedIds)
+
+		for _, c := range sortedIds {
+			d := durations[c]
 			ctx, _ := mgr.Ctx(c)
 			if d > 0 {
 				fmt.Printf("- %s: %s\n", ctx.Description, d)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -105,7 +106,9 @@ func (manager *ContextManager) CreateContext(id string, description string) erro
 func (manager *ContextManager) List() {
 	manager.ContextStore.Read(
 		func(state *ctx_model.State) error {
-			for _, v := range state.Contexts {
+			ids := manager.getSortedContextIds(state)
+			for _, id := range ids {
+				v := state.Contexts[id]
 				fmt.Printf("- %s\n", v.Description)
 			}
 			return nil
@@ -116,8 +119,10 @@ func (manager *ContextManager) List() {
 func (manager *ContextManager) ListFull() {
 	manager.ContextStore.Read(
 		func(state *ctx_model.State) error {
-			for _, v := range state.Contexts {
-				fmt.Printf("- [%s] %s\n", v.Id, v.Description)
+			ids := manager.getSortedContextIds(state)
+			for _, id := range ids {
+				v := state.Contexts[id]
+				fmt.Printf("- [%s] %s\n", id, v.Description)
 				for _, interval := range v.Intervals {
 					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
 				}
@@ -140,6 +145,15 @@ func (manager *ContextManager) ListJson() {
 			return nil
 		},
 	)
+}
+
+func (manager *ContextManager) getSortedContextIds(state *ctx_model.State) []string {
+	ids := make([]string, 0, len(state.Contexts))
+	for k := range state.Contexts {
+		ids = append(ids, k)
+	}
+	sort.Strings(ids)
+	return ids
 }
 
 func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now time.Time) {
