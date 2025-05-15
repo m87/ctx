@@ -934,3 +934,25 @@ func TestDeleteInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration.Seconds(), time.Duration(300000000000).Seconds())
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_INTERVAL)
 }
+
+func TestSearchContextWithRegex(t *testing.T) {
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	tp.Current = dt2
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	tp.Current = dt3
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+
+	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 2)
+
+	contexts, err := cm.Search("p.*test.*")
+	assert.NoError(t, err)
+	assert.Len(t, contexts, 1)
+	assert.Equal(t, contexts[0].Description, test.PrevDescription)
+}

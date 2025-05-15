@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -639,4 +640,21 @@ func (manager *ContextManager) DeleteInterval(id string, index int) error {
 		}
 		return nil
 	})
+}
+
+func (manager *ContextManager) Search(regex string) ([]ctx_model.Context, error) {
+	ctxs := []ctx_model.Context{}
+	re := regexp.MustCompile(regex)
+	err := manager.ContextStore.Read(func(s *ctx_model.State) error {
+		for _, ctx := range s.Contexts {
+			if re.MatchString(ctx.Description) {
+				ctxs = append(ctxs, ctx)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ctxs, nil
 }
