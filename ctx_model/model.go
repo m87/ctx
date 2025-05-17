@@ -1,6 +1,7 @@
 package ctx_model
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -124,6 +125,20 @@ type State struct {
 
 type LocalTime struct {
 	time.Time
+}
+
+func (lt LocalTime) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, lt.Time.Format(time.RFC3339Nano))), nil
+}
+
+func (lt *LocalTime) UnmarshalJSON(data []byte) error {
+	s := strings.Trim(string(data), `"`)
+	t, err := time.ParseInLocation(time.RFC3339Nano, s, time.Local)
+	if err != nil {
+		return err
+	}
+	lt.Time = t
+	return nil
 }
 
 type StatePatch func(*State) error
