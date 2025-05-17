@@ -25,9 +25,9 @@ const (
 )
 
 type Interval struct {
-	Start    time.Time     `json:"start"`
-	End      time.Time     `json:"end"`
-	Duration time.Duration `json:"duration"`
+	Start    ctx_model.LocalTime `json:"start"`
+	End      ctx_model.LocalTime `json:"end"`
+	Duration time.Duration       `json:"duration"`
 }
 
 type Context struct {
@@ -46,8 +46,8 @@ type State struct {
 
 type RealTimeProvider struct{}
 
-func (provider *RealTimeProvider) Now() time.Time {
-	return time.Now().Local()
+func (provider *RealTimeProvider) Now() ctx_model.LocalTime {
+	return ctx_model.LocalTime{Time: time.Now().Local()}
 }
 
 func NewTimer() *RealTimeProvider {
@@ -157,11 +157,11 @@ func (manager *ContextManager) getSortedContextIds(state *ctx_model.State) []str
 	return ids
 }
 
-func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now time.Time) {
+func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now ctx_model.LocalTime) {
 	prev := state.Contexts[state.CurrentId]
 	interval := prev.Intervals[len(prev.Intervals)-1]
 	interval.End = now
-	interval.Duration = interval.End.Sub(interval.Start)
+	interval.Duration = interval.End.Sub(interval.Start.Time)
 	state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
 	prev.Duration = prev.Duration + interval.Duration
 	state.Contexts[state.CurrentId] = prev
@@ -244,7 +244,7 @@ func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
 	})
 }
 
-func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime time.Time, eventType ctx_model.EventType, data map[string]string) error {
+func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime ctx_model.LocalTime, eventType ctx_model.EventType, data map[string]string) error {
 	return manager.PublishEvent(ctx_model.Event{
 		DateTime:    dateTime,
 		Type:        eventType,
@@ -518,7 +518,7 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 	)
 }
 
-func (manager *ContextManager) EditContextInterval(id string, intervalIndex int, start time.Time, end time.Time) error {
+func (manager *ContextManager) EditContextInterval(id string, intervalIndex int, start ctx_model.LocalTime, end ctx_model.LocalTime) error {
 	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		if s.CurrentId == id {
 			return errors.New("context is active")
@@ -532,14 +532,14 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 
 		ctx.Intervals[intervalIndex].Start = start
 		ctx.Intervals[intervalIndex].End = end
-		ctx.Intervals[intervalIndex].Duration = ctx.Intervals[intervalIndex].End.Sub(ctx.Intervals[intervalIndex].Start)
+		ctx.Intervals[intervalIndex].Duration = ctx.Intervals[intervalIndex].End.Sub(ctx.Intervals[intervalIndex].Start.Time)
 
 		durationDiff := ctx.Intervals[intervalIndex].Duration - oldDuration
 
 		ctx.Duration = ctx.Duration + durationDiff
 
 		s.Contexts[id] = ctx
-		manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
+		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
 			"old.start": oldStart,
 			"old.end":   oldEnd,
 			"new.start": ctx.Intervals[intervalIndex].Start.Format(time.RFC3339Nano),
@@ -563,7 +563,7 @@ func (manager *ContextManager) RenameContext(srcId string, targetId string, name
 
 		ctx := s.Contexts[srcId]
 		delete(s.Contexts, srcId)
-		manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.RENAME_CTX, map[string]string{
+		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.RENAME_CTX, map[string]string{
 			"src.id":             ctx.Id,
 			"src.description":    ctx.Description,
 			"target.id":          targetId,
@@ -575,7 +575,7 @@ func (manager *ContextManager) RenameContext(srcId string, targetId string, name
 
 }
 
-func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date time.Time) (time.Duration, error) {
+func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date ctx_model.LocalTime) (time.Duration, error) {
 	var duration time.Duration = 0
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
 	if ctx, ok := s.Contexts[id]; ok {
@@ -596,7 +596,7 @@ func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id
 	return duration, nil
 }
 
-func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date time.Time) []Interval {
+func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctx_model.LocalTime) []Interval {
 	intervals := []Interval{}
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
 	if ctx, ok := s.Contexts[id]; ok {
@@ -630,7 +630,7 @@ func (manager *ContextManager) DeleteInterval(id string, index int) error {
 			ctx.Intervals = append(ctx.Intervals[:index], ctx.Intervals[index+1:]...)
 			ctx.Duration = ctx.Duration - interval.Duration
 			s.Contexts[id] = ctx
-			manager.PublishContextEvent(ctx, time.Now().Local(), ctx_model.DELETE_CTX_INTERVAL, map[string]string{
+			manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.DELETE_CTX_INTERVAL, map[string]string{
 				"start":    interval.Start.Format(time.RFC3339Nano),
 				"end":      interval.End.Format(time.RFC3339Nano),
 				"duration": interval.Duration.String(),

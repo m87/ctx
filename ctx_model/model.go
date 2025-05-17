@@ -13,8 +13,8 @@ const (
 )
 
 type Interval struct {
-	Start    time.Time     `json:"start"`
-	End      time.Time     `json:"end"`
+	Start    LocalTime     `json:"start"`
+	End      LocalTime     `json:"end"`
 	Duration time.Duration `json:"duration"`
 }
 
@@ -91,7 +91,7 @@ func StringAsEvent(event string) EventType {
 
 type Event struct {
 	UUID        string            `json:"uuid"`
-	DateTime    time.Time         `json:"dateTime"`
+	DateTime    LocalTime         `json:"dateTime"`
 	CtxId       string            `json:"ctxId"`
 	Description string            `json:"description"`
 	Data        map[string]string `json:"data"`
@@ -122,6 +122,10 @@ type State struct {
 	CurrentId string             `json:"currentId"`
 }
 
+type LocalTime struct {
+	time.Time
+}
+
 type StatePatch func(*State) error
 
 type EventsPatch func(*EventRegistry) error
@@ -131,7 +135,7 @@ type ArchivePatch func(*ContextArchive) error
 type ArchiveEventsPatch func(*EventsArchive) error
 
 type TimeProvider interface {
-	Now() time.Time
+	Now() LocalTime
 }
 
 type ContextStore interface {

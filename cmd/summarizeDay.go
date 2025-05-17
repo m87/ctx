@@ -53,7 +53,7 @@ var summarizeDayCmd = &cobra.Command{
 
 		mgr.ContextStore.Read(func(s *ctx_model.State) error {
 			for ctxId, _ := range s.Contexts {
-				d, err := mgr.GetIntervalDurationsByDate(s, ctxId, date)
+				d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctx_model.LocalTime{Time: date})
 				util.Checkm(err, "Unable to get interval durations for context "+ctxId)
 				durations[ctxId] = roundDuration(d, roundUnit)
 			}
@@ -74,7 +74,7 @@ var summarizeDayCmd = &cobra.Command{
 				overallDuration += d
 				if f, _ := cmd.Flags().GetBool("verbose"); f {
 					mgr.ContextStore.Read(func(s *ctx_model.State) error {
-						for _, interval := range mgr.GetIntervalsByDate(s, c, date) {
+						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.LocalTime{Time: date}) {
 							fmt.Printf("\t- %s - %s\n", interval.Start.Format(time.RFC3339Nano), interval.End.Format(time.RFC3339Nano))
 						}
 						return nil

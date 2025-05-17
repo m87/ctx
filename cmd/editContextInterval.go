@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +43,7 @@ var editContextIntervalCmd = &cobra.Command{
 			endDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[3]), time.Local)
 			util.Checkm(err, "Unable to parse end datetime")
 
-			mgr.EditContextInterval(id, intervalIndex, startDT, endDT)
+			mgr.EditContextInterval(id, intervalIndex, ctx_model.LocalTime{Time: startDT}, ctx_model.LocalTime{Time: endDT})
 		} else {
 			for index, interval := range ctx.Intervals {
 				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Format(time.RFC3339Nano), interval.End.Format(time.RFC3339Nano))

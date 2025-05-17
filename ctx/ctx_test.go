@@ -13,17 +13,17 @@ import (
 )
 
 type TestTimeProvider struct {
-	Current time.Time
+	Current ctx_model.LocalTime
 }
 
 func NewTestTimerProvider(dateTime string) *TestTimeProvider {
 	dt, _ := time.ParseInLocation(time.DateTime, dateTime, time.Local)
 	return &TestTimeProvider{
-		Current: dt,
+		Current: ctx_model.LocalTime{dt},
 	}
 }
 
-func (provider *TestTimeProvider) Now() time.Time {
+func (provider *TestTimeProvider) Now() ctx_model.LocalTime {
 	return provider.Current
 }
 
@@ -251,7 +251,7 @@ func TestEmitCreateEvent(t *testing.T) {
 	assert.Len(t, registry.Events, 1)
 	assert.Equal(t, registry.Events[0].Type, ctx_model.CREATE_CTX)
 	assert.Equal(t, registry.Events[0].CtxId, test.TestId)
-	assert.Equal(t, registry.Events[0].DateTime, dt1)
+	assert.Equal(t, registry.Events[0].DateTime, ctx_model.LocalTime{Time: dt1})
 }
 
 func TestSwitchContext(t *testing.T) {
@@ -389,7 +389,7 @@ func TestIntervals(t *testing.T) {
 	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), tp)
 	cm.CreateContext(test.TestId, test.TestDescription)
 
-	tp.Current = dt1
+	tp.Current = ctx_model.LocalTime{Time: dt1}
 	cm.Switch(test.TestId)
 	state := cs.Load()
 	assert.Equal(t, test.TestId, state.CurrentId)
@@ -398,28 +398,28 @@ func TestIntervals(t *testing.T) {
 	assert.Equal(t, prevCtx.Intervals[0].Start, tp.Current)
 	assert.True(t, prevCtx.Intervals[0].End.IsZero())
 
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state = cs.Load()
 	prevCtx = state.Contexts[test.TestId]
-	assert.Equal(t, prevCtx.Intervals[0].Start, dt1)
-	assert.Equal(t, prevCtx.Intervals[0].End, dt2)
+	assert.Equal(t, prevCtx.Intervals[0].Start, ctx_model.LocalTime{Time: dt1})
+	assert.Equal(t, prevCtx.Intervals[0].End, ctx_model.LocalTime{Time: dt2})
 	assert.Equal(t, test.PrevTestId, state.CurrentId)
 	nextCtx := state.Contexts[state.CurrentId]
 	assert.Len(t, nextCtx.Intervals, 1)
-	assert.Equal(t, nextCtx.Intervals[0].Start, dt2)
+	assert.Equal(t, nextCtx.Intervals[0].Start, ctx_model.LocalTime{Time: dt2})
 	assert.True(t, nextCtx.Intervals[0].End.IsZero())
 
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.Switch(test.TestId)
 	state = cs.Load()
 	nextCtx = state.Contexts[test.PrevTestId]
-	assert.Equal(t, nextCtx.Intervals[0].Start, dt2)
-	assert.Equal(t, nextCtx.Intervals[0].End, dt3)
+	assert.Equal(t, nextCtx.Intervals[0].Start, ctx_model.LocalTime{Time: dt2})
+	assert.Equal(t, nextCtx.Intervals[0].End, ctx_model.LocalTime{Time: dt3})
 	assert.Equal(t, test.TestId, state.CurrentId)
 	prevCtx = state.Contexts[state.CurrentId]
 	assert.Len(t, prevCtx.Intervals, 2)
-	assert.Equal(t, prevCtx.Intervals[1].Start, dt3)
+	assert.Equal(t, prevCtx.Intervals[1].Start, ctx_model.LocalTime{Time: dt3})
 	assert.True(t, prevCtx.Intervals[1].End.IsZero())
 
 }
@@ -432,9 +432,9 @@ func TestEventsFlow(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), tp)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.PrevDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.Switch(test.TestId)
 
 	registry := es.Load()
@@ -463,8 +463,8 @@ func TestFree(t *testing.T) {
 	cm.Free()
 	state := cs.Load()
 	assert.Equal(t, "", state.CurrentId)
-	assert.Equal(t, dt, state.Contexts[test.TestId].Intervals[0].Start)
-	assert.Equal(t, dt, state.Contexts[test.TestId].Intervals[0].End)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt}, state.Contexts[test.TestId].Intervals[0].Start)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt}, state.Contexts[test.TestId].Intervals[0].End)
 
 }
 
@@ -518,16 +518,16 @@ func TestEventFilter(t *testing.T) {
 	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-14 13:00:00", time.Local)
 	cm.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: dt1, Description: "test1", Type: ctx_model.CREATE_CTX,
+			DateTime: ctx_model.LocalTime{Time: dt1}, Description: "test1", Type: ctx_model.CREATE_CTX,
 		})
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: dt2, Description: "test2", Type: ctx_model.SWITCH_CTX,
+			DateTime: ctx_model.LocalTime{Time: dt2}, Description: "test2", Type: ctx_model.SWITCH_CTX,
 		})
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: dt1, Description: "test3", Type: ctx_model.SWITCH_CTX,
+			DateTime: ctx_model.LocalTime{Time: dt1}, Description: "test3", Type: ctx_model.SWITCH_CTX,
 		})
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: dt2, Description: "test4", Type: ctx_model.START_INTERVAL,
+			DateTime: ctx_model.LocalTime{Time: dt2}, Description: "test4", Type: ctx_model.START_INTERVAL,
 		})
 		return nil
 	})
@@ -539,9 +539,9 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 2)
-	assert.Equal(t, dt2, events[0].DateTime)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[0].DateTime)
 	assert.Equal(t, "test2", events[0].Description)
-	assert.Equal(t, dt2, events[1].DateTime)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[1].DateTime)
 	assert.Equal(t, "test4", events[1].Description)
 
 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
@@ -550,7 +550,7 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 1)
-	assert.Equal(t, dt1, events[0].DateTime)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt1}, events[0].DateTime)
 	assert.Equal(t, "test1", events[0].Description)
 
 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
@@ -558,9 +558,9 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 2)
-	assert.Equal(t, dt2, events[0].DateTime)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[0].DateTime)
 	assert.Equal(t, "test2", events[0].Description)
-	assert.Equal(t, dt1, events[1].DateTime)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt1}, events[1].DateTime)
 	assert.Equal(t, "test3", events[1].Description)
 
 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
@@ -568,9 +568,9 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 2)
-	assert.Equal(t, dt1, events[0].DateTime)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt1}, events[0].DateTime)
 	assert.Equal(t, "test1", events[0].Description)
-	assert.Equal(t, dt2, events[1].DateTime)
+	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[1].DateTime)
 	assert.Equal(t, "test4", events[1].Description)
 }
 
@@ -584,9 +584,9 @@ func TestArchiveContext(t *testing.T) {
 	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	state := cs.Load()
@@ -625,9 +625,9 @@ func TestArchiveAll(t *testing.T) {
 	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	cm.Free()
@@ -653,9 +653,9 @@ func TestMergeContexts(t *testing.T) {
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	cm.CreateIfNotExistsAndSwitch(test.TestIdExtra, test.PrevDescription)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	cm.Free()
@@ -689,9 +689,9 @@ func TestArchiveAllEvents(t *testing.T) {
 	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	cm.Free()
@@ -714,7 +714,7 @@ func TestErrorOnEditCurrentContextInterval(t *testing.T) {
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
-	err := cm.EditContextInterval(test.TestId, 0, time.Now().Local(), time.Now().Local())
+	err := cm.EditContextInterval(test.TestId, 0, ctx_model.LocalTime{Time: time.Now().Local()}, ctx_model.LocalTime{Time: time.Now().Local()})
 
 	assert.Error(t, err, errors.New("context is active"))
 
@@ -731,26 +731,26 @@ func TestEditContextInterval(t *testing.T) {
 	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.TestDescription)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.TestDescription)
 
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt1)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt2)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt1})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt2})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt2.Sub(dt1))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.LocalTime{Time: dt2})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.LocalTime{Time: dt3})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 
-	err := cm.EditContextInterval(test.TestId, 0, dt1, dt3)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt1)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt3)
+	err := cm.EditContextInterval(test.TestId, 0, ctx_model.LocalTime{Time: dt1}, ctx_model.LocalTime{Time: dt3})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt1})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt3})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt1))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.LocalTime{Time: dt2})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.LocalTime{Time: dt3})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
@@ -760,12 +760,12 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.RFC3339Nano))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.RFC3339Nano))
 
-	err = cm.EditContextInterval(test.TestId, 0, dt2, dt3)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt2)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt3)
+	err = cm.EditContextInterval(test.TestId, 0, ctx_model.LocalTime{Time: dt2}, ctx_model.LocalTime{Time: dt3})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt2})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt3})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt2))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, dt2)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, dt3)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.LocalTime{Time: dt2})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.LocalTime{Time: dt3})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
@@ -802,11 +802,11 @@ func TestGetIntervalDurationForDateInBetween(t *testing.T) {
 	cm := New(cs, es, NewTestArchiveStore(), tp)
 	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
 	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-14", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
 	assert.NoError(t, err)
 	assert.Equal(t, 24*time.Hour, duration)
 }
@@ -818,15 +818,15 @@ func TestGetIntervalDurationForDateOutOfBounds(t *testing.T) {
 	cm := New(cs, es, NewTestArchiveStore(), tp)
 	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
 	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-16", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
 	assert.NoError(t, err)
 	assert.Equal(t, time.Duration(0), duration)
 	date, _ = time.ParseInLocation(time.DateOnly, "2025-03-12", time.Local)
-	duration, err = cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	duration, err = cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
 	assert.NoError(t, err)
 	assert.Equal(t, time.Duration(0), duration)
 }
@@ -838,11 +838,11 @@ func TestGetIntervalDurationForDateBefore(t *testing.T) {
 	cm := New(cs, es, NewTestArchiveStore(), tp)
 	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
 	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-15", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
 	assert.NoError(t, err)
 	assert.Equal(t, 13*time.Hour, duration)
 }
@@ -854,11 +854,11 @@ func TestGetIntervalDurationForDateAfter(t *testing.T) {
 	cm := New(cs, es, NewTestArchiveStore(), tp)
 	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
 	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
 	assert.NoError(t, err)
 	assert.Equal(t, 14*time.Hour, duration)
 }
@@ -870,11 +870,11 @@ func TestGetIntervalDurationForDateEqual(t *testing.T) {
 	cm := New(cs, es, NewTestArchiveStore(), tp)
 	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
 	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, date)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
 	assert.NoError(t, err)
 	assert.Equal(t, 3*time.Hour, duration)
 }
@@ -915,11 +915,11 @@ func TestDeleteInterval(t *testing.T) {
 	dt4, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:15:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt4
+	tp.Current = ctx_model.LocalTime{Time: dt4}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 
 	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 2)
@@ -929,8 +929,8 @@ func TestDeleteInterval(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 1)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, dt3)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, dt4)
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt3})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt4})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration.Seconds(), time.Duration(300000000000).Seconds())
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_INTERVAL)
 }
@@ -944,9 +944,9 @@ func TestSearchContextWithRegex(t *testing.T) {
 	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = dt2
+	tp.Current = ctx_model.LocalTime{Time: dt2}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = dt3
+	tp.Current = ctx_model.LocalTime{Time: dt3}
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
 	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 2)
