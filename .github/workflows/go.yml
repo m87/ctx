@@ -15,6 +15,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Install frontend dependencies
+      working-directory: ./ui/ctx-dashboard
+      run: npm ci --legacy-peer-deps
+
+    - name: Install Cypress
+      working-directory: ./ui/ctx-dashboard
+      run: npx cypress install
+
+    - name: Set Nx SHAs
+      uses: nrwl/nx-set-shas@v4
+
+    - name: Run Nx affected for ctx-dashboard
+      working-directory: ./ui/ctx-dashboard
+      run: npx nx affected -t lint test build e2e
+
+
 
     - name: Set up Go
       uses: actions/setup-go@v4
