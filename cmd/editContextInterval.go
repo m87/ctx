@@ -37,16 +37,19 @@ var editContextIntervalCmd = &cobra.Command{
 			if intervalIndex < 0 || intervalIndex > len(ctx.Intervals)-1 {
 				panic("interval index out of range")
 			}
-
-			startDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[2]), time.Local)
+			loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+			if err != nil {
+				loc = time.UTC
+			}
+			startDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[2]), loc)
 			util.Checkm(err, "Unable to parse start datetime")
-			endDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[3]), time.Local)
+			endDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[3]), loc)
 			util.Checkm(err, "Unable to parse end datetime")
 
-			mgr.EditContextInterval(id, intervalIndex, ctx_model.LocalTime{Time: startDT}, ctx_model.LocalTime{Time: endDT})
+			mgr.EditContextInterval(id, intervalIndex, ctx_model.ZonedTime{Time: startDT, Timezone: loc.String()}, ctx_model.ZonedTime{Time: endDT, Timezone: loc.String()})
 		} else {
 			for index, interval := range ctx.Intervals {
-				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Format(time.RFC3339Nano), interval.End.Format(time.RFC3339Nano))
+				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339Nano), interval.End.Time.Format(time.RFC3339Nano))
 			}
 		}
 

@@ -13,17 +13,21 @@ import (
 )
 
 type TestTimeProvider struct {
-	Current ctx_model.LocalTime
+	Current ctx_model.ZonedTime
 }
 
 func NewTestTimerProvider(dateTime string) *TestTimeProvider {
-	dt, _ := time.ParseInLocation(time.DateTime, dateTime, time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt, _ := time.ParseInLocation(time.DateTime, dateTime, loc)
 	return &TestTimeProvider{
-		Current: ctx_model.LocalTime{dt},
+		Current: ctx_model.ZonedTime{Time: dt, Timezone: ctx_model.DetectTimezoneName()},
 	}
 }
 
-func (provider *TestTimeProvider) Now() ctx_model.LocalTime {
+func (provider *TestTimeProvider) Now() ctx_model.ZonedTime {
 	return provider.Current
 }
 
@@ -242,7 +246,11 @@ func TestDontCreateContextWithEmptyId(t *testing.T) {
 }
 
 func TestEmitCreateEvent(t *testing.T) {
-	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", loc)
 	es := NewTestEventsStore()
 	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), NewTestTimerProvider("2025-03-13 13:00:00"))
 	cm.CreateContext(test.TestId, test.TestDescription)
@@ -251,7 +259,7 @@ func TestEmitCreateEvent(t *testing.T) {
 	assert.Len(t, registry.Events, 1)
 	assert.Equal(t, registry.Events[0].Type, ctx_model.CREATE_CTX)
 	assert.Equal(t, registry.Events[0].CtxId, test.TestId)
-	assert.Equal(t, registry.Events[0].DateTime, ctx_model.LocalTime{Time: dt1})
+	assert.Equal(t, registry.Events[0].DateTime, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()})
 }
 
 func TestSwitchContext(t *testing.T) {
@@ -381,60 +389,68 @@ func TestSwitchAlreadyActiveContext(t *testing.T) {
 
 func TestIntervals(t *testing.T) {
 	cs := NewTestContextStore()
-	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", loc)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), tp)
 	cm.CreateContext(test.TestId, test.TestDescription)
 
-	tp.Current = ctx_model.LocalTime{Time: dt1}
+	tp.Current = ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()}
 	cm.Switch(test.TestId)
 	state := cs.Load()
 	assert.Equal(t, test.TestId, state.CurrentId)
 	prevCtx := state.Contexts[state.CurrentId]
 	assert.Len(t, prevCtx.Intervals, 1)
 	assert.Equal(t, prevCtx.Intervals[0].Start, tp.Current)
-	assert.True(t, prevCtx.Intervals[0].End.IsZero())
+	assert.True(t, prevCtx.Intervals[0].End.Time.IsZero())
 
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state = cs.Load()
 	prevCtx = state.Contexts[test.TestId]
-	assert.Equal(t, prevCtx.Intervals[0].Start, ctx_model.LocalTime{Time: dt1})
-	assert.Equal(t, prevCtx.Intervals[0].End, ctx_model.LocalTime{Time: dt2})
+	assert.Equal(t, prevCtx.Intervals[0].Start, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, prevCtx.Intervals[0].End, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, test.PrevTestId, state.CurrentId)
 	nextCtx := state.Contexts[state.CurrentId]
 	assert.Len(t, nextCtx.Intervals, 1)
-	assert.Equal(t, nextCtx.Intervals[0].Start, ctx_model.LocalTime{Time: dt2})
-	assert.True(t, nextCtx.Intervals[0].End.IsZero())
+	assert.Equal(t, nextCtx.Intervals[0].Start, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
+	assert.True(t, nextCtx.Intervals[0].End.Time.IsZero())
 
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.Switch(test.TestId)
 	state = cs.Load()
 	nextCtx = state.Contexts[test.PrevTestId]
-	assert.Equal(t, nextCtx.Intervals[0].Start, ctx_model.LocalTime{Time: dt2})
-	assert.Equal(t, nextCtx.Intervals[0].End, ctx_model.LocalTime{Time: dt3})
+	assert.Equal(t, nextCtx.Intervals[0].Start, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, nextCtx.Intervals[0].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, test.TestId, state.CurrentId)
 	prevCtx = state.Contexts[state.CurrentId]
 	assert.Len(t, prevCtx.Intervals, 2)
-	assert.Equal(t, prevCtx.Intervals[1].Start, ctx_model.LocalTime{Time: dt3})
-	assert.True(t, prevCtx.Intervals[1].End.IsZero())
+	assert.Equal(t, prevCtx.Intervals[1].Start, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
+	assert.True(t, prevCtx.Intervals[1].End.Time.IsZero())
 
 }
 
 func TestEventsFlow(t *testing.T) {
 	es := NewTestEventsStore()
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC // fallback
+	}
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), tp)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.Switch(test.TestId)
 
 	registry := es.Load()
@@ -454,8 +470,12 @@ func TestEventsFlow(t *testing.T) {
 
 func TestFree(t *testing.T) {
 	cs := NewTestContextStore()
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 	cm := New(cs, NewTestEventsStore(), NewTestArchiveStore(), NewTestTimerProvider("2025-03-13 13:00:00"))
-	dt, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
+	dt, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	assert.Equal(t, test.TestId, cs.Load().CurrentId)
@@ -463,8 +483,8 @@ func TestFree(t *testing.T) {
 	cm.Free()
 	state := cs.Load()
 	assert.Equal(t, "", state.CurrentId)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt}, state.Contexts[test.TestId].Intervals[0].Start)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt}, state.Contexts[test.TestId].Intervals[0].End)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt, Timezone: ctx_model.DetectTimezoneName()}, state.Contexts[test.TestId].Intervals[0].Start)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt, Timezone: ctx_model.DetectTimezoneName()}, state.Contexts[test.TestId].Intervals[0].End)
 
 }
 
@@ -514,20 +534,24 @@ func TestDeleteNotExistingContext(t *testing.T) {
 func TestEventFilter(t *testing.T) {
 	es := NewTestEventsStore()
 	cm := New(NewTestContextStore(), es, NewTestArchiveStore(), NewTimer())
-	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-14 13:00:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", loc)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-14 13:00:00", loc)
 	cm.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: ctx_model.LocalTime{Time: dt1}, Description: "test1", Type: ctx_model.CREATE_CTX,
+			DateTime: ctx_model.ZonedTime{Time: dt1}, Description: "test1", Type: ctx_model.CREATE_CTX,
 		})
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: ctx_model.LocalTime{Time: dt2}, Description: "test2", Type: ctx_model.SWITCH_CTX,
+			DateTime: ctx_model.ZonedTime{Time: dt2}, Description: "test2", Type: ctx_model.SWITCH_CTX,
 		})
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: ctx_model.LocalTime{Time: dt1}, Description: "test3", Type: ctx_model.SWITCH_CTX,
+			DateTime: ctx_model.ZonedTime{Time: dt1}, Description: "test3", Type: ctx_model.SWITCH_CTX,
 		})
 		er.Events = append(er.Events, ctx_model.Event{
-			DateTime: ctx_model.LocalTime{Time: dt2}, Description: "test4", Type: ctx_model.START_INTERVAL,
+			DateTime: ctx_model.ZonedTime{Time: dt2}, Description: "test4", Type: ctx_model.START_INTERVAL,
 		})
 		return nil
 	})
@@ -539,9 +563,9 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 2)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[0].DateTime)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}, events[0].DateTime)
 	assert.Equal(t, "test2", events[0].Description)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[1].DateTime)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}, events[1].DateTime)
 	assert.Equal(t, "test4", events[1].Description)
 
 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
@@ -550,7 +574,7 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 1)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt1}, events[0].DateTime)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()}, events[0].DateTime)
 	assert.Equal(t, "test1", events[0].Description)
 
 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
@@ -558,9 +582,9 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 2)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[0].DateTime)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}, events[0].DateTime)
 	assert.Equal(t, "test2", events[0].Description)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt1}, events[1].DateTime)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()}, events[1].DateTime)
 	assert.Equal(t, "test3", events[1].Description)
 
 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
@@ -568,9 +592,9 @@ func TestEventFilter(t *testing.T) {
 	})
 
 	assert.Len(t, events, 2)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt1}, events[0].DateTime)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()}, events[0].DateTime)
 	assert.Equal(t, "test1", events[0].Description)
-	assert.Equal(t, ctx_model.LocalTime{Time: dt2}, events[1].DateTime)
+	assert.Equal(t, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}, events[1].DateTime)
 	assert.Equal(t, "test4", events[1].Description)
 }
 
@@ -580,19 +604,23 @@ func TestArchiveContext(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	state := cs.Load()
 	assert.Len(t, state.Contexts, 2)
 	assert.Len(t, es.Load().Events, 13)
-	err := cm.Archive(test.TestId)
+	err = cm.Archive(test.TestId)
 
 	assert.NoError(t, err)
 	archive := as.Load()[test.TestId]
@@ -621,19 +649,23 @@ func TestArchiveAll(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	cm.Free()
 	assert.Len(t, es.Load().Events, 14)
 	assert.Len(t, cs.Load().Contexts, 2)
-	err := cm.ArchiveAll()
+	err = cm.ArchiveAll()
 
 	assert.NoError(t, err)
 	events := as.LoadEvents().Events
@@ -647,15 +679,19 @@ func TestMergeContexts(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 	cm.CreateIfNotExistsAndSwitch(test.TestIdExtra, test.PrevDescription)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	cm.Free()
@@ -663,7 +699,7 @@ func TestMergeContexts(t *testing.T) {
 	assert.Len(t, cs.Load().Contexts, 3)
 	assert.Equal(t, cs.Load().Contexts[test.PrevTestId].Duration, dt3.Sub(dt2))
 
-	err := cm.MergeContext(test.TestId, test.PrevTestId)
+	err = cm.MergeContext(test.TestId, test.PrevTestId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, cs.Load().Contexts[test.PrevTestId].Duration, dt3.Sub(dt2)*2)
@@ -685,19 +721,23 @@ func TestArchiveAllEvents(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.Switch(test.TestId)
 	cm.Switch(test.PrevTestId)
 	cm.Free()
 	assert.Len(t, es.Load().Events, 14)
 	assert.Len(t, cs.Load().Contexts, 2)
-	err := cm.ArchiveAllEvents()
+	err = cm.ArchiveAllEvents()
 
 	assert.NoError(t, err)
 	events := as.LoadEvents().Events
@@ -714,7 +754,7 @@ func TestErrorOnEditCurrentContextInterval(t *testing.T) {
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
-	err := cm.EditContextInterval(test.TestId, 0, ctx_model.LocalTime{Time: time.Now().Local()}, ctx_model.LocalTime{Time: time.Now().Local()})
+	err := cm.EditContextInterval(test.TestId, 0, ctx_model.ZonedTime{Time: time.Now().Local()}, ctx_model.ZonedTime{Time: time.Now().Local()})
 
 	assert.Error(t, err, errors.New("context is active"))
 
@@ -726,31 +766,35 @@ func TestEditContextInterval(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, as, tp)
-	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", loc)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.TestDescription)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.TestDescription)
 
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt1})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt2})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt2.Sub(dt1))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.LocalTime{Time: dt2})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.LocalTime{Time: dt3})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 
-	err := cm.EditContextInterval(test.TestId, 0, ctx_model.LocalTime{Time: dt1}, ctx_model.LocalTime{Time: dt3})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt1})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt3})
+	err = cm.EditContextInterval(test.TestId, 0, ctx_model.ZonedTime{Time: dt1}, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt1))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.LocalTime{Time: dt2})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.LocalTime{Time: dt3})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
@@ -760,20 +804,20 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.RFC3339Nano))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.RFC3339Nano))
 
-	err = cm.EditContextInterval(test.TestId, 0, ctx_model.LocalTime{Time: dt2}, ctx_model.LocalTime{Time: dt3})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt2})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt3})
+	err = cm.EditContextInterval(test.TestId, 0, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt2))
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.LocalTime{Time: dt2})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.LocalTime{Time: dt3})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Start, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Local().Format(time.RFC3339Nano))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Local().Format(time.RFC3339Nano))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Local().Format(time.RFC3339Nano))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Local().Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Format(time.RFC3339Nano))
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.RFC3339Nano))
 }
 
 func TestRename(t *testing.T) {
@@ -800,13 +844,17 @@ func TestGetIntervalDurationForDateInBetween(t *testing.T) {
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", loc)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-14", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-14", loc)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.ZonedTime{Time: date, Timezone: ctx_model.DetectTimezoneName()})
 	assert.NoError(t, err)
 	assert.Equal(t, 24*time.Hour, duration)
 }
@@ -815,18 +863,22 @@ func TestGetIntervalDurationForDateOutOfBounds(t *testing.T) {
 	cs := NewTestContextStore()
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:05:00", loc)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-16", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-16", loc)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.ZonedTime{Time: date, Timezone: ctx_model.DetectTimezoneName()})
 	assert.NoError(t, err)
 	assert.Equal(t, time.Duration(0), duration)
-	date, _ = time.ParseInLocation(time.DateOnly, "2025-03-12", time.Local)
-	duration, err = cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
+	date, _ = time.ParseInLocation(time.DateOnly, "2025-03-12", loc)
+	duration, err = cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.ZonedTime{Time: date, Timezone: ctx_model.DetectTimezoneName()})
 	assert.NoError(t, err)
 	assert.Equal(t, time.Duration(0), duration)
 }
@@ -835,14 +887,18 @@ func TestGetIntervalDurationForDateBefore(t *testing.T) {
 	cs := NewTestContextStore()
 	tp := NewTestTimerProvider("2025-03-13 10:00:00")
 	es := NewTestEventsStore()
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", loc)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-15", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-15", loc)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.ZonedTime{Time: date, Timezone: ctx_model.DetectTimezoneName()})
 	assert.NoError(t, err)
 	assert.Equal(t, 13*time.Hour, duration)
 }
@@ -851,14 +907,18 @@ func TestGetIntervalDurationForDateAfter(t *testing.T) {
 	cs := NewTestContextStore()
 	tp := NewTestTimerProvider("2025-03-13 10:00:00")
 	es := NewTestEventsStore()
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-15 13:00:00", loc)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", loc)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.ZonedTime{Time: date, Timezone: ctx_model.DetectTimezoneName()})
 	assert.NoError(t, err)
 	assert.Equal(t, 14*time.Hour, duration)
 }
@@ -867,14 +927,18 @@ func TestGetIntervalDurationForDateEqual(t *testing.T) {
 	cs := NewTestContextStore()
 	tp := NewTestTimerProvider("2025-03-13 10:00:00")
 	es := NewTestEventsStore()
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", loc)
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 	state := cs.Load()
-	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", time.Local)
-	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.LocalTime{Time: date})
+	date, _ := time.ParseInLocation(time.DateOnly, "2025-03-13", loc)
+	duration, err := cm.GetIntervalDurationsByDate(&state, test.TestId, ctx_model.ZonedTime{Time: date, Timezone: ctx_model.DetectTimezoneName()})
 	assert.NoError(t, err)
 	assert.Equal(t, 3*time.Hour, duration)
 }
@@ -909,28 +973,32 @@ func TestDeleteInterval(t *testing.T) {
 	cs := NewTestContextStore()
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
-	dt4, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:15:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
+	dt4, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:15:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt4}
+	tp.Current = ctx_model.ZonedTime{Time: dt4, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
 
 	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 2)
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration.Seconds(), time.Duration(600000000000).Seconds())
 
-	err := cm.DeleteInterval(test.TestId, 0)
+	err = cm.DeleteInterval(test.TestId, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 1)
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.LocalTime{Time: dt3})
-	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.LocalTime{Time: dt4})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.ZonedTime{Time: dt4, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration.Seconds(), time.Duration(300000000000).Seconds())
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_INTERVAL)
 }
@@ -939,14 +1007,18 @@ func TestSearchContextWithRegex(t *testing.T) {
 	cs := NewTestContextStore()
 	tp := NewTestTimerProvider("2025-03-13 13:00:00")
 	es := NewTestEventsStore()
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 	cm := New(cs, es, NewTestArchiveStore(), tp)
-	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", time.Local)
-	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", time.Local)
+	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:05:00", loc)
+	dt3, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:10:00", loc)
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt2}
+	tp.Current = ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
-	tp.Current = ctx_model.LocalTime{Time: dt3}
+	tp.Current = ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()}
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
 	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 2)

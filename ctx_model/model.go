@@ -1,7 +1,9 @@
 package ctx_model
 
 import (
-	"fmt"
+	"encoding/json"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -14,8 +16,8 @@ const (
 )
 
 type Interval struct {
-	Start    LocalTime     `json:"start"`
-	End      LocalTime     `json:"end"`
+	Start    ZonedTime     `json:"start"`
+	End      ZonedTime     `json:"end"`
 	Duration time.Duration `json:"duration"`
 }
 
@@ -92,7 +94,7 @@ func StringAsEvent(event string) EventType {
 
 type Event struct {
 	UUID        string            `json:"uuid"`
-	DateTime    LocalTime         `json:"dateTime"`
+	DateTime    ZonedTime         `json:"dateTime"`
 	CtxId       string            `json:"ctxId"`
 	Description string            `json:"description"`
 	Data        map[string]string `json:"data"`
@@ -123,21 +125,63 @@ type State struct {
 	CurrentId string             `json:"currentId"`
 }
 
-type LocalTime struct {
-	time.Time
+type ZonedTime struct {
+	Time     time.Time `json:"time"`
+	Timezone string    `json:"timezone"`
 }
 
-func (lt LocalTime) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, lt.Time.Format(time.RFC3339Nano))), nil
+func DetectTimezoneName() string {
+	switch runtime.GOOS {
+	case "linux", "darwin":
+		return detectUnixTimezone()
+	default:
+		return "UTC"
+	}
 }
 
-func (lt *LocalTime) UnmarshalJSON(data []byte) error {
-	s := strings.Trim(string(data), `"`)
-	t, err := time.ParseInLocation(time.RFC3339Nano, s, time.Local)
+func detectUnixTimezone() string {
+	out, err := exec.Command("readlink", "-f", "/etc/localtime").Output()
+	if err != nil {
+		return "UTC"
+	}
+
+	path := strings.TrimSpace(string(out))
+	const zoneinfoPrefix = "/usr/share/zoneinfo/"
+	if strings.HasPrefix(path, zoneinfoPrefix) {
+		return strings.TrimPrefix(path, zoneinfoPrefix)
+	}
+
+	return "UTC"
+}
+
+func (zt ZonedTime) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Time     string `json:"time"`
+		Timezone string `json:"timezone"`
+	}{
+		Time:     zt.Time.Format("2006-01-02T15:04:05"), // czas lokalny
+		Timezone: zt.Time.Location().String(),           // np. Europe/Warsaw
+	})
+}
+
+func (zt *ZonedTime) UnmarshalJSON(data []byte) error {
+	var tmp struct {
+		Time     string `json:"time"`
+		Timezone string `json:"timezone"`
+	}
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+	loc, err := time.LoadLocation(tmp.Timezone)
 	if err != nil {
 		return err
 	}
-	lt.Time = t
+	t, err := time.ParseInLocation("2006-01-02T15:04:05", tmp.Time, loc)
+	if err != nil {
+		return err
+	}
+	zt.Time = t
+	zt.Timezone = tmp.Timezone
 	return nil
 }
 
@@ -150,7 +194,7 @@ type ArchivePatch func(*ContextArchive) error
 type ArchiveEventsPatch func(*EventsArchive) error
 
 type TimeProvider interface {
-	Now() LocalTime
+	Now() ZonedTime
 }
 
 type ContextStore interface {

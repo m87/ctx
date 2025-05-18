@@ -37,23 +37,26 @@ var summarizeDayCmd = &cobra.Command{
 	Short:   "Summarize day",
 	Run: func(cmd *cobra.Command, args []string) {
 		roundUnit, _ := cmd.Flags().GetString("round")
-
-		date := time.Now().Local()
+		loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+		if err != nil {
+			loc = time.UTC
+		}
+		mgr := ctx.CreateManager()
+		date := mgr.TimeProvider.Now().Time.In(loc)
 		if len(args) > 0 {
 			rawDate := strings.TrimSpace(args[0])
 
 			if rawDate != "" {
-				date, _ = time.ParseInLocation(time.DateOnly, rawDate, time.Local)
+				date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
 			}
 		}
-		mgr := ctx.CreateManager()
 
 		durations := map[string]time.Duration{}
 		overallDuration := time.Duration(0)
 
 		mgr.ContextStore.Read(func(s *ctx_model.State) error {
 			for ctxId, _ := range s.Contexts {
-				d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctx_model.LocalTime{Time: date})
+				d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
 				util.Checkm(err, "Unable to get interval durations for context "+ctxId)
 				durations[ctxId] = roundDuration(d, roundUnit)
 			}
@@ -74,8 +77,8 @@ var summarizeDayCmd = &cobra.Command{
 				overallDuration += d
 				if f, _ := cmd.Flags().GetBool("verbose"); f {
 					mgr.ContextStore.Read(func(s *ctx_model.State) error {
-						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.LocalTime{Time: date}) {
-							fmt.Printf("\t- %s - %s\n", interval.Start.Format(time.RFC3339Nano), interval.End.Format(time.RFC3339Nano))
+						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
+							fmt.Printf("\t- %s - %s\n", interval.Start.Time.Format(time.RFC3339Nano), interval.End.Time.Format(time.RFC3339Nano))
 						}
 						return nil
 					})

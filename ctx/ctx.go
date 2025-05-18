@@ -25,8 +25,8 @@ const (
 )
 
 type Interval struct {
-	Start    ctx_model.LocalTime `json:"start"`
-	End      ctx_model.LocalTime `json:"end"`
+	Start    ctx_model.ZonedTime `json:"start"`
+	End      ctx_model.ZonedTime `json:"end"`
 	Duration time.Duration       `json:"duration"`
 }
 
@@ -46,8 +46,12 @@ type State struct {
 
 type RealTimeProvider struct{}
 
-func (provider *RealTimeProvider) Now() ctx_model.LocalTime {
-	return ctx_model.LocalTime{Time: time.Now().Local()}
+func (provider *RealTimeProvider) Now() ctx_model.ZonedTime {
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	return ctx_model.ZonedTime{Time: time.Now().In(loc), Timezone: loc.String()}
 }
 
 func NewTimer() *RealTimeProvider {
@@ -125,7 +129,7 @@ func (manager *ContextManager) ListFull() {
 				v := state.Contexts[id]
 				fmt.Printf("- [%s] %s\n", id, v.Description)
 				for _, interval := range v.Intervals {
-					fmt.Printf("\t- %s - %s\n", interval.Start.Local().Format(time.DateTime), interval.End.Local().Format(time.DateTime))
+					fmt.Printf("\t- %s - %s\n", interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
 				}
 			}
 			return nil
@@ -157,11 +161,11 @@ func (manager *ContextManager) getSortedContextIds(state *ctx_model.State) []str
 	return ids
 }
 
-func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now ctx_model.LocalTime) {
+func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now ctx_model.ZonedTime) {
 	prev := state.Contexts[state.CurrentId]
 	interval := prev.Intervals[len(prev.Intervals)-1]
 	interval.End = now
-	interval.Duration = interval.End.Sub(interval.Start.Time)
+	interval.Duration = interval.End.Time.Sub(interval.Start.Time)
 	state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
 	prev.Duration = prev.Duration + interval.Duration
 	state.Contexts[state.CurrentId] = prev
@@ -244,7 +248,7 @@ func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
 	})
 }
 
-func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime ctx_model.LocalTime, eventType ctx_model.EventType, data map[string]string) error {
+func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime ctx_model.ZonedTime, eventType ctx_model.EventType, data map[string]string) error {
 	return manager.PublishEvent(ctx_model.Event{
 		DateTime:    dateTime,
 		Type:        eventType,
@@ -283,7 +287,7 @@ func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter 
 
 	if filter.Date != "" {
 		for _, v := range evs {
-			if v.DateTime.Local().Format(time.DateOnly) == filter.Date {
+			if v.DateTime.Time.Format(time.DateOnly) == filter.Date {
 				tmpEvs = append(tmpEvs, v)
 			}
 		}
@@ -313,7 +317,7 @@ func (manager *ContextManager) ListEvents(filter ctx_model.EventsFilter) {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description)
+			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Time.Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description)
 		}
 		return nil
 	})
@@ -346,7 +350,7 @@ func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Local().Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
+			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Time.Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
 		}
 		return nil
 	})
@@ -391,7 +395,7 @@ func (manager *ContextManager) Delete(id string) error {
 func (manager *ContextManager) groupEventsByDate(events []ctx_model.Event) map[string][]ctx_model.Event {
 	eventsByDate := make(map[string][]ctx_model.Event)
 	for _, event := range events {
-		date := event.DateTime.Format(time.DateOnly)
+		date := event.DateTime.Time.Format(time.DateOnly)
 		eventsByDate[date] = append(eventsByDate[date], event)
 	}
 
@@ -518,21 +522,21 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 	)
 }
 
-func (manager *ContextManager) EditContextInterval(id string, intervalIndex int, start ctx_model.LocalTime, end ctx_model.LocalTime) error {
+func (manager *ContextManager) EditContextInterval(id string, intervalIndex int, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
 	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		if s.CurrentId == id {
 			return errors.New("context is active")
 		}
 
 		oldDuration := s.Contexts[id].Intervals[intervalIndex].Duration
-		oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Format(time.RFC3339Nano)
-		oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Format(time.RFC3339Nano)
+		oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Time.Format(time.RFC3339Nano)
+		oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Time.Format(time.RFC3339Nano)
 
 		ctx := s.Contexts[id]
 
 		ctx.Intervals[intervalIndex].Start = start
 		ctx.Intervals[intervalIndex].End = end
-		ctx.Intervals[intervalIndex].Duration = ctx.Intervals[intervalIndex].End.Sub(ctx.Intervals[intervalIndex].Start.Time)
+		ctx.Intervals[intervalIndex].Duration = ctx.Intervals[intervalIndex].End.Time.Sub(ctx.Intervals[intervalIndex].Start.Time)
 
 		durationDiff := ctx.Intervals[intervalIndex].Duration - oldDuration
 
@@ -542,8 +546,8 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
 			"old.start": oldStart,
 			"old.end":   oldEnd,
-			"new.start": ctx.Intervals[intervalIndex].Start.Format(time.RFC3339Nano),
-			"new.end":   ctx.Intervals[intervalIndex].End.Format(time.RFC3339Nano),
+			"new.start": ctx.Intervals[intervalIndex].Start.Time.Format(time.RFC3339Nano),
+			"new.end":   ctx.Intervals[intervalIndex].End.Time.Format(time.RFC3339Nano),
 		})
 		return nil
 	})
@@ -575,18 +579,22 @@ func (manager *ContextManager) RenameContext(srcId string, targetId string, name
 
 }
 
-func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date ctx_model.LocalTime) (time.Duration, error) {
+func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date ctx_model.ZonedTime) (time.Duration, error) {
 	var duration time.Duration = 0
-	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	startOfDay := time.Date(date.Time.Year(), date.Time.Month(), date.Time.Day(), 0, 0, 0, 0, loc)
 	if ctx, ok := s.Contexts[id]; ok {
 		for _, interval := range ctx.Intervals {
-			if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
+			if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
 				duration += interval.Duration
-			} else if interval.Start.Before(startOfDay) && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
-				duration += interval.End.Sub(startOfDay)
-			} else if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.After(startOfDay) {
-				duration += 24*time.Hour - interval.Start.Sub(startOfDay)
-			} else if interval.Start.Before(startOfDay) && interval.End.After(startOfDay) {
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
+				duration += interval.End.Time.Sub(startOfDay)
+			} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
+				duration += 24*time.Hour - interval.Start.Time.Sub(startOfDay)
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
 				duration += 24 * time.Hour
 			}
 		}
@@ -596,18 +604,22 @@ func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id
 	return duration, nil
 }
 
-func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctx_model.LocalTime) []Interval {
+func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctx_model.ZonedTime) []Interval {
 	intervals := []Interval{}
-	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.Local)
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	startOfDay := time.Date(date.Time.Year(), date.Time.Month(), date.Time.Day(), 0, 0, 0, 0, loc)
 	if ctx, ok := s.Contexts[id]; ok {
 		for _, interval := range ctx.Intervals {
-			if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
+			if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
 				intervals = append(intervals, Interval(interval))
-			} else if interval.Start.Before(startOfDay) && interval.End.Day() == startOfDay.Day() && interval.End.Month() == startOfDay.Month() && interval.End.Year() == startOfDay.Year() {
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
 				intervals = append(intervals, Interval(interval))
-			} else if interval.Start.Day() == startOfDay.Day() && interval.Start.Month() == startOfDay.Month() && interval.Start.Year() == startOfDay.Year() && interval.End.After(startOfDay) {
+			} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
 				intervals = append(intervals, Interval(interval))
-			} else if interval.Start.Before(startOfDay) && interval.End.After(startOfDay) {
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
 				intervals = append(intervals, Interval(interval))
 			}
 		}
@@ -631,8 +643,8 @@ func (manager *ContextManager) DeleteInterval(id string, index int) error {
 			ctx.Duration = ctx.Duration - interval.Duration
 			s.Contexts[id] = ctx
 			manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.DELETE_CTX_INTERVAL, map[string]string{
-				"start":    interval.Start.Format(time.RFC3339Nano),
-				"end":      interval.End.Format(time.RFC3339Nano),
+				"start":    interval.Start.Time.Format(time.RFC3339Nano),
+				"end":      interval.End.Time.Format(time.RFC3339Nano),
 				"duration": interval.Duration.String(),
 			})
 		} else {

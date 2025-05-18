@@ -23,7 +23,7 @@ var searchCmd = &cobra.Command{
 			for _, c := range ctxs {
 				println(c.Id + ": " + c.Description)
 				for _, i := range c.Intervals {
-					println("  " + i.Start.String() + " - " + i.End.String())
+					println("  " + i.Start.Time.String() + " - " + i.End.Time.String())
 				}
 			}
 		} else {

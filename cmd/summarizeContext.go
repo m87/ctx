@@ -17,7 +17,7 @@ func getContextCreationTimeFromEvents(ctxId string) (string, error) {
 	err := mgr.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
 		for _, event := range er.Events {
 			if event.Type == ctx_model.CREATE_CTX && event.CtxId == ctxId {
-				creationTime = event.DateTime.Format(time.RFC3339Nano)
+				creationTime = event.DateTime.Time.Format(time.RFC3339Nano)
 				return nil
 			}
 		}
