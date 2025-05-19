@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/m87/ctx/server"
 	"github.com/spf13/cobra"
 )
 
@@ -17,8 +17,7 @@ var serveCmd = &cobra.Command{
 	Short: "Run as a server",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		http.HandleFunc("/api/hello", helloHandler)
-		log.Fatal(http.ListenAndServe(":8080", nil))
+		server.Serve()
 	},
 }
 

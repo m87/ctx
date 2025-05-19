@@ -24,21 +24,21 @@ jobs:
       with:
         node-version: 20
         cache: 'npm'
-        cache-dependency-path: ui/ctx-dashboard/package-lock.json
+        cache-dependency-path: server/ui/ctx-dashboard/package-lock.json
 
     - name: Install frontend dependencies
-      working-directory: ./ui/ctx-dashboard
+      working-directory: ./server/ui/ctx-dashboard
       run: npm ci --legacy-peer-deps
 
     - name: Install Cypress
-      working-directory: ./ui/ctx-dashboard
+      working-directory: ./server/ui/ctx-dashboard
       run: npx cypress install
 
     - name: Set Nx SHAs
       uses: nrwl/nx-set-shas@v4
 
     - name: Run Nx affected for ctx-dashboard
-      working-directory: ./ui/ctx-dashboard
+      working-directory: ./server/ui/ctx-dashboard
       run: npx nx affected -t lint test build e2e
 
 
