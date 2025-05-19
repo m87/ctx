@@ -10,8 +10,10 @@ import (
 	"time"
 )
 
-//go:embed ui/ctx-dashboard/dist/ctx-dashboard/*
-//go:embed ui/ctx-dashboard/dist/ctx-dashboard/assets/*
+//go:embed ui/ctx-dashboard/dist/ctx-dashboard/*.js
+//go:embed ui/ctx-dashboard/dist/ctx-dashboard/*.css
+//go:embed ui/ctx-dashboard/dist/ctx-dashboard/*.html
+//go:embed ui/ctx-dashboard/dist/ctx-dashboard/*.ico
 var staticFiles embed.FS
 
 func spaHandler(content fs.FS, fsHandler http.Handler) http.HandlerFunc {
