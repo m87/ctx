@@ -152,6 +152,22 @@ func (manager *ContextManager) ListJson() {
 	)
 }
 
+func (manager *ContextManager) ListJson2() string {
+	output := "{}"
+	manager.ContextStore.Read(
+		func(state *ctx_model.State) error {
+			v := make([]ctx_model.Context, 0, len(state.Contexts))
+			for _, c := range state.Contexts {
+				v = append(v, c)
+			}
+			s, _ := json.Marshal(v)
+			output = string(s)
+			return nil
+		},
+	)
+	return output
+}
+
 func (manager *ContextManager) getSortedContextIds(state *ctx_model.State) []string {
 	ids := make([]string, 0, len(state.Contexts))
 	for k := range state.Contexts {

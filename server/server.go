@@ -3,6 +3,8 @@ package server
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
+	"github.com/m87/ctx/ctx"
 	"io"
 	"io/fs"
 	"log"
@@ -41,6 +43,15 @@ func spaHandler(content fs.FS, fsHandler http.Handler) http.HandlerFunc {
 	}
 }
 
+func contextList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	mgr := ctx.CreateManager()
+
+	json.NewEncoder(w).Encode(mgr.ListJson2())
+}
+
 func Serve() {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -49,5 +60,6 @@ func Serve() {
 	fs := http.FileServer(http.FS(content))
 
 	http.Handle("/", spaHandler(content, fs))
+	http.HandleFunc("/api/context/list", contextList)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
