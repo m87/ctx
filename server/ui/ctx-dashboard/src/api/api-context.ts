@@ -1,6 +1,6 @@
 import {http} from "@/api/api";
 
-interface Context {
+export interface Context {
     id: string,
     description: string
 }

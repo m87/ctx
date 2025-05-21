@@ -1,13 +1,21 @@
 
-import { Button } from '@/components/ui/button';
 import Timeline from '@/components/ui/timeline';
-import { Link } from 'react-router-dom';
-import ContextList from "@/components/context-list";
-import {SidebarInset, SidebarProvider, SidebarTrigger} from "@/components/ui/sidebar";
+import {SidebarInset, SidebarProvider} from "@/components/ui/sidebar";
 import {AppSidebar} from "@/components/app-sidebar";
-import {Separator} from "@/components/ui/separator";
+import { api } from '@/api/api';
+import { useSuspenseQuery } from '@tanstack/react-query';
 
 export function App() {
+    const {data: contexts} = useSuspenseQuery(api.context.contextListQuery);
+
+const timelineData = 
+  {
+    date: "2025-05-19",
+    blocks: [
+      { label: "Spotkanie", start: 9, end: 10.5, color: "#3b82f6" },
+      { label: "Lunch", start: 12.5, end: 13.25, color: "#10b981" },
+    ],
+  }
     return (
         <SidebarProvider
             style={
@@ -16,19 +24,35 @@ export function App() {
                 } as React.CSSProperties
             }
         >
-            <AppSidebar />
+            <AppSidebar contexts={contexts}/>
             <SidebarInset>
-                <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
+                {/* <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
-                </header>
-                <div className="flex flex-1 flex-col gap-4 p-4">
+                </header> */}
+      <div className="p-4s">
+            <div className="inset-0 flex mr-[10px] border-l border-r">
+                {Array.from({ length: 25 }, (_, h) => (
+                    <div
+                        key={h}
+                          className="flex-1 border-r text-xs text-center text-muted-foreground"
+                    >
+                      {String(h).padStart(2, "0")}:00
+                    </div>
+                    
+                ))}
+              </div>
+                <div className="flex flex-1 flex-col overflow-y-auto">
                     {Array.from({ length: 24 }).map((_, index) => (
+
                         <div
                             key={index}
                             className="aspect-video h-12 w-full rounded-lg bg-muted/50"
-                        />
+                        > <Timeline date="2025-05-19" blocks={[      { label: "Spotkanie", start: 9, end: 10.5, color: "#3b82f6" },
+      { label: "Lunch", start: 12.5, end: 13.25, color: "#10b981" },]} /></div>
+                        
                     ))}
+                </div>
                 </div>
             </SidebarInset>
         </SidebarProvider>

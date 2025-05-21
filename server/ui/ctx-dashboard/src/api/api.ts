@@ -14,7 +14,7 @@ export const httpConfig = {
 export const http = axios.create(httpConfig);
 
 export class Api {
-    organization = new ContextApi();
+    context = new ContextApi();
 }
 
 export const api = new Api();

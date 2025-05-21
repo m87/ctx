@@ -74,19 +74,17 @@ export default function Timeline({ date, blocks }: TimelineProps) {
   }
 
   return (
-      <div className="p-4 space-y-8">
-        <Card className="overflow-x-auto">
-          <CardContent>
-            <div className="mb-2 font-semibold text-sm">{date}</div>
+      <div className="">
+            {/* <div className="mb-2 font-semibold text-sm">{date}</div> */}
             <div ref={containerRef} className="relative h-24 border rounded bg-muted select-none">
               <div className="absolute inset-0 flex">
                 {Array.from({ length: 25 }, (_, h) => (
                     <div
                         key={h}
-                        className="flex-1 border-r text-xs text-center text-muted-foreground"
+                          className="flex-1 border-r text-xs text-center text-muted-foreground"
                     >
-                      {String(h).padStart(2, "0")}:00
                     </div>
+                    
                 ))}
               </div>
               {blocks.map((block, index) => {
@@ -99,7 +97,7 @@ export default function Timeline({ date, blocks }: TimelineProps) {
                     <div
                         key={index}
                         className={cn(
-                            "absolute top-8 h-8 rounded text-white text-sm flex items-center justify-center px-2 cursor-move",
+                            "absolute rounded text-white text-sm flex items-center justify-center px-2 cursor-move",
                             block.color ? "" : "bg-primary",
                             isEditing && previewBlock ? "opacity-50 pointer-events-none" : ""
                         )}
@@ -159,8 +157,6 @@ export default function Timeline({ date, blocks }: TimelineProps) {
                 )
               })}
             </div>
-          </CardContent>
-        </Card>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
