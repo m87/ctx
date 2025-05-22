@@ -122,8 +122,8 @@ func (store *LocalArchiveStore) loadEventsArchive(path string) (*ctx_model.Event
 	if _, err := os.Stat(path); err != nil {
 		if os.IsNotExist(err) {
 			return &ctx_model.EventsArchive{
-        Events: []ctx_model.Event{},
-      }, nil
+				Events: []ctx_model.Event{},
+			}, nil
 		} else {
 			return nil, errors.New("unable to read eventsarchive file " + path)
 		}

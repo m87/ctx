@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
-	"github.com/m87/ctx/ctx"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/m87/ctx/ctx"
 )
 
 //go:embed ui/ctx-dashboard/dist/ctx-dashboard/assets/*
