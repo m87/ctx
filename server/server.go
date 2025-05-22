@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/ctx_model"
 )
 
 //go:embed ui/ctx-dashboard/dist/ctx-dashboard/assets/*
@@ -53,6 +54,23 @@ func contextList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(mgr.ListJson2())
 }
 
+func currentContext(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	mgr := ctx.CreateManager()
+
+	mgr.ContextStore.Read(func(s *ctx_model.State) error {
+		if s.CurrentId != "" {
+			json.NewEncoder(w).Encode(s.Contexts[s.CurrentId])
+		} else {
+			json.NewEncoder(w).Encode(nil)
+		}
+		return nil
+	})
+
+}
+
 func Serve() {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -62,5 +80,6 @@ func Serve() {
 
 	http.Handle("/", spaHandler(content, fs))
 	http.HandleFunc("/api/context/list", contextList)
+	http.HandleFunc("/api/context/current", currentContext)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
