@@ -1,8 +1,16 @@
 import {http} from "@/api/api";
 
+export interface Interval {
+    start: string,
+    end: string,
+    duration: number,
+}
+
 export interface Context {
     id: string,
-    description: string
+    description: string,
+    intervals: Interval[],
+    duration: number,
 }
 
 export class ContextApi {
