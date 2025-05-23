@@ -81,5 +81,35 @@ func Serve() {
 	http.Handle("/", spaHandler(content, fs))
 	http.HandleFunc("/api/context/list", contextList)
 	http.HandleFunc("/api/context/current", currentContext)
+	http.HandleFunc("/api/context/free", freeContext)
+	http.HandleFunc("/api/context/switch", switchContext)
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+type SwitchRequest struct {
+	Id string `json:"id"`
+}
+
+func switchContext(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	var p SwitchRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	mgr := ctx.CreateManager()
+	mgr.Switch(p.Id)
+}
+
+func freeContext(w http.ResponseWriter, request *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	mgr := ctx.CreateManager()
+	mgr.Free()
 }

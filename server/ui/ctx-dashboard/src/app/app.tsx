@@ -8,11 +8,16 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { Badge, PauseCircle, PlayIcon, TrendingUpIcon } from "lucide-react";
+import {useState} from "react";
 
 
 
 export function App() {
-    const { data: currentContext } = useQuery({...api.context.currentContextQuery, refetchInterval: 1000});
+    const { data: currentContext } = useQuery({...api.context.currentQuery, refetchInterval: 1000});
+    const pauseClick = () => {
+        api.context.free()
+    };
+    const [searchTerm, setSearchTerm] = useState('');
     return (
         <SidebarProvider>
             <AppSidebar variant="inset" />
@@ -22,7 +27,7 @@ export function App() {
                     <div className="@container/main flex flex-col gap-2 h-full flex-1 min-h-0min-h-0">
                         <div className="flex flex-col gap-4 py-4 h-full flex-1 min-h-0">
                             { currentContext &&
-                            <div  
+                            <div
                                 className="*:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card lg:px-6">
                                     <Card className="@container/card bg-slate-100 animate-pulse">
                                     <CardHeader className="relative ">
@@ -32,19 +37,19 @@ export function App() {
                                             </CardDescription>
                                         <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums flex justify-between w-full">
                                             <div>{currentContext?.description}</div>
-                                            <div><PauseCircle className="size-10"></PauseCircle></div>
+                                            <div><PauseCircle className="size-10" onClick={pauseClick}></PauseCircle></div>
                                         </CardTitle>
                                     </CardHeader>
                                 </Card>
                             </div>
                     }
                             <div className="pt-2 pb-2 pr-6 pl-6">
-                                <Input type="text"
+                                <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="Search or create new..."></Input>
                             </div>
                             <ScrollArea className="h-full flex-1 overflow-auto">
                                 <div className="h-[100px]">
-                                    <SectionCards />
+                                    <SectionCards search={searchTerm}/>
                                 </div>
                             </ScrollArea>
                         </div>

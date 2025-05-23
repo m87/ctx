@@ -6,10 +6,13 @@ export interface Context {
 }
 
 export class ContextApi {
-    contextList = () => http.get<Context[]>("/context/list").then(response => response.data);
-    contextListQuery = {queryKey: ["contextList"], queryFn: this.contextList};
+    list = () => http.get<Context[]>("/context/list").then(response => response.data);
+    listQuery = {queryKey: ["contextList"], queryFn: this.list, select: (data: Context[]) => data.sort((a,b) => a.id.localeCompare(b.id))};
 
-    currentContext = () => http.get<Context>("/context/current").then(response => response.data);
-    currentContextQuery = {queryKey: ["currentContext"], queryFn: this.currentContext};
+    current = () => http.get<Context>("/context/current").then(response => response.data);
+    currentQuery = {queryKey: ["currentContext"], queryFn: this.current};
 
+    free = () => http.post<void>("/context/free").then(response => response)
+
+    switch = (id: string) => http.post<void>("/context/switch", {id: id}).then(response => response)
 }
