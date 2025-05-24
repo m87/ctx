@@ -1,8 +1,14 @@
 import {http} from "@/api/api";
 
+export interface ZonedDataTime {
+    time: string,
+    timezone: string  
+}
+
 export interface Interval {
-    start: string,
-    end: string,
+    id: string
+    start: ZonedDataTime,
+    end: ZonedDataTime,
     duration: number,
 }
 

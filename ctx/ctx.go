@@ -17,33 +17,6 @@ import (
 
 const Version = "0.1.0"
 
-type ContextState int
-
-const (
-	ACTIVE ContextState = iota
-	FINISHED
-)
-
-type Interval struct {
-	Start    ctx_model.ZonedTime `json:"start"`
-	End      ctx_model.ZonedTime `json:"end"`
-	Duration time.Duration       `json:"duration"`
-}
-
-type Context struct {
-	Id          string        `json:"id"`
-	Description string        `json:"description"`
-	Comments    []string      `json:"comments"`
-	State       ContextState  `json:"state"`
-	Duration    time.Duration `json:"duration"`
-	Intervals   []Interval    `json:"intervals"`
-}
-
-type State struct {
-	Contexts  map[string]Context `json:"contexts"`
-	CurrentId string             `json:"currentId"`
-}
-
 type RealTimeProvider struct{}
 
 func (provider *RealTimeProvider) Now() ctx_model.ZonedTime {
@@ -211,7 +184,7 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.SWITCH_CTX, map[string]string{
 			"from": prevId,
 		})
-		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Start: now})
+		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Id: uuid.NewString(), Start: now})
 		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.START_INTERVAL, nil)
 		state.Contexts[id] = ctx
 	}
@@ -617,8 +590,8 @@ func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id
 	return duration, nil
 }
 
-func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctx_model.ZonedTime) []Interval {
-	intervals := []Interval{}
+func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctx_model.ZonedTime) []ctx_model.Interval {
+	intervals := []ctx_model.Interval{}
 	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
@@ -627,13 +600,13 @@ func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string,
 	if ctx, ok := s.Contexts[id]; ok {
 		for _, interval := range ctx.Intervals {
 			if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
-				intervals = append(intervals, Interval(interval))
+				intervals = append(intervals, ctx_model.Interval(interval))
 			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
-				intervals = append(intervals, Interval(interval))
+				intervals = append(intervals, ctx_model.Interval(interval))
 			} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
-				intervals = append(intervals, Interval(interval))
+				intervals = append(intervals, ctx_model.Interval(interval))
 			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
-				intervals = append(intervals, Interval(interval))
+				intervals = append(intervals, ctx_model.Interval(interval))
 			}
 		}
 	}

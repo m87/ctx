@@ -16,6 +16,7 @@ const (
 )
 
 type Interval struct {
+	Id       string        `json:"id"`
 	Start    ZonedTime     `json:"start"`
 	End      ZonedTime     `json:"end"`
 	Duration time.Duration `json:"duration"`
