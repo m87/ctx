@@ -17,7 +17,6 @@ export function App() {
     const pauseClick = () => {
         api.context.free()
     };
-    const [searchTerm, setSearchTerm] = useState('');
     return (
         <SidebarProvider>
             <AppSidebar variant="inset" />
@@ -43,15 +42,11 @@ export function App() {
                                 </Card>
                             </div>
                     }
-                            <div className="pt-2 pb-2 pr-6 pl-6">
-                                <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Search or create new..."></Input>
-                            </div>
-                            <ScrollArea className="h-full flex-1 overflow-auto">
+    
                                 <div className="h-[100px]">
-                                    <SectionCards search={searchTerm}/>
+                                    <SectionCards/>
                                 </div>
-                            </ScrollArea>
+                            
                         </div>
                     </div>
                 </div>

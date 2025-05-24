@@ -12,6 +12,7 @@ import (
 
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
+	"github.com/m87/ctx/util"
 )
 
 //go:embed ui/ctx-dashboard/dist/ctx-dashboard/assets/*
@@ -71,6 +72,23 @@ func currentContext(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(http.StatusOK)
+	mgr := ctx.CreateManager()
+
+	var p createAndSwitchRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	mgr.CreateIfNotExistsAndSwitch(util.GenerateId(p.Description), p.Description)
+}
+
 func Serve() {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -83,11 +101,16 @@ func Serve() {
 	http.HandleFunc("/api/context/current", currentContext)
 	http.HandleFunc("/api/context/free", freeContext)
 	http.HandleFunc("/api/context/switch", switchContext)
+	http.HandleFunc("/api/context/createAndSwitch", createAndSwitchContext)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 type SwitchRequest struct {
 	Id string `json:"id"`
+}
+
+type createAndSwitchRequest struct {
+	Description string `json:"description"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {

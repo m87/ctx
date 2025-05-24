@@ -29,4 +29,8 @@ export class ContextApi {
     free = () => http.post<void>("/context/free").then(response => response)
 
     switch = (id: string) => http.post<void>("/context/switch", {id: id}).then(response => response)
+
+    createAndSwitch = (description: string) =>
+        http.post<Context>("/context/createAndSwitch", {description: description}).then(response => response.data);
+
 }
