@@ -1,7 +1,7 @@
-import { Interval } from "@/api/api-context";
 import { CheckIcon, EditIcon } from "lucide-react";
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { Interval } from "@/api/api";
 
 
 export function IntervalComponent({ interval }: Readonly<{ interval: Interval }>) {
@@ -9,15 +9,7 @@ export function IntervalComponent({ interval }: Readonly<{ interval: Interval }>
     return (
         <div className="flex flex-col">
             {edited && <div className="flex gap-2 p-2 justify-between">
-                <Input value={interval.start.time} type="datetime-local" onChange={(e) => {
-                    interval.start.time = e.target.value;
-                }}>
-                </Input>
                 <div>-</div>
-                <Input value={interval.end.time} type="datetime-local" onChange={(e) => {
-                    interval.end.time = e.target.value;
-                }}>
-                </Input>
                 <div>
                     ({interval.duration / 1000000000} seconds)
                 </div>
@@ -25,11 +17,11 @@ export function IntervalComponent({ interval }: Readonly<{ interval: Interval }>
             </div>}
             {!edited && <div className="flex gap-2 p-2">
                 <div>
-                    {interval.start.time}
+                    {interval.start.toString()}
                 </div>
                 <div>-</div>
                 <div>
-                    {interval.end.time}
+                    {interval.end.toString()}
                 </div>
                 <div>
                     ({interval.duration / 1000000000} seconds)

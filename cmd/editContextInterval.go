@@ -49,7 +49,7 @@ var editContextIntervalCmd = &cobra.Command{
 			mgr.EditContextInterval(id, intervalIndex, ctx_model.ZonedTime{Time: startDT, Timezone: loc.String()}, ctx_model.ZonedTime{Time: endDT, Timezone: loc.String()})
 		} else {
 			for index, interval := range ctx.Intervals {
-				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339Nano), interval.End.Time.Format(time.RFC3339Nano))
+				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
 			}
 		}
 

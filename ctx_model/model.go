@@ -160,7 +160,7 @@ func (zt ZonedTime) MarshalJSON() ([]byte, error) {
 		Time     string `json:"time"`
 		Timezone string `json:"timezone"`
 	}{
-		Time:     zt.Time.Format(time.RFC3339Nano),
+		Time:     zt.Time.Format(time.RFC3339),
 		Timezone: zt.Time.Location().String(),
 	})
 }
@@ -177,7 +177,7 @@ func (zt *ZonedTime) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	t, err := time.ParseInLocation(time.RFC3339Nano, tmp.Time, loc)
+	t, err := time.ParseInLocation(time.RFC3339, tmp.Time, loc)
 	if err != nil {
 		return err
 	}

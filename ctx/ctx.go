@@ -515,8 +515,8 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 		}
 
 		oldDuration := s.Contexts[id].Intervals[intervalIndex].Duration
-		oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Time.Format(time.RFC3339Nano)
-		oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Time.Format(time.RFC3339Nano)
+		oldStart := s.Contexts[id].Intervals[intervalIndex].Start.Time.Format(time.RFC3339)
+		oldEnd := s.Contexts[id].Intervals[intervalIndex].End.Time.Format(time.RFC3339)
 
 		ctx := s.Contexts[id]
 
@@ -532,8 +532,8 @@ func (manager *ContextManager) EditContextInterval(id string, intervalIndex int,
 		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
 			"old.start": oldStart,
 			"old.end":   oldEnd,
-			"new.start": ctx.Intervals[intervalIndex].Start.Time.Format(time.RFC3339Nano),
-			"new.end":   ctx.Intervals[intervalIndex].End.Time.Format(time.RFC3339Nano),
+			"new.start": ctx.Intervals[intervalIndex].Start.Time.Format(time.RFC3339),
+			"new.end":   ctx.Intervals[intervalIndex].End.Time.Format(time.RFC3339),
 		})
 		return nil
 	})
@@ -629,8 +629,8 @@ func (manager *ContextManager) DeleteInterval(id string, index int) error {
 			ctx.Duration = ctx.Duration - interval.Duration
 			s.Contexts[id] = ctx
 			manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.DELETE_CTX_INTERVAL, map[string]string{
-				"start":    interval.Start.Time.Format(time.RFC3339Nano),
-				"end":      interval.End.Time.Format(time.RFC3339Nano),
+				"start":    interval.Start.Time.Format(time.RFC3339),
+				"end":      interval.End.Time.Format(time.RFC3339),
 				"duration": interval.Duration.String(),
 			})
 		} else {
