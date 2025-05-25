@@ -1,4 +1,4 @@
-import { Context, http, mapContext } from "@/api/api";
+import { Context, http, mapContext, ZonedDateTime } from "@/api/api";
 
 
 export class ContextApi {
@@ -15,4 +15,6 @@ export class ContextApi {
     createAndSwitch = (description: string) =>
         http.post<Context>("/context/createAndSwitch", { description: description }).then(response => response.data);
 
+    updateInterval = (contextId: string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime) =>
+        http.put<void>("/context/interval", { contextId: contextId, intervalId: intervalId, start: start, end: end }).then(response => response);
 }

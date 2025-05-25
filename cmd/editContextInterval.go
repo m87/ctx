@@ -46,7 +46,7 @@ var editContextIntervalCmd = &cobra.Command{
 			endDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[3]), loc)
 			util.Checkm(err, "Unable to parse end datetime")
 
-			mgr.EditContextInterval(id, intervalIndex, ctx_model.ZonedTime{Time: startDT, Timezone: loc.String()}, ctx_model.ZonedTime{Time: endDT, Timezone: loc.String()})
+			mgr.EditContextIntervalByIndex(id, intervalIndex, ctx_model.ZonedTime{Time: startDT, Timezone: loc.String()}, ctx_model.ZonedTime{Time: endDT, Timezone: loc.String()})
 		} else {
 			for index, interval := range ctx.Intervals {
 				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))

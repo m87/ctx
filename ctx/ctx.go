@@ -508,7 +508,24 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 	)
 }
 
-func (manager *ContextManager) EditContextInterval(id string, intervalIndex int, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
+func (manager *ContextManager) EditContextInterval(id string, intervalId string, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
+	manager.ContextStore.Read(func(s *ctx_model.State) error {
+		context, ok := s.Contexts[id]
+		if !ok {
+			return errors.New("context does not exist")
+		}
+		for i, interval := range context.Intervals {
+			if interval.Id == intervalId {
+				manager.EditContextIntervalByIndex(id, i, start, end)
+				return nil
+			}
+		}
+		return nil
+	})
+	return nil
+}
+
+func (manager *ContextManager) EditContextIntervalByIndex(id string, intervalIndex int, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
 	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		if s.CurrentId == id {
 			return errors.New("context is active")

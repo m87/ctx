@@ -89,6 +89,23 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 	mgr.CreateIfNotExistsAndSwitch(util.GenerateId(p.Description), p.Description)
 }
 
+func updateInterval(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	mgr := ctx.CreateManager()
+
+	var p EditIntervalRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		log.Println("Error decoding JSON:", err)
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	mgr.EditContextInterval(p.Id, p.IntervalId, p.Start, p.End)
+}
+
 func Serve() {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -102,6 +119,7 @@ func Serve() {
 	http.HandleFunc("/api/context/free", freeContext)
 	http.HandleFunc("/api/context/switch", switchContext)
 	http.HandleFunc("/api/context/createAndSwitch", createAndSwitchContext)
+	http.HandleFunc("/api/context/interval", updateInterval)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -111,6 +129,13 @@ type SwitchRequest struct {
 
 type createAndSwitchRequest struct {
 	Description string `json:"description"`
+}
+
+type EditIntervalRequest struct {
+	Id         string              `json:"contextId"`
+	IntervalId string              `json:"intervalId"`
+	Start      ctx_model.ZonedTime `json:"start"`
+	End        ctx_model.ZonedTime `json:"end"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {

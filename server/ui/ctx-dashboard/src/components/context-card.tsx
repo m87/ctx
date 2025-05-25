@@ -1,7 +1,7 @@
 import { ArrowDown, ChevronDown, ChevronUp, PlayCircleIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useState } from "react";
-import { api } from "@/api/api";
+import { api, ZonedDateTime } from "@/api/api";
 import IntervalComponent from "./interval-component";
 
 
@@ -11,6 +11,11 @@ export function ContextCard({ context }) {
     const cardClick = (id: string) => {
         api.context.switch(id)
     };
+
+    const updateInterval = (id: string, start: ZonedDateTime, end: ZonedDateTime) => {
+        api.context.updateInterval(context.id, id, start, end);
+    };
+
     return (
         <Card key={context.id} className="@container/card"
             onMouseEnter={() => setHovered(true)}
@@ -34,7 +39,7 @@ export function ContextCard({ context }) {
             {expanded && <CardContent className="flex flex-col gap-2">
                 <div className="flex flex-col justify-center">
                     {context.intervals?.map((interval) => (
-                        <IntervalComponent key={interval.id} interval={interval} />
+                        <IntervalComponent key={interval.id} interval={interval} onChange={updateInterval} />
                     ))}
                 </div>
             </CardContent>
