@@ -17,6 +17,9 @@ interface TimelineProps {
   blocks: TimelineBlock[]
 }
 
+//<Timeline date="2025-05-19" blocks={[      { label: "Spotkanie", start: 9, end: 10.5, color: "#3b82f6" },
+//      { label: "Lunch", start: 12.5, end: 13.25, color: "#10b981" },]} /></div>
+
 export default function Timeline({ date, blocks }: TimelineProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null)
