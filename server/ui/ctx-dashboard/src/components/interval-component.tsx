@@ -12,11 +12,11 @@ export function IntervalComponent({ interval, onChange }: Readonly<{ interval: I
     return (
         <div className="flex flex-col">
             {edited && <div className="flex gap-2 p-2 justify-between">
-                <Input type="datetime-local" value={start.toDateTime().toLocaleString()} onChange={(e) => {
+                <Input type="datetime-local" value={start.toInputValue()} onChange={(e) => {
                     setStart(ZonedDateTime.fromDateTime(DateTime.fromISO(e.target.value, { zone: interval.start.timezone ?? "utc" })));
                 }}></Input>
                 <div>-</div>
-                <Input type="datetime-local" value={end.toDateTime().toLocaleString()} onChange={(e) => {
+                <Input type="datetime-local" value={end.toInputValue()} onChange={(e) => {
                     setEnd(ZonedDateTime.fromDateTime(DateTime.fromISO(e.target.value, { zone: interval.end.timezone ?? "utc" })));
                 }}></Input>
                 <div>

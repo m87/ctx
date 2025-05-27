@@ -14,8 +14,12 @@ export class ZonedDateTime {
     return DateTime.fromISO(this.time ?? '', { zone: this.timezone ?? "utc" });
   }
 
+  public toInputValue(): string {
+    return this.toDateTime().toFormat("yyyy-MM-dd'T'HH:mm");
+  }
+  
   public toString(): string {
-    return this.toDateTime().toLocaleString(DateTime.DATETIME_MED_WITH_SECONDS).toString();
+    return this.toDateTime().toFormat("yyyy-MM-dd HH:mm");
   }
 }
 
