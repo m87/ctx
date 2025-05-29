@@ -1,5 +1,6 @@
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import {PauseIcon} from "lucide-react";
 
 export function SiteHeader() {
   return (
@@ -11,6 +12,9 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
         <h1 className="text-base font-medium">Contexts</h1>
+          <div className="flex w-full justify-end">
+              <div className="flex rounded-[300px] p-2 pl-4 pr-4 bg-green-200 animate-pulse"><PauseIcon></PauseIcon><div>elo</div></div>
+          </div>
       </div>
     </header>
   )

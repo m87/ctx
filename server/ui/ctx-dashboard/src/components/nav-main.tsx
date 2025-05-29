@@ -1,8 +1,6 @@
 "use client"
 
-import { MailIcon, PlusCircleIcon, type LucideIcon } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import {type LucideIcon} from "lucide-react"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -10,30 +8,33 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {Link} from "react-router-dom";
 
 export function NavMain({
-  items,
-}: {
-  items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-  }[]
+                            items,
+                        }: {
+    items: {
+        title: string
+        url: string
+        icon?: LucideIcon
+    }[]
 }) {
-  return (
-    <SidebarGroup>
-      <SidebarGroupContent className="flex flex-col gap-2">
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
+    return (
+        <SidebarGroup>
+            <SidebarGroupContent className="flex flex-col gap-2">
+                <SidebarMenu>
+                    {items.map((item) => (
+                        <Link to={item.url}>
+                            <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton tooltip={item.title}>
+                                    {item.icon && <item.icon/>}
+                                    <span>{item.title}</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </Link>
+                    ))}
+                </SidebarMenu>
+            </SidebarGroupContent>
+        </SidebarGroup>
+    )
 }

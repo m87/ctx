@@ -3,7 +3,7 @@
 import * as React from "react"
 import {
   ArrowUpCircleIcon,
-  BarChartIcon,
+  BarChartIcon, Calendar1Icon,
   CameraIcon,
   ChartNoAxesGantt,
   ChartNoAxesGanttIcon,
@@ -37,8 +37,13 @@ const data = {
   },
   navMain: [
     {
-      title: "Contexts",
+      title: "Today",
       url: "#",
+      icon: Calendar1Icon
+    },
+    {
+      title: "Contexts",
+      url: "#contexts",
       icon: LayoutDashboardIcon,
     },
   ],
