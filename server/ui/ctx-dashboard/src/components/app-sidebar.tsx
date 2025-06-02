@@ -38,12 +38,12 @@ const data = {
   navMain: [
     {
       title: "Today",
-      url: "#",
+      url: "",
       icon: Calendar1Icon
     },
     {
       title: "Contexts",
-      url: "#contexts",
+      url: "contexts",
       icon: LayoutDashboardIcon,
     },
   ],
