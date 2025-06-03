@@ -106,6 +106,16 @@ func updateInterval(w http.ResponseWriter, r *http.Request) {
 	mgr.EditContextInterval(p.Id, p.IntervalId, p.Start, p.End)
 }
 
+func daySummary(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	log.Println("Day summary request received", r.PathValue("date"))
+	durations := map[string]time.Duration{}
+
+	json.NewEncoder(w).Encode(durations)
+}
+
 func Serve() {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -120,6 +130,7 @@ func Serve() {
 	http.HandleFunc("/api/context/switch", switchContext)
 	http.HandleFunc("/api/context/createAndSwitch", createAndSwitchContext)
 	http.HandleFunc("/api/context/interval", updateInterval)
+	http.HandleFunc("/api/summary/day/{date}", daySummary)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 

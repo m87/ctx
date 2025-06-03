@@ -13,7 +13,7 @@ export function SiteHeader() {
         />
         <h1 className="text-base font-medium">Contexts</h1>
           <div className="flex w-full justify-end">
-              <div className="flex rounded-[300px] p-2 pl-4 pr-4 bg-green-200 animate-pulse"><PauseIcon></PauseIcon><div>elo</div></div>
+              <div className="flex rounded-[300px] p-1 pl-4 pr-4 bg-green-200 animate-pulse"><PauseIcon></PauseIcon><div>elo</div></div>
           </div>
       </div>
     </header>
