@@ -20,6 +20,7 @@ type Interval struct {
 	Start    ZonedTime     `json:"start"`
 	End      ZonedTime     `json:"end"`
 	Duration time.Duration `json:"duration"`
+	Labels   []string      `json:"labels"`
 }
 
 type Context struct {
@@ -29,6 +30,7 @@ type Context struct {
 	State       ContextState  `json:"state"`
 	Duration    time.Duration `json:"duration"`
 	Intervals   []Interval    `json:"intervals"`
+	Labels      []string      `json:"labels"`
 }
 
 type EventType int
@@ -43,6 +45,8 @@ const (
 	EDIT_CTX_INTERVAL
 	RENAME_CTX
 	DELETE_CTX_INTERVAL
+	LABEL_CTX
+	DELETE_CTX_LABEL
 )
 
 func EventAsString(event EventType) string {
@@ -65,6 +69,10 @@ func EventAsString(event EventType) string {
 		return "RENAME_CTX"
 	case DELETE_CTX_INTERVAL:
 		return "DELETE_CTX_INTERVAL"
+	case LABEL_CTX:
+		return "LABEL_CTX"
+	case DELETE_CTX_LABEL:
+		return "DELETE_CTX_LABEL"
 	}
 	panic("undefined event type")
 }
@@ -89,6 +97,10 @@ func StringAsEvent(event string) EventType {
 		return RENAME_CTX
 	case "DELETE_CTX_INTERVAL":
 		return DELETE_CTX_INTERVAL
+	case "LABEL_CTX":
+		return LABEL_CTX
+	case "DELETE_CTX_LABEL":
+		return DELETE_CTX_LABEL
 	}
 	panic("undefined event type")
 }

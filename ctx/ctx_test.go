@@ -754,9 +754,10 @@ func TestErrorOnEditCurrentContextInterval(t *testing.T) {
 
 	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
 
-	err := cm.EditContextInterval(test.TestId, 0, ctx_model.ZonedTime{Time: time.Now().Local()}, ctx_model.ZonedTime{Time: time.Now().Local()})
+	id := cs.Load().Contexts[test.TestId].Intervals[0].Id
+	err := cm.EditContextInterval(test.TestId, id, ctx_model.ZonedTime{Time: time.Now().Local()}, ctx_model.ZonedTime{Time: time.Now().Local()})
 
-	assert.Error(t, err, errors.New("context is active"))
+	assert.Error(t, errors.New("context is active"), err)
 
 }
 
@@ -789,7 +790,8 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 
-	err = cm.EditContextInterval(test.TestId, 0, ctx_model.ZonedTime{Time: dt1}, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
+	id := cs.Load().Contexts[test.TestId].Intervals[0].Id
+	err = cm.EditContextInterval(test.TestId, id, ctx_model.ZonedTime{Time: dt1}, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt1))
@@ -804,7 +806,8 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.RFC3339))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.end"], dt3.Format(time.RFC3339))
 
-	err = cm.EditContextInterval(test.TestId, 0, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
+	id = cs.Load().Contexts[test.TestId].Intervals[0].Id
+	err = cm.EditContextInterval(test.TestId, id, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()}, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctx_model.ZonedTime{Time: dt2, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctx_model.ZonedTime{Time: dt3, Timezone: ctx_model.DetectTimezoneName()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Duration, dt3.Sub(dt2))
@@ -1027,4 +1030,34 @@ func TestSearchContextWithRegex(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, contexts, 1)
 	assert.Equal(t, contexts[0].Description, test.PrevDescription)
+}
+
+func TestAddLabelToContext(t *testing.T) {
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	err := cm.LabelContext(test.TestId, "test-label")
+
+	assert.NoError(t, err)
+	assert.Contains(t, cs.Load().Contexts[test.TestId].Labels, "test-label")
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.LABEL_CTX)
+}
+
+func TestRemoveLabelFromContext(t *testing.T) {
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	err := cm.LabelContext(test.TestId, "test-label")
+	assert.NoError(t, err)
+
+	err = cm.DeleteLabelContext(test.TestId, "test-label")
+	assert.NoError(t, err)
+	assert.NotContains(t, cs.Load().Contexts[test.TestId].Labels, "test-label")
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_LABEL)
 }

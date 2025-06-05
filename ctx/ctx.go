@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/localstore"
+	"github.com/m87/ctx/util"
 	"github.com/spf13/viper"
 )
 
@@ -672,4 +673,39 @@ func (manager *ContextManager) Search(regex string) ([]ctx_model.Context, error)
 		return nil, err
 	}
 	return ctxs, nil
+}
+
+func (manager *ContextManager) LabelContext(id string, label string) error {
+	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+		if _, ok := s.Contexts[id]; !ok {
+			return errors.New("context does not exist")
+		}
+		ctx := s.Contexts[id]
+		if !util.Contains(s.Contexts[id].Labels, label) {
+			ctx.Labels = append(s.Contexts[id].Labels, label)
+			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), ctx_model.LABEL_CTX, map[string]string{
+				"label": label,
+			})
+			s.Contexts[id] = ctx
+		}
+		return nil
+	})
+}
+
+func (manager *ContextManager) DeleteLabelContext(id string, label string) error {
+	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+		if _, ok := s.Contexts[id]; !ok {
+			return errors.New("context does not exist")
+		}
+
+		ctx := s.Contexts[id]
+		if util.Contains(s.Contexts[id].Labels, label) {
+			ctx.Labels = util.Remove(s.Contexts[id].Labels, label)
+			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), ctx_model.DELETE_CTX_LABEL, map[string]string{
+				"label": label,
+			})
+			s.Contexts[id] = ctx
+		}
+		return nil
+	})
 }
