@@ -8,6 +8,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/m87/ctx/ctx"
@@ -106,14 +108,80 @@ func updateInterval(w http.ResponseWriter, r *http.Request) {
 	mgr.EditContextInterval(p.Id, p.IntervalId, p.Start, p.End)
 }
 
+func roundDuration(d time.Duration, unit string) time.Duration {
+	switch unit {
+	case "nanosecond":
+		return d.Round(time.Nanosecond)
+	case "microsecond":
+		return d.Round(time.Microsecond)
+	case "millisecond":
+		return d.Round(time.Millisecond)
+	case "second":
+		return d.Round(time.Second)
+	case "minute":
+		return d.Round(time.Minute)
+	case "hour":
+		return d.Round(time.Hour)
+	default:
+		return d.Round(time.Nanosecond)
+	}
+}
+
 func daySummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	log.Println("Day summary request received", r.PathValue("date"))
-	durations := map[string]time.Duration{}
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	mgr := ctx.CreateManager()
+	date := mgr.TimeProvider.Now().Time.In(loc)
+	rawDate := strings.TrimSpace(r.PathValue("date"))
 
-	json.NewEncoder(w).Encode(durations)
+	if rawDate != "" {
+		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
+	}
+
+	durations := map[string]time.Duration{}
+	overallDuration := time.Duration(0)
+	response := DaySummaryResponse{}
+
+	mgr.ContextStore.Read(func(s *ctx_model.State) error {
+		for ctxId, _ := range s.Contexts {
+			d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
+			util.Checkm(err, "Unable to get interval durations for context "+ctxId)
+			durations[ctxId] = roundDuration(d, "nanosecond")
+		}
+		return nil
+	})
+
+	sortedIds := make([]string, 0, len(durations))
+	for k := range durations {
+		sortedIds = append(sortedIds, k)
+	}
+	sort.Strings(sortedIds)
+
+	for _, c := range sortedIds {
+		d := durations[c]
+		ctx, _ := mgr.Ctx(c)
+		if d > 0 {
+			overallDuration += d
+			mgr.ContextStore.Read(func(s *ctx_model.State) error {
+				response.Contexts = append(response.Contexts, ContextSummary{
+					Id:          c,
+					Description: ctx.Description,
+					Intervals:   mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}),
+					Duration:    d,
+				})
+				return nil
+			})
+		}
+	}
+
+	response.Duration = overallDuration
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func Serve() {
@@ -147,6 +215,18 @@ type EditIntervalRequest struct {
 	IntervalId string              `json:"intervalId"`
 	Start      ctx_model.ZonedTime `json:"start"`
 	End        ctx_model.ZonedTime `json:"end"`
+}
+
+type ContextSummary struct {
+	Id          string               `json:"id"`
+	Description string               `json:"description"`
+	Intervals   []ctx_model.Interval `json:"intervals"`
+	Duration    time.Duration        `json:"duration"`
+}
+
+type DaySummaryResponse struct {
+	Contexts []ContextSummary `json:"contexts"`
+	Duration time.Duration    `json:"duration"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {
