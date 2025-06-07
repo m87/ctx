@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -29,6 +30,47 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 	default:
 		return d.Round(time.Nanosecond)
 	}
+}
+
+var jiraLineRegex = regexp.MustCompile(`^([A-Z][A-Z0-9]+-\d+)\s*(.*)$`)
+
+func GenerateJiraCurlCommand(entry string, duration time.Duration, started time.Time, jiraBaseURL, authToken string) string {
+	matches := jiraLineRegex.FindStringSubmatch(entry)
+	if matches == nil {
+		return ""
+	}
+
+	issueKey := matches[1]
+	comment := strings.TrimSpace(matches[2])
+
+	minutes := int(duration.Minutes())
+	if minutes <= 0 {
+		minutes = 1
+	}
+	timeSpent := fmt.Sprintf("%dm", minutes)
+	startedFormatted := started.Format("2006-01-02T15:04:05.000-0700")
+
+	jsonBody := fmt.Sprintf(`{
+  "timeSpent": "%s",
+  "started": "%s",
+  "comment": "%s"
+}`, timeSpent, startedFormatted, comment)
+
+	curl := fmt.Sprintf(`curl --fail -s -o /dev/null -w "%%{http_code}" \
+  -X POST \
+  -H "Authorization: Basic %s" \
+  -H "Content-Type: application/json" \
+  --data '%s' \
+  %s/rest/api/3/issue/%s/worklog \
+  || echo "❌ Nie udało się zalogować czasu do zadania %s"`,
+		authToken,
+		jsonBody,
+		jiraBaseURL,
+		issueKey,
+		issueKey,
+	)
+
+	return curl
 }
 
 var summarizeDayCmd = &cobra.Command{
@@ -85,7 +127,25 @@ var summarizeDayCmd = &cobra.Command{
 				}
 			}
 		}
+		mgr.ContextStore.Read(func(s *ctx_model.State) error {
+			if f, _ := cmd.Flags().GetBool("jira"); f {
+				fmt.Println("\nJira curl commands:")
+				jiraBaseURL := "https://your-jira-instance.atlassian.net"
+				authToken := "your_base64_encoded_auth_token"
+				for _, c := range sortedIds {
+					d := durations[c]
+					ctx, _ := mgr.Ctx(c)
+					if d > 0 {
+						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
+							curlCommand := GenerateJiraCurlCommand(ctx.Description, interval.End.Time.Sub(interval.Start.Time), interval.Start.Time, jiraBaseURL, authToken)
+							fmt.Println(curlCommand)
+						}
+					}
+				}
 
+			}
+			return nil
+		})
 		fmt.Printf("Overall: %s\n", overallDuration)
 	},
 }
@@ -94,4 +154,5 @@ func init() {
 	summarizeCmd.AddCommand(summarizeDayCmd)
 	summarizeDayCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
 	summarizeDayCmd.Flags().StringP("round", "r", "nanosecond", "Round to the nearest nanosecond, microsecond, millisecond, second, minute, hour")
+	summarizeDayCmd.Flags().BoolP("jira", "j", false, "Generate curl commands for Jira time tracking")
 }

@@ -168,7 +168,7 @@ func daySummary(w http.ResponseWriter, r *http.Request) {
 		if d > 0 {
 			overallDuration += d
 			mgr.ContextStore.Read(func(s *ctx_model.State) error {
-				response.Contexts = append(response.Contexts, ContextSummary{
+				response.Contexts = append(response.Contexts, ctx_model.Context{
 					Id:          c,
 					Description: ctx.Description,
 					Intervals:   mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}),
@@ -199,6 +199,7 @@ func Serve() {
 	http.HandleFunc("/api/context/createAndSwitch", createAndSwitchContext)
 	http.HandleFunc("/api/context/interval", updateInterval)
 	http.HandleFunc("/api/summary/day/{date}", daySummary)
+	http.HandleFunc("/api/summary/day", daySummary)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -217,16 +218,9 @@ type EditIntervalRequest struct {
 	End        ctx_model.ZonedTime `json:"end"`
 }
 
-type ContextSummary struct {
-	Id          string               `json:"id"`
-	Description string               `json:"description"`
-	Intervals   []ctx_model.Interval `json:"intervals"`
-	Duration    time.Duration        `json:"duration"`
-}
-
 type DaySummaryResponse struct {
-	Contexts []ContextSummary `json:"contexts"`
-	Duration time.Duration    `json:"duration"`
+	Contexts []ctx_model.Context `json:"contexts"`
+	Duration time.Duration       `json:"duration"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {

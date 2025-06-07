@@ -1,6 +1,7 @@
 import axios, { AxiosRequestTransformer } from "axios";
 import {ContextApi} from "@/api/api-context";
 import { DateTime, Zone } from "luxon";
+import { SummaryApi } from "./api-summary";
 
 
 export class ZonedDateTime {
@@ -73,6 +74,7 @@ export const http = axios.create(httpConfig);
 
 export class Api {
     context = new ContextApi();
+    summary = new SummaryApi();
 }
 
 export const api = new Api();

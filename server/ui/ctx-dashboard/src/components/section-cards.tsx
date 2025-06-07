@@ -1,4 +1,4 @@
-import { api } from "@/api/api";
+import { api, Context } from "@/api/api";
 import {
   Card,
   CardHeader,
@@ -11,9 +11,7 @@ import ContextCard from "./context-card";
 import { Input } from "./ui/input";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 
-export function SectionCards() {
-
-  const { data: contextList } = useQuery({ ...api.context.listQuery });
+export function SectionCards({contextList}: Readonly<{contextList: Context[] | undefined}>) {
 
   const [searchTerm, setSearchTerm] = useState('');
   const filteredList = contextList?.filter((context) =>

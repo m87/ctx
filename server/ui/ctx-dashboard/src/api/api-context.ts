@@ -1,6 +1,5 @@
 import { Context, http, mapContext, ZonedDateTime } from "@/api/api";
 
-
 export class ContextApi {
     list = () => http.get<Context[]>("/context/list").then(response => response.data.map(mapContext));
     listQuery = { queryKey: ["contextList"], queryFn: this.list, select: (data: Context[]) => data.sort((a, b) => a.id.localeCompare(b.id)) };

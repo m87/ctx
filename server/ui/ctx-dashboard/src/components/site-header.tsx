@@ -1,6 +1,7 @@
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import {PauseIcon} from "lucide-react";
+import { Route, Routes } from "react-router-dom";
 
 export function SiteHeader() {
   return (
@@ -11,7 +12,13 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium">Contexts</h1>
+        <h1 className="text-base font-medium">
+                    <Routes>
+                        <Route path="/contexts" element={"Contexts"}/>
+                        <Route path="/today" element={"Today"}/>
+                        <Route path="/" element={"Today"}/>
+                    </Routes>
+        </h1>
           <div className="flex w-full justify-end">
               <div className="flex rounded-lg p-1 pl-2 pr-2 font-semibold bg-green-200 animate-pulse"><div>elo</div></div>
           </div>

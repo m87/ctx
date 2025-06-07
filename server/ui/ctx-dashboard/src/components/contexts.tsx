@@ -6,6 +6,8 @@ import {api} from "@/api/api";
 
 
 export function Contexts() {
+
+    const { data: contextList } = useQuery({ ...api.context.listQuery });
     const { data: currentContext } = useQuery({...api.context.currentQuery, refetchInterval: 1000});
     const pauseClick = () => {
         api.context.free()
@@ -33,7 +35,7 @@ export function Contexts() {
                 }
 
                 <div className="h-[100px]">
-                    <SectionCards/>
+                    <SectionCards contextList={contextList}></SectionCards>
                 </div>
 
             </div>
