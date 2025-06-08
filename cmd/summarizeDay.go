@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -11,7 +11,6 @@ import (
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func roundDuration(d time.Duration, unit string) time.Duration {
@@ -33,46 +32,9 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 	}
 }
 
-var jiraLineRegex = regexp.MustCompile(`^([A-Z][A-Z0-9]+-\d+)\s*(.*)$`)
-
-func GenerateJiraCurlCommand(entry string, duration time.Duration, started time.Time, jiraBaseURL, user string, pass string) string {
-	matches := jiraLineRegex.FindStringSubmatch(entry)
-	if matches == nil {
-		return ""
-	}
-
-	issueKey := matches[1]
-	comment := strings.TrimSpace(matches[2])
-
-	minutes := int(duration.Minutes())
-	if minutes <= 0 {
-		minutes = 1
-	}
-	timeSpent := fmt.Sprintf("%dm", minutes)
-	startedFormatted := started.Format("2006-01-02T15:04:05.000-0700")
-
-	jsonBody := fmt.Sprintf(`{
-  "timeSpent": "%s",
-  "started": "%s",
-  "comment": "%s"
-}`, timeSpent, startedFormatted, comment)
-
-	curl := fmt.Sprintf(`curl --fail -s -o /dev/null -w "%%{http_code}" \
-  -u "%s:%s" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  --data '%s' \
-  %s/rest/api/3/issue/%s/worklog \
-  || echo "❌ Nie udało się zalogować czasu do zadania %s"`,
-		user,
-		pass,
-		jsonBody,
-		jiraBaseURL,
-		issueKey,
-		issueKey,
-	)
-
-	return curl
+type DaySummary struct {
+	Contexts []ctx_model.Context `json:"contexts"`
+	Duration time.Duration       `json:"duration"`
 }
 
 var summarizeDayCmd = &cobra.Command{
@@ -115,41 +77,65 @@ var summarizeDayCmd = &cobra.Command{
 
 		for _, c := range sortedIds {
 			d := durations[c]
-			ctx, _ := mgr.Ctx(c)
 			if d > 0 {
-				fmt.Printf("- %s: %s\n", ctx.Description, d)
 				overallDuration += d
-				if f, _ := cmd.Flags().GetBool("verbose"); f {
-					mgr.ContextStore.Read(func(s *ctx_model.State) error {
-						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
-							fmt.Printf("\t- %s - %s\n", interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
-						}
-						return nil
-					})
-				}
 			}
 		}
-		mgr.ContextStore.Read(func(s *ctx_model.State) error {
-			if f, _ := cmd.Flags().GetBool("jira"); f {
-				fmt.Println("\nJira curl commands:")
-				jiraBaseURL := viper.GetString("jira.url")
-				user := viper.GetString("jira.user")
-				pass := viper.GetString("jira.password")
+
+		if f, _ := cmd.Flags().GetBool("json"); f {
+
+			outputContexts := []ctx_model.Context{}
+			summary := DaySummary{}
+			mgr.ContextStore.Read(func(s *ctx_model.State) error {
 				for _, c := range sortedIds {
 					d := durations[c]
 					ctx, _ := mgr.Ctx(c)
+
+					output := ctx_model.Context{
+						Id:          c,
+						Description: ctx.Description,
+						Duration:    roundDuration(d, roundUnit),
+					}
+
 					if d > 0 {
 						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
-							curlCommand := GenerateJiraCurlCommand(ctx.Description, interval.End.Time.Sub(interval.Start.Time), interval.Start.Time, jiraBaseURL, user, pass)
-							fmt.Println(curlCommand)
+							output.Intervals = append(output.Intervals, ctx_model.Interval{
+								Start:    interval.Start,
+								End:      interval.End,
+								Duration: roundDuration(interval.End.Time.Sub(interval.Start.Time), roundUnit),
+							})
 						}
 					}
-				}
 
+					outputContexts = append(outputContexts, output)
+				}
+				summary.Contexts = outputContexts
+				summary.Duration = roundDuration(overallDuration, roundUnit)
+				j, _ := json.Marshal(summary)
+
+				fmt.Printf("%s", string(j))
+				return nil
+			})
+
+		} else {
+			for _, c := range sortedIds {
+				d := durations[c]
+				ctx, _ := mgr.Ctx(c)
+				if d > 0 {
+					fmt.Printf("- %s: %s\n", ctx.Description, d)
+					if f, _ := cmd.Flags().GetBool("verbose"); f {
+						mgr.ContextStore.Read(func(s *ctx_model.State) error {
+							for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
+								fmt.Printf("\t- %s - %s\n", interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
+							}
+							return nil
+						})
+					}
+				}
 			}
-			return nil
-		})
-		fmt.Printf("Overall: %s\n", overallDuration)
+
+			fmt.Printf("Overall: %s\n", overallDuration)
+		}
 	},
 }
 
@@ -157,5 +143,5 @@ func init() {
 	summarizeCmd.AddCommand(summarizeDayCmd)
 	summarizeDayCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
 	summarizeDayCmd.Flags().StringP("round", "r", "nanosecond", "Round to the nearest nanosecond, microsecond, millisecond, second, minute, hour")
-	summarizeDayCmd.Flags().BoolP("jira", "j", false, "Generate curl commands for Jira time tracking")
+	summarizeDayCmd.Flags().BoolP("json", "j", false, "Json output")
 }
