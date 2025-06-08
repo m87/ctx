@@ -11,6 +11,7 @@ import (
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func roundDuration(d time.Duration, unit string) time.Duration {
@@ -34,7 +35,7 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 
 var jiraLineRegex = regexp.MustCompile(`^([A-Z][A-Z0-9]+-\d+)\s*(.*)$`)
 
-func GenerateJiraCurlCommand(entry string, duration time.Duration, started time.Time, jiraBaseURL, authToken string) string {
+func GenerateJiraCurlCommand(entry string, duration time.Duration, started time.Time, jiraBaseURL, user string, pass string) string {
 	matches := jiraLineRegex.FindStringSubmatch(entry)
 	if matches == nil {
 		return ""
@@ -57,13 +58,14 @@ func GenerateJiraCurlCommand(entry string, duration time.Duration, started time.
 }`, timeSpent, startedFormatted, comment)
 
 	curl := fmt.Sprintf(`curl --fail -s -o /dev/null -w "%%{http_code}" \
+  -u "%s:%s" \
   -X POST \
-  -H "Authorization: Basic %s" \
   -H "Content-Type: application/json" \
   --data '%s' \
   %s/rest/api/3/issue/%s/worklog \
   || echo "❌ Nie udało się zalogować czasu do zadania %s"`,
-		authToken,
+		user,
+		pass,
 		jsonBody,
 		jiraBaseURL,
 		issueKey,
@@ -130,14 +132,15 @@ var summarizeDayCmd = &cobra.Command{
 		mgr.ContextStore.Read(func(s *ctx_model.State) error {
 			if f, _ := cmd.Flags().GetBool("jira"); f {
 				fmt.Println("\nJira curl commands:")
-				jiraBaseURL := "https://your-jira-instance.atlassian.net"
-				authToken := "your_base64_encoded_auth_token"
+				jiraBaseURL := viper.GetString("jira.url")
+				user := viper.GetString("jira.user")
+				pass := viper.GetString("jira.password")
 				for _, c := range sortedIds {
 					d := durations[c]
 					ctx, _ := mgr.Ctx(c)
 					if d > 0 {
 						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
-							curlCommand := GenerateJiraCurlCommand(ctx.Description, interval.End.Time.Sub(interval.Start.Time), interval.Start.Time, jiraBaseURL, authToken)
+							curlCommand := GenerateJiraCurlCommand(ctx.Description, interval.End.Time.Sub(interval.Start.Time), interval.Start.Time, jiraBaseURL, user, pass)
 							fmt.Println(curlCommand)
 						}
 					}
