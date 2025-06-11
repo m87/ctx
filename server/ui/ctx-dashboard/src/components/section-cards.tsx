@@ -10,6 +10,7 @@ import { useState } from "react";
 import ContextCard from "./context-card";
 import { Input } from "./ui/input";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
+import Timeline, { TimeInterval } from "./timeline";
 
 export function SectionCards({contextList}: Readonly<{contextList: Context[] | undefined}>) {
 
@@ -22,10 +23,26 @@ export function SectionCards({contextList}: Readonly<{contextList: Context[] | u
     api.context.createAndSwitch(description);
   };
 
+const exampleData: Record<string, TimeInterval[]> = {
+  "2025-06-10": [
+    { start: "00:00:00", end: "00:45:00", color: "bg-blue-500" },
+    { start: "01:15:00", end: "03:00:00", color: "bg-green-500" },
+    { start: "04:30:00", end: "05:10:00", color: "bg-yellow-500" },
+    { start: "06:00:00", end: "06:30:00", color: "bg-red-500" },
+  ],
+  "2025-06-11": [
+    { start: "08:05:00", end: "09:35:00", color: "bg-purple-500" },
+    { start: "10:15:00", end: "10:45:00", color: "bg-pink-500" },
+    { start: "11:00:00", end: "11:20:00", color: "bg-indigo-500" },
+  ]
+};
+
+
   const cardClick = (id) => {
     api.context.switch(id)
   };
   return (<div>
+    <Timeline data={exampleData} />
     <div className="pt-3 pb-2 pr-6 pl-6 flex items-center">
       <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => {
         if (e.key === 'Enter' && searchTerm.trim() !== '' && filteredList && filteredList?.length > 0) {
