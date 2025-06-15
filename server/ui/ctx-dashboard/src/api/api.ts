@@ -36,6 +36,7 @@ export interface Context {
     description: string,
     intervals: Interval[],
     duration: number,
+    labels: string[],
 }
 
 export function mapZoned(obj: any): ZonedDateTime {
@@ -57,6 +58,7 @@ export function mapContext(obj: any): Context {
     description: obj.description,
     duration: obj.duration,
     intervals: obj.intervals.map(mapInterval),
+    labels: obj.labels ?? [],
   };
 }
 

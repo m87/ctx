@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useState } from "react";
 import { api, ZonedDateTime } from "@/api/api";
 import IntervalComponent from "./interval-component";
+import { Badge } from "./ui/badge";
 
 
 export function ContextCard({ context }) {
@@ -23,9 +24,16 @@ export function ContextCard({ context }) {
         >
             <CardHeader className="relative">
                 <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums flex justify-between w-full items-center">
-                    <div className="flex w-full items-center">
+                    <div className="flex w-full items-center ">
                         {hovered && <div className="cursor-pointer"><PlayCircleIcon size={30} onClick={() => cardClick(context.id)} /></div>}
-                        <div>    {context.description} </div>
+                        <div className="flex flex-col items-start">
+                            <div>    {context.description} </div>
+                            <div className="flex">
+                                {context.labels?.map((label) => (
+                                    <Badge variant={"secondary"}>{label}</Badge>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <div onClick={() => setExpand(!expanded)} className="cursor-pointer">
