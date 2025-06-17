@@ -29,7 +29,7 @@ export function ContextCard({ context }) {
                         <div className="flex flex-col items-start">
                             <div>    {context.description} </div>
                             <div className="flex">
-                                {context.labels?.map((label) => (
+                                {context.labels?.map((label: string) => (
                                     <Badge variant={"secondary"}>{label}</Badge>
                                 ))}
                             </div>
