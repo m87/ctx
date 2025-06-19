@@ -127,6 +127,43 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 	}
 }
 
+func intervals(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	mgr := ctx.CreateManager()
+	date := mgr.TimeProvider.Now().Time.In(loc)
+	rawDate := strings.TrimSpace(r.PathValue("date"))
+
+	if rawDate != "" {
+		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
+	}
+
+	response := IntervalsResponse{}
+
+	mgr.ContextStore.Read(func(s *ctx_model.State) error {
+		for ctxId, _ := range s.Contexts {
+			intervals := mgr.GetIntervalsByDate(s, ctxId, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
+			for _, i := range intervals {
+				response.Intervals = append(response.Intervals, IntervalEntry{
+					Id:          i.Id,
+					CtxId:       ctxId,
+					Description: s.Contexts[ctxId].Description,
+					Interval:    i,
+				})
+			}
+
+		}
+		return nil
+	})
+
+	json.NewEncoder(w).Encode(response)
+}
+
 func daySummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -200,6 +237,8 @@ func Serve() {
 	http.HandleFunc("/api/context/interval", updateInterval)
 	http.HandleFunc("/api/summary/day/{date}", daySummary)
 	http.HandleFunc("/api/summary/day", daySummary)
+	http.HandleFunc("/api/intervals/{date}", intervals)
+	http.HandleFunc("/api/intervals", intervals)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -221,6 +260,17 @@ type EditIntervalRequest struct {
 type DaySummaryResponse struct {
 	Contexts []ctx_model.Context `json:"contexts"`
 	Duration time.Duration       `json:"duration"`
+}
+
+type IntervalsResponse struct {
+	Intervals []IntervalEntry `json:"intervals"`
+}
+
+type IntervalEntry struct {
+	Id          string             `json:"id"`
+	CtxId       string             `json:"ctxId"`
+	Description string             `json:"description"`
+	Interval    ctx_model.Interval `json:"interval"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {

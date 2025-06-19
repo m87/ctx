@@ -2,6 +2,7 @@ import axios, { AxiosRequestTransformer } from "axios";
 import {ContextApi} from "@/api/api-context";
 import { DateTime, Zone } from "luxon";
 import { SummaryApi } from "./api-summary";
+import {IntervalsApi} from "@/api/api-intervals";
 
 
 export class ZonedDateTime {
@@ -18,7 +19,7 @@ export class ZonedDateTime {
   public toInputValue(): string {
     return this.toDateTime().toFormat("yyyy-MM-dd'T'HH:mm");
   }
-  
+
   public toString(): string {
     return this.toDateTime().toFormat("yyyy-MM-dd HH:mm");
   }
@@ -77,6 +78,7 @@ export const http = axios.create(httpConfig);
 export class Api {
     context = new ContextApi();
     summary = new SummaryApi();
+    intervals = new IntervalsApi();
 }
 
 export const api = new Api();
