@@ -1,13 +1,15 @@
 import {clsx} from "clsx";
 
 export interface TimeInterval {
-  start: string; // format: "HH:MM:SS"
-  end: string;   // format: "HH:MM:SS"
-  color?: string; // Optional color for the block
+  start: string; 
+  end: string;   
+  color?: string;
+  ctxId?: string;
+  description?: string; 
 }
 
 export interface TimelineProps {
-  data: Record<string, TimeInterval[]>; // Keyed by date
+  data: Record<string, TimeInterval[]>; 
   hideDates: boolean;
 }
 
@@ -56,10 +58,9 @@ function Timeline({ data, hideDates }: TimelineProps) {
                   return (
                     <div
                       key={`interval-${rowIndex}-${idx}`}
-                      className={`absolute top-0 h-full rounded text-xs text-white flex items-center justify-center px-1 ${interval.color || "bg-blue-500"}`}
-                      style={{ left, width }}
+                      className={`absolute top-0 h-full rounded text-xs text-white flex items-center justify-center px-1 text-ellipsis overflow-hidden whitespace-nowrap`}
+                      style={{ left, width, backgroundColor: interval.color }}
                     >
-                      {interval.start} - {interval.end}
                     </div>
                   );
                 })}

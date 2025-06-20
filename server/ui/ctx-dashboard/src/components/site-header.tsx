@@ -25,9 +25,11 @@ export function SiteHeader() {
                     </Routes>
                 </h1>
                 <div className="flex w-full justify-end">
+                {currentContext?.description && 
                     <div className="flex rounded-lg p-1 pl-2 pr-2 font-semibold bg-green-200 animate-pulse">
                         <div>{currentContext?.description}</div>
                     </div>
+                }
                 </div>
             </div>
         </header>

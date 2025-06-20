@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api, ZonedDateTime } from "@/api/api";
 import IntervalComponent from "./interval-component";
 import { Badge } from "./ui/badge";
+import { colorHash } from "@/lib/utils";
 
 
 export function ContextCard({ context }) {
@@ -18,10 +19,12 @@ export function ContextCard({ context }) {
     };
 
     return (
-        <Card key={context.id} className="@container/card"
+        <Card key={context.id} className="flex w-full"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
+        <div className="h-full w-2 rounded-l-xl" style={{backgroundColor: colorHash(context.id)}}></div>
+        <div className="@container/card w-full">
             <CardHeader className="relative">
                 <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums flex justify-between w-full items-center">
                     <div className="flex w-full items-center ">
@@ -52,6 +55,7 @@ export function ContextCard({ context }) {
                 </div>
             </CardContent>
             }
+            </div>
         </Card>
     )
 }
