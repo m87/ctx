@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   ArrowUpCircleIcon,
   BarChartIcon, Calendar1Icon,
+  CalendarRange,
   CameraIcon,
   ChartNoAxesGantt,
   ChartNoAxesGanttIcon,
@@ -41,6 +42,11 @@ const data = {
       url: "",
       icon: Calendar1Icon
     },
+    // {
+    //   title: "Recent",
+    //   url: "recent",
+    //   icon: CalendarRange
+    // },
     {
       title: "Contexts",
       url: "contexts",

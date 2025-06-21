@@ -1,13 +1,18 @@
 import {api, Context} from "@/api/api";
 import {PlusIcon} from "lucide-react";
-import {useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import ContextCard from "./context-card";
 import {Input} from "./ui/input";
 import {ScrollArea} from "@radix-ui/react-scroll-area";
 
-export function SectionCards({contextList}: Readonly<{ contextList: Context[] | undefined }>) {
+export interface CardsProps {
+  contextList?: Context[]
+  term: string
+  expandId?: string
+}
 
-    const [searchTerm, setSearchTerm] = useState('');
+export function SectionCards({contextList, term, expandId}: CardsProps) {
+    const [searchTerm, setSearchTerm] = useState(term);
     const filteredList = contextList?.filter((context) =>
         context.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -16,10 +21,10 @@ export function SectionCards({contextList}: Readonly<{ contextList: Context[] | 
         api.context.createAndSwitch(description);
     };
 
+    useEffect(() => {
+      setSearchTerm(term);
+    },[term])
 
-    const cardClick = (id) => {
-        api.context.switch(id)
-    };
     return (<div>
             <div className="pt-3 pb-2 pr-6 pl-6 flex items-center">
                 <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -48,7 +53,7 @@ export function SectionCards({contextList}: Readonly<{ contextList: Context[] | 
                 <div
                     className="*:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card lg:px-6">
                     {filteredList?.map((context) => (
-                        <ContextCard key={context.id} context={context}> </ContextCard>
+                        <ContextCard key={context.id} context={context} expandCard={expandId === context.id}> </ContextCard>
                     ))}
                 </div>
             </ScrollArea>

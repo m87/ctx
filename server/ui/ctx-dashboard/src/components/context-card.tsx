@@ -1,18 +1,28 @@
 import { ArrowDown, ChevronDown, ChevronUp, PlayCircleIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ZonedDateTime } from "@/api/api";
 import IntervalComponent from "./interval-component";
 import { Badge } from "./ui/badge";
 import { colorHash } from "@/lib/utils";
+import { Context } from "vm";
+
+export interface ContextCardProps {
+  context: Context
+  expandCard: boolean
+}
 
 
-export function ContextCard({ context }) {
+export function ContextCard({ context, expandCard }: ContextCardProps) {
     const [hovered, setHovered] = useState(false);
     const [expanded, setExpand] = useState(false);
     const cardClick = (id: string) => {
         api.context.switch(id)
     };
+
+    useEffect(() => {
+      setExpand(expandCard);
+    }, [expandCard])
 
     const updateInterval = (id: string, start: ZonedDateTime, end: ZonedDateTime) => {
         api.context.updateInterval(context.id, id, start, end);
