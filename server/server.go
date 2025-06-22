@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -164,28 +165,19 @@ func intervals(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func daySummary(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
-	if err != nil {
-		loc = time.UTC
-	}
 	mgr := ctx.CreateManager()
-	date := mgr.TimeProvider.Now().Time.In(loc)
-	rawDate := strings.TrimSpace(r.PathValue("date"))
-
-	if rawDate != "" {
-		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
-	}
-
 	durations := map[string]time.Duration{}
 	overallDuration := time.Duration(0)
 	response := DaySummaryResponse{}
+loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
 
 	mgr.ContextStore.Read(func(s *ctx_model.State) error {
-		for ctxId, _ := range s.Contexts {
+		for ctxId := range s.Contexts {
 			d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
 			util.Checkm(err, "Unable to get interval durations for context "+ctxId)
 			durations[ctxId] = roundDuration(d, "nanosecond")
@@ -217,7 +209,64 @@ func daySummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Duration = overallDuration
+	return response, nil
+}
 
+func daySummary(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	mgr := ctx.CreateManager()
+	date := mgr.TimeProvider.Now().Time.In(loc)
+	rawDate := strings.TrimSpace(r.PathValue("date"))
+
+	if rawDate != "" {
+		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
+	}
+
+	response, _ := daySUmmaryByDate(date)
+
+	json.NewEncoder(w).Encode(response)
+}
+
+func recentIntervals(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	mgr := ctx.CreateManager()
+	date := mgr.TimeProvider.Now().Time.In(loc)
+	rawDate := strings.TrimSpace(r.PathValue("date"))
+
+	if rawDate != "" {
+		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
+	}
+
+	n := 10 
+	rawN := strings.TrimSpace(r.PathValue("n"))
+	if rawN != "" {
+		n, _ = strconv.Atoi(rawN)
+	}
+
+  response := DaysSyummaryResponse{}
+	response.Sumarries = make(map[string]DaySummaryResponse)
+
+	for i := 0; i < n; i++ {
+		d := date.AddDate(0, 0, -i)
+		summary, err := daySUmmaryByDate(d)
+		if err != nil {
+			http.Error(w, "Error fetching summary for date "+d.Format(time.DateOnly), http.StatusInternalServerError)
+			return
+		}
+		response.Sumarries[d.Format(time.DateOnly)] = summary
+	}
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -239,6 +288,7 @@ func Serve() {
 	http.HandleFunc("/api/summary/day", daySummary)
 	http.HandleFunc("/api/intervals/{date}", intervals)
 	http.HandleFunc("/api/intervals", intervals)
+	http.HandleFunc("/api/intervals/recent/{n}", recentIntervals)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -260,6 +310,10 @@ type EditIntervalRequest struct {
 type DaySummaryResponse struct {
 	Contexts []ctx_model.Context `json:"contexts"`
 	Duration time.Duration       `json:"duration"`
+}
+
+type DaysSyummaryResponse struct {
+ Sumarries map[string]DaySummaryResponse `json:"summaries"`
 }
 
 type IntervalsResponse struct {
