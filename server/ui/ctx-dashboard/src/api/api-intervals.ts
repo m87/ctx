@@ -9,9 +9,13 @@ export interface IntervalEntry {
 }
 
 export interface IntervalsResponse {
-    intervals: IntervalEntry[]
+    days: IntervalsResponseEntry[]
 }
 
+export interface IntervalsResponseEntry{
+    date: string,
+    intervals?: IntervalEntry[]
+}
 
 export function mapIntervalEntry(obj: any): IntervalEntry {
     return {
@@ -22,17 +26,36 @@ export function mapIntervalEntry(obj: any): IntervalEntry {
     };
 }
 
+export function mapIntervalResponseEntry(obj: any): IntervalsResponseEntry {
+  return {
+    date: obj.date,
+    intervals: obj.intervals?.map(mapIntervalEntry)
+  }
+}
+
 
 export class IntervalsApi {
     intervalsByDay = (day: string) => http.get<IntervalsResponse>(`/intervals/${day}`).then(response => {
-        response.data.intervals = response.data.intervals.map(mapIntervalEntry);
+        response.data.days = response.data.days.map(mapIntervalResponseEntry)
         return response.data;
     });
     intervalsByDayQuery = {queryKey: ["intervals"], queryFn: this.intervalsByDay};
 
     intervals = () => http.get<IntervalsResponse>(`/intervals`).then(response => {
-        response.data.intervals = response.data.intervals.map(mapIntervalEntry);
+        response.data.days = response.data.days.map(mapIntervalResponseEntry)
         return response.data;
     });
     intervalsQuery = {queryKey: ["intervals"], queryFn: this.intervals};
+
+    recentIntervals = () => http.get<IntervalsResponse>(`/intervals/recent/10`).then(response => {
+        response.data.days = response.data.days.map(mapIntervalResponseEntry)
+        return response.data;
+    });
+    recentIntervalsQuery = {queryKey: ["recentIntervals-10"], queryFn: this.recentIntervals};
+
+
+
+
+
+
 }

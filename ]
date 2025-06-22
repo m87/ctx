@@ -32,7 +32,6 @@ export interface TimeInterval {
 export interface TimelineProps {
   data: Record<string, TimeInterval[]>; 
   hideDates: boolean;
-  hideGuides: boolean;
   onItemSelect: (interval: TimeInterval | null) => void;
 }
 
@@ -41,7 +40,7 @@ function timeToDecimal(time: string): number {
   return (h * 3600 + m * 60 + s) / 86400;
 }
 
-function Timeline({ data, hideDates, hideGuides, onItemSelect }: TimelineProps) {
+function Timeline({ data, hideDates, onItemSelect }: TimelineProps) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const dates = Object.keys(data);
   const boxRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -96,9 +95,9 @@ function Timeline({ data, hideDates, hideGuides, onItemSelect }: TimelineProps) 
           </div>
 
           {dates.map((date, rowIndex) => (
-            <div key={`row-${rowIndex}`} className={ clsx(rowIndex===0 && !hideGuides ? "border-t" : "", !hideGuides ? "border-b" : "" ,"pt-1 pb-1 relative w-full h-10 flex items-center")}>
+            <div key={`row-${rowIndex}`} className="relative w-full h-10 mb-1 flex items-center">
               {!hideDates &&
-              <div className="w-24 pr-2 text-sm font-bold text-right text-gray-700 flex">
+              <div className="w-20 pr-2 text-sm font-bold text-right text-gray-700">
                 {date}
               </div>
               }

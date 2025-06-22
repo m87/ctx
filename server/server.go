@@ -128,23 +128,16 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 	}
 }
 
-func intervals(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+func intervalsByDate(date time.Time) (IntervalsResponseEntry, error){
+	response := IntervalsResponseEntry{}
 
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+  loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
 	mgr := ctx.CreateManager()
-	date := mgr.TimeProvider.Now().Time.In(loc)
-	rawDate := strings.TrimSpace(r.PathValue("date"))
 
-	if rawDate != "" {
-		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
-	}
-
-	response := IntervalsResponse{}
+	response.Date = date.Format(time.DateOnly)
 
 	mgr.ContextStore.Read(func(s *ctx_model.State) error {
 		for ctxId, _ := range s.Contexts {
@@ -162,6 +155,31 @@ func intervals(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
+
+
+	return response, nil
+}
+
+func intervals(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	mgr := ctx.CreateManager()
+	date := mgr.TimeProvider.Now().Time.In(loc)
+	rawDate := strings.TrimSpace(r.PathValue("date"))
+
+	if rawDate != "" {
+		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
+	}
+
+	interval, _ := intervalsByDate(date)
+	response := IntervalsResponse{}
+	response.Days = append(response.Days, interval)
+ 
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -233,7 +251,7 @@ func daySummary(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func recentIntervals(w http.ResponseWriter, r *http.Request) {
+func recentDaysSummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
@@ -257,7 +275,7 @@ func recentIntervals(w http.ResponseWriter, r *http.Request) {
 
   response := DaysSyummaryResponse{}
 	response.Sumarries = make(map[string]DaySummaryResponse)
-
+ 
 	for i := 0; i < n; i++ {
 		d := date.AddDate(0, 0, -i)
 		summary, err := daySUmmaryByDate(d)
@@ -268,6 +286,43 @@ func recentIntervals(w http.ResponseWriter, r *http.Request) {
 		response.Sumarries[d.Format(time.DateOnly)] = summary
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+func recentIntervals(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	mgr := ctx.CreateManager()
+	date := mgr.TimeProvider.Now().Time.In(loc)
+	rawDate := strings.TrimSpace(r.PathValue("date"))
+
+	if rawDate != "" {
+		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
+	}
+
+	n := 10 
+	rawN := strings.TrimSpace(r.PathValue("n"))
+	if rawN != "" {
+		n, _ = strconv.Atoi(rawN)
+	}
+
+  response := IntervalsResponse{}
+ 
+	for i := 0; i < n; i++ {
+		d := date.AddDate(0, 0, -i)
+		intervals, err := intervalsByDate(d)
+		if err != nil {
+			http.Error(w, "Error fetching intervals for date "+d.Format(time.DateOnly), http.StatusInternalServerError)
+			return
+		}
+		response.Days = append(response.Days, intervals)
+	}
+	json.NewEncoder(w).Encode(response)
+
 }
 
 func Serve() {
@@ -317,6 +372,11 @@ type DaysSyummaryResponse struct {
 }
 
 type IntervalsResponse struct {
+  Days []IntervalsResponseEntry `json:"days"`
+}
+
+type IntervalsResponseEntry struct {
+	Date      string          `json:"date"`
 	Intervals []IntervalEntry `json:"intervals"`
 }
 
