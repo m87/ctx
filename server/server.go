@@ -1,3 +1,5 @@
+//go:build preview
+
 package server
 
 import (
@@ -128,10 +130,10 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 	}
 }
 
-func intervalsByDate(date time.Time) (IntervalsResponseEntry, error){
+func intervalsByDate(date time.Time) (IntervalsResponseEntry, error) {
 	response := IntervalsResponseEntry{}
 
-  loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
@@ -155,8 +157,6 @@ func intervalsByDate(date time.Time) (IntervalsResponseEntry, error){
 		return nil
 	})
 
-
-
 	return response, nil
 }
 
@@ -179,7 +179,7 @@ func intervals(w http.ResponseWriter, r *http.Request) {
 	interval, _ := intervalsByDate(date)
 	response := IntervalsResponse{}
 	response.Days = append(response.Days, interval)
- 
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -189,7 +189,7 @@ func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 	durations := map[string]time.Duration{}
 	overallDuration := time.Duration(0)
 	response := DaySummaryResponse{}
-loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
@@ -267,15 +267,15 @@ func recentDaysSummary(w http.ResponseWriter, r *http.Request) {
 		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
 	}
 
-	n := 10 
+	n := 10
 	rawN := strings.TrimSpace(r.PathValue("n"))
 	if rawN != "" {
 		n, _ = strconv.Atoi(rawN)
 	}
 
-  response := DaysSyummaryResponse{}
+	response := DaysSyummaryResponse{}
 	response.Sumarries = make(map[string]DaySummaryResponse)
- 
+
 	for i := 0; i < n; i++ {
 		d := date.AddDate(0, 0, -i)
 		summary, err := daySUmmaryByDate(d)
@@ -304,14 +304,14 @@ func recentIntervals(w http.ResponseWriter, r *http.Request) {
 		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
 	}
 
-	n := 10 
+	n := 10
 	rawN := strings.TrimSpace(r.PathValue("n"))
 	if rawN != "" {
 		n, _ = strconv.Atoi(rawN)
 	}
 
-  response := IntervalsResponse{}
- 
+	response := IntervalsResponse{}
+
 	for i := 0; i < n; i++ {
 		d := date.AddDate(0, 0, -i)
 		intervals, err := intervalsByDate(d)
@@ -368,11 +368,11 @@ type DaySummaryResponse struct {
 }
 
 type DaysSyummaryResponse struct {
- Sumarries map[string]DaySummaryResponse `json:"summaries"`
+	Sumarries map[string]DaySummaryResponse `json:"summaries"`
 }
 
 type IntervalsResponse struct {
-  Days []IntervalsResponseEntry `json:"days"`
+	Days []IntervalsResponseEntry `json:"days"`
 }
 
 type IntervalsResponseEntry struct {
