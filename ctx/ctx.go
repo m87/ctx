@@ -526,6 +526,16 @@ func (manager *ContextManager) EditContextInterval(id string, intervalId string,
 	return nil
 }
 
+func (manager *ContextManager) MoveIntervalById(idSrc string, idTarget string, id string) error {
+	ctx, _ := manager.Ctx(idSrc)
+	for i, interval := range ctx.Intervals {
+		if interval.Id == id {
+			return manager.MoveIntervalByIndex(idSrc, idTarget, i)
+		}
+	}
+	return nil
+}
+
 func (manager *ContextManager) MoveIntervalByIndex(idSrc string, idTarget string, intervalIndex int) error {
 	return manager.ContextStore.Apply(func(state *ctx_model.State) error {
 		if state.CurrentId == idTarget {

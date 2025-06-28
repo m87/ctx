@@ -325,6 +325,22 @@ func recentIntervals(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func moveInterval(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	var p MoveIntervalRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	mgr := ctx.CreateManager()
+	mgr.MoveIntervalById(p.Src, p.Target, p.Id)
+}
+
 func Serve() {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -344,11 +360,18 @@ func Serve() {
 	http.HandleFunc("/api/intervals/{date}", intervals)
 	http.HandleFunc("/api/intervals", intervals)
 	http.HandleFunc("/api/intervals/recent/{n}", recentIntervals)
+	http.HandleFunc("/api/intervals/move", moveInterval)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 type SwitchRequest struct {
 	Id string `json:"id"`
+}
+
+type MoveIntervalRequest struct {
+	Id     string `json:"id"`
+	Src    string `json:"src"`
+	Target string `json:"target"`
 }
 
 type createAndSwitchRequest struct {

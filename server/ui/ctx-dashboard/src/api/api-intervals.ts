@@ -53,7 +53,11 @@ export class IntervalsApi {
     });
     recentIntervalsQuery = {queryKey: ["recentIntervals-10"], queryFn: this.recentIntervals};
 
-
+    move = (data: {
+        src: string,
+        target: string,
+        id: string
+    }) => http.post<void>("/intervals/move", data).then(response => response)
 
 
 

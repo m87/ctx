@@ -13,12 +13,14 @@ import {
 } from "@/components/ui/context-menu";
 import {Search} from "lucide-react";
 import {Input} from "@/components/ui/input";
+import {api} from "@/api/api";
 
 
 export function intervalsResponseAsTimelineData(data: IntervalsResponse): Record<string, TimeInterval[]> {
     const output = {}
 
     data.days.filter((entry: IntervalsResponseEntry) => entry.intervals).map((entry: IntervalsResponseEntry) => output[entry.date] = entry.intervals?.map((interval: IntervalEntry) => ({
+        id: interval.id,
         start: interval.interval.start.time?.split("T")[1].substring(0, 8),
         end: interval.interval.end.time?.split("T")[1].substring(0, 8),
         color: `${colorHash(interval.ctxId)}`,
@@ -31,6 +33,7 @@ export function intervalsResponseAsTimelineData(data: IntervalsResponse): Record
 
 
 export interface TimeInterval {
+    id: string;
     start: string;
     end: string;
     color?: string;
@@ -43,7 +46,7 @@ export interface TimelineProps {
     hideDates: boolean;
     hideGuides: boolean;
     onItemSelect: (interval: TimeInterval | null) => void;
-    ctxNames: string[];
+    ctxNames: {description: string, id: string}[];
 }
 
 function timeToDecimal(time: string): number {
@@ -142,9 +145,8 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames}: Timelin
                                                 </div>
                                             </ContextMenuTrigger>
                                             <ContextMenuContent>
-                                                <ContextMenuItem>
-                                                    elo
-                                                </ContextMenuItem>
+                                                <ContextMenuItem>Edit</ContextMenuItem>
+                                                <ContextMenuItem>Delete</ContextMenuItem>
                                                 <ContextMenuSub>
                                                     <ContextMenuSubTrigger inset>Move to..</ContextMenuSubTrigger>
                                                     <ContextMenuSubContent className="w-44">
@@ -154,9 +156,13 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames}: Timelin
                                                                    value={ctxNameSearchTerm}></Input><Search></Search>
                                                         </div>
                                                         {
-                                                            ctxNames.filter((ctx) => ctx.startsWith(ctxNameSearchTerm)).map((ctx) => {
+                                                            ctxNames.filter((ctx) => ctx.description.startsWith(ctxNameSearchTerm)).map((ctx) => {
                                                                 return (
-                                                                    <ContextMenuItem key={ctx}>{ctx}</ContextMenuItem>)
+                                                                    <ContextMenuItem key={ctx.id} onClick={() => api.intervals.move({
+                                                                        src: interval.ctxId,
+                                                                        target: ctx.id,
+                                                                        id: interval.id
+                                                                    })}>{ctx.description}</ContextMenuItem>)
                                                             })
                                                         }
                                                     </ContextMenuSubContent>
