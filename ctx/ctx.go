@@ -660,6 +660,16 @@ func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string,
 	return intervals
 }
 
+func (manager *ContextManager) DeleteIntervalById(ctxId string, id string) error {
+	ctx, _ := manager.Ctx(ctxId)
+	for i, interval := range ctx.Intervals {
+		if interval.Id == id {
+			return manager.DeleteInterval(ctxId, i)
+		}
+	}
+	return nil
+}
+
 func (manager *ContextManager) DeleteInterval(id string, index int) error {
 	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		if s.CurrentId == id {

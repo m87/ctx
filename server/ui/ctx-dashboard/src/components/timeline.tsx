@@ -146,7 +146,7 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames}: Timelin
                                             </ContextMenuTrigger>
                                             <ContextMenuContent>
                                                 <ContextMenuItem>Edit</ContextMenuItem>
-                                                <ContextMenuItem>Delete</ContextMenuItem>
+                                                <ContextMenuItem onClick={() => api.intervals.delete(interval.ctxId, interval.id)}>Delete</ContextMenuItem>
                                                 <ContextMenuSub>
                                                     <ContextMenuSubTrigger inset>Move to..</ContextMenuSubTrigger>
                                                     <ContextMenuSubContent className="w-44">

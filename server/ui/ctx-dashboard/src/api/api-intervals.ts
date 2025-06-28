@@ -59,6 +59,7 @@ export class IntervalsApi {
         id: string
     }) => http.post<void>("/intervals/move", data).then(response => response)
 
+    delete = (ctxId: string, id: string) => http.delete<void>(`/intervals/${ctxId}/${id}`).then(response => response)
 
 
 

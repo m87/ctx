@@ -341,6 +341,23 @@ func moveInterval(w http.ResponseWriter, r *http.Request) {
 	mgr.MoveIntervalById(p.Src, p.Target, p.Id)
 }
 
+func deleteInterval(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctxId := strings.TrimSpace(r.PathValue("ctxId"))
+	id := strings.TrimSpace(r.PathValue("id"))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	mgr := ctx.CreateManager()
+	mgr.DeleteIntervalById(ctxId, id)
+
+}
+
 func Serve() {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -361,6 +378,7 @@ func Serve() {
 	http.HandleFunc("/api/intervals", intervals)
 	http.HandleFunc("/api/intervals/recent/{n}", recentIntervals)
 	http.HandleFunc("/api/intervals/move", moveInterval)
+	http.HandleFunc("/api/intervals/{ctxId}/{id}", deleteInterval)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
