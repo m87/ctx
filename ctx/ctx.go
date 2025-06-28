@@ -526,6 +526,25 @@ func (manager *ContextManager) EditContextInterval(id string, intervalId string,
 	return nil
 }
 
+func (manager *ContextManager) MoveIntervalByIndex(idSrc string, idTarget string, intervalIndex int) error {
+	return manager.ContextStore.Apply(func(state *ctx_model.State) error {
+		if state.CurrentId == idTarget {
+			return errors.New("context is active")
+		}
+
+		ctxSrc := state.Contexts[idSrc]
+		ctxTarget := state.Contexts[idTarget]
+
+		ctxTarget.Intervals = append(ctxTarget.Intervals, ctxSrc.Intervals[intervalIndex])
+		ctxSrc.Intervals = append(ctxSrc.Intervals[:intervalIndex], ctxSrc.Intervals[intervalIndex+1:]...)
+
+		state.Contexts[idSrc] = ctxSrc
+		state.Contexts[idTarget] = ctxTarget
+
+		return nil
+	})
+}
+
 func (manager *ContextManager) EditContextIntervalByIndex(id string, intervalIndex int, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
 	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		if s.CurrentId == id {

@@ -1061,3 +1061,23 @@ func TestRemoveLabelFromContext(t *testing.T) {
 	assert.NotContains(t, cs.Load().Contexts[test.TestId].Labels, "test-label")
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_LABEL)
 }
+
+func TestMoveInterval(t *testing.T) {
+	cs := NewTestContextStore()
+	tp := NewTestTimerProvider("2025-03-13 13:00:00")
+	es := NewTestEventsStore()
+	cm := New(cs, es, NewTestArchiveStore(), tp)
+
+	cm.CreateIfNotExistsAndSwitch(test.TestId, test.TestDescription)
+	cm.CreateIfNotExistsAndSwitch(test.PrevTestId, test.PrevDescription)
+	cm.Free()
+
+	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 1)
+	assert.Len(t, cs.Load().Contexts[test.PrevTestId].Intervals, 1)
+
+	err := cm.MoveIntervalByIndex(test.TestId, test.PrevTestId, 0)
+	assert.NoError(t, err)
+
+	assert.Len(t, cs.Load().Contexts[test.TestId].Intervals, 0)
+	assert.Len(t, cs.Load().Contexts[test.PrevTestId].Intervals, 2)
+}
