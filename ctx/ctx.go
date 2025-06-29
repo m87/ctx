@@ -509,6 +509,38 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 	)
 }
 
+func (manager *ContextManager) SplitContextIntervalById(id string, intervalIndex int, split time.Time) error {
+	manager.ContextStore.Apply(func(s *ctx_model.State) error {
+		context, ok := s.Contexts[id]
+		if !ok {
+			return errors.New("context does not exists")
+		}
+		
+		interval := context.Intervals[intervalIndex]
+    context.Intervals[intervalIndex].End.Time = split
+    context.Intervals[intervalIndex].Duration = split.Sub(interval.Start.Time)
+		context.Intervals = append(context.Intervals, ctx_model.Interval{
+			Id: uuid.NewString(),
+			Start: ctx_model.ZonedTime{
+				Time: split,
+				Timezone: interval.Start.Timezone,
+			},
+			End: ctx_model.ZonedTime{
+				Time: interval.End.Time,
+				Timezone: interval.End.Timezone,
+			},
+			Duration: interval.End.Time.Sub(split),
+		})
+
+		s.Contexts[id] = context
+
+		return nil
+
+	})
+
+	return nil
+}
+
 func (manager *ContextManager) EditContextInterval(id string, intervalId string, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
 	manager.ContextStore.Read(func(s *ctx_model.State) error {
 		context, ok := s.Contexts[id]

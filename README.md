@@ -1,4 +1,7 @@
-# ctx-go
+# ctx
+
+Ctx is a lightweight and script-friendly CLI tool for logging time.
+
 
 ![Build](https://github.com/YourGitHubUsername/ctx-go/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/github/license/YourGitHubUsername/ctx-go)
