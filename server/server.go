@@ -342,19 +342,20 @@ func moveInterval(w http.ResponseWriter, r *http.Request) {
 }
 
 func splitInterval(w http.ResponseWriter, r *http.Request) {
+	var p SplitRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	ctxId := strings.TrimSpace(r.PathValue("ctxId"))
 	id := strings.TrimSpace(r.PathValue("id"))
-
-	var p SplitRequest
-	err := json.NewDecoder(r.Body).Decode(&p)
-	if err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
 
 
 

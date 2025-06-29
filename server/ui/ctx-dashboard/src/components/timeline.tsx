@@ -11,9 +11,13 @@ import {
     ContextMenuSubTrigger,
     ContextMenuTrigger
 } from "@/components/ui/context-menu";
-import {Search} from "lucide-react";
+import { Search} from "lucide-react";
 import {Input} from "@/components/ui/input";
 import {api} from "@/api/api";
+import { Calendar } from "./ui/calendar";
+import { Button } from "./ui/button";
+import TimelineSplit from "./timeline-split";
+import { Interval } from "luxon";
 
 
 export function intervalsResponseAsTimelineData(data: IntervalsResponse): Record<string, TimeInterval[]> {
@@ -146,7 +150,13 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames}: Timelin
                                             </ContextMenuTrigger>
                                             <ContextMenuContent>
                                                 <ContextMenuItem>Edit</ContextMenuItem>
-                                                <ContextMenuItem onClick={() => api.intervals.delete(interval.ctxId, interval.id)}>Delete</ContextMenuItem>
+                                                  <ContextMenuItem onClick={() => api.intervals.delete(interval.ctxId, interval.id)}>Delete</ContextMenuItem>
+                                              <ContextMenuSub>
+                                                    <ContextMenuSubTrigger inset>Split</ContextMenuSubTrigger>
+                                                    <ContextMenuSubContent className="w-44">
+                                                    <TimelineSplit interval={interval}></TimelineSplit>
+                                                    </ContextMenuSubContent>
+                                                </ContextMenuSub>
                                                 <ContextMenuSub>
                                                     <ContextMenuSubTrigger inset>Move to..</ContextMenuSubTrigger>
                                                     <ContextMenuSubContent className="w-44">
