@@ -1,4 +1,4 @@
-import {http, Interval, mapInterval} from "@/api/api";
+import {http, Interval, mapInterval, ZonedDateTime} from "@/api/api";
 
 
 export interface IntervalEntry {
@@ -60,6 +60,7 @@ export class IntervalsApi {
     }) => http.post<void>("/intervals/move", data).then(response => response)
 
     delete = (ctxId: string, id: string) => http.delete<void>(`/intervals/${ctxId}/${id}`).then(response => response)
+    split = (ctxId: string, id: string, split: ZonedDateTime) => http.post<void>(`/intervals/${ctxId}/${id}/split`, {split: split}).then(response => response)
 
 
 

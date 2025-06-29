@@ -55,7 +55,7 @@ var editContextIntervalSplitCmd = &cobra.Command{
 				panic("split time is after interval end time")
 			}
 
-			mgr.SplitContextIntervalById(id, intervalIndex, split)
+			mgr.SplitContextIntervalByIndex(id, intervalIndex, split)
 		} else {
 			for index, interval := range ctx.Intervals {
 				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))

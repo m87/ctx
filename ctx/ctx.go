@@ -509,7 +509,20 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 	)
 }
 
-func (manager *ContextManager) SplitContextIntervalById(id string, intervalIndex int, split time.Time) error {
+func (manager *ContextManager) SplitContextIntervalById(ctxId string, id string, split time.Time) error {
+  ctx, _ := manager.Ctx(ctxId) 
+	index := -1
+	for i, interval := range ctx.Intervals {
+		if interval.Id == id {
+			index = i
+		}
+	}
+
+	return manager.SplitContextIntervalByIndex(ctxId, index, split)
+}
+
+
+func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIndex int, split time.Time) error {
 	manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		context, ok := s.Contexts[id]
 		if !ok {

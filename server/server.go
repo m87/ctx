@@ -341,6 +341,28 @@ func moveInterval(w http.ResponseWriter, r *http.Request) {
 	mgr.MoveIntervalById(p.Src, p.Target, p.Id)
 }
 
+func splitInterval(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	ctxId := strings.TrimSpace(r.PathValue("ctxId"))
+	id := strings.TrimSpace(r.PathValue("id"))
+
+	var p SplitRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+
+
+ 	mgr := ctx.CreateManager()
+	mgr.SplitContextIntervalById(ctxId, id, p.Split.Time)
+
+}
+
 func deleteInterval(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -379,7 +401,13 @@ func Serve() {
 	http.HandleFunc("/api/intervals/recent/{n}", recentIntervals)
 	http.HandleFunc("/api/intervals/move", moveInterval)
 	http.HandleFunc("/api/intervals/{ctxId}/{id}", deleteInterval)
+	http.HandleFunc("/api/intervals/{ctxId}/{id}/split", splitInterval)
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+
+type SplitRequest struct {
+	Split ctx_model.ZonedTime `json:"split"`
 }
 
 type SwitchRequest struct {
