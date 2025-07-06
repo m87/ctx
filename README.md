@@ -1,6 +1,6 @@
 # ctx – Simple and Flexible Time Tracking
 
-**ctx** is a time tracking tool for people who enjoy working in the terminal — and also for those who, inexplicably, prefer clicking around in a browser. It’s fast, scriptable, accessible, and easy to integrate with various workflows.
+**ctx** is a time tracking tool for people who enjoy working in the terminal — and also for those who prefer clicking around in a browser. It’s fast, scriptable, accessible, and easy to integrate with various workflows.
 
 I built a full web UI too, for people who "don’t like typing." Whatever works.
 
