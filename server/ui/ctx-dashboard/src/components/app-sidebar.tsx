@@ -47,11 +47,11 @@ const data = {
     //   url: "recent",
     //   icon: CalendarRange
     // },
-    {
-      title: "Contexts",
-      url: "contexts",
-      icon: LayoutDashboardIcon,
-    },
+    //{
+    //  title: "Contexts",
+    //  url: "contexts",
+    //  icon: LayoutDashboardIcon,
+    //},
   ],
   navClouds: [
     {
