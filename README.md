@@ -11,6 +11,7 @@ I built a full web UI too, for people who "don’t like typing." Whatever works.
 - **CLI-first** – Ideal for terminal users who just want to `ctx switch "new task"` and get on with their day.
 - **Web UI** – Built in React. Has buttons. Even looks kind of nice.
 - **Workflow integration** – Easily plugs into shell environments and custom setups.
+- **Win is not supported**
 
 ---
 
