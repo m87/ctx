@@ -25,6 +25,19 @@ I built a full web UI too, for people who "don’t like typing." Whatever works.
 
 > Work in progress – installation instructions coming soon.
 
+## Documentation
+
+```
+ctx help (for now)
+```
+
+## Quick start
+```
+ctx adm init
+ctx sw "new task"
+ctx serve //ui localhost:8080
+```
+
 ## Why?
 
 This whole thing started as an excuse to mess around with **Go** and **React**.  
