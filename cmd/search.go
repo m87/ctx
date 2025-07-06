@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -22,8 +25,8 @@ var searchCmd = &cobra.Command{
 		if f, _ := cmd.Flags().GetBool("verbose"); f {
 			for _, c := range ctxs {
 				println(c.Id + ": " + c.Description)
-				for _, i := range c.Intervals {
-					println("  " + i.Start.Time.String() + " - " + i.End.Time.String())
+				for i, interval := range c.Intervals {
+					fmt.Printf("\t[%d] %s - %s\n", i, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
 				}
 			}
 		} else {
