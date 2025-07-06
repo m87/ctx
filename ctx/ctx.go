@@ -102,8 +102,8 @@ func (manager *ContextManager) ListFull() {
 			for _, id := range ids {
 				v := state.Contexts[id]
 				fmt.Printf("- [%s] %s\n", id, v.Description)
-				for _, interval := range v.Intervals {
-					fmt.Printf("\t- %s - %s\n", interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+				for i, interval := range v.Intervals {
+					fmt.Printf("\t[%d] %s - %s\n", i, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
 				}
 			}
 			return nil

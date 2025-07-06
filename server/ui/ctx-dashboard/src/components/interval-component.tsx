@@ -1,47 +1,47 @@
 import { CheckIcon, EditIcon } from "lucide-react";
-import { useState } from "react";
-import { Input } from "./ui/input";
+import { useCallback, useState } from "react";
 import { api, Interval, ZonedDateTime } from "@/api/api";
-import { DateTime, Zone } from "luxon";
+import { DateTimeInput } from "./ui/datetime";
+import { DateTime } from "luxon";
 
 
 export function IntervalComponent({ interval, onChange }: Readonly<{ interval: Interval, onChange: (id: string, start: ZonedDateTime, end: ZonedDateTime) => void }>) {
-    const [edited, setEdited] = useState(false);
-    const [start, setStart] = useState(interval.start);
-    const [end, setEnd] = useState(interval.end);
-    return (
-        <div className="flex flex-col">
-            {edited && <div className="flex gap-2 p-2 justify-between">
-                <Input type="datetime-local" value={start.toInputValue()} onChange={(e) => {
-                    setStart(ZonedDateTime.fromDateTime(DateTime.fromISO(e.target.value, { zone: interval.start.timezone ?? "utc" })));
-                }}></Input>
-                <div>-</div>
-                <Input type="datetime-local" value={end.toInputValue()} onChange={(e) => {
-                    setEnd(ZonedDateTime.fromDateTime(DateTime.fromISO(e.target.value, { zone: interval.end.timezone ?? "utc" })));
-                }}></Input>
-                <div>
-                    ({interval.duration / 1000000000} seconds)
-                </div>
-                <div><CheckIcon className="cursor-pointer" onClick={() => {
-                    onChange(interval.id, start, end)
-                    setEdited(false);
-                }}></CheckIcon></div>
-            </div>}
-            {!edited && <div className="flex gap-2 p-2">
-                <div>
-                    {interval.start.toString()}
-                </div>
-                <div>-</div>
-                <div>
-                    {interval.end.toString()}
-                </div>
-                <div>
-                    ({interval.duration / 1000000000} seconds)
-                </div>
-                <div><EditIcon className="cursor-pointer" onClick={() => setEdited(true)}></EditIcon></div>
-            </div>}
+  const [edited, setEdited] = useState(false);
+  const [start, setStart] = useState(interval.start);
+  const [end, setEnd] = useState(interval.end);
+
+  const handleStartChange = useCallback((dt: DateTime) => setStart(ZonedDateTime.fromDateTime(dt)), [])
+  const handleEndChange = useCallback((dt: DateTime) => setEnd(ZonedDateTime.fromDateTime(dt)), [])
+
+  return (
+    <div className="flex flex-col">
+      {edited && <div className="flex gap-2 p-2 items-center">
+        <DateTimeInput datetime={start.toDateTime()} editable={true} onChange={handleStartChange}></DateTimeInput>
+        <div>-</div>
+        <DateTimeInput datetime={end.toDateTime()} editable={true} onChange={handleEndChange}></DateTimeInput>
+        <div>
+          ({interval.duration / 60000000000 } min)
         </div>
-    );
+        <div><CheckIcon className="cursor-pointer" onClick={() => {
+          onChange(interval.id, start, end)
+          setEdited(false);
+        }}></CheckIcon></div>
+      </div>}
+      {!edited && <div className="flex gap-2 p-2 items-center">
+        <div>
+          <DateTimeInput datetime={start.toDateTime()}></DateTimeInput>
+        </div>
+        <div>-</div>
+        <div>
+          <DateTimeInput datetime={end.toDateTime()} ></DateTimeInput>
+        </div>
+        <div>
+          ({interval.duration / 60000000000 } min)
+        </div>
+        <div><EditIcon className="cursor-pointer" onClick={() => setEdited(true)}></EditIcon></div>
+      </div>}
+    </div>
+  );
 }
 
 export default IntervalComponent;
