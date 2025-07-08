@@ -259,7 +259,8 @@ func TestEmitCreateEvent(t *testing.T) {
 	assert.Len(t, registry.Events, 1)
 	assert.Equal(t, registry.Events[0].Type, ctx_model.CREATE_CTX)
 	assert.Equal(t, registry.Events[0].CtxId, test.TestId)
-	assert.Equal(t, registry.Events[0].DateTime, ctx_model.ZonedTime{Time: dt1, Timezone: ctx_model.DetectTimezoneName()})
+	assert.Equal(t, registry.Events[0].DateTime.Time, dt1)
+	assert.Equal(t, registry.Events[0].DateTime.Timezone, ctx_model.DetectTimezoneName())
 }
 
 func TestSwitchContext(t *testing.T) {
