@@ -1,4 +1,5 @@
 # ctx – Simple and Flexible Time Tracking
+![CI](https://github.com/m87/ctx/actions/workflows/ctx.yml/badge.svg)
 
 **ctx** is a time tracking tool for people who enjoy working in the terminal — and also for those who prefer clicking around in a browser. It’s fast, scriptable, accessible, and easy to integrate with various workflows.
 
