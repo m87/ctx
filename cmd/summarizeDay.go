@@ -125,8 +125,11 @@ var summarizeDayCmd = &cobra.Command{
 					fmt.Printf("- %s: %s\n", ctx.Description, d)
 					if f, _ := cmd.Flags().GetBool("verbose"); f {
 						mgr.ContextStore.Read(func(s *ctx_model.State) error {
-							for i, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
-								fmt.Printf("\t[%d] %s - %s\n", i, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+							intervals := mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
+							for i, interval := range ctx.Intervals {
+								if containsInterval(intervals, interval.Id) {
+									fmt.Printf("\t[%d] %s - %s\n", i, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+								}
 							}
 							return nil
 						})
@@ -137,6 +140,15 @@ var summarizeDayCmd = &cobra.Command{
 			fmt.Printf("Overall: %s\n", overallDuration)
 		}
 	},
+}
+
+func containsInterval(intervals []ctx_model.Interval, id string) bool {
+	for _, i := range intervals {
+		if i.Id == id {
+			return true
+		}
+	}
+	return false
 }
 
 func init() {
