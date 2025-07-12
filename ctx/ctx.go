@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/localstore"
+	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/viper"
 )
@@ -20,12 +21,12 @@ const Version = "0.1.0"
 
 type RealTimeProvider struct{}
 
-func (provider *RealTimeProvider) Now() ctx_model.ZonedTime {
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+func (provider *RealTimeProvider) Now() ctxtime.ZonedTime {
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
-	return ctx_model.ZonedTime{Time: time.Now().In(loc), Timezone: loc.String()}
+	return ctxtime.ZonedTime{Time: time.Now().In(loc), Timezone: loc.String()}
 }
 
 func NewTimer() *RealTimeProvider {
@@ -40,10 +41,10 @@ type ContextManager struct {
 	ContextStore ctx_model.ContextStore
 	EventsStore  ctx_model.EventsStore
 	ArchiveStore ctx_model.ArchiveStore
-	TimeProvider ctx_model.TimeProvider
+	TimeProvider ctxtime.TimeProvider
 }
 
-func New(contextStore ctx_model.ContextStore, eventsStore ctx_model.EventsStore, archiveStore ctx_model.ArchiveStore, timeProvider ctx_model.TimeProvider) *ContextManager {
+func New(contextStore ctx_model.ContextStore, eventsStore ctx_model.EventsStore, archiveStore ctx_model.ArchiveStore, timeProvider ctxtime.TimeProvider) *ContextManager {
 	return &ContextManager{
 		ContextStore: contextStore,
 		EventsStore:  eventsStore,
@@ -148,7 +149,7 @@ func (manager *ContextManager) getSortedContextIds(state *ctx_model.State) []str
 	return ids
 }
 
-func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now ctx_model.ZonedTime) {
+func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now ctxtime.ZonedTime) {
 	prev := state.Contexts[state.CurrentId]
 	interval := prev.Intervals[len(prev.Intervals)-1]
 	interval.End = now
@@ -235,7 +236,7 @@ func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
 	})
 }
 
-func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime ctx_model.ZonedTime, eventType ctx_model.EventType, data map[string]string) error {
+func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime ctxtime.ZonedTime, eventType ctx_model.EventType, data map[string]string) error {
 	return manager.PublishEvent(ctx_model.Event{
 		DateTime:    dateTime,
 		Type:        eventType,
@@ -510,7 +511,7 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 }
 
 func (manager *ContextManager) SplitContextIntervalById(ctxId string, id string, split time.Time) error {
-  ctx, _ := manager.Ctx(ctxId) 
+	ctx, _ := manager.Ctx(ctxId)
 	index := -1
 	for i, interval := range ctx.Intervals {
 		if interval.Id == id {
@@ -521,25 +522,24 @@ func (manager *ContextManager) SplitContextIntervalById(ctxId string, id string,
 	return manager.SplitContextIntervalByIndex(ctxId, index, split)
 }
 
-
 func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIndex int, split time.Time) error {
 	manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		context, ok := s.Contexts[id]
 		if !ok {
 			return errors.New("context does not exists")
 		}
-		
+
 		interval := context.Intervals[intervalIndex]
-    context.Intervals[intervalIndex].End.Time = split
-    context.Intervals[intervalIndex].Duration = split.Sub(interval.Start.Time)
+		context.Intervals[intervalIndex].End.Time = split
+		context.Intervals[intervalIndex].Duration = split.Sub(interval.Start.Time)
 		context.Intervals = append(context.Intervals, ctx_model.Interval{
 			Id: uuid.NewString(),
-			Start: ctx_model.ZonedTime{
-				Time: split,
+			Start: ctxtime.ZonedTime{
+				Time:     split,
 				Timezone: interval.Start.Timezone,
 			},
-			End: ctx_model.ZonedTime{
-				Time: interval.End.Time,
+			End: ctxtime.ZonedTime{
+				Time:     interval.End.Time,
 				Timezone: interval.End.Timezone,
 			},
 			Duration: interval.End.Time.Sub(split),
@@ -554,7 +554,7 @@ func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIn
 	return nil
 }
 
-func (manager *ContextManager) EditContextInterval(id string, intervalId string, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
+func (manager *ContextManager) EditContextInterval(id string, intervalId string, start ctxtime.ZonedTime, end ctxtime.ZonedTime) error {
 	manager.ContextStore.Read(func(s *ctx_model.State) error {
 		context, ok := s.Contexts[id]
 		if !ok {
@@ -600,7 +600,7 @@ func (manager *ContextManager) MoveIntervalByIndex(idSrc string, idTarget string
 	})
 }
 
-func (manager *ContextManager) EditContextIntervalByIndex(id string, intervalIndex int, start ctx_model.ZonedTime, end ctx_model.ZonedTime) error {
+func (manager *ContextManager) EditContextIntervalByIndex(id string, intervalIndex int, start ctxtime.ZonedTime, end ctxtime.ZonedTime) error {
 	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
 		if s.CurrentId == id {
 			return errors.New("context is active")
@@ -657,9 +657,9 @@ func (manager *ContextManager) RenameContext(srcId string, targetId string, name
 
 }
 
-func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date ctx_model.ZonedTime) (time.Duration, error) {
+func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
 	var duration time.Duration = 0
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
@@ -682,9 +682,9 @@ func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id
 	return duration, nil
 }
 
-func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctx_model.ZonedTime) []ctx_model.Interval {
+func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctxtime.ZonedTime) []ctx_model.Interval {
 	intervals := []ctx_model.Interval{}
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}

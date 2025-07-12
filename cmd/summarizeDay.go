@@ -11,6 +11,7 @@ import (
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
+	ctxtime "github.com/m87/ctx/time"
 )
 
 func roundDuration(d time.Duration, unit string) time.Duration {
@@ -43,7 +44,7 @@ var summarizeDayCmd = &cobra.Command{
 	Short:   "Summarize day",
 	Run: func(cmd *cobra.Command, args []string) {
 		roundUnit, _ := cmd.Flags().GetString("round")
-		loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+		loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 		if err != nil {
 			loc = time.UTC
 		}
@@ -62,7 +63,7 @@ var summarizeDayCmd = &cobra.Command{
 
 		mgr.ContextStore.Read(func(s *ctx_model.State) error {
 			for ctxId, _ := range s.Contexts {
-				d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
+				d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 				util.Checkm(err, "Unable to get interval durations for context "+ctxId)
 				durations[ctxId] = roundDuration(d, roundUnit)
 			}
@@ -98,7 +99,7 @@ var summarizeDayCmd = &cobra.Command{
 					}
 
 					if d > 0 {
-						for _, interval := range mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}) {
+						for _, interval := range mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()}) {
 							output.Intervals = append(output.Intervals, ctx_model.Interval{
 								Start:    interval.Start,
 								End:      interval.End,
@@ -125,7 +126,7 @@ var summarizeDayCmd = &cobra.Command{
 					fmt.Printf("- %s: %s\n", ctx.Description, d)
 					if f, _ := cmd.Flags().GetBool("verbose"); f {
 						mgr.ContextStore.Read(func(s *ctx_model.State) error {
-							intervals := mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
+							intervals := mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 							for i, interval := range ctx.Intervals {
 								if containsInterval(intervals, interval.Id) {
 									fmt.Printf("\t[%d] %s - %s\n", i, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))

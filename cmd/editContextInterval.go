@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/m87/ctx/ctx"
-	"github.com/m87/ctx/ctx_model"
+	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +37,7 @@ var editContextIntervalCmd = &cobra.Command{
 			if intervalIndex < 0 || intervalIndex > len(ctx.Intervals)-1 {
 				panic("interval index out of range")
 			}
-			loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+			loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 			if err != nil {
 				loc = time.UTC
 			}
@@ -46,7 +46,7 @@ var editContextIntervalCmd = &cobra.Command{
 			endDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[3]), loc)
 			util.Checkm(err, "Unable to parse end datetime")
 
-			mgr.EditContextIntervalByIndex(id, intervalIndex, ctx_model.ZonedTime{Time: startDT, Timezone: loc.String()}, ctx_model.ZonedTime{Time: endDT, Timezone: loc.String()})
+			mgr.EditContextIntervalByIndex(id, intervalIndex, ctxtime.ZonedTime{Time: startDT, Timezone: loc.String()}, ctxtime.ZonedTime{Time: endDT, Timezone: loc.String()})
 		} else {
 			for index, interval := range ctx.Intervals {
 				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
