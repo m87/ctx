@@ -19,25 +19,43 @@ type ContextManager struct {
 	EventsStore  EventsStore
 	ArchiveStore ArchiveStore
 	TimeProvider ctxtime.TimeProvider
+	StateStore   TransactionalStore[State]
 }
 
-func New(contextStore ContextStore, eventsStore EventsStore, archiveStore ArchiveStore, timeProvider ctxtime.TimeProvider) *ContextManager {
+func NewContextManager(contextStore ContextStore, eventsStore EventsStore, archiveStore ArchiveStore, timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State]) *ContextManager {
 	return &ContextManager{
 		ContextStore: contextStore,
 		EventsStore:  eventsStore,
 		ArchiveStore: archiveStore,
 		TimeProvider: timeProvider,
+		StateStore:   stateStore,
 	}
 }
 
 func (manager *ContextManager) DeleteInterval(ctxId string, id string) error {
-	return manager.ContextStore.Apply(func(state *State) error {
-		return state.DeleteInterval(ctxId, id)
-	})
+	tx, state, err := manager.StateStore.BeginAndGet()
+	if err != nil {
+		return err
+	}
+
+	if err := state.DeleteInterval(ctxId, id); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+
+	// return manager.StateStore.WithTx(func(state *State) error {
+	// 	return state.DeleteInterval(ctxId, id)
+	// 	// manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), DELETE_CTX_INTERVAL, map[string]string{
+	// 	// 	"start":    interval.Start.Time.Format(time.RFC3339),
+	// 	// 	"end":      interval.End.Time.Format(time.RFC3339),
+	// 	// 	"duration": interval.Duration.String(),
+	// 	// })
+	// })
 }
 
 func (manager *ContextManager) DeleteIntervalByIndex(ctxId string, index int) error {
-	return manager.ContextStore.Apply(func(state *State) error {
+	return manager.StateStore.WithTx(func(state *State) error {
 		return state.DeleteIntervalByIndex(ctxId, index)
 	})
 }

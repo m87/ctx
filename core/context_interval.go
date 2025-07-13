@@ -80,11 +80,6 @@ func (state *State) DeleteIntervalByIndex(id string, index int) error {
 		ctx.Intervals = append(ctx.Intervals[:index], ctx.Intervals[index+1:]...)
 		ctx.Duration = ctx.Duration - interval.Duration
 		state.Contexts[id] = ctx
-		// manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), DELETE_CTX_INTERVAL, map[string]string{
-		// 	"start":    interval.Start.Time.Format(time.RFC3339),
-		// 	"end":      interval.End.Time.Format(time.RFC3339),
-		// 	"duration": interval.Duration.String(),
-		// })
 	} else {
 		return errors.New("context does not exists")
 	}
