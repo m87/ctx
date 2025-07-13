@@ -1,4 +1,4 @@
-package ctx
+package core_test
 
 import (
 	"encoding/json"
@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/m87/ctx/core"
-	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/storage"
 	"github.com/m87/ctx/test"
 	ctxtime "github.com/m87/ctx/time"
 	"github.com/stretchr/testify/assert"
@@ -43,8 +41,8 @@ type TestArchiveStore struct {
 	storeEvents []byte
 }
 
-func (cs *TestContextStore) Load() ctx_model.State {
-	state := ctx_model.State{}
+func (cs *TestContextStore) Load() core.State {
+	state := core.State{}
 	err := json.Unmarshal(cs.store, &state)
 	if err != nil {
 		log.Fatal("Unable to parse state store")
@@ -53,7 +51,7 @@ func (cs *TestContextStore) Load() ctx_model.State {
 	return state
 }
 
-func (cs *TestContextStore) Save(state *ctx_model.State) {
+func (cs *TestContextStore) Save(state *core.State) {
 	data, err := json.Marshal(state)
 	if err != nil {
 		panic(err)
@@ -63,14 +61,14 @@ func (cs *TestContextStore) Save(state *ctx_model.State) {
 
 func NewTestContextStore() *TestContextStore {
 	tcs := TestContextStore{}
-	tcs.Save(&ctx_model.State{
-		Contexts:  map[string]ctx_model.Context{},
+	tcs.Save(&core.State{
+		Contexts:  map[string]core.Context{},
 		CurrentId: "",
 	})
 	return &tcs
 }
 
-func (store *TestContextStore) Apply(fn storage.StatePatch) error {
+func (store *TestContextStore) Apply(fn core.StatePatch) error {
 	state := store.Load()
 	err := fn(&state)
 	if err != nil {
@@ -81,20 +79,20 @@ func (store *TestContextStore) Apply(fn storage.StatePatch) error {
 	}
 }
 
-func (store *TestContextStore) Read(fn storage.StatePatch) error {
+func (store *TestContextStore) Read(fn core.StatePatch) error {
 	state := store.Load()
 	return fn(&state)
 }
 
 func NewTestEventsStore() *TestEventsStore {
 	tes := TestEventsStore{}
-	tes.Save(&ctx_model.EventRegistry{
-		Events: []ctx_model.Event{},
+	tes.Save(&core.EventRegistry{
+		Events: []core.Event{},
 	})
 	return &tes
 }
 
-func (es *TestEventsStore) Apply(fn storage.EventsPatch) error {
+func (es *TestEventsStore) Apply(fn core.EventsPatch) error {
 	registry := es.Load()
 	err := fn(&registry)
 	if err != nil {
@@ -105,20 +103,20 @@ func (es *TestEventsStore) Apply(fn storage.EventsPatch) error {
 	}
 }
 
-func (es *TestEventsStore) Read(fn storage.EventsPatch) error {
+func (es *TestEventsStore) Read(fn core.EventsPatch) error {
 	registry := es.Load()
 	return fn(&registry)
 }
 
 func NewTestArchiveStore() *TestArchiveStore {
 	tas := TestArchiveStore{}
-	tas.Save(map[string]ctx_model.ContextArchive{})
-	tas.SaveEvents(&ctx_model.EventsArchive{})
+	tas.Save(map[string]core.ContextArchive{})
+	tas.SaveEvents(&core.EventsArchive{})
 	return &tas
 }
 
-func (as *TestArchiveStore) Load() map[string]ctx_model.ContextArchive {
-	state := map[string]ctx_model.ContextArchive{}
+func (as *TestArchiveStore) Load() map[string]core.ContextArchive {
+	state := map[string]core.ContextArchive{}
 	err := json.Unmarshal(as.store, &state)
 	if err != nil {
 		log.Fatal("Unable to parse archvie store")
@@ -127,7 +125,7 @@ func (as *TestArchiveStore) Load() map[string]ctx_model.ContextArchive {
 	return state
 }
 
-func (as *TestArchiveStore) Save(archive map[string]ctx_model.ContextArchive) {
+func (as *TestArchiveStore) Save(archive map[string]core.ContextArchive) {
 	data, err := json.Marshal(archive)
 	if err != nil {
 		panic(err)
@@ -135,8 +133,8 @@ func (as *TestArchiveStore) Save(archive map[string]ctx_model.ContextArchive) {
 	as.store = data
 }
 
-func (as *TestArchiveStore) LoadEvents() *ctx_model.EventsArchive {
-	events := ctx_model.EventsArchive{}
+func (as *TestArchiveStore) LoadEvents() *core.EventsArchive {
+	events := core.EventsArchive{}
 	err := json.Unmarshal(as.storeEvents, &events)
 	if err != nil {
 		log.Fatal("Unable to parse events archvie store")
@@ -145,7 +143,7 @@ func (as *TestArchiveStore) LoadEvents() *ctx_model.EventsArchive {
 	return &events
 }
 
-func (as *TestArchiveStore) SaveEvents(entry *ctx_model.EventsArchive) {
+func (as *TestArchiveStore) SaveEvents(entry *core.EventsArchive) {
 	data, err := json.Marshal(entry)
 	if err != nil {
 		panic(err)
@@ -153,12 +151,12 @@ func (as *TestArchiveStore) SaveEvents(entry *ctx_model.EventsArchive) {
 	as.storeEvents = data
 }
 
-func (store *TestArchiveStore) Apply(id string, fn storage.ArchivePatch) error {
+func (store *TestArchiveStore) Apply(id string, fn core.ArchivePatch) error {
 	archive := store.Load()
 	context := archive[id]
 	if _, ok := archive[id]; !ok {
-		context = ctx_model.ContextArchive{
-			Context: ctx_model.Context{
+		context = core.ContextArchive{
+			Context: core.Context{
 				Id: id,
 			},
 		}
@@ -174,7 +172,7 @@ func (store *TestArchiveStore) Apply(id string, fn storage.ArchivePatch) error {
 	}
 }
 
-func (store *TestArchiveStore) ApplyEvents(date string, fn storage.ArchiveEventsPatch) error {
+func (store *TestArchiveStore) ApplyEvents(date string, fn core.ArchiveEventsPatch) error {
 	archive := store.LoadEvents()
 	err := fn(archive)
 	if err != nil {
@@ -185,7 +183,7 @@ func (store *TestArchiveStore) ApplyEvents(date string, fn storage.ArchiveEvents
 	}
 }
 
-func (es *TestEventsStore) Save(eventsRegistry *ctx_model.EventRegistry) {
+func (es *TestEventsStore) Save(eventsRegistry *core.EventRegistry) {
 	data, err := json.Marshal(eventsRegistry)
 	if err != nil {
 		panic(err)
@@ -193,8 +191,8 @@ func (es *TestEventsStore) Save(eventsRegistry *ctx_model.EventRegistry) {
 	es.store = data
 }
 
-func (es *TestEventsStore) Load() ctx_model.EventRegistry {
-	eventsRegistry := ctx_model.EventRegistry{}
+func (es *TestEventsStore) Load() core.EventRegistry {
+	eventsRegistry := core.EventRegistry{}
 	err := json.Unmarshal(es.store, &eventsRegistry)
 	if err != nil {
 		log.Fatal("Unable to parse state store")
@@ -213,7 +211,7 @@ func TestCreateContext(t *testing.T) {
 	createdContext := state.Contexts[test.TestId]
 	assert.Equal(t, createdContext.Id, test.TestId)
 	assert.Equal(t, createdContext.Description, test.TestDescription)
-	assert.Equal(t, createdContext.State, ctx_model.ACTIVE)
+	assert.Equal(t, createdContext.State, core.ACTIVE)
 	assert.Equal(t, createdContext.Duration, time.Duration(0))
 	assert.Len(t, createdContext.Intervals, 0)
 	assert.Len(t, createdContext.Comments, 0)
@@ -252,7 +250,7 @@ func TestEmitCreateEvent(t *testing.T) {
 
 	registry := es.Load()
 	assert.Len(t, registry.Events, 1)
-	assert.Equal(t, registry.Events[0].Type, ctx_model.CREATE_CTX)
+	assert.Equal(t, registry.Events[0].Type, core.CREATE_CTX)
 	assert.Equal(t, registry.Events[0].CtxId, test.TestId)
 	assert.Equal(t, registry.Events[0].DateTime, ctxtime.ZonedTime{Time: dt1, Timezone: time.UTC.String()})
 }
@@ -321,7 +319,7 @@ func TestSwitchCreateIfNotExists(t *testing.T) {
 	createdContext := state.Contexts[test.TestId]
 	assert.Equal(t, createdContext.Id, test.TestId)
 	assert.Equal(t, createdContext.Description, test.TestDescription)
-	assert.Equal(t, createdContext.State, ctx_model.ACTIVE)
+	assert.Equal(t, createdContext.State, core.ACTIVE)
 	assert.Equal(t, createdContext.Duration, time.Duration(0))
 	assert.Len(t, createdContext.Intervals, 1)
 	assert.Len(t, createdContext.Comments, 0)
@@ -442,16 +440,16 @@ func TestEventsFlow(t *testing.T) {
 
 	registry := es.Load()
 	assert.Len(t, registry.Events, 10)
-	assert.Equal(t, registry.Events[0].Type, ctx_model.CREATE_CTX)
-	assert.Equal(t, registry.Events[1].Type, ctx_model.SWITCH_CTX)
-	assert.Equal(t, registry.Events[2].Type, ctx_model.START_INTERVAL)
-	assert.Equal(t, registry.Events[3].Type, ctx_model.CREATE_CTX)
-	assert.Equal(t, registry.Events[4].Type, ctx_model.END_INTERVAL)
-	assert.Equal(t, registry.Events[5].Type, ctx_model.SWITCH_CTX)
-	assert.Equal(t, registry.Events[6].Type, ctx_model.START_INTERVAL)
-	assert.Equal(t, registry.Events[7].Type, ctx_model.END_INTERVAL)
-	assert.Equal(t, registry.Events[8].Type, ctx_model.SWITCH_CTX)
-	assert.Equal(t, registry.Events[9].Type, ctx_model.START_INTERVAL)
+	assert.Equal(t, registry.Events[0].Type, core.CREATE_CTX)
+	assert.Equal(t, registry.Events[1].Type, core.SWITCH_CTX)
+	assert.Equal(t, registry.Events[2].Type, core.START_INTERVAL)
+	assert.Equal(t, registry.Events[3].Type, core.CREATE_CTX)
+	assert.Equal(t, registry.Events[4].Type, core.END_INTERVAL)
+	assert.Equal(t, registry.Events[5].Type, core.SWITCH_CTX)
+	assert.Equal(t, registry.Events[6].Type, core.START_INTERVAL)
+	assert.Equal(t, registry.Events[7].Type, core.END_INTERVAL)
+	assert.Equal(t, registry.Events[8].Type, core.SWITCH_CTX)
+	assert.Equal(t, registry.Events[9].Type, core.START_INTERVAL)
 
 }
 
@@ -491,7 +489,7 @@ func TestDeleteContext(t *testing.T) {
 	err := cm.Delete(test.TestId)
 	assert.NoError(t, err)
 	assert.Len(t, es.Load().Events, 5)
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, core.DELETE_CTX)
 	assert.Len(t, cs.Load().Contexts, 0)
 }
 
@@ -519,25 +517,25 @@ func TestDeleteNotExistingContext(t *testing.T) {
 // 	cm := core.New(NewTestContextStore(), es, NewTestArchiveStore(), ctxtime.NewTimer())
 // 	dt1, _ := time.ParseInLocation(time.DateTime, "2025-03-13 13:00:00", time.UTC)
 // 	dt2, _ := time.ParseInLocation(time.DateTime, "2025-03-14 13:00:00", time.UTC)
-// 	cm.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
-// 		er.Events = append(er.Events, ctx_model.Event{
-// 			DateTime: ctxtime.ZonedTime{Time: dt1}, Description: "test1", Type: ctx_model.CREATE_CTX,
+// 	cm.EventsStore.Apply(func(er *core.EventRegistry) error {
+// 		er.Events = append(er.Events, core.Event{
+// 			DateTime: ctxtime.ZonedTime{Time: dt1}, Description: "test1", Type: core.CREATE_CTX,
 // 		})
-// 		er.Events = append(er.Events, ctx_model.Event{
-// 			DateTime: ctxtime.ZonedTime{Time: dt2}, Description: "test2", Type: ctx_model.SWITCH_CTX,
+// 		er.Events = append(er.Events, core.Event{
+// 			DateTime: ctxtime.ZonedTime{Time: dt2}, Description: "test2", Type: core.SWITCH_CTX,
 // 		})
-// 		er.Events = append(er.Events, ctx_model.Event{
-// 			DateTime: ctxtime.ZonedTime{Time: dt1}, Description: "test3", Type: ctx_model.SWITCH_CTX,
+// 		er.Events = append(er.Events, core.Event{
+// 			DateTime: ctxtime.ZonedTime{Time: dt1}, Description: "test3", Type: core.SWITCH_CTX,
 // 		})
-// 		er.Events = append(er.Events, ctx_model.Event{
-// 			DateTime: ctxtime.ZonedTime{Time: dt2}, Description: "test4", Type: ctx_model.START_INTERVAL,
+// 		er.Events = append(er.Events, core.Event{
+// 			DateTime: ctxtime.ZonedTime{Time: dt2}, Description: "test4", Type: core.START_INTERVAL,
 // 		})
 // 		return nil
 // 	})
 
 // 	er := es.Load()
 // 	assert.Len(t, er.Events, 4)
-// 	events := cm.filterEvents(&er, ctx_model.EventsFilter{
+// 	events := cm.filterEvents(&er, core.EventsFilter{
 // 		Date: "2025-03-14",
 // 	})
 
@@ -547,7 +545,7 @@ func TestDeleteNotExistingContext(t *testing.T) {
 // 	assert.Equal(t, ctxtime.ZonedTime{Time: dt2, Timezone: time.UTC.String()}, events[1].DateTime)
 // 	assert.Equal(t, "test4", events[1].Description)
 
-// 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
+// 	events = cm.filterEvents(&er, core.EventsFilter{
 // 		Date:  "2025-03-13",
 // 		Types: []string{"CREATE"},
 // 	})
@@ -556,7 +554,7 @@ func TestDeleteNotExistingContext(t *testing.T) {
 // 	assert.Equal(t, ctxtime.ZonedTime{Time: dt1, Timezone: time.UTC.String()}, events[0].DateTime)
 // 	assert.Equal(t, "test1", events[0].Description)
 
-// 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
+// 	events = cm.filterEvents(&er, core.EventsFilter{
 // 		Types: []string{"SWITCH"},
 // 	})
 
@@ -566,7 +564,7 @@ func TestDeleteNotExistingContext(t *testing.T) {
 // 	assert.Equal(t, ctxtime.ZonedTime{Time: dt1, Timezone: time.UTC.String()}, events[1].DateTime)
 // 	assert.Equal(t, "test3", events[1].Description)
 
-// 	events = cm.filterEvents(&er, ctx_model.EventsFilter{
+// 	events = cm.filterEvents(&er, core.EventsFilter{
 // 		Types: []string{"CREATE", "START_INTERVAL"},
 // 	})
 
@@ -674,7 +672,7 @@ func TestMergeContexts(t *testing.T) {
 	assert.Len(t, events, 23)
 	assert.Len(t, cs.Load().Contexts, 2)
 	for _, event := range events {
-		if event.Type == ctx_model.SWITCH_CTX {
+		if event.Type == core.SWITCH_CTX {
 			if v, ok := event.Data["from"]; ok && v != "" && event.CtxId == test.TestIdExtra {
 				assert.Equal(t, v, test.TestId)
 			}
@@ -759,7 +757,7 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, core.EDIT_CTX_INTERVAL)
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.RFC3339))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt2.Format(time.RFC3339))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt1.Format(time.RFC3339))
@@ -775,7 +773,7 @@ func TestEditContextInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[1].Duration, dt3.Sub(dt2))
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration, cs.Load().Contexts[test.TestId].Intervals[0].Duration+cs.Load().Contexts[test.TestId].Intervals[1].Duration)
 	assert.NoError(t, err, errors.New("context is active"))
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.EDIT_CTX_INTERVAL)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, core.EDIT_CTX_INTERVAL)
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.start"], dt1.Format(time.RFC3339))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["old.end"], dt3.Format(time.RFC3339))
 	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Data["new.start"], dt2.Format(time.RFC3339))
@@ -938,7 +936,7 @@ func TestDeleteInterval(t *testing.T) {
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].Start, ctxtime.ZonedTime{Time: dt3, Timezone: time.UTC.String()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Intervals[0].End, ctxtime.ZonedTime{Time: dt4, Timezone: time.UTC.String()})
 	assert.Equal(t, cs.Load().Contexts[test.TestId].Duration.Seconds(), time.Duration(300000000000).Seconds())
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_INTERVAL)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, core.DELETE_CTX_INTERVAL)
 }
 
 func TestSearchContextWithRegex(t *testing.T) {
@@ -974,7 +972,7 @@ func TestAddLabelToContext(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Contains(t, cs.Load().Contexts[test.TestId].Labels, "test-label")
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.LABEL_CTX)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, core.LABEL_CTX)
 }
 
 func TestRemoveLabelFromContext(t *testing.T) {
@@ -990,7 +988,7 @@ func TestRemoveLabelFromContext(t *testing.T) {
 	err = cm.DeleteLabelContext(test.TestId, "test-label")
 	assert.NoError(t, err)
 	assert.NotContains(t, cs.Load().Contexts[test.TestId].Labels, "test-label")
-	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, ctx_model.DELETE_CTX_LABEL)
+	assert.Equal(t, es.Load().Events[len(es.Load().Events)-1].Type, core.DELETE_CTX_LABEL)
 }
 
 func TestMoveInterval(t *testing.T) {

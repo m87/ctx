@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ var deleteCmd = &cobra.Command{
 		id, err := util.Id(description, false)
 		util.Checkm(err, "Unable to process id "+description)
 
-		util.Check(core.CreateManager().Delete(id))
+		util.Check(localstorage.CreateManager().Delete(id))
 	},
 }
 

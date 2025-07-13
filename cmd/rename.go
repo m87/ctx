@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ var renameCmd = &cobra.Command{
 		targetId, err := util.Id(target, false)
 		util.Checkm(err, "Unable to process id "+target)
 
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 
 		util.Check(mgr.RenameContext(srcId, targetId, target))
 

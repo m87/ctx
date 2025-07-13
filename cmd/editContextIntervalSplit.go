@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +23,7 @@ var editContextIntervalSplitCmd = &cobra.Command{
 		id, err := util.Id(description, false)
 		util.Checkm(err, "Unable to process id "+description)
 
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 		intervalIndex := -1
 
 		ctx, err := mgr.Ctx(id)

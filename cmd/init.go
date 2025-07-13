@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,7 +32,7 @@ var initCmd = &cobra.Command{
 			os.Mkdir(filepath.Join(home, ".ctx.d"), 0777)
 			os.Mkdir(filepath.Join(home, ".ctx.d", "archive"), 0777)
 			os.WriteFile(filepath.Join(home, ".ctx"), []byte(fmt.Sprintf(`version: %s
-storePath: %s`, ctx.Version, filepath.Join(home, ".ctx.d"))), 0777)
+storePath: %s`, core.Version, filepath.Join(home, ".ctx.d"))), 0777)
 			os.WriteFile(filepath.Join(home, ".ctx.d", "state"), []byte("{\"contexts\": {}}"), 0777)
 			os.WriteFile(filepath.Join(home, ".ctx.d", "events"), []byte("{\"events\": []}"), 0777)
 		}

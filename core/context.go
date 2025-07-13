@@ -1,4 +1,4 @@
-package ctx_model
+package core
 
 import (
 	"strings"
@@ -13,14 +13,6 @@ const (
 	ACTIVE ContextState = iota
 	FINISHED
 )
-
-type Interval struct {
-	Id       string            `json:"id"`
-	Start    ctxtime.ZonedTime `json:"start"`
-	End      ctxtime.ZonedTime `json:"end"`
-	Duration time.Duration     `json:"duration"`
-	Labels   []string          `json:"labels"`
-}
 
 type Context struct {
 	Id          string        `json:"id"`

@@ -6,17 +6,17 @@ import (
 	"time"
 
 	"github.com/m87/ctx/core"
-	"github.com/m87/ctx/ctx_model"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
 func getContextCreationTimeFromEvents(ctxId string) (string, error) {
-	mgr := core.CreateManager()
+	mgr := localstorage.CreateManager()
 	var creationTime string
-	err := mgr.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+	err := mgr.EventsStore.Read(func(er *core.EventRegistry) error {
 		for _, event := range er.Events {
-			if event.Type == ctx_model.CREATE_CTX && event.CtxId == ctxId {
+			if event.Type == core.CREATE_CTX && event.CtxId == ctxId {
 				creationTime = event.DateTime.Time.Format(time.RFC3339)
 				return nil
 			}
@@ -41,9 +41,9 @@ var summarizeContextCmd = &cobra.Command{
 
 		verbose, _ := cmd.Flags().GetBool("verbose")
 
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 		if id == "" {
-			mgr.ContextStore.Read(func(s *ctx_model.State) error {
+			mgr.ContextStore.Read(func(s *core.State) error {
 				if s.CurrentId != "" {
 					id = s.CurrentId
 				} else {

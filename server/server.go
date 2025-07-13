@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/m87/ctx/ctx"
-	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 )
 
@@ -357,9 +356,7 @@ func splitInterval(w http.ResponseWriter, r *http.Request) {
 	ctxId := strings.TrimSpace(r.PathValue("ctxId"))
 	id := strings.TrimSpace(r.PathValue("id"))
 
-
-
- 	mgr := ctx.CreateManager()
+	mgr := ctx.CreateManager()
 	mgr.SplitContextIntervalById(ctxId, id, p.Split.Time)
 
 }
@@ -405,7 +402,6 @@ func Serve() {
 	http.HandleFunc("/api/intervals/{ctxId}/{id}/split", splitInterval)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-
 
 type SplitRequest struct {
 	Split ctx_model.ZonedTime `json:"split"`

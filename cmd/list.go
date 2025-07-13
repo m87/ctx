@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/spf13/cobra"
 )
 
@@ -10,7 +10,7 @@ var listCmd = &cobra.Command{
 	Aliases: []string{"ls", "l"},
 	Short:   "List contexts",
 	Run: func(cmd *cobra.Command, args []string) {
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 		if j, _ := cmd.Flags().GetBool("json"); j {
 			mgr.ListJson()
 		} else if f, _ := cmd.Flags().GetBool("verbose"); f {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +15,7 @@ var searchCmd = &cobra.Command{
 	Short:   "Search for a context by description with regex",
 	Run: func(cmd *cobra.Command, args []string) {
 		regex := args[0]
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 		ctxs, err := mgr.Search(regex)
 
 		if err != nil {

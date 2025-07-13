@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/m87/ctx/core"
-	"github.com/m87/ctx/ctx_model"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/spf13/cobra"
 )
 
@@ -15,12 +15,12 @@ var listEventsCmd = &cobra.Command{
 		date, _ := cmd.Flags().GetString("date")
 		types, _ := cmd.Flags().GetStringArray("types")
 
-		filter := ctx_model.EventsFilter{
+		filter := core.EventsFilter{
 			Date:  date,
 			Types: types,
 		}
 
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 		if j, _ := cmd.Flags().GetBool("json"); j {
 			mgr.ListEventsJson(filter)
 		} else if f, _ := cmd.Flags().GetBool("verbose"); f {

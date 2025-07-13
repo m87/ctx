@@ -1,14 +1,12 @@
-package storage
+package core
 
-import "github.com/m87/ctx/ctx_model"
+type StatePatch func(*State) error
 
-type StatePatch func(*ctx_model.State) error
+type EventsPatch func(*EventRegistry) error
 
-type EventsPatch func(*ctx_model.EventRegistry) error
+type ArchivePatch func(*ContextArchive) error
 
-type ArchivePatch func(*ctx_model.ContextArchive) error
-
-type ArchiveEventsPatch func(*ctx_model.EventsArchive) error
+type ArchiveEventsPatch func(*EventsArchive) error
 
 type ContextStore interface {
 	Apply(fn StatePatch) error

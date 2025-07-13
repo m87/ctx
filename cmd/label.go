@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +19,7 @@ var labelCmd = &cobra.Command{
 		delete, _ := cmd.Flags().GetBool("delete")
 		label := strings.TrimSpace(args[1])
 
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 
 		if delete {
 			util.Check(mgr.DeleteLabelContext(contextId, label))

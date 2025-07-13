@@ -5,8 +5,7 @@ import (
 	"os"
 
 	"github.com/m87/ctx/core"
-	"github.com/m87/ctx/ctx"
-	"github.com/m87/ctx/ctx_model"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -15,11 +14,11 @@ var cfgFile string
 
 var rootCmd = &cobra.Command{
 	Use:     "ctx",
-	Version: ctx.Version,
+	Version: core.Version,
 	Run: func(cmd *cobra.Command, args []string) {
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 
-		mgr.ContextStore.Read(func(s *ctx_model.State) error {
+		mgr.ContextStore.Read(func(s *core.State) error {
 			if s.CurrentId != "" {
 				fmt.Println(s.Contexts[s.CurrentId].Description)
 			}

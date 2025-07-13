@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/m87/ctx/core"
-	"github.com/m87/ctx/ctx_model"
+	localstorage "github.com/m87/ctx/storage/local"
 	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -34,8 +34,8 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 }
 
 type DaySummary struct {
-	Contexts []ctx_model.Context `json:"contexts"`
-	Duration time.Duration       `json:"duration"`
+	Contexts []core.Context `json:"contexts"`
+	Duration time.Duration  `json:"duration"`
 }
 
 var summarizeDayCmd = &cobra.Command{
@@ -48,7 +48,7 @@ var summarizeDayCmd = &cobra.Command{
 		if err != nil {
 			loc = time.UTC
 		}
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 		date := mgr.TimeProvider.Now().Time.In(loc)
 		if len(args) > 0 {
 			rawDate := strings.TrimSpace(args[0])
@@ -61,7 +61,7 @@ var summarizeDayCmd = &cobra.Command{
 		durations := map[string]time.Duration{}
 		overallDuration := time.Duration(0)
 
-		mgr.ContextStore.Read(func(s *ctx_model.State) error {
+		mgr.ContextStore.Read(func(s *core.State) error {
 			for ctxId, _ := range s.Contexts {
 				d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 				util.Checkm(err, "Unable to get interval durations for context "+ctxId)
@@ -85,14 +85,14 @@ var summarizeDayCmd = &cobra.Command{
 
 		if f, _ := cmd.Flags().GetBool("json"); f {
 
-			outputContexts := []ctx_model.Context{}
+			outputContexts := []core.Context{}
 			summary := DaySummary{}
-			mgr.ContextStore.Read(func(s *ctx_model.State) error {
+			mgr.ContextStore.Read(func(s *core.State) error {
 				for _, c := range sortedIds {
 					d := durations[c]
 					ctx, _ := mgr.Ctx(c)
 
-					output := ctx_model.Context{
+					output := core.Context{
 						Id:          c,
 						Description: ctx.Description,
 						Duration:    roundDuration(d, roundUnit),
@@ -100,7 +100,7 @@ var summarizeDayCmd = &cobra.Command{
 
 					if d > 0 {
 						for _, interval := range mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()}) {
-							output.Intervals = append(output.Intervals, ctx_model.Interval{
+							output.Intervals = append(output.Intervals, core.Interval{
 								Start:    interval.Start,
 								End:      interval.End,
 								Duration: roundDuration(interval.End.Time.Sub(interval.Start.Time), roundUnit),
@@ -125,7 +125,7 @@ var summarizeDayCmd = &cobra.Command{
 				if d > 0 {
 					fmt.Printf("- %s: %s\n", ctx.Description, d)
 					if f, _ := cmd.Flags().GetBool("verbose"); f {
-						mgr.ContextStore.Read(func(s *ctx_model.State) error {
+						mgr.ContextStore.Read(func(s *core.State) error {
 							intervals := mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 							for i, interval := range ctx.Intervals {
 								if containsInterval(intervals, interval.Id) {
@@ -143,7 +143,7 @@ var summarizeDayCmd = &cobra.Command{
 	},
 }
 
-func containsInterval(intervals []ctx_model.Interval, id string) bool {
+func containsInterval(intervals []core.Interval, id string) bool {
 	for _, i := range intervals {
 		if i.Id == id {
 			return true

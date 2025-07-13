@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +25,7 @@ var editContextIntervalMoveCmd = &cobra.Command{
 		idTarget, err := util.Id(descriptionTarget, false)
 		util.Checkm(err, "Unable to process id target "+descriptionTarget)
 
-		mgr := core.CreateManager()
+		mgr := localstorage.CreateManager()
 
 		ctxSrc, err := mgr.Ctx(idSrc)
 

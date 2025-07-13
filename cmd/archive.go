@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/m87/ctx/core"
+	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +13,7 @@ var archiveCmd = &cobra.Command{
 	Aliases: []string{"arc", "a"},
 	Short:   "Archive all contexts",
 	Run: func(cmd *cobra.Command, args []string) {
-		cm := core.CreateManager()
+		cm := localstorage.CreateManager()
 		if all, _ := cmd.Flags().GetBool("all"); all {
 			util.Check(cm.ArchiveAll())
 		} else {

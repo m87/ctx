@@ -10,26 +10,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/m87/ctx/ctx_model"
-	"github.com/m87/ctx/storage"
-	localstorage "github.com/m87/ctx/storage/local"
 	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
-	"github.com/spf13/viper"
 )
 
 type ContextManager struct {
-	ContextStore storage.ContextStore
-	EventsStore  storage.EventsStore
-	ArchiveStore storage.ArchiveStore
+	ContextStore ContextStore
+	EventsStore  EventsStore
+	ArchiveStore ArchiveStore
 	TimeProvider ctxtime.TimeProvider
 }
 
-func CreateManager() *ContextManager {
-	return New(localstorage.NewContextStore(viper.GetString("storePath")), localstorage.NewEventsStore(viper.GetString("storePath")), localstorage.NewArchiveStore(viper.GetString("storePath")), ctxtime.NewTimer())
-}
-
-func New(contextStore storage.ContextStore, eventsStore storage.EventsStore, archiveStore storage.ArchiveStore, timeProvider ctxtime.TimeProvider) *ContextManager {
+func New(contextStore ContextStore, eventsStore EventsStore, archiveStore ArchiveStore, timeProvider ctxtime.TimeProvider) *ContextManager {
 	return &ContextManager{
 		ContextStore: contextStore,
 		EventsStore:  eventsStore,
@@ -38,7 +30,7 @@ func New(contextStore storage.ContextStore, eventsStore storage.EventsStore, arc
 	}
 }
 
-func (manager *ContextManager) createContetxtInternal(state *ctx_model.State, id string, description string) error {
+func (manager *ContextManager) createContetxtInternal(state *State, id string, description string) error {
 	if len(strings.TrimSpace(id)) == 0 {
 		return errors.New("empty id")
 	}
@@ -49,20 +41,20 @@ func (manager *ContextManager) createContetxtInternal(state *ctx_model.State, id
 	if _, ok := state.Contexts[id]; ok {
 		return errors.New("context already exists")
 	} else {
-		state.Contexts[id] = ctx_model.Context{
+		state.Contexts[id] = Context{
 			Id:          id,
 			Description: description,
-			State:       ctx_model.ACTIVE,
-			Intervals:   []ctx_model.Interval{},
+			State:       ACTIVE,
+			Intervals:   []Interval{},
 		}
-		manager.PublishContextEvent(state.Contexts[id], manager.TimeProvider.Now(), ctx_model.CREATE_CTX, nil)
+		manager.PublishContextEvent(state.Contexts[id], manager.TimeProvider.Now(), CREATE_CTX, nil)
 	}
 	return nil
 }
 
 func (manager *ContextManager) CreateContext(id string, description string) error {
 	return manager.ContextStore.Apply(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			return manager.createContetxtInternal(state, id, description)
 		},
 	)
@@ -70,7 +62,7 @@ func (manager *ContextManager) CreateContext(id string, description string) erro
 
 func (manager *ContextManager) List() {
 	manager.ContextStore.Read(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			ids := manager.getSortedContextIds(state)
 			for _, id := range ids {
 				v := state.Contexts[id]
@@ -83,7 +75,7 @@ func (manager *ContextManager) List() {
 
 func (manager *ContextManager) ListFull() {
 	manager.ContextStore.Read(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			ids := manager.getSortedContextIds(state)
 			for _, id := range ids {
 				v := state.Contexts[id]
@@ -99,8 +91,8 @@ func (manager *ContextManager) ListFull() {
 
 func (manager *ContextManager) ListJson() {
 	manager.ContextStore.Read(
-		func(state *ctx_model.State) error {
-			v := make([]ctx_model.Context, 0, len(state.Contexts))
+		func(state *State) error {
+			v := make([]Context, 0, len(state.Contexts))
 			for _, c := range state.Contexts {
 				v = append(v, c)
 			}
@@ -112,10 +104,10 @@ func (manager *ContextManager) ListJson() {
 	)
 }
 
-func (manager *ContextManager) ListJson2() []ctx_model.Context {
-	output := []ctx_model.Context{}
+func (manager *ContextManager) ListJson2() []Context {
+	output := []Context{}
 	manager.ContextStore.Read(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			for _, c := range state.Contexts {
 				output = append(output, c)
 			}
@@ -125,7 +117,7 @@ func (manager *ContextManager) ListJson2() []ctx_model.Context {
 	return output
 }
 
-func (manager *ContextManager) getSortedContextIds(state *ctx_model.State) []string {
+func (manager *ContextManager) getSortedContextIds(state *State) []string {
 	ids := make([]string, 0, len(state.Contexts))
 	for k := range state.Contexts {
 		ids = append(ids, k)
@@ -134,7 +126,7 @@ func (manager *ContextManager) getSortedContextIds(state *ctx_model.State) []str
 	return ids
 }
 
-func (manager *ContextManager) endInterval(state *ctx_model.State, id string, now ctxtime.ZonedTime) {
+func (manager *ContextManager) endInterval(state *State, id string, now ctxtime.ZonedTime) {
 	prev := state.Contexts[state.CurrentId]
 	interval := prev.Intervals[len(prev.Intervals)-1]
 	interval.End = now
@@ -142,12 +134,12 @@ func (manager *ContextManager) endInterval(state *ctx_model.State, id string, no
 	state.Contexts[state.CurrentId].Intervals[len(prev.Intervals)-1] = interval
 	prev.Duration = prev.Duration + interval.Duration
 	state.Contexts[state.CurrentId] = prev
-	manager.PublishContextEvent(state.Contexts[id], now, ctx_model.END_INTERVAL, map[string]string{
+	manager.PublishContextEvent(state.Contexts[id], now, END_INTERVAL, map[string]string{
 		"duration": interval.Duration.String(),
 	})
 }
 
-func (manager *ContextManager) switchInternal(state *ctx_model.State, id string) error {
+func (manager *ContextManager) switchInternal(state *State, id string) error {
 	if len(strings.TrimSpace(id)) == 0 {
 		return errors.New("empty id")
 	}
@@ -168,11 +160,11 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 
 	if ctx, ok := state.Contexts[id]; ok {
 		state.CurrentId = ctx.Id
-		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.SWITCH_CTX, map[string]string{
+		manager.PublishContextEvent(state.Contexts[id], now, SWITCH_CTX, map[string]string{
 			"from": prevId,
 		})
-		ctx.Intervals = append(state.Contexts[id].Intervals, ctx_model.Interval{Id: uuid.NewString(), Start: now})
-		manager.PublishContextEvent(state.Contexts[id], now, ctx_model.START_INTERVAL, nil)
+		ctx.Intervals = append(state.Contexts[id].Intervals, Interval{Id: uuid.NewString(), Start: now})
+		manager.PublishContextEvent(state.Contexts[id], now, START_INTERVAL, nil)
 		state.Contexts[id] = ctx
 	}
 	return nil
@@ -180,7 +172,7 @@ func (manager *ContextManager) switchInternal(state *ctx_model.State, id string)
 
 func (manager *ContextManager) Switch(id string) error {
 	return manager.ContextStore.Apply(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			if _, ok := state.Contexts[id]; ok {
 				return manager.switchInternal(state, id)
 			} else {
@@ -191,7 +183,7 @@ func (manager *ContextManager) Switch(id string) error {
 
 func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description string) error {
 	return manager.ContextStore.Apply(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			if _, ok := state.Contexts[id]; !ok {
 				err := manager.createContetxtInternal(state, id, description)
 				if err != nil {
@@ -202,10 +194,10 @@ func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description
 		})
 }
 
-func (manager *ContextManager) Ctx(id string) (ctx_model.Context, error) {
-	ctx := ctx_model.Context{}
+func (manager *ContextManager) Ctx(id string) (Context, error) {
+	ctx := Context{}
 
-	manager.ContextStore.Read(func(s *ctx_model.State) error {
+	manager.ContextStore.Read(func(s *State) error {
 		ctx = s.Contexts[id]
 		return nil
 	})
@@ -213,16 +205,16 @@ func (manager *ContextManager) Ctx(id string) (ctx_model.Context, error) {
 	return ctx, nil
 }
 
-func (manager *ContextManager) PublishEvent(event ctx_model.Event) error {
-	return manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
+func (manager *ContextManager) PublishEvent(event Event) error {
+	return manager.EventsStore.Apply(func(er *EventRegistry) error {
 		event.UUID = uuid.NewString()
 		er.Events = append(er.Events, event)
 		return nil
 	})
 }
 
-func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, dateTime ctxtime.ZonedTime, eventType ctx_model.EventType, data map[string]string) error {
-	return manager.PublishEvent(ctx_model.Event{
+func (manager *ContextManager) PublishContextEvent(context Context, dateTime ctxtime.ZonedTime, eventType EventType, data map[string]string) error {
+	return manager.PublishEvent(Event{
 		DateTime:    dateTime,
 		Type:        eventType,
 		CtxId:       context.Id,
@@ -231,10 +223,10 @@ func (manager *ContextManager) PublishContextEvent(context ctx_model.Context, da
 	})
 }
 
-func (manager *ContextManager) FilterEvents(filter ctx_model.EventsFilter) []ctx_model.Event {
-	evs := []ctx_model.Event{}
+func (manager *ContextManager) FilterEvents(filter EventsFilter) []Event {
+	evs := []Event{}
 
-	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+	manager.EventsStore.Read(func(er *EventRegistry) error {
 
 		evs = manager.filterEvents(er, filter)
 
@@ -245,9 +237,9 @@ func (manager *ContextManager) FilterEvents(filter ctx_model.EventsFilter) []ctx
 	return evs
 }
 
-func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter ctx_model.EventsFilter) []ctx_model.Event {
+func (manager *ContextManager) filterEvents(er *EventRegistry, filter EventsFilter) []Event {
 	evs := er.Events
-	tmpEvs := []ctx_model.Event{}
+	tmpEvs := []Event{}
 
 	if filter.CtxId != "" {
 		for _, v := range evs {
@@ -267,13 +259,13 @@ func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter 
 		evs = tmpEvs
 	}
 
-	tmpEvs = []ctx_model.Event{}
+	tmpEvs = []Event{}
 
 	if len(filter.Types) > 0 {
 
 		for _, v := range evs {
 			for _, t := range filter.Types {
-				if v.Type == ctx_model.StringAsEvent(t) {
+				if v.Type == StringAsEvent(t) {
 					tmpEvs = append(tmpEvs, v)
 				}
 			}
@@ -285,18 +277,18 @@ func (manager *ContextManager) filterEvents(er *ctx_model.EventRegistry, filter 
 	return evs
 }
 
-func (manager *ContextManager) ListEvents(filter ctx_model.EventsFilter) {
-	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+func (manager *ContextManager) ListEvents(filter EventsFilter) {
+	manager.EventsStore.Read(func(er *EventRegistry) error {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Time.Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description)
+			fmt.Printf("[%s] [%s] %s\n", v.DateTime.Time.Format(time.DateTime), EventAsString(v.Type), v.Description)
 		}
 		return nil
 	})
 }
-func (manager *ContextManager) ListEventsJson(filter ctx_model.EventsFilter) {
-	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+func (manager *ContextManager) ListEventsJson(filter EventsFilter) {
+	manager.EventsStore.Read(func(er *EventRegistry) error {
 		evs := manager.filterEvents(er, filter)
 
 		s, _ := json.Marshal(evs)
@@ -307,7 +299,7 @@ func (manager *ContextManager) ListEventsJson(filter ctx_model.EventsFilter) {
 	})
 }
 
-func (manager *ContextManager) formatEventData(event ctx_model.Event) string {
+func (manager *ContextManager) formatEventData(event Event) string {
 	if len(event.Data) == 0 {
 		return ""
 	}
@@ -318,12 +310,12 @@ func (manager *ContextManager) formatEventData(event ctx_model.Event) string {
 	return string(data)
 }
 
-func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
-	manager.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
+func (manager *ContextManager) ListEventsFull(filter EventsFilter) {
+	manager.EventsStore.Read(func(er *EventRegistry) error {
 		evs := manager.filterEvents(er, filter)
 
 		for _, v := range evs {
-			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Time.Format(time.DateTime), ctx_model.EventAsString(v.Type), v.Description, manager.formatEventData(v))
+			fmt.Printf("[%s] [%s] %s [%s]\n", v.DateTime.Time.Format(time.DateTime), EventAsString(v.Type), v.Description, manager.formatEventData(v))
 		}
 		return nil
 	})
@@ -331,7 +323,7 @@ func (manager *ContextManager) ListEventsFull(filter ctx_model.EventsFilter) {
 
 func (manager *ContextManager) Free() error {
 	return manager.ContextStore.Apply(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			if state.CurrentId == "" {
 				return errors.New("no active context")
 			}
@@ -343,7 +335,7 @@ func (manager *ContextManager) Free() error {
 		})
 }
 
-func (manager *ContextManager) deleteInternal(state *ctx_model.State, id string) error {
+func (manager *ContextManager) deleteInternal(state *State, id string) error {
 	if state.CurrentId == id {
 		return errors.New("context is active")
 	}
@@ -351,7 +343,7 @@ func (manager *ContextManager) deleteInternal(state *ctx_model.State, id string)
 	if _, ok := state.Contexts[id]; ok {
 		context := state.Contexts[id]
 		delete(state.Contexts, id)
-		manager.PublishContextEvent(context, manager.TimeProvider.Now(), ctx_model.DELETE_CTX, nil)
+		manager.PublishContextEvent(context, manager.TimeProvider.Now(), DELETE_CTX, nil)
 		return nil
 	} else {
 		return errors.New("context does not exists")
@@ -360,13 +352,13 @@ func (manager *ContextManager) deleteInternal(state *ctx_model.State, id string)
 
 func (manager *ContextManager) Delete(id string) error {
 	return manager.ContextStore.Apply(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			return manager.deleteInternal(state, id)
 		})
 }
 
-func (manager *ContextManager) groupEventsByDate(events []ctx_model.Event) map[string][]ctx_model.Event {
-	eventsByDate := make(map[string][]ctx_model.Event)
+func (manager *ContextManager) groupEventsByDate(events []Event) map[string][]Event {
+	eventsByDate := make(map[string][]Event)
 	for _, event := range events {
 		date := event.DateTime.Time.Format(time.DateOnly)
 		eventsByDate[date] = append(eventsByDate[date], event)
@@ -375,8 +367,8 @@ func (manager *ContextManager) groupEventsByDate(events []ctx_model.Event) map[s
 	return eventsByDate
 }
 
-func (manager *ContextManager) upsertArchive(entry *ctx_model.ContextArchive) error {
-	return manager.ArchiveStore.Apply(entry.Context.Id, func(entry2Update *ctx_model.ContextArchive) error {
+func (manager *ContextManager) upsertArchive(entry *ContextArchive) error {
+	return manager.ArchiveStore.Apply(entry.Context.Id, func(entry2Update *ContextArchive) error {
 		if entry2Update.Context.Id != entry.Context.Id {
 			return errors.New("contexts mismatch, entry to update: " + entry2Update.Context.Id + ", entry to archive: " + entry.Context.Id)
 		}
@@ -391,9 +383,9 @@ func (manager *ContextManager) upsertArchive(entry *ctx_model.ContextArchive) er
 	})
 }
 
-func (manager *ContextManager) upsertEventsArchive(eventsByDate map[string][]ctx_model.Event) error {
+func (manager *ContextManager) upsertEventsArchive(eventsByDate map[string][]Event) error {
 	for k, v := range eventsByDate {
-		return manager.ArchiveStore.ApplyEvents(k, func(entry *ctx_model.EventsArchive) error {
+		return manager.ArchiveStore.ApplyEvents(k, func(entry *EventsArchive) error {
 			entry.Events = append(entry.Events, v...)
 			return nil
 		})
@@ -403,13 +395,13 @@ func (manager *ContextManager) upsertEventsArchive(eventsByDate map[string][]ctx
 
 func (manager *ContextManager) Archive(id string) error {
 	if err := manager.ContextStore.Read(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			if state.CurrentId == id {
 				return errors.New("context is active")
 			}
 
 			if _, ok := state.Contexts[id]; ok {
-				archiveEntry := ctx_model.ContextArchive{
+				archiveEntry := ContextArchive{
 					Context: state.Contexts[id],
 				}
 
@@ -429,20 +421,20 @@ func (manager *ContextManager) Archive(id string) error {
 }
 
 func (manager *ContextManager) ArchiveAllEvents() error {
-	return manager.EventsStore.Apply(func(er *ctx_model.EventRegistry) error {
+	return manager.EventsStore.Apply(func(er *EventRegistry) error {
 		eventsByDate := manager.groupEventsByDate(er.Events)
 		err := manager.upsertEventsArchive(eventsByDate)
 		if err != nil {
 			return err
 		}
-		er.Events = []ctx_model.Event{}
+		er.Events = []Event{}
 		return nil
 	})
 }
 
 func (manager *ContextManager) ArchiveAll() error {
 	err := manager.ContextStore.Read(
-		func(state *ctx_model.State) error {
+		func(state *State) error {
 			for _, ctx := range state.Contexts {
 				if err := manager.Archive(ctx.Id); err != nil {
 					return err
@@ -459,7 +451,7 @@ func (manager *ContextManager) ArchiveAll() error {
 }
 
 func (manager *ContextManager) MergeContext(from string, to string) error {
-	return manager.ContextStore.Apply(func(state *ctx_model.State) error {
+	return manager.ContextStore.Apply(func(state *State) error {
 		if from == to {
 			return errors.New("contexts are the same")
 		}
@@ -485,7 +477,7 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 		state.Contexts[to] = toCtx
 		manager.deleteInternal(state, from)
 
-		manager.PublishContextEvent(state.Contexts[to], manager.TimeProvider.Now(), ctx_model.MERGE_CTX, map[string]string{
+		manager.PublishContextEvent(state.Contexts[to], manager.TimeProvider.Now(), MERGE_CTX, map[string]string{
 			"from": from,
 			"to":   to,
 		})
@@ -508,7 +500,7 @@ func (manager *ContextManager) SplitContextIntervalById(ctxId string, id string,
 }
 
 func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIndex int, split time.Time) error {
-	manager.ContextStore.Apply(func(s *ctx_model.State) error {
+	manager.ContextStore.Apply(func(s *State) error {
 		context, ok := s.Contexts[id]
 		if !ok {
 			return errors.New("context does not exists")
@@ -517,7 +509,7 @@ func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIn
 		interval := context.Intervals[intervalIndex]
 		context.Intervals[intervalIndex].End.Time = split
 		context.Intervals[intervalIndex].Duration = split.Sub(interval.Start.Time)
-		context.Intervals = append(context.Intervals, ctx_model.Interval{
+		context.Intervals = append(context.Intervals, Interval{
 			Id: uuid.NewString(),
 			Start: ctxtime.ZonedTime{
 				Time:     split,
@@ -540,7 +532,7 @@ func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIn
 }
 
 func (manager *ContextManager) EditContextInterval(id string, intervalId string, start ctxtime.ZonedTime, end ctxtime.ZonedTime) error {
-	manager.ContextStore.Read(func(s *ctx_model.State) error {
+	manager.ContextStore.Read(func(s *State) error {
 		context, ok := s.Contexts[id]
 		if !ok {
 			return errors.New("context does not exist")
@@ -567,7 +559,7 @@ func (manager *ContextManager) MoveIntervalById(idSrc string, idTarget string, i
 }
 
 func (manager *ContextManager) MoveIntervalByIndex(idSrc string, idTarget string, intervalIndex int) error {
-	return manager.ContextStore.Apply(func(state *ctx_model.State) error {
+	return manager.ContextStore.Apply(func(state *State) error {
 		if state.CurrentId == idTarget {
 			return errors.New("context is active")
 		}
@@ -586,7 +578,7 @@ func (manager *ContextManager) MoveIntervalByIndex(idSrc string, idTarget string
 }
 
 func (manager *ContextManager) EditContextIntervalByIndex(id string, intervalIndex int, start ctxtime.ZonedTime, end ctxtime.ZonedTime) error {
-	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+	return manager.ContextStore.Apply(func(s *State) error {
 		if s.CurrentId == id {
 			return errors.New("context is active")
 		}
@@ -606,7 +598,7 @@ func (manager *ContextManager) EditContextIntervalByIndex(id string, intervalInd
 		ctx.Duration = ctx.Duration + durationDiff
 
 		s.Contexts[id] = ctx
-		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.EDIT_CTX_INTERVAL, map[string]string{
+		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), EDIT_CTX_INTERVAL, map[string]string{
 			"old.start": oldStart,
 			"old.end":   oldEnd,
 			"new.start": ctx.Intervals[intervalIndex].Start.Time.Format(time.RFC3339),
@@ -618,11 +610,11 @@ func (manager *ContextManager) EditContextIntervalByIndex(id string, intervalInd
 }
 
 func (manager *ContextManager) RenameContext(srcId string, targetId string, name string) error {
-	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
-		s.Contexts[targetId] = ctx_model.Context{
+	return manager.ContextStore.Apply(func(s *State) error {
+		s.Contexts[targetId] = Context{
 			Id:          targetId,
 			Description: name,
-			Intervals:   append([]ctx_model.Interval{}, s.Contexts[srcId].Intervals...),
+			Intervals:   append([]Interval{}, s.Contexts[srcId].Intervals...),
 			State:       s.Contexts[srcId].State,
 			Duration:    s.Contexts[srcId].Duration,
 			Comments:    append([]string{}, s.Contexts[srcId].Comments...),
@@ -630,7 +622,7 @@ func (manager *ContextManager) RenameContext(srcId string, targetId string, name
 
 		ctx := s.Contexts[srcId]
 		delete(s.Contexts, srcId)
-		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.RENAME_CTX, map[string]string{
+		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), RENAME_CTX, map[string]string{
 			"src.id":             ctx.Id,
 			"src.description":    ctx.Description,
 			"target.id":          targetId,
@@ -642,7 +634,7 @@ func (manager *ContextManager) RenameContext(srcId string, targetId string, name
 
 }
 
-func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
+func (manager *ContextManager) GetIntervalDurationsByDate(s *State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
 	var duration time.Duration = 0
 	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
@@ -667,8 +659,8 @@ func (manager *ContextManager) GetIntervalDurationsByDate(s *ctx_model.State, id
 	return duration, nil
 }
 
-func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string, date ctxtime.ZonedTime) []ctx_model.Interval {
-	intervals := []ctx_model.Interval{}
+func (manager *ContextManager) GetIntervalsByDate(s *State, id string, date ctxtime.ZonedTime) []Interval {
+	intervals := []Interval{}
 	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
@@ -677,13 +669,13 @@ func (manager *ContextManager) GetIntervalsByDate(s *ctx_model.State, id string,
 	if ctx, ok := s.Contexts[id]; ok {
 		for _, interval := range ctx.Intervals {
 			if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
-				intervals = append(intervals, ctx_model.Interval(interval))
+				intervals = append(intervals, Interval(interval))
 			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
-				intervals = append(intervals, ctx_model.Interval(interval))
+				intervals = append(intervals, Interval(interval))
 			} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
-				intervals = append(intervals, ctx_model.Interval(interval))
+				intervals = append(intervals, Interval(interval))
 			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
-				intervals = append(intervals, ctx_model.Interval(interval))
+				intervals = append(intervals, Interval(interval))
 			}
 		}
 	}
@@ -701,7 +693,7 @@ func (manager *ContextManager) DeleteIntervalById(ctxId string, id string) error
 }
 
 func (manager *ContextManager) DeleteInterval(id string, index int) error {
-	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+	return manager.ContextStore.Apply(func(s *State) error {
 		if s.CurrentId == id {
 			return errors.New("context is active")
 		}
@@ -715,7 +707,7 @@ func (manager *ContextManager) DeleteInterval(id string, index int) error {
 			ctx.Intervals = append(ctx.Intervals[:index], ctx.Intervals[index+1:]...)
 			ctx.Duration = ctx.Duration - interval.Duration
 			s.Contexts[id] = ctx
-			manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), ctx_model.DELETE_CTX_INTERVAL, map[string]string{
+			manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), DELETE_CTX_INTERVAL, map[string]string{
 				"start":    interval.Start.Time.Format(time.RFC3339),
 				"end":      interval.End.Time.Format(time.RFC3339),
 				"duration": interval.Duration.String(),
@@ -727,10 +719,10 @@ func (manager *ContextManager) DeleteInterval(id string, index int) error {
 	})
 }
 
-func (manager *ContextManager) Search(regex string) ([]ctx_model.Context, error) {
-	ctxs := []ctx_model.Context{}
+func (manager *ContextManager) Search(regex string) ([]Context, error) {
+	ctxs := []Context{}
 	re := regexp.MustCompile(regex)
-	err := manager.ContextStore.Read(func(s *ctx_model.State) error {
+	err := manager.ContextStore.Read(func(s *State) error {
 		for _, ctx := range s.Contexts {
 			if re.MatchString(ctx.Description) {
 				ctxs = append(ctxs, ctx)
@@ -745,14 +737,14 @@ func (manager *ContextManager) Search(regex string) ([]ctx_model.Context, error)
 }
 
 func (manager *ContextManager) LabelContext(id string, label string) error {
-	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+	return manager.ContextStore.Apply(func(s *State) error {
 		if _, ok := s.Contexts[id]; !ok {
 			return errors.New("context does not exist")
 		}
 		ctx := s.Contexts[id]
 		if !util.Contains(s.Contexts[id].Labels, label) {
 			ctx.Labels = append(s.Contexts[id].Labels, label)
-			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), ctx_model.LABEL_CTX, map[string]string{
+			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), LABEL_CTX, map[string]string{
 				"label": label,
 			})
 			s.Contexts[id] = ctx
@@ -762,7 +754,7 @@ func (manager *ContextManager) LabelContext(id string, label string) error {
 }
 
 func (manager *ContextManager) DeleteLabelContext(id string, label string) error {
-	return manager.ContextStore.Apply(func(s *ctx_model.State) error {
+	return manager.ContextStore.Apply(func(s *State) error {
 		if _, ok := s.Contexts[id]; !ok {
 			return errors.New("context does not exist")
 		}
@@ -770,7 +762,7 @@ func (manager *ContextManager) DeleteLabelContext(id string, label string) error
 		ctx := s.Contexts[id]
 		if util.Contains(s.Contexts[id].Labels, label) {
 			ctx.Labels = util.Remove(s.Contexts[id].Labels, label)
-			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), ctx_model.DELETE_CTX_LABEL, map[string]string{
+			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), DELETE_CTX_LABEL, map[string]string{
 				"label": label,
 			})
 			s.Contexts[id] = ctx
