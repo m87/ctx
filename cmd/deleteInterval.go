@@ -20,7 +20,7 @@ var deleteIntervalCmd = &cobra.Command{
 		if index < 0 {
 			util.Checkm(err, "Index must be greater than or equal to 0")
 		} else {
-			util.Check(localstorage.CreateManager().DeleteInterval(id, index))
+			util.Check(localstorage.CreateManager().DeleteIntervalByIndex(id, index))
 		}
 	},
 }
