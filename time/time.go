@@ -71,3 +71,17 @@ func (zt *ZonedTime) UnmarshalJSON(data []byte) error {
 	zt.Timezone = tmp.Timezone
 	return nil
 }
+
+type RealTimeProvider struct{}
+
+func (provider *RealTimeProvider) Now() ZonedTime {
+	loc, err := time.LoadLocation(DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	return ZonedTime{Time: time.Now().In(loc), Timezone: loc.String()}
+}
+
+func NewTimer() *RealTimeProvider {
+	return &RealTimeProvider{}
+}

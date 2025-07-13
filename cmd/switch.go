@@ -6,7 +6,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +29,7 @@ var switchCmd = &cobra.Command{
 		id, err := util.Id(description, byId)
 		util.Checkm(err, "Unable to process id "+description)
 
-		manager := ctx.CreateManager()
+		manager := core.CreateManager()
 		if byId {
 			util.Check(manager.Switch(id))
 		} else {

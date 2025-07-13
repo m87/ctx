@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/core"
 	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -20,7 +20,7 @@ var editContextIntervalCmd = &cobra.Command{
 		id, err := util.Id(description, false)
 		util.Checkm(err, "Unable to process id "+description)
 
-		mgr := ctx.CreateManager()
+		mgr := core.CreateManager()
 		intervalIndex := -1
 
 		ctx, err := mgr.Ctx(id)

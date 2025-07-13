@@ -5,14 +5,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
 func getContextCreationTimeFromEvents(ctxId string) (string, error) {
-	mgr := ctx.CreateManager()
+	mgr := core.CreateManager()
 	var creationTime string
 	err := mgr.EventsStore.Read(func(er *ctx_model.EventRegistry) error {
 		for _, event := range er.Events {
@@ -41,7 +41,7 @@ var summarizeContextCmd = &cobra.Command{
 
 		verbose, _ := cmd.Flags().GetBool("verbose")
 
-		mgr := ctx.CreateManager()
+		mgr := core.CreateManager()
 		if id == "" {
 			mgr.ContextStore.Read(func(s *ctx_model.State) error {
 				if s.CurrentId != "" {

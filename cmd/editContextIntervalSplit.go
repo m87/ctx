@@ -9,21 +9,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
 var editContextIntervalSplitCmd = &cobra.Command{
-	Use:   "split",
+	Use:     "split",
 	Aliases: []string{"s"},
-	Short: "Split interval",
+	Short:   "Split interval",
 	Run: func(cmd *cobra.Command, args []string) {
 		description := strings.TrimSpace(args[0])
 		id, err := util.Id(description, false)
 		util.Checkm(err, "Unable to process id "+description)
 
-		mgr := ctx.CreateManager()
+		mgr := core.CreateManager()
 		intervalIndex := -1
 
 		ctx, err := mgr.Ctx(id)
@@ -46,12 +46,11 @@ var editContextIntervalSplitCmd = &cobra.Command{
 			split, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[2]), loc)
 			util.Checkm(err, "Unable to parse split datetime")
 
-
-      if split.Before(interval.Start.Time) {
+			if split.Before(interval.Start.Time) {
 				panic("split time is before interval start time")
 			}
 
-      if split.After(interval.End.Time) {
+			if split.After(interval.End.Time) {
 				panic("split time is after interval end time")
 			}
 
@@ -61,7 +60,6 @@ var editContextIntervalSplitCmd = &cobra.Command{
 				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
 			}
 		}
-
 
 	},
 }

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/ctx_model"
+	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
-	ctxtime "github.com/m87/ctx/time"
 )
 
 func roundDuration(d time.Duration, unit string) time.Duration {
@@ -48,7 +48,7 @@ var summarizeDayCmd = &cobra.Command{
 		if err != nil {
 			loc = time.UTC
 		}
-		mgr := ctx.CreateManager()
+		mgr := core.CreateManager()
 		date := mgr.TimeProvider.Now().Time.In(loc)
 		if len(args) > 0 {
 			rawDate := strings.TrimSpace(args[0])

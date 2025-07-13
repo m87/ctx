@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/m87/ctx/ctx"
-	"github.com/m87/ctx/util"
-	"github.com/spf13/cobra"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/m87/ctx/core"
+	"github.com/m87/ctx/util"
+	"github.com/spf13/cobra"
 )
 
 var editContextIntervalMoveCmd = &cobra.Command{
@@ -24,7 +25,7 @@ var editContextIntervalMoveCmd = &cobra.Command{
 		idTarget, err := util.Id(descriptionTarget, false)
 		util.Checkm(err, "Unable to process id target "+descriptionTarget)
 
-		mgr := ctx.CreateManager()
+		mgr := core.CreateManager()
 
 		ctxSrc, err := mgr.Ctx(idSrc)
 

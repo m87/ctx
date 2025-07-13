@@ -1,4 +1,4 @@
-package localstore
+package localstorage
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/m87/ctx/ctx_model"
+	"github.com/m87/ctx/storage"
 	"github.com/spf13/viper"
 )
 
@@ -145,7 +146,7 @@ func (store *LocalArchiveStore) loadEventsArchive(path string) (*ctx_model.Event
 
 }
 
-func (store *LocalArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) error {
+func (store *LocalArchiveStore) Apply(id string, fn storage.ArchivePatch) error {
 	path := filepath.Join(store.path, "archive", id+".ctx")
 	entry, err := store.loadArchive(id, path)
 
@@ -160,7 +161,7 @@ func (store *LocalArchiveStore) Apply(id string, fn ctx_model.ArchivePatch) erro
 	return store.saveArchive(entry, path)
 }
 
-func (store *LocalArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEventsPatch) error {
+func (store *LocalArchiveStore) ApplyEvents(date string, fn storage.ArchiveEventsPatch) error {
 	path := filepath.Join(store.path, "archive", date+".events")
 	events, err := store.loadEventsArchive(path)
 
@@ -175,7 +176,7 @@ func (store *LocalArchiveStore) ApplyEvents(date string, fn ctx_model.ArchiveEve
 	}
 }
 
-func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) error {
+func (store *LocalContextStore) Apply(fn storage.StatePatch) error {
 	state := LoadState()
 	err := fn(&state)
 	if err != nil {
@@ -186,7 +187,7 @@ func (store *LocalContextStore) Apply(fn ctx_model.StatePatch) error {
 	}
 }
 
-func (store *LocalContextStore) Read(fn ctx_model.StatePatch) error {
+func (store *LocalContextStore) Read(fn storage.StatePatch) error {
 	state := LoadState()
 	return fn(&state)
 }
@@ -216,7 +217,7 @@ func SaveEvents(eventsRegistry *ctx_model.EventRegistry) {
 	os.WriteFile(eventsPath, data, 0777)
 }
 
-func (store *LocalEventsStore) Apply(fn ctx_model.EventsPatch) error {
+func (store *LocalEventsStore) Apply(fn storage.EventsPatch) error {
 	events := LoadEvents()
 	err := fn(&events)
 	if err != nil {
@@ -227,7 +228,7 @@ func (store *LocalEventsStore) Apply(fn ctx_model.EventsPatch) error {
 	}
 }
 
-func (store *LocalEventsStore) Read(fn ctx_model.EventsPatch) error {
+func (store *LocalEventsStore) Read(fn storage.EventsPatch) error {
 	events := LoadEvents()
 	return fn(&events)
 }

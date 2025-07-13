@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ var mergeCmd = &cobra.Command{
 		toId, err := util.Id(toDescription, false)
 		util.Checkm(err, "Unable to process id "+toDescription)
 
-		mgr := ctx.CreateManager()
+		mgr := core.CreateManager()
 
 		err = mgr.MergeContext(fromId, toId)
 		util.Check(err)

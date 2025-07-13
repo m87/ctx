@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/ctx"
 	"github.com/m87/ctx/ctx_model"
 	"github.com/spf13/cobra"
@@ -16,7 +17,7 @@ var rootCmd = &cobra.Command{
 	Use:     "ctx",
 	Version: ctx.Version,
 	Run: func(cmd *cobra.Command, args []string) {
-		mgr := ctx.CreateManager()
+		mgr := core.CreateManager()
 
 		mgr.ContextStore.Read(func(s *ctx_model.State) error {
 			if s.CurrentId != "" {
