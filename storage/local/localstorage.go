@@ -83,6 +83,7 @@ func CreateManager() *core.ContextManager {
 		NewArchiveStore(viper.GetString("storePath")),
 		ctxtime.NewTimer(),
 		&FileStore[core.State]{path: filepath.Join(viper.GetString("storePath"), "state")},
+		&FileStore[core.EventRegistry]{path: filepath.Join(viper.GetString("storePath"), "events")},
 	)
 }
 

@@ -55,31 +55,32 @@ func (manager *ContextManager) GetIntervalsByDate(s *State, id string, date ctxt
 	return intervals
 }
 
-func (state *State) DeleteInterval(ctxId string, id string) error {
-	ctx, _ := state.Contexts[ctxId]
+
+func (session *Session) DeleteInterval(ctxId string, id string) error {
+	ctx, _ := session.State.Contexts[ctxId]
 	for i, interval := range ctx.Intervals {
 		if interval.Id == id {
-			return state.DeleteIntervalByIndex(ctxId, i)
+			return session.DeleteIntervalByIndex(ctxId, i)
 		}
 	}
 	return nil
 }
 
-func (state *State) DeleteIntervalByIndex(id string, index int) error {
 
-	if state.CurrentId == id {
+func (session *Session) DeleteIntervalByIndex(id string, index int) error {
+	if session.State.CurrentId == id {
 		return errors.New("context is active")
 	}
 
-	if _, ok := state.Contexts[id]; ok {
-		if index < 0 || index >= len(state.Contexts[id].Intervals) {
+	if _, ok := session.State.Contexts[id]; ok {
+		if index < 0 || index >= len(session.State.Contexts[id].Intervals) {
 			return errors.New("index out of range")
 		}
-		ctx := state.Contexts[id]
+		ctx := session.State.Contexts[id]
 		interval := ctx.Intervals[index]
 		ctx.Intervals = append(ctx.Intervals[:index], ctx.Intervals[index+1:]...)
 		ctx.Duration = ctx.Duration - interval.Duration
-		state.Contexts[id] = ctx
+		session.State.Contexts[id] = ctx
 	} else {
 		return errors.New("context does not exists")
 	}

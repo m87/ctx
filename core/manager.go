@@ -20,44 +20,54 @@ type ContextManager struct {
 	ArchiveStore ArchiveStore
 	TimeProvider ctxtime.TimeProvider
 	StateStore   TransactionalStore[State]
+	EventStore  TransactionalStore[EventRegistry] 
 }
 
-func NewContextManager(contextStore ContextStore, eventsStore EventsStore, archiveStore ArchiveStore, timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State]) *ContextManager {
+type Session struct {
+	State *State
+	EventsRegistry *EventRegistry
+	TimeProvider ctxtime.TimeProvider
+}
+
+func NewContextManager(contextStore ContextStore, eventsStore EventsStore, archiveStore ArchiveStore, timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State], eventStore TransactionalStore[EventRegistry]) *ContextManager {
 	return &ContextManager{
 		ContextStore: contextStore,
 		EventsStore:  eventsStore,
 		ArchiveStore: archiveStore,
 		TimeProvider: timeProvider,
 		StateStore:   stateStore,
+		EventStore: eventStore,
 	}
 }
 
-func (manager *ContextManager) DeleteInterval(ctxId string, id string) error {
-	tx, state, err := manager.StateStore.BeginAndGet()
-	if err != nil {
+func (manager *ContextManager) WithSession(fn func(session Session) error) error {
+	stateTx, state, stateErr := manager.StateStore.BeginAndGet()
+	erTx, er, erErr := manager.EventStore.BeginAndGet()
+	if stateErr != nil || erErr != nil {
+		return errors.Join(stateErr, erErr)
+	}
+
+	if err := fn(Session{
+		State: state,
+		EventsRegistry: er,
+		TimeProvider: manager.TimeProvider,
+	}); err != nil {
 		return err
 	}
 
-	if err := state.DeleteInterval(ctxId, id); err != nil {
-		return err
+	erErr = erTx.Commit()
+	stateErr = stateTx.Commit()
+
+	if erErr != nil || stateErr != nil {
+		erRollbackErr := erTx.Rollback()
+		stateRollbackEer := stateTx.Rollback()
+
+		if erRollbackErr != nil || stateRollbackEer != nil {
+			panic(errors.Join(erRollbackErr, stateRollbackEer))
+		}
 	}
-
-	return tx.Commit()
-
-	// return manager.StateStore.WithTx(func(state *State) error {
-	// 	return state.DeleteInterval(ctxId, id)
-	// 	// manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), DELETE_CTX_INTERVAL, map[string]string{
-	// 	// 	"start":    interval.Start.Time.Format(time.RFC3339),
-	// 	// 	"end":      interval.End.Time.Format(time.RFC3339),
-	// 	// 	"duration": interval.Duration.String(),
-	// 	// })
-	// })
-}
-
-func (manager *ContextManager) DeleteIntervalByIndex(ctxId string, index int) error {
-	return manager.StateStore.WithTx(func(state *State) error {
-		return state.DeleteIntervalByIndex(ctxId, index)
-	})
+	
+	return nil
 }
 
 func (manager *ContextManager) createContetxtInternal(state *State, id string, description string) error {

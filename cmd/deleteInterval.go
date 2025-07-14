@@ -3,6 +3,7 @@ package cmd
 import (
 	"strconv"
 
+	"github.com/m87/ctx/core"
 	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -20,7 +21,9 @@ var deleteIntervalCmd = &cobra.Command{
 		if index < 0 {
 			util.Checkm(err, "Index must be greater than or equal to 0")
 		} else {
-			util.Check(localstorage.CreateManager().DeleteIntervalByIndex(id, index))
+			util.Check(localstorage.CreateManager().WithSession(func(session core.Session) error {
+				return session.DeleteIntervalByIndex(id, index)
+			}))
 		}
 	},
 }
