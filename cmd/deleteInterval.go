@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"strconv"
-
 	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/cmd/flags"
 	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -14,18 +13,14 @@ func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 		Use:     "interval",
 		Aliases: []string{"int", "i"},
 		Run: func(cmd *cobra.Command, args []string) {
-			description := args[0]
-			id, err := util.Id(description, false)
-			util.Checkm(err, "Unable to process id "+description)
-			index, err := strconv.Atoi(args[1])
-			util.Checkm(err, "Unable to process index "+args[1])
-			if index < 0 {
-				util.Checkm(err, "Index must be greater than or equal to 0")
-			} else {
-				util.Check(manager.WithSession(func(session core.Session) error {
-					return session.DeleteIntervalByIndex(id, index)
-				}))
-			}
+			contextId, err := flags.ResolveContextId(cmd)
+			util.Check(err)
+			id, err := flags.ResolveIntervalId(cmd)
+			util.Check(err)
+
+			util.Check(manager.WithSession(func(session core.Session) error {
+				return session.DeleteInterval(contextId, id)
+			}))
 		},
 	}
 	return cmd
@@ -33,4 +28,6 @@ func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 
 func init() {
 	deleteCmd.AddCommand(NewDeleteIntervalCmd(bootstrap.CreateManager()))
+	flags.AddContxtFlag(deleteCmd)
+	flags.AddIntervalFlag(deleteCmd)
 }

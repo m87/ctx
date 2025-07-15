@@ -1,4 +1,4 @@
-package cmd
+package flags
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResolveContextId_WithCtxAndCtxIdFlag(t *testing.T) {
+func TestResolveContextIdWithCtxAndCtxIdFlag(t *testing.T) {
 	cmd := cobra.Command{}
 	AddContxtFlag(&cmd)
 
@@ -19,13 +19,13 @@ func TestResolveContextId_WithCtxAndCtxIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-  _, err := ResolveId(&cmd)
+	_, err := ResolveContextId(&cmd)
 
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "both --ctx and -ctx-id provided")
 }
 
-func TestResolveContextId_WithCtxFlag(t *testing.T) {
+func TestResolveContextIdWithCtxFlag(t *testing.T) {
 	cmd := cobra.Command{}
 	AddContxtFlag(&cmd)
 	args := []string{
@@ -34,27 +34,26 @@ func TestResolveContextId_WithCtxFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	id, err := ResolveId(&cmd)
+	id, err := ResolveContextId(&cmd)
 
 	assert.NoError(t, err)
 	assert.Equal(t, util.GenerateId("test2"), id)
 }
 
-func TestResolveContextId_NoFlags(t *testing.T) {
+func TestResolveContextIdNoFlags(t *testing.T) {
 	cmd := cobra.Command{}
 	AddContxtFlag(&cmd)
 
-	args := []string{
-	}
+	args := []string{}
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveId(&cmd)
+	_, err := ResolveContextId(&cmd)
 
 	assert.ErrorContains(t, err, "either --ctx or --ctx-id must be provided")
 }
 
-func TestResolveContextId_WithEmptyCtxAndCtxIdFlag(t *testing.T) {
+func TestResolveContextIdWithEmptyCtxAndCtxIdFlag(t *testing.T) {
 	cmd := cobra.Command{}
 	AddContxtFlag(&cmd)
 
@@ -64,13 +63,13 @@ func TestResolveContextId_WithEmptyCtxAndCtxIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	id, err := ResolveId(&cmd)
+	id, err := ResolveContextId(&cmd)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "test2", id)
 }
 
-func TestResolveContextId_WithEmptyCtxIdFlag(t *testing.T) {
+func TestResolveContextIdWithEmptyCtxIdFlag(t *testing.T) {
 	cmd := cobra.Command{}
 	AddContxtFlag(&cmd)
 
@@ -81,17 +80,17 @@ func TestResolveContextId_WithEmptyCtxIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveId(&cmd)
+	_, err := ResolveContextId(&cmd)
 
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "both --ctx and -ctx-id provided")
 
 }
 
-func TestResolveContextId_WithEmptyCtxFlag(t *testing.T) {
+func TestResolveContextIdWithEmptyCtxFlag(t *testing.T) {
 	cmd := cobra.Command{}
 	AddContxtFlag(&cmd)
-	
+
 	args := []string{
 		"-c=",
 		"--ctx-id=test",
@@ -99,7 +98,7 @@ func TestResolveContextId_WithEmptyCtxFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveId(&cmd)
+	_, err := ResolveContextId(&cmd)
 
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "both --ctx and -ctx-id provided")

@@ -1,4 +1,4 @@
-package cmd
+package flags
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ResolveId(cmd *cobra.Command) (string, error) {
+func ResolveContextId(cmd *cobra.Command) (string, error) {
 	flags := cmd.Flags()
 
 	id, _ := flags.GetString("ctx-id")
