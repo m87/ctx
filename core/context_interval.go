@@ -56,7 +56,7 @@ func (manager *ContextManager) GetIntervalsByDate(s *State, id string, date ctxt
 }
 
 func (session *Session) DeleteInterval(ctxId string, id string) error {
-	ctx, _ := session.State.Contexts[ctxId]
+	ctx := session.State.Contexts[ctxId]
 	for i, interval := range ctx.Intervals {
 		if interval.Id == id {
 			return session.DeleteIntervalByIndex(ctxId, i)

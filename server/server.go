@@ -15,7 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/ctx/ctx"
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
+	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
 )
 
@@ -54,7 +56,7 @@ func contextList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 
 	json.NewEncoder(w).Encode(mgr.ListJson2())
 }
@@ -63,9 +65,9 @@ func currentContext(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 
-	mgr.ContextStore.Read(func(s *ctx_model.State) error {
+	mgr.ContextStore.Read(func(s *core.State) error {
 		if s.CurrentId != "" {
 			json.NewEncoder(w).Encode(s.Contexts[s.CurrentId])
 		} else {
@@ -80,7 +82,7 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusOK)
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 
 	var p createAndSwitchRequest
 	err := json.NewDecoder(r.Body).Decode(&p)
@@ -96,7 +98,7 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 func updateInterval(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 
 	var p EditIntervalRequest
 	err := json.NewDecoder(r.Body).Decode(&p)
@@ -132,17 +134,17 @@ func roundDuration(d time.Duration, unit string) time.Duration {
 func intervalsByDate(date time.Time) (IntervalsResponseEntry, error) {
 	response := IntervalsResponseEntry{}
 
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 
 	response.Date = date.Format(time.DateOnly)
 
-	mgr.ContextStore.Read(func(s *ctx_model.State) error {
+	mgr.ContextStore.Read(func(s *core.State) error {
 		for ctxId, _ := range s.Contexts {
-			intervals := mgr.GetIntervalsByDate(s, ctxId, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
+			intervals := mgr.GetIntervalsByDate(s, ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 			for _, i := range intervals {
 				response.Intervals = append(response.Intervals, IntervalEntry{
 					Id:          i.Id,
@@ -163,11 +165,11 @@ func intervals(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	date := mgr.TimeProvider.Now().Time.In(loc)
 	rawDate := strings.TrimSpace(r.PathValue("date"))
 
@@ -184,18 +186,18 @@ func intervals(w http.ResponseWriter, r *http.Request) {
 
 func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	durations := map[string]time.Duration{}
 	overallDuration := time.Duration(0)
 	response := DaySummaryResponse{}
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
 
-	mgr.ContextStore.Read(func(s *ctx_model.State) error {
+	mgr.ContextStore.Read(func(s *core.State) error {
 		for ctxId := range s.Contexts {
-			d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctx_model.ZonedTime{Time: date, Timezone: loc.String()})
+			d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 			util.Checkm(err, "Unable to get interval durations for context "+ctxId)
 			durations[ctxId] = roundDuration(d, "nanosecond")
 		}
@@ -213,11 +215,11 @@ func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 		ctx, _ := mgr.Ctx(c)
 		if d > 0 {
 			overallDuration += d
-			mgr.ContextStore.Read(func(s *ctx_model.State) error {
-				response.Contexts = append(response.Contexts, ctx_model.Context{
+			mgr.ContextStore.Read(func(s *core.State) error {
+				response.Contexts = append(response.Contexts, core.Context{
 					Id:          c,
 					Description: ctx.Description,
-					Intervals:   mgr.GetIntervalsByDate(s, c, ctx_model.ZonedTime{Time: date, Timezone: loc.String()}),
+					Intervals:   mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()}),
 					Duration:    d,
 				})
 				return nil
@@ -233,11 +235,11 @@ func daySummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	date := mgr.TimeProvider.Now().Time.In(loc)
 	rawDate := strings.TrimSpace(r.PathValue("date"))
 
@@ -254,11 +256,11 @@ func recentDaysSummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	date := mgr.TimeProvider.Now().Time.In(loc)
 	rawDate := strings.TrimSpace(r.PathValue("date"))
 
@@ -291,11 +293,11 @@ func recentIntervals(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	loc, err := time.LoadLocation(ctx_model.DetectTimezoneName())
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
 	}
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	date := mgr.TimeProvider.Now().Time.In(loc)
 	rawDate := strings.TrimSpace(r.PathValue("date"))
 
@@ -336,7 +338,7 @@ func moveInterval(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	mgr.MoveIntervalById(p.Src, p.Target, p.Id)
 }
 
@@ -356,7 +358,7 @@ func splitInterval(w http.ResponseWriter, r *http.Request) {
 	ctxId := strings.TrimSpace(r.PathValue("ctxId"))
 	id := strings.TrimSpace(r.PathValue("id"))
 
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	mgr.SplitContextIntervalById(ctxId, id, p.Split.Time)
 
 }
@@ -373,8 +375,9 @@ func deleteInterval(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	mgr := ctx.CreateManager()
-	mgr.DeleteIntervalById(ctxId, id)
+	bootstrap.CreateManager().WithSession(func(session core.Session) error {
+		return session.DeleteInterval(ctxId, id)
+	})
 
 }
 
@@ -404,7 +407,7 @@ func Serve() {
 }
 
 type SplitRequest struct {
-	Split ctx_model.ZonedTime `json:"split"`
+	Split ctxtime.ZonedTime `json:"split"`
 }
 
 type SwitchRequest struct {
@@ -422,15 +425,15 @@ type createAndSwitchRequest struct {
 }
 
 type EditIntervalRequest struct {
-	Id         string              `json:"contextId"`
-	IntervalId string              `json:"intervalId"`
-	Start      ctx_model.ZonedTime `json:"start"`
-	End        ctx_model.ZonedTime `json:"end"`
+	Id         string            `json:"contextId"`
+	IntervalId string            `json:"intervalId"`
+	Start      ctxtime.ZonedTime `json:"start"`
+	End        ctxtime.ZonedTime `json:"end"`
 }
 
 type DaySummaryResponse struct {
-	Contexts []ctx_model.Context `json:"contexts"`
-	Duration time.Duration       `json:"duration"`
+	Contexts []core.Context `json:"contexts"`
+	Duration time.Duration  `json:"duration"`
 }
 
 type DaysSyummaryResponse struct {
@@ -447,10 +450,10 @@ type IntervalsResponseEntry struct {
 }
 
 type IntervalEntry struct {
-	Id          string             `json:"id"`
-	CtxId       string             `json:"ctxId"`
-	Description string             `json:"description"`
-	Interval    ctx_model.Interval `json:"interval"`
+	Id          string        `json:"id"`
+	CtxId       string        `json:"ctxId"`
+	Description string        `json:"description"`
+	Interval    core.Interval `json:"interval"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {
@@ -465,7 +468,7 @@ func switchContext(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	mgr.Switch(p.Id)
 }
 
@@ -473,6 +476,6 @@ func freeContext(w http.ResponseWriter, request *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	mgr := ctx.CreateManager()
+	mgr := bootstrap.CreateManager()
 	mgr.Free()
 }
