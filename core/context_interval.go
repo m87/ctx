@@ -7,6 +7,24 @@ import (
 	ctxtime "github.com/m87/ctx/time"
 )
 
+func (session *Session) DeleteInterval(ctxId string, id string) error {
+	if err := session.IsValidContext(ctxId); err != nil {
+		return err
+	}
+
+	intervalIndex, err := session.ValidateIntervalExistsAndGet(ctxId, id)
+	if err != nil {
+		return err
+	}
+
+	ctx := session.State.Contexts[ctxId]
+	ctx.Duration -= ctx.Intervals[intervalIndex].Duration
+	ctx.Intervals = append(ctx.Intervals[:intervalIndex], ctx.Intervals[intervalIndex+1:]...)
+	session.State.Contexts[ctxId] = ctx
+
+	return nil
+}
+
 func (manager *ContextManager) GetIntervalDurationsByDate(s *State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
 	var duration time.Duration = 0
 	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
@@ -53,35 +71,4 @@ func (manager *ContextManager) GetIntervalsByDate(s *State, id string, date ctxt
 		}
 	}
 	return intervals
-}
-
-func (session *Session) DeleteInterval(ctxId string, id string) error {
-	ctx := session.State.Contexts[ctxId]
-	for i, interval := range ctx.Intervals {
-		if interval.Id == id {
-			return session.DeleteIntervalByIndex(ctxId, i)
-		}
-	}
-	return nil
-}
-
-func (session *Session) DeleteIntervalByIndex(id string, index int) error {
-	if session.State.CurrentId == id {
-		return errors.New("context is active")
-	}
-
-	if _, ok := session.State.Contexts[id]; ok {
-		if index < 0 || index >= len(session.State.Contexts[id].Intervals) {
-			return errors.New("index out of range")
-		}
-		ctx := session.State.Contexts[id]
-		interval := ctx.Intervals[index]
-		ctx.Intervals = append(ctx.Intervals[:index], ctx.Intervals[index+1:]...)
-		ctx.Duration = ctx.Duration - interval.Duration
-		session.State.Contexts[id] = ctx
-	} else {
-		return errors.New("context does not exists")
-	}
-	return nil
-
 }
