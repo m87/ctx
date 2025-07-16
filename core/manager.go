@@ -20,13 +20,13 @@ type ContextManager struct {
 	ArchiveStore ArchiveStore
 	TimeProvider ctxtime.TimeProvider
 	StateStore   TransactionalStore[State]
-	EventStore  TransactionalStore[EventRegistry] 
+	EventStore   TransactionalStore[EventRegistry]
 }
 
 type Session struct {
-	State *State
+	State          *State
 	EventsRegistry *EventRegistry
-	TimeProvider ctxtime.TimeProvider
+	TimeProvider   ctxtime.TimeProvider
 }
 
 func NewContextManager(contextStore ContextStore, eventsStore EventsStore, archiveStore ArchiveStore, timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State], eventStore TransactionalStore[EventRegistry]) *ContextManager {
@@ -36,7 +36,7 @@ func NewContextManager(contextStore ContextStore, eventsStore EventsStore, archi
 		ArchiveStore: archiveStore,
 		TimeProvider: timeProvider,
 		StateStore:   stateStore,
-		EventStore: eventStore,
+		EventStore:   eventStore,
 	}
 }
 
@@ -48,9 +48,9 @@ func (manager *ContextManager) WithSession(fn func(session Session) error) error
 	}
 
 	if err := fn(Session{
-		State: state,
+		State:          state,
 		EventsRegistry: er,
-		TimeProvider: manager.TimeProvider,
+		TimeProvider:   manager.TimeProvider,
 	}); err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (manager *ContextManager) WithSession(fn func(session Session) error) error
 			panic(errors.Join(erRollbackErr, stateRollbackEer))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -85,7 +85,7 @@ func (manager *ContextManager) createContetxtInternal(state *State, id string, d
 			Id:          id,
 			Description: description,
 			State:       ACTIVE,
-			Intervals:   []Interval{},
+			Intervals:   map[string]Interval{},
 		}
 		manager.PublishContextEvent(state.Contexts[id], manager.TimeProvider.Now(), CREATE_CTX, nil)
 	}
@@ -528,29 +528,18 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 }
 
 func (manager *ContextManager) SplitContextIntervalById(ctxId string, id string, split time.Time) error {
-	ctx, _ := manager.Ctx(ctxId)
-	index := -1
-	for i, interval := range ctx.Intervals {
-		if interval.Id == id {
-			index = i
-		}
-	}
-
-	return manager.SplitContextIntervalByIndex(ctxId, index, split)
-}
-
-func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIndex int, split time.Time) error {
 	manager.ContextStore.Apply(func(s *State) error {
 		context, ok := s.Contexts[id]
 		if !ok {
 			return errors.New("context does not exists")
 		}
 
-		interval := context.Intervals[intervalIndex]
-		context.Intervals[intervalIndex].End.Time = split
-		context.Intervals[intervalIndex].Duration = split.Sub(interval.Start.Time)
-		context.Intervals = append(context.Intervals, Interval{
-			Id: uuid.NewString(),
+		interval := context.Intervals[id]
+		interval.End.Time = split
+		interval.Duration = split.Sub(interval.Start.Time)
+		newId := uuid.NewString()
+		context.Intervals[newId] = Interval{
+			Id: newId,
 			Start: ctxtime.ZonedTime{
 				Time:     split,
 				Timezone: interval.Start.Timezone,
@@ -560,7 +549,7 @@ func (manager *ContextManager) SplitContextIntervalByIndex(id string, intervalIn
 				Timezone: interval.End.Timezone,
 			},
 			Duration: interval.End.Time.Sub(split),
-		})
+		}
 
 		s.Contexts[id] = context
 

@@ -12,14 +12,14 @@ func (session *Session) DeleteInterval(ctxId string, id string) error {
 		return err
 	}
 
-	intervalIndex, err := session.ValidateIntervalExistsAndGet(ctxId, id)
+	err := session.ValidateIntervalExists(ctxId, id)
 	if err != nil {
 		return err
 	}
 
 	ctx := session.State.Contexts[ctxId]
-	ctx.Duration -= ctx.Intervals[intervalIndex].Duration
-	ctx.Intervals = append(ctx.Intervals[:intervalIndex], ctx.Intervals[intervalIndex+1:]...)
+	ctx.Duration -= ctx.Intervals[id].Duration
+	delete(ctx.Intervals, id)
 	session.State.Contexts[ctxId] = ctx
 
 	return nil

@@ -12,13 +12,13 @@ const (
 )
 
 type Context struct {
-	Id          string        `json:"id"`
-	Description string        `json:"description"`
-	Comments    []string      `json:"comments"`
-	State       ContextState  `json:"state"`
-	Duration    time.Duration `json:"duration"`
-	Intervals   []Interval    `json:"intervals"`
-	Labels      []string      `json:"labels"`
+	Id          string              `json:"id"`
+	Description string              `json:"description"`
+	Comments    []string            `json:"comments"`
+	State       ContextState        `json:"state"`
+	Duration    time.Duration       `json:"duration"`
+	Intervals   map[string]Interval `json:"intervals"`
+	Labels      []string            `json:"labels"`
 }
 
 type ContextArchive struct {
