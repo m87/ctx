@@ -23,12 +23,10 @@ func (session *Session) ValidateContextExists(id string) error {
 	return nil
 }
 
-func (session *Session) ValidateIntervalExistsAndGet(ctxId, id string) (int, error) {
+func (session *Session) ValidateIntervalExists(ctxId, id string) error {
 	ctx := session.State.Contexts[ctxId]
-	for i, interval := range ctx.Intervals {
-		if interval.Id == id {
-			return i, nil
-		}
+	if _, ok := ctx.Intervals[id]; ok {
+		return nil
 	}
-	return -1, errors.New("interval does not exist")
+	return errors.New("interval does not exist")
 }

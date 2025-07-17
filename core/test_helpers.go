@@ -18,14 +18,14 @@ func CreateTestSession() *Session {
 					Id:          TEST_ID,
 					Description: "Test Context",
 					Duration:    2 * time.Hour,
-					Intervals: []Interval{
-						{
+					Intervals: map[string]Interval{
+						"test-interval": {
 							Id:       "test-interval",
 							Start:    ctxtime.ZonedTime{Time: dt, Timezone: "UTC"},
 							End:      ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
 							Duration: 1 * time.Hour,
 						},
-						{
+						"test-interval-2": {
 							Id:       "test-interval-2",
 							Start:    ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
 							End:      ctxtime.ZonedTime{Time: dt.Add(3 * time.Hour), Timezone: "UTC"},

@@ -25,8 +25,8 @@ var searchCmd = &cobra.Command{
 		if f, _ := cmd.Flags().GetBool("verbose"); f {
 			for _, c := range ctxs {
 				println(c.Id + ": " + c.Description)
-				for i, interval := range c.Intervals {
-					fmt.Printf("\t[%d] %s - %s\n", i, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+				for _, interval := range c.Intervals {
+					fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
 				}
 			}
 		} else {
