@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -24,7 +23,6 @@ var editContextIntervalSplitCmd = &cobra.Command{
 		util.Checkm(err, "Unable to process id "+description)
 
 		mgr := localstorage.CreateManager()
-		intervalIndex := -1
 
 		ctx, err := mgr.Ctx(id)
 
@@ -34,14 +32,10 @@ var editContextIntervalSplitCmd = &cobra.Command{
 
 		if len(args) > 1 {
 			var err error
-			intervalIndex, err = strconv.Atoi(args[1])
+			intervalId := args[1]
 			util.Checkm(err, "Unable to parse interval index")
 
-			if intervalIndex < 0 || intervalIndex > len(ctx.Intervals)-1 {
-				panic("interval index out of range")
-			}
-
-			interval := ctx.Intervals[intervalIndex]
+			interval := ctx.Intervals[intervalId]
 			loc, _ := time.LoadLocation(interval.Start.Timezone)
 			split, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[2]), loc)
 			util.Checkm(err, "Unable to parse split datetime")
@@ -54,10 +48,10 @@ var editContextIntervalSplitCmd = &cobra.Command{
 				panic("split time is after interval end time")
 			}
 
-			mgr.SplitContextIntervalByIndex(id, intervalIndex, split)
+			mgr.SplitContextIntervalById(id, intervalId, split)
 		} else {
-			for index, interval := range ctx.Intervals {
-				fmt.Printf("[%d] %s - %s\n", index, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
+			for _, interval := range ctx.Intervals {
+				fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
 			}
 		}
 
