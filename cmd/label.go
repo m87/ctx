@@ -3,7 +3,8 @@ package cmd
 import (
 	"strings"
 
-	localstorage "github.com/m87/ctx/storage/local"
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
@@ -19,12 +20,20 @@ var labelCmd = &cobra.Command{
 		delete, _ := cmd.Flags().GetBool("delete")
 		label := strings.TrimSpace(args[1])
 
-		mgr := localstorage.CreateManager()
+		mgr := bootstrap.CreateManager()
 
 		if delete {
-			util.Check(mgr.DeleteLabelContext(contextId, label))
+			util.Check(
+				mgr.WithSession(func(session core.Session) error {
+					return session.DeleteLabelContext(contextId, label)
+				}),
+			)
 		} else {
-			util.Check(mgr.LabelContext(contextId, label))
+			util.Check(
+				mgr.WithSession(func(session core.Session) error {
+					return session.LabelContext(contextId, label)
+				}),
+			)
 		}
 	},
 }

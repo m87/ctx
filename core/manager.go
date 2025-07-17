@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	ctxtime "github.com/m87/ctx/time"
-	"github.com/m87/ctx/util"
 )
 
 type ContextManager struct {
@@ -127,6 +126,54 @@ func (manager *ContextManager) ListFull() {
 			return nil
 		},
 	)
+}
+
+func (manager *ContextManager) GetIntervalDurationsByDate(s *State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
+	var duration time.Duration = 0
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	startOfDay := time.Date(date.Time.Year(), date.Time.Month(), date.Time.Day(), 0, 0, 0, 0, loc)
+	if ctx, ok := s.Contexts[id]; ok {
+		for _, interval := range ctx.Intervals {
+			if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
+				duration += interval.Duration
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
+				duration += interval.End.Time.Sub(startOfDay)
+			} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
+				duration += 24*time.Hour - interval.Start.Time.Sub(startOfDay)
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
+				duration += 24 * time.Hour
+			}
+		}
+	} else {
+		return 0, errors.New("context does not exist")
+	}
+	return duration, nil
+}
+
+func (manager *ContextManager) GetIntervalsByDate(s *State, id string, date ctxtime.ZonedTime) []Interval {
+	intervals := []Interval{}
+	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
+	if err != nil {
+		loc = time.UTC
+	}
+	startOfDay := time.Date(date.Time.Year(), date.Time.Month(), date.Time.Day(), 0, 0, 0, 0, loc)
+	if ctx, ok := s.Contexts[id]; ok {
+		for _, interval := range ctx.Intervals {
+			if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
+				intervals = append(intervals, Interval(interval))
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
+				intervals = append(intervals, Interval(interval))
+			} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
+				intervals = append(intervals, Interval(interval))
+			} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
+				intervals = append(intervals, Interval(interval))
+			}
+		}
+	}
+	return intervals
 }
 
 func (manager *ContextManager) ListJson() {
@@ -689,39 +736,4 @@ func (manager *ContextManager) Search(regex string) ([]Context, error) {
 		return nil, err
 	}
 	return ctxs, nil
-}
-
-func (manager *ContextManager) LabelContext(id string, label string) error {
-	return manager.ContextStore.Apply(func(s *State) error {
-		if _, ok := s.Contexts[id]; !ok {
-			return errors.New("context does not exist")
-		}
-		ctx := s.Contexts[id]
-		if !util.Contains(s.Contexts[id].Labels, label) {
-			ctx.Labels = append(s.Contexts[id].Labels, label)
-			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), LABEL_CTX, map[string]string{
-				"label": label,
-			})
-			s.Contexts[id] = ctx
-		}
-		return nil
-	})
-}
-
-func (manager *ContextManager) DeleteLabelContext(id string, label string) error {
-	return manager.ContextStore.Apply(func(s *State) error {
-		if _, ok := s.Contexts[id]; !ok {
-			return errors.New("context does not exist")
-		}
-
-		ctx := s.Contexts[id]
-		if util.Contains(s.Contexts[id].Labels, label) {
-			ctx.Labels = util.Remove(s.Contexts[id].Labels, label)
-			manager.PublishContextEvent(s.Contexts[id], manager.TimeProvider.Now(), DELETE_CTX_LABEL, map[string]string{
-				"label": label,
-			})
-			s.Contexts[id] = ctx
-		}
-		return nil
-	})
 }
