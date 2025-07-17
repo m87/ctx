@@ -100,11 +100,11 @@ var summarizeDayCmd = &cobra.Command{
 
 					if d > 0 {
 						for _, interval := range mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()}) {
-							output.Intervals = append(output.Intervals, core.Interval{
+							output.Intervals[interval.Id] = core.Interval{
 								Start:    interval.Start,
 								End:      interval.End,
 								Duration: roundDuration(interval.End.Time.Sub(interval.Start.Time), roundUnit),
-							})
+							}
 						}
 					}
 
@@ -127,9 +127,9 @@ var summarizeDayCmd = &cobra.Command{
 					if f, _ := cmd.Flags().GetBool("verbose"); f {
 						mgr.ContextStore.Read(func(s *core.State) error {
 							intervals := mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
-							for i, interval := range ctx.Intervals {
+							for _, interval := range ctx.Intervals {
 								if containsInterval(intervals, interval.Id) {
-									fmt.Printf("\t[%d] %s - %s\n", i, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+									fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
 								}
 							}
 							return nil
