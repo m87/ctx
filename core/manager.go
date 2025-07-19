@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -100,32 +99,32 @@ func (manager *ContextManager) CreateContext(id string, description string) erro
 }
 
 func (manager *ContextManager) List() {
-	manager.ContextStore.Read(
-		func(state *State) error {
-			ids := manager.getSortedContextIds(state)
-			for _, id := range ids {
-				v := state.Contexts[id]
-				fmt.Printf("- %s\n", v.Description)
-			}
-			return nil
-		},
-	)
+	//manager.ContextStore.Read(
+	//	func(state *State) error {
+	//		ids := manager.getSortedContextIds(state)
+	//		for _, id := range ids {
+	//			v := state.Contexts[id]
+	//			fmt.Printf("- %s\n", v.Description)
+	//		}
+	//		return nil
+	//	},
+	//)
 }
 
 func (manager *ContextManager) ListFull() {
-	manager.ContextStore.Read(
-		func(state *State) error {
-			ids := manager.getSortedContextIds(state)
-			for _, id := range ids {
-				v := state.Contexts[id]
-				fmt.Printf("- [%s] %s\n", id, v.Description)
-				for _, interval := range v.Intervals {
-					fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
-				}
-			}
-			return nil
-		},
-	)
+	//manager.ContextStore.Read(
+	//	func(state *State) error {
+	//		ids := manager.getSortedContextIds(state)
+	//		for _, id := range ids {
+	//			v := state.Contexts[id]
+	//			fmt.Printf("- [%s] %s\n", id, v.Description)
+	//			for _, interval := range v.Intervals {
+	//				fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+	//			}
+	//		}
+	//		return nil
+	//	},
+	//)
 }
 
 func (manager *ContextManager) GetIntervalDurationsByDate(s *State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
@@ -204,14 +203,6 @@ func (manager *ContextManager) ListJson2() []Context {
 	return output
 }
 
-func (manager *ContextManager) getSortedContextIds(state *State) []string {
-	ids := make([]string, 0, len(state.Contexts))
-	for k := range state.Contexts {
-		ids = append(ids, k)
-	}
-	sort.Strings(ids)
-	return ids
-}
 
 func (manager *ContextManager) getActiveInterval(state *State, id string) (Interval, bool) {
 	lastInterval := Interval{}
@@ -428,19 +419,6 @@ func (manager *ContextManager) ListEventsFull(filter EventsFilter) {
 	})
 }
 
-func (manager *ContextManager) Free() error {
-	return manager.ContextStore.Apply(
-		func(state *State) error {
-			if state.CurrentId == "" {
-				return errors.New("no active context")
-			}
-
-			now := manager.TimeProvider.Now()
-			manager.endInterval(state, state.CurrentId, now)
-			state.CurrentId = ""
-			return nil
-		})
-}
 
 func (manager *ContextManager) deleteInternal(state *State, id string) error {
 	if state.CurrentId == id {
@@ -707,23 +685,6 @@ func (manager *ContextManager) EditContextIntervalById(id string, intervalId str
 			"new.start": ctx.Intervals[intervalId].Start.Time.Format(time.RFC3339),
 			"new.end":   ctx.Intervals[intervalId].End.Time.Format(time.RFC3339),
 		})
-		return nil
-	})
-
-}
-
-func (manager *ContextManager) RenameContext(srcId string, targetId string, name string) error {
-	return manager.ContextStore.Apply(func(s *State) error {
-		ctx := s.Contexts[srcId]
-		s.Contexts[targetId] = ctx
-		delete(s.Contexts, srcId)
-		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), RENAME_CTX, map[string]string{
-			"src.id":             ctx.Id,
-			"src.description":    ctx.Description,
-			"target.id":          targetId,
-			"target:description": name,
-		})
-
 		return nil
 	})
 

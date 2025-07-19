@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	ctxtime "github.com/m87/ctx/time"
 )
 
 func TestDeleteInterval(t *testing.T) {
@@ -43,4 +44,32 @@ func TestDeleteINtervalActiveContext(t *testing.T) {
 	err := session.DeleteInterval(TEST_ID, TEST_INTERVAL_ID)
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "context is active")
+}
+
+func TestGetActiveIntervals(t *testing.T) {
+	session := CreateTestSession()
+	session.State.Contexts[TEST_ID].Intervals["active1"] = Interval{
+		Id: "active1",
+		Start: ctxtime.ZonedTime{
+			Time: time.Now(),
+		},
+		End: ctxtime.ZonedTime{},
+	}
+	session.State.Contexts[TEST_ID].Intervals["active2"] = Interval{
+		Id: "active2",
+		Start: ctxtime.ZonedTime{
+			Time: time.Now(),
+		},
+		End: ctxtime.ZonedTime{},
+	}
+
+
+	active, err := session.GetActiveIntervals(TEST_ID)
+
+	assert.NoError(t, err)
+	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 4)
+	assert.Len(t, active, 2)
+	assert.Contains(t, active, "active1")
+	assert.Contains(t, active, "active2")
+
 }

@@ -22,7 +22,7 @@ func TestResolveContextIdWithCtxAndCtxIdFlag(t *testing.T) {
 	_, err := ResolveContextId(&cmd)
 
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "both --ctx and -ctx-id provided")
+	assert.ErrorContains(t, err, "both --ctx and --ctx-id provided")
 }
 
 func TestResolveContextIdWithCtxFlag(t *testing.T) {
@@ -83,7 +83,7 @@ func TestResolveContextIdWithEmptyCtxIdFlag(t *testing.T) {
 	_, err := ResolveContextId(&cmd)
 
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "both --ctx and -ctx-id provided")
+	assert.ErrorContains(t, err, "both --ctx and --ctx-id provided")
 
 }
 
@@ -101,6 +101,6 @@ func TestResolveContextIdWithEmptyCtxFlag(t *testing.T) {
 	_, err := ResolveContextId(&cmd)
 
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "both --ctx and -ctx-id provided")
+	assert.ErrorContains(t, err, "both --ctx and --ctx-id provided")
 
 }

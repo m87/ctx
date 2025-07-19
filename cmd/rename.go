@@ -1,33 +1,39 @@
 package cmd
 
 import (
-	"strings"
-
-	localstorage "github.com/m87/ctx/storage/local"
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/cmd/flags"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
-var renameCmd = &cobra.Command{
-	Use:     "rename",
-	Aliases: []string{"r"},
-	Short:   "Rename context",
-	Run: func(cmd *cobra.Command, args []string) {
-		src := strings.TrimSpace(args[0])
-		srcId, err := util.Id(src, false)
-		util.Checkm(err, "Unable to process id "+src)
+func NewRenameContextCmd(manager *core.ContextManager) *cobra.Command {
+	return &cobra.Command{
+		Use:     "rename",
+		Aliases: []string{"r"},
+		Short:   "Rename context",
+		Run: func(cmd *cobra.Command, args []string) {
+			srcId, err := flags.ResolveCustomContextId(cmd, "src-ctx")
+			util.Check(err)
 
-		target := strings.TrimSpace(args[1])
-		targetId, err := util.Id(target, false)
-		util.Checkm(err, "Unable to process id "+target)
+			targetId, err := flags.ResolveCustomContextId(cmd, "target-ctx")
+			util.Check(err)
+			
+			target, err := cmd.Flags().GetString("target-ctx")
+			util.Check(err)
 
-		mgr := localstorage.CreateManager()
+			manager.WithSession(func(session core.Session) error {
+				return session.RenameContext(srcId, targetId, target)
+			})	
 
-		util.Check(mgr.RenameContext(srcId, targetId, target))
-
-	},
+		},
+	}
 }
 
 func init() {
-	rootCmd.AddCommand(renameCmd)
+	cmd := NewRenameContextCmd(bootstrap.CreateManager())
+	flags.AddCustomContextFlag(cmd, "src-ctx", "s", "Source context")
+	flags.AddCustomContextFlag(cmd, "target-ctx", "t", "Target context")
+	rootCmd.AddCommand(cmd)
 }

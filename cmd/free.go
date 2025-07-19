@@ -1,20 +1,25 @@
 package cmd
 
 import (
-	localstorage "github.com/m87/ctx/storage/local"
-	"github.com/m87/ctx/util"
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-var freeCmd = &cobra.Command{
+
+func NewFreeCmd(manager *core.ContextManager) *cobra.Command {
+return &cobra.Command{
 	Use:     "free",
 	Aliases: []string{"f"},
 	Short:   "Stop current context",
 	Run: func(cmd *cobra.Command, args []string) {
-		util.Check(localstorage.CreateManager().Free())
+	//	util.Check(manager.Free())
 	},
 }
+}
+
 
 func init() {
-	rootCmd.AddCommand(freeCmd)
+	cmd := NewFreeCmd(bootstrap.CreateManager())
+	rootCmd.AddCommand(cmd)
 }

@@ -16,6 +16,13 @@ func (session *Session) ValidateActiveContext(id string) error {
 	return nil
 }
 
+func (session *Session) ValidateAnyActiveContext() error {
+	if session.State.CurrentId != "" {
+		return errors.New("no active context")
+	}
+	return nil
+}
+
 func (session *Session) ValidateContextExists(id string) error {
 	if _, ok := session.State.Contexts[id]; !ok {
 		return errors.New("context does not exist")
