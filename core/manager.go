@@ -203,7 +203,6 @@ func (manager *ContextManager) ListJson2() []Context {
 	return output
 }
 
-
 func (manager *ContextManager) getActiveInterval(state *State, id string) (Interval, bool) {
 	lastInterval := Interval{}
 	if ctx, ok := state.Contexts[id]; ok {
@@ -419,29 +418,6 @@ func (manager *ContextManager) ListEventsFull(filter EventsFilter) {
 	})
 }
 
-
-func (manager *ContextManager) deleteInternal(state *State, id string) error {
-	if state.CurrentId == id {
-		return errors.New("context is active")
-	}
-
-	if _, ok := state.Contexts[id]; ok {
-		context := state.Contexts[id]
-		delete(state.Contexts, id)
-		manager.PublishContextEvent(context, manager.TimeProvider.Now(), DELETE_CTX, nil)
-		return nil
-	} else {
-		return errors.New("context does not exists")
-	}
-}
-
-func (manager *ContextManager) Delete(id string) error {
-	return manager.ContextStore.Apply(
-		func(state *State) error {
-			return manager.deleteInternal(state, id)
-		})
-}
-
 func (manager *ContextManager) groupEventsByDate(events []Event) map[string][]Event {
 	eventsByDate := make(map[string][]Event)
 	for _, event := range events {
@@ -507,8 +483,9 @@ func (manager *ContextManager) Archive(id string) error {
 		}); err != nil {
 		return err
 	}
-
-	return manager.Delete(id)
+	return manager.WithSession(func(session Session) error {
+		return session.deleteInternal(id)
+	})
 }
 
 func (manager *ContextManager) ArchiveAllEvents() error {
@@ -571,7 +548,9 @@ func (manager *ContextManager) MergeContext(from string, to string) error {
 		}
 
 		state.Contexts[to] = toCtx
-		manager.deleteInternal(state, from)
+		manager.WithSession(func(session Session) error {
+			return session.deleteInternal(from)
+		})
 
 		manager.PublishContextEvent(state.Contexts[to], manager.TimeProvider.Now(), MERGE_CTX, map[string]string{
 			"from": from,

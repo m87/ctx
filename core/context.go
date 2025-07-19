@@ -66,7 +66,6 @@ func (session *Session) RenameContext(srcId string, targetId string, description
 
 }
 
-
 func (session *Session) Free() error {
 	if err := session.ValidateAnyActiveContext(); err != nil {
 		return err
@@ -75,4 +74,19 @@ func (session *Session) Free() error {
 	//manager.endInterval(session.State, session.State.CurrentId, now)
 	session.State.CurrentId = ""
 	return nil
+}
+
+func (session *Session) deleteInternal(ctxId string) error {
+	if err := session.IsValidContext(ctxId); err != nil {
+		return err
+	}
+
+	// ctx := session.State.Contexts[ctxId]
+	delete(session.State.Contexts, ctxId)
+	// manager.PublishContextEvent(context, manager.TimeProvider.Now(), DELETE_CTX, nil)
+	return nil
+}
+
+func (session *Session) Delete(ctxId string) error {
+	return session.deleteInternal(ctxId)
 }

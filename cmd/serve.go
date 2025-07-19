@@ -3,26 +3,22 @@
 package cmd
 
 import (
-	"fmt"
-	"net/http"
-
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/server"
 	"github.com/spf13/cobra"
 )
 
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello, REST API!")
-}
-
-var serveCmd = &cobra.Command{
-	Use:   "serve",
-	Short: "Run as a server",
-
-	Run: func(cmd *cobra.Command, args []string) {
-		server.Serve()
-	},
+func NewServeCmd(manager *core.ContextManager) *cobra.Command {
+	return &cobra.Command{
+		Use:   "serve",
+		Short: "Run as a server",
+		Run: func(cmd *cobra.Command, args []string) {
+			server.Serve(manager)
+		},
+	}
 }
 
 func init() {
-	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(NewServeCmd(bootstrap.CreateManager()))
 }

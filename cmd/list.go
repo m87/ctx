@@ -1,29 +1,38 @@
 package cmd
 
 import (
-	localstorage "github.com/m87/ctx/storage/local"
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/cmd/flags"
+	"github.com/m87/ctx/core"
+	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
-var listCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"ls", "l"},
-	Short:   "List contexts",
-	Run: func(cmd *cobra.Command, args []string) {
-		mgr := localstorage.CreateManager()
-		if j, _ := cmd.Flags().GetBool("json"); j {
-			mgr.ListJson()
-		} else if f, _ := cmd.Flags().GetBool("verbose"); f {
-			mgr.ListFull()
-		} else {
-			mgr.List()
-		}
+func NewListCmd(manager *core.ContextManager) *cobra.Command {
+	return &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls", "l"},
+		Short:   "List contexts",
+		Run: func(cmd *cobra.Command, args []string) {
+			json, err := flags.ResolveJsonFlag(cmd)
+			util.Check(err)
+			verbose, err := flags.ResolveVerboseFlag(cmd)
+			util.Check(err)
 
-	},
+			if json {
+				manager.ListJson()
+			} else if verbose {
+				manager.ListFull()
+			} else {
+				manager.List()
+			}
+		},
+	}
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
-	listCmd.Flags().BoolP("verbose", "v", false, "show full list")
-	listCmd.Flags().BoolP("json", "j", false, "show list as json")
+	cmd := NewListCmd(bootstrap.CreateManager())
+	flags.AddVerboseFlag(cmd)
+	flags.AddJsonFlag(cmd)
+	rootCmd.AddCommand(cmd)
 }

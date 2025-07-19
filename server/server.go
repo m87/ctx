@@ -381,7 +381,7 @@ func deleteInterval(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func Serve() {
+func Serve(manager *core.ContextManager) {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
 		log.Fatal(err)
