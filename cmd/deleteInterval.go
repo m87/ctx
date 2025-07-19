@@ -27,7 +27,9 @@ func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	deleteCmd.AddCommand(NewDeleteIntervalCmd(bootstrap.CreateManager()))
+	cmd := NewDeleteIntervalCmd(bootstrap.CreateManager())
 	flags.AddContxtFlag(deleteCmd)
 	flags.AddIntervalFlag(deleteCmd)
+
+	deleteCmd.AddCommand(cmd)
 }
