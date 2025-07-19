@@ -5,51 +5,55 @@ import (
 	"strings"
 	"time"
 
-	localstorage "github.com/m87/ctx/storage/local"
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	ctxtime "github.com/m87/ctx/time"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
-var editContextIntervalCmd = &cobra.Command{
-	Use:   "interval",
-	Short: "Edit selected interval",
-	Run: func(cmd *cobra.Command, args []string) {
-		description := strings.TrimSpace(args[0])
-		id, err := util.Id(description, false)
-		util.Checkm(err, "Unable to process id "+description)
+func NewEditContextIntervalCmd(manager *core.ContextManager) *cobra.Command {
+	return &cobra.Command{
+		Use:   "interval",
+		Short: "Edit selected interval",
+		Run: func(cmd *cobra.Command, args []string) {
+			description := strings.TrimSpace(args[0])
+			id, err := util.Id(description, false)
+			util.Checkm(err, "Unable to process id "+description)
 
-		mgr := localstorage.CreateManager()
+			ctx, err := manager.Ctx(id)
 
-		ctx, err := mgr.Ctx(id)
-
-		if err != nil {
-			panic("Context not found: " + id)
-		}
-
-		if len(args) > 1 {
-			var err error
-			intervalId := args[1]
-			util.Checkm(err, "Unable to parse id")
-
-			loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 			if err != nil {
-				loc = time.UTC
+				panic("Context not found: " + id)
 			}
-			startDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[2]), loc)
-			util.Checkm(err, "Unable to parse start datetime")
-			endDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[3]), loc)
-			util.Checkm(err, "Unable to parse end datetime")
 
-			mgr.EditContextIntervalById(id, intervalId, ctxtime.ZonedTime{Time: startDT, Timezone: loc.String()}, ctxtime.ZonedTime{Time: endDT, Timezone: loc.String()})
-		} else {
-			for _, interval := range ctx.Intervals {
-				fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
+			if len(args) > 1 {
+				var err error
+				intervalId := args[1]
+				util.Checkm(err, "Unable to parse id")
+
+				loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
+				if err != nil {
+					loc = time.UTC
+				}
+				startDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[2]), loc)
+				util.Checkm(err, "Unable to parse start datetime")
+				endDT, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[3]), loc)
+				util.Checkm(err, "Unable to parse end datetime")
+
+				manager.EditContextIntervalById(id, intervalId, ctxtime.ZonedTime{Time: startDT, Timezone: loc.String()}, ctxtime.ZonedTime{Time: endDT, Timezone: loc.String()})
+			} else {
+				for _, interval := range ctx.Intervals {
+					fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
+				}
 			}
-		}
 
-	},
+		},
+	}
+
 }
+
+var editContextIntervalCmd = NewEditContextIntervalCmd(bootstrap.CreateManager())
 
 func init() {
 	editContextCmd.AddCommand(editContextIntervalCmd)
