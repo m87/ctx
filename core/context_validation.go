@@ -33,6 +33,13 @@ func (session *Session) ValidateContextExists(id string) error {
 	return nil
 }
 
+func (session *Session) ValidateContextAlreadyExists(id string) error {
+	if _, ok := session.State.Contexts[id]; ok {
+		return errors.New("context already exists")
+	}
+	return nil
+}
+
 func (session *Session) ValidateContextsExist(ids ...string) error {
 	errs := []error{}
 	for _, id := range ids {
@@ -56,4 +63,3 @@ func IsValidDescription(description string) error {
 	}
 	return nil
 }
-

@@ -67,7 +67,6 @@ func (manager *ContextManager) WithSession(fn func(session Session) error) error
 	return nil
 }
 
-
 func (manager *ContextManager) GetIntervalDurationsByDate(s *State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
 	var duration time.Duration = 0
 	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
@@ -115,10 +114,6 @@ func (manager *ContextManager) GetIntervalsByDate(s *State, id string, date ctxt
 	}
 	return intervals
 }
-
-
-
-
 
 func (manager *ContextManager) PublishEvent(event Event) error {
 	return manager.EventsStore.Apply(func(er *EventRegistry) error {

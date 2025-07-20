@@ -9,10 +9,32 @@ import (
 var TEST_ID = "test-context"
 var TEST_ID_2 = "test-context-2"
 var TEST_INTERVAL_ID = "test-interval-1"
+var TEST_INTERVAL_2_ID = "test-interval-1"
+
+type TestTimeProvider struct {
+	currentTime time.Time
+}
+
+func (t *TestTimeProvider) Now() ctxtime.ZonedTime {
+	return ctxtime.ZonedTime{
+		Time:     t.currentTime,
+		Timezone: time.UTC.String(),
+	}
+}
+
+func (t *TestTimeProvider) SetCurrentTimeFromString(timeStr string) error {
+	parsedTime, err := time.Parse(time.DateTime, timeStr)
+	if err != nil {
+		return err
+	}
+	t.currentTime = parsedTime
+	return nil
+}
 
 func CreateTestSession() *Session {
 	dt := time.Date(2025, 2, 2, 12, 12, 12, 0, time.UTC)
 	return &Session{
+		TimeProvider: &TestTimeProvider{currentTime: dt},
 		State: &State{
 			Contexts: map[string]Context{
 				"test-context": {

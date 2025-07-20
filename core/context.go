@@ -152,7 +152,7 @@ func (session *Session) createContetxtInternal(id string, description string) er
 		return err
 	}
 
-	if err := session.ValidateContextExists(id); err != nil {
+	if err := session.ValidateContextAlreadyExists(id); err != nil {
 		return err
 	}
 
@@ -209,8 +209,12 @@ func (session *Session) contextExists(ctxId string) bool {
 	return ok
 }
 
+func (session *Session) contextNotExists(ctxId string) bool {
+	return !session.contextExists(ctxId)
+}
+
 func (session *Session) CreateIfNotExistsAndSwitch(ctxId string, description string) error {
-	if session.contextExists(ctxId) {
+	if session.contextNotExists(ctxId) {
 		err := session.createContetxtInternal(ctxId, description)
 		if err != nil {
 			return err

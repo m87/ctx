@@ -42,6 +42,5 @@ func ListJson(session core.Session) string {
 	}
 	s, _ := json.Marshal(v)
 
-	return fmt.Sprintf("%s", string(s))
+	return string(s)
 }
-
