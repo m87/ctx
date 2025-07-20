@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/cmd/flags"
 	"github.com/m87/ctx/cmd/tui"
@@ -21,13 +23,12 @@ func NewListCmd(manager *core.ContextManager) *cobra.Command {
 			util.Check(err)
 
 			manager.WithSession(func(session core.Session) error {
-
 				if json {
-					tui.ListJson(session)
+					fmt.Println(tui.ListJson(session))
 				} else if verbose {
-					tui.ListFull(session)
+					fmt.Println(tui.ListFull(session))
 				} else {
-					tui.List(session)
+					fmt.Println(tui.List(session))
 				}
 
 				return nil

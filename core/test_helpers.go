@@ -79,8 +79,5 @@ func CreateTestSession() *Session {
 				},
 			},
 		},
-		EventsRegistry: &EventRegistry{
-			Events: []Event{},
-		},
 	}
 }

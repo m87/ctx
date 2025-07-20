@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/m87/ctx/core"
-	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -16,14 +14,6 @@ var rootCmd = &cobra.Command{
 	Use:     "ctx",
 	Version: core.Version,
 	Run: func(cmd *cobra.Command, args []string) {
-		mgr := localstorage.CreateManager()
-
-		mgr.ContextStore.Read(func(s *core.State) error {
-			if s.CurrentId != "" {
-				fmt.Println(s.Contexts[s.CurrentId].Description)
-			}
-			return nil
-		})
 	},
 }
 
