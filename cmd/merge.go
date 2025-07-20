@@ -21,7 +21,7 @@ func NewMergeCmd(manager *core.ContextManager) *cobra.Command {
 			toId, err := flags.ResolveCustomContextId(cmd, "to")
 			util.Check(err)
 
-			util.Check(manager.MergeContext(fromId, toId))
+			util.Check(manager.WithSession(func(session core.Session) error { return session.MergeContext(fromId, toId) }))
 		},
 	}
 }

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"sort"
 	"time"
 )
@@ -76,6 +77,14 @@ func (session *Session) Free() error {
 	return nil
 }
 
+func (session *Session) Ctx(ctxId string) Context {
+	return session.State.Contexts[ctxId]
+}
+
+func (session *Session) SetCtx(ctx Context) {
+	session.State.Contexts[ctx.Id] = ctx
+}
+
 func (session *Session) deleteInternal(ctxId string) error {
 	if err := session.IsValidContext(ctxId); err != nil {
 		return err
@@ -89,4 +98,41 @@ func (session *Session) deleteInternal(ctxId string) error {
 
 func (session *Session) Delete(ctxId string) error {
 	return session.deleteInternal(ctxId)
+}
+
+func (session *Session) MergeContext(from string, to string) error {
+	if from == to {
+		return errors.New("contexts are the same")
+	}
+
+	if err := session.ValidateContextsExist(from, to); err != nil {
+		return err
+	}
+
+	if err := session.ValidateActiveContext(from); err != nil {
+		return err
+	}
+
+	fromCtx := session.Ctx(from)
+	toCtx := session.Ctx(to)
+
+	toCtx.Comments = append(toCtx.Comments, fromCtx.Comments...)
+	toCtx.Labels = append(toCtx.Labels, fromCtx.Labels...)
+	toCtx.Duration = toCtx.Duration + fromCtx.Duration
+
+	for _, interval := range fromCtx.Intervals {
+		if _, ok := toCtx.Intervals[interval.Id]; !ok {
+			toCtx.Intervals[interval.Id] = interval
+		}
+	}
+
+	session.SetCtx(toCtx)
+	session.deleteInternal(from)
+
+	// manager.PublishContextEvent(state.Contexts[to], manager.TimeProvider.Now(), MERGE_CTX, map[string]string{
+	// 	"from": from,
+	// 	"to":   to,
+	// })
+
+	return nil
 }

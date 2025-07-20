@@ -30,6 +30,15 @@ func (session *Session) ValidateContextExists(id string) error {
 	return nil
 }
 
+func (session *Session) ValidateContextsExist(ids ...string) error {
+	errs := []error{}
+	for _, id := range ids {
+		errs = append(errs, session.ValidateContextExists(id))
+	}
+
+	return errors.Join(errs...)
+}
+
 func (session *Session) ValidateIntervalExists(ctxId, id string) error {
 	ctx := session.State.Contexts[ctxId]
 	if _, ok := ctx.Intervals[id]; ok {

@@ -518,50 +518,6 @@ func (manager *ContextManager) ArchiveAll() error {
 	return manager.ArchiveAllEvents()
 }
 
-func (manager *ContextManager) MergeContext(from string, to string) error {
-	return manager.ContextStore.Apply(func(state *State) error {
-		if from == to {
-			return errors.New("contexts are the same")
-		}
-
-		if from == state.CurrentId {
-			return errors.New("from context is active")
-		}
-
-		if _, ok := state.Contexts[from]; !ok {
-			return errors.New("context does not exists: " + from)
-		}
-		if _, ok := state.Contexts[to]; !ok {
-			return errors.New("context does not exists: " + to)
-		}
-
-		fromCtx := state.Contexts[from]
-		toCtx := state.Contexts[to]
-
-		toCtx.Comments = append(toCtx.Comments, fromCtx.Comments...)
-		toCtx.Duration = toCtx.Duration + fromCtx.Duration
-
-		for _, interval := range fromCtx.Intervals {
-			if _, ok := toCtx.Intervals[interval.Id]; !ok {
-				toCtx.Intervals[interval.Id] = interval
-			}
-		}
-
-		state.Contexts[to] = toCtx
-		manager.WithSession(func(session Session) error {
-			return session.deleteInternal(from)
-		})
-
-		manager.PublishContextEvent(state.Contexts[to], manager.TimeProvider.Now(), MERGE_CTX, map[string]string{
-			"from": from,
-			"to":   to,
-		})
-
-		return nil
-	},
-	)
-}
-
 func (manager *ContextManager) SplitContextIntervalById(ctxId string, id string, split time.Time) error {
 	manager.ContextStore.Apply(func(s *State) error {
 		context, ok := s.Contexts[id]

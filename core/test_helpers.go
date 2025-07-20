@@ -7,7 +7,8 @@ import (
 )
 
 var TEST_ID = "test-context"
-var TEST_INTERVAL_ID = "test-interval"
+var TEST_ID_2 = "test-context-2"
+var TEST_INTERVAL_ID = "test-interval-1"
 
 func CreateTestSession() *Session {
 	dt := time.Date(2025, 2, 2, 12, 12, 12, 0, time.UTC)
@@ -18,8 +19,9 @@ func CreateTestSession() *Session {
 					Id:          TEST_ID,
 					Description: "Test Context",
 					Duration:    2 * time.Hour,
+					Labels:      []string{"test1-2", "test1-1"},
 					Intervals: map[string]Interval{
-						"test-interval": {
+						"test-interval-1": {
 							Id:       "test-interval",
 							Start:    ctxtime.ZonedTime{Time: dt, Timezone: "UTC"},
 							End:      ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
@@ -27,6 +29,26 @@ func CreateTestSession() *Session {
 						},
 						"test-interval-2": {
 							Id:       "test-interval-2",
+							Start:    ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
+							End:      ctxtime.ZonedTime{Time: dt.Add(3 * time.Hour), Timezone: "UTC"},
+							Duration: 1 * time.Hour,
+						},
+					},
+				},
+				"test-context-2": {
+					Id:          TEST_ID_2,
+					Description: "Test2 Context",
+					Duration:    2 * time.Hour,
+					Labels:      []string{"test2-2", "test2-1"},
+					Intervals: map[string]Interval{
+						"test-interval-2-1": {
+							Id:       "test-interval-2-1",
+							Start:    ctxtime.ZonedTime{Time: dt, Timezone: "UTC"},
+							End:      ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
+							Duration: 1 * time.Hour,
+						},
+						"test-interval-2-2": {
+							Id:       "test-interval-2-2",
 							Start:    ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
 							End:      ctxtime.ZonedTime{Time: dt.Add(3 * time.Hour), Timezone: "UTC"},
 							Duration: 1 * time.Hour,
