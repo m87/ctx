@@ -73,3 +73,9 @@ func TestMergContextNotExistContext(t *testing.T) {
 	err = session.MergeContext("not-found", TEST_ID)
 	assert.Error(t, err)
 }
+
+func TestMergeSameContext(t *testing.T) {
+	session := CreateTestSession()
+	err := session.MergeContext(TEST_ID, TEST_ID)
+	assert.Error(t, err)
+}
