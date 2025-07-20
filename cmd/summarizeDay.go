@@ -64,7 +64,7 @@ func NewSummarizeDayCmd(manager *core.ContextManager) *cobra.Command {
 				overallDuration := time.Duration(0)
 
 				for ctxId, _ := range session.State.Contexts {
-					d, err := manager.GetIntervalDurationsByDate(session.State, ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
+					d, err := session.GetIntervalDurationsByDate(ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 					util.Checkm(err, "Unable to get interval durations for context "+ctxId)
 					durations[ctxId] = roundDuration(d, roundUnit)
 				}
@@ -97,7 +97,7 @@ func NewSummarizeDayCmd(manager *core.ContextManager) *cobra.Command {
 						}
 
 						if d > 0 {
-							for _, interval := range manager.GetIntervalsByDate(session.State, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()}) {
+							for _, interval := range session.GetIntervalsByDate(c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()}) {
 								output.Intervals[interval.Id] = core.Interval{
 									Start:    interval.Start,
 									End:      interval.End,
@@ -121,7 +121,7 @@ func NewSummarizeDayCmd(manager *core.ContextManager) *cobra.Command {
 						if d > 0 {
 							fmt.Printf("- %s: %s\n", ctx.Description, d)
 							if f, _ := cmd.Flags().GetBool("verbose"); f {
-								intervals := manager.GetIntervalsByDate(session.State, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
+								intervals := session.GetIntervalsByDate(c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 								for _, interval := range ctx.Intervals {
 									if containsInterval(intervals, interval.Id) {
 										fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))

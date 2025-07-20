@@ -51,7 +51,7 @@ func NewEditContextIntervalSplitCmd(manager *core.ContextManager) *cobra.Command
 						panic("split time is after interval end time")
 					}
 
-					manager.SplitContextIntervalById(id, intervalId, split)
+					session.SplitContextIntervalById(id, intervalId, split)
 				} else {
 					for _, interval := range ctx.Intervals {
 						fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))

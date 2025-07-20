@@ -42,7 +42,7 @@ func NewEditContextIntervalMoveCmd(manager *core.ContextManager) *cobra.Command 
 					intervalId := args[1]
 					util.Checkm(err, "Unable to parse id")
 
-					manager.MoveIntervalById(idSrc, idTarget, intervalId)
+					session.MoveIntervalById(idSrc, idTarget, intervalId)
 				} else {
 					for _, interval := range ctxSrc.Intervals {
 						fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
