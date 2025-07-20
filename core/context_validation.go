@@ -1,6 +1,9 @@
 package core
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 func (session *Session) IsValidContext(id string) error {
 	return errors.Join(
@@ -46,3 +49,11 @@ func (session *Session) ValidateIntervalExists(ctxId, id string) error {
 	}
 	return errors.New("interval does not exist")
 }
+
+func IsValidDescription(description string) error {
+	if strings.TrimSpace(description) == "" {
+		return errors.New("empty description")
+	}
+	return nil
+}
+

@@ -21,7 +21,10 @@ func NewEditContextIntervalCmd(manager *core.ContextManager) *cobra.Command {
 			id, err := util.Id(description, false)
 			util.Checkm(err, "Unable to process id "+description)
 
-			ctx, err := manager.Ctx(id)
+			manager.WithSession(func(session core.Session) error {
+
+
+			ctx, err := session.GetCtx(id)
 
 			if err != nil {
 				panic("Context not found: " + id)
@@ -47,6 +50,9 @@ func NewEditContextIntervalCmd(manager *core.ContextManager) *cobra.Command {
 					fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
 				}
 			}
+
+			return nil
+			})
 
 		},
 	}

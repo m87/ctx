@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,64 +67,6 @@ func (manager *ContextManager) WithSession(fn func(session Session) error) error
 	return nil
 }
 
-func (manager *ContextManager) createContetxtInternal(state *State, id string, description string) error {
-	if len(strings.TrimSpace(id)) == 0 {
-		return errors.New("empty id")
-	}
-	if len(strings.TrimSpace(description)) == 0 {
-		return errors.New("empty description")
-	}
-
-	if _, ok := state.Contexts[id]; ok {
-		return errors.New("context already exists")
-	} else {
-		state.Contexts[id] = Context{
-			Id:          id,
-			Description: description,
-			State:       ACTIVE,
-			Intervals:   map[string]Interval{},
-		}
-		manager.PublishContextEvent(state.Contexts[id], manager.TimeProvider.Now(), CREATE_CTX, nil)
-	}
-	return nil
-}
-
-func (manager *ContextManager) CreateContext(id string, description string) error {
-	return manager.ContextStore.Apply(
-		func(state *State) error {
-			return manager.createContetxtInternal(state, id, description)
-		},
-	)
-}
-
-func (manager *ContextManager) List() {
-	//manager.ContextStore.Read(
-	//	func(state *State) error {
-	//		ids := manager.getSortedContextIds(state)
-	//		for _, id := range ids {
-	//			v := state.Contexts[id]
-	//			fmt.Printf("- %s\n", v.Description)
-	//		}
-	//		return nil
-	//	},
-	//)
-}
-
-func (manager *ContextManager) ListFull() {
-	//manager.ContextStore.Read(
-	//	func(state *State) error {
-	//		ids := manager.getSortedContextIds(state)
-	//		for _, id := range ids {
-	//			v := state.Contexts[id]
-	//			fmt.Printf("- [%s] %s\n", id, v.Description)
-	//			for _, interval := range v.Intervals {
-	//				fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
-	//			}
-	//		}
-	//		return nil
-	//	},
-	//)
-}
 
 func (manager *ContextManager) GetIntervalDurationsByDate(s *State, id string, date ctxtime.ZonedTime) (time.Duration, error) {
 	var duration time.Duration = 0
@@ -175,132 +116,9 @@ func (manager *ContextManager) GetIntervalsByDate(s *State, id string, date ctxt
 	return intervals
 }
 
-func (manager *ContextManager) ListJson() {
-	manager.ContextStore.Read(
-		func(state *State) error {
-			v := make([]Context, 0, len(state.Contexts))
-			for _, c := range state.Contexts {
-				v = append(v, c)
-			}
-			s, _ := json.Marshal(v)
 
-			fmt.Printf("%s", string(s))
-			return nil
-		},
-	)
-}
 
-func (manager *ContextManager) ListJson2() []Context {
-	output := []Context{}
-	manager.ContextStore.Read(
-		func(state *State) error {
-			for _, c := range state.Contexts {
-				output = append(output, c)
-			}
-			return nil
-		},
-	)
-	return output
-}
 
-func (manager *ContextManager) getActiveInterval(state *State, id string) (Interval, bool) {
-	lastInterval := Interval{}
-	if ctx, ok := state.Contexts[id]; ok {
-		if len(ctx.Intervals) > 0 {
-			for _, interval := range ctx.Intervals {
-				if interval.End.Time.IsZero() {
-					lastInterval = interval
-					return lastInterval, true
-				}
-			}
-		}
-	}
-
-	return lastInterval, false
-}
-
-func (manager *ContextManager) endInterval(state *State, id string, now ctxtime.ZonedTime) {
-	prev := state.Contexts[state.CurrentId]
-
-	if interval, ok := manager.getActiveInterval(state, id); ok {
-		interval.End = now
-		interval.Duration = interval.End.Time.Sub(interval.Start.Time)
-		state.Contexts[state.CurrentId].Intervals[interval.Id] = interval
-		prev.Duration = prev.Duration + interval.Duration
-		state.Contexts[state.CurrentId] = prev
-		manager.PublishContextEvent(state.Contexts[id], now, END_INTERVAL, map[string]string{
-			"duration": interval.Duration.String(),
-		})
-	}
-
-}
-
-func (manager *ContextManager) switchInternal(state *State, id string) error {
-	if len(strings.TrimSpace(id)) == 0 {
-		return errors.New("empty id")
-	}
-
-	if state.CurrentId == id {
-		return errors.New("context already active")
-	}
-
-	if _, ok := state.Contexts[id]; !ok {
-		return errors.New("context does not exist")
-	}
-
-	now := manager.TimeProvider.Now()
-	prevId := state.CurrentId
-	if state.CurrentId != "" {
-		manager.endInterval(state, state.CurrentId, now)
-	}
-
-	if ctx, ok := state.Contexts[id]; ok {
-		state.CurrentId = ctx.Id
-		manager.PublishContextEvent(state.Contexts[id], now, SWITCH_CTX, map[string]string{
-			"from": prevId,
-		})
-		intervalId := uuid.NewString()
-		ctx.Intervals[intervalId] = Interval{Id: uuid.NewString(), Start: now}
-		manager.PublishContextEvent(state.Contexts[id], now, START_INTERVAL, nil)
-		state.Contexts[id] = ctx
-	}
-	return nil
-}
-
-func (manager *ContextManager) Switch(id string) error {
-	return manager.ContextStore.Apply(
-		func(state *State) error {
-			if _, ok := state.Contexts[id]; ok {
-				return manager.switchInternal(state, id)
-			} else {
-				return errors.New("context does not exists")
-			}
-		})
-}
-
-func (manager *ContextManager) CreateIfNotExistsAndSwitch(id string, description string) error {
-	return manager.ContextStore.Apply(
-		func(state *State) error {
-			if _, ok := state.Contexts[id]; !ok {
-				err := manager.createContetxtInternal(state, id, description)
-				if err != nil {
-					return err
-				}
-			}
-			return manager.switchInternal(state, id)
-		})
-}
-
-func (manager *ContextManager) Ctx(id string) (Context, error) {
-	ctx := Context{}
-
-	manager.ContextStore.Read(func(s *State) error {
-		ctx = s.Contexts[id]
-		return nil
-	})
-
-	return ctx, nil
-}
 
 func (manager *ContextManager) PublishEvent(event Event) error {
 	return manager.EventsStore.Apply(func(er *EventRegistry) error {

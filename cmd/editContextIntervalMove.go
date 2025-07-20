@@ -25,27 +25,32 @@ func NewEditContextIntervalMoveCmd(manager *core.ContextManager) *cobra.Command 
 			idTarget, err := util.Id(descriptionTarget, false)
 			util.Checkm(err, "Unable to process id target "+descriptionTarget)
 
-			ctxSrc, err := manager.Ctx(idSrc)
+			manager.WithSession(func(session core.Session) error {
 
-			if err != nil {
-				panic("Context not found: " + idSrc)
-			}
-			_, err = manager.Ctx(idTarget)
-			if err != nil {
-				panic("Context not found: " + idTarget)
-			}
+				ctxSrc, err := session.GetCtx(idSrc)
 
-			if len(args) > 2 {
-				var err error
-				intervalId := args[1]
-				util.Checkm(err, "Unable to parse id")
-
-				manager.MoveIntervalById(idSrc, idTarget, intervalId)
-			} else {
-				for _, interval := range ctxSrc.Intervals {
-					fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
+				if err != nil {
+					panic("Context not found: " + idSrc)
 				}
-			}
+				_, err = session.GetCtx(idTarget)
+				if err != nil {
+					panic("Context not found: " + idTarget)
+				}
+
+				if len(args) > 2 {
+					var err error
+					intervalId := args[1]
+					util.Checkm(err, "Unable to parse id")
+
+					manager.MoveIntervalById(idSrc, idTarget, intervalId)
+				} else {
+					for _, interval := range ctxSrc.Intervals {
+						fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
+					}
+				}
+
+				return nil
+			})
 
 		},
 	}

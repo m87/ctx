@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/cmd/flags"
 	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -19,11 +18,12 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 	ctx create "new context with spaces"
 	`,
 		Run: func(cmd *cobra.Command, args []string) {
-			description := strings.TrimSpace(args[0])
-			id, err := util.Id(description, false)
-			util.Checkm(err, "Unable to process id "+description)
+			description, err := flags.GetStringArg(args, 0, "description")
+			util.Check(err)
+			id, err := flags.ResolveArgumentAsContextId(args, 0, "description")
+			util.Check(err)
 
-			util.Check(manager.CreateContext(id, description))
+			util.Check(manager.WithSession(func(session core.Session) error { return session.CreateContext(id, description) }))
 		},
 	}
 
@@ -31,5 +31,6 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 
 func init() {
 	cmd := NewCreateContextCmd(bootstrap.CreateManager())
+
 	rootCmd.AddCommand(cmd)
 }

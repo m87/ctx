@@ -1,6 +1,9 @@
 package flags
 
-import "github.com/spf13/cobra"
+import (
+
+	"github.com/spf13/cobra"
+)
 
 func AddDeleteFlag(cmd *cobra.Command, description string) {
 	cmd.Flags().BoolP("delete", "d", false, description)
@@ -33,3 +36,4 @@ func AddJsonFlag(cmd *cobra.Command) {
 func ResolveJsonFlag(cmd *cobra.Command) (bool, error) {
 	return cmd.Flags().GetBool("json")
 }
+

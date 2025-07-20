@@ -1,5 +1,7 @@
 package core
 
+import ctxtime "github.com/m87/ctx/time"
+
 func (session *Session) DeleteInterval(ctxId string, id string) error {
 	if err := session.IsValidContext(ctxId); err != nil {
 		return err
@@ -34,4 +36,29 @@ func (session *Session) GetActiveIntervals(ctxId string) ([]string, error) {
 	}
 
 	return intervals, nil
+}
+
+func (session *Session) endInterval(ctxId string, now ctxtime.ZonedTime) error {
+  if err := session.ValidateContextExists(ctxId); err != nil {
+		return err
+	}
+  intervals, err := session.GetActiveIntervals(ctxId);
+	if err != nil {
+		return err
+	}
+
+	state := session.State
+
+	for _, intervalId := range intervals {
+		ctx := state.Contexts[ctxId]
+		interval := ctx.Intervals[intervalId]
+		interval.End = now
+		interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+		ctx.Intervals[interval.Id] = interval
+		ctx.Duration += interval.Duration
+	//	manager.PublishContextEvent(state.Contexts[id], now, END_INTERVAL, map[string]string{
+	//		"duration": interval.Duration.String(),
+	//	})
+	}
+	return nil
 }

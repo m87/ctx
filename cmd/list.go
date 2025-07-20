@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/cmd/flags"
+	"github.com/m87/ctx/cmd/tui"
 	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
@@ -19,13 +20,18 @@ func NewListCmd(manager *core.ContextManager) *cobra.Command {
 			verbose, err := flags.ResolveVerboseFlag(cmd)
 			util.Check(err)
 
-			if json {
-				manager.ListJson()
-			} else if verbose {
-				manager.ListFull()
-			} else {
-				manager.List()
-			}
+			manager.WithSession(func(session core.Session) error {
+
+				if json {
+					tui.ListJson(session)
+				} else if verbose {
+					tui.ListFull(session)
+				} else {
+					tui.List(session)
+				}
+
+				return nil
+			})
 		},
 	}
 }

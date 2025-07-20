@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sort"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ContextState int
@@ -77,8 +79,16 @@ func (session *Session) Free() error {
 	return nil
 }
 
-func (session *Session) Ctx(ctxId string) Context {
+func (session *Session) MustGetCtx(ctxId string) Context {
 	return session.State.Contexts[ctxId]
+}
+
+func (session *Session) GetCtx(ctxId string) (Context, error) {
+	if err := session.IsValidContext(ctxId); err != nil {
+		return Context{}, err
+	}
+
+	return session.State.Contexts[ctxId], nil
 }
 
 func (session *Session) SetCtx(ctx Context) {
@@ -113,8 +123,8 @@ func (session *Session) MergeContext(from string, to string) error {
 		return err
 	}
 
-	fromCtx := session.Ctx(from)
-	toCtx := session.Ctx(to)
+	fromCtx := session.MustGetCtx(from)
+	toCtx := session.MustGetCtx(to)
 
 	toCtx.Comments = append(toCtx.Comments, fromCtx.Comments...)
 	toCtx.Labels = append(toCtx.Labels, fromCtx.Labels...)
@@ -135,4 +145,76 @@ func (session *Session) MergeContext(from string, to string) error {
 	// })
 
 	return nil
+}
+
+func (session *Session) createContetxtInternal(id string, description string) error {
+	if err := IsValidDescription(description); err != nil {
+		return err
+	}
+
+	if err := session.ValidateContextExists(id); err != nil {
+		return err
+	}
+
+	session.State.Contexts[id] = Context{
+		Id:          id,
+		Description: description,
+		State:       ACTIVE,
+		Intervals:   map[string]Interval{},
+		Labels:      []string{},
+		Comments:    []string{},
+	}
+	//manager.PublishContextEvent(state.Contexts[id], manager.TimeProvider.Now(), CREATE_CTX, nil)
+	return nil
+}
+
+func (session *Session) CreateContext(ctxId string, description string) error {
+	return session.createContetxtInternal(ctxId, description)
+}
+
+func (session *Session) switchInternal(ctxId string) error {
+	if err := session.IsValidContext(ctxId); err != nil {
+		return nil
+	}
+
+	state := session.State
+	now := session.TimeProvider.Now()
+	//prevId := state.CurrentId
+	if state.CurrentId != "" {
+		session.endInterval(state.CurrentId, now)
+	}
+
+	if ctx, ok := state.Contexts[ctxId]; ok {
+		state.CurrentId = ctx.Id
+		//manager.PublishContextEvent(state.Contexts[id], now, SWITCH_CTX, map[string]string{
+		//	"from": prevId,
+		//})
+		intervalId := uuid.NewString()
+		ctx.Intervals[intervalId] = Interval{Id: uuid.NewString(), Start: now}
+		//manager.PublishContextEvent(state.Contexts[ctxId], now, START_INTERVAL, nil)
+		state.Contexts[ctxId] = ctx
+	}
+	return nil
+}
+
+func (session *Session) Switch(ctxId string) error {
+	if err := session.IsValidContext(ctxId); err != nil {
+		return err
+	}
+	return session.switchInternal(ctxId)
+}
+
+func (session *Session) contextExists(ctxId string) bool {
+	_, ok := session.State.Contexts[ctxId]
+	return ok
+}
+
+func (session *Session) CreateIfNotExistsAndSwitch(ctxId string, description string) error {
+	if session.contextExists(ctxId) {
+		err := session.createContetxtInternal(ctxId, description)
+		if err != nil {
+			return err
+		}
+	}
+	return session.switchInternal(ctxId)
 }
