@@ -25,24 +25,28 @@ func NewSearchCmd(manager *core.ContextManager) *cobra.Command {
 			verbose, err := flags.ResolveVerboseFlag(cmd)
 			util.Check(err)
 
-			ctxs, err := manager.Search(regex)
+			manager.WithSession(func(session core.Session) error {
 
-			if err != nil {
-				util.Checkm(err, "Unable to search for context "+regex)
-			}
+				ctxs, err := session.Search(regex)
 
-			if verbose {
-				for _, c := range ctxs {
-					println(c.Id + ": " + c.Description)
-					for _, interval := range c.Intervals {
-						fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+				if err != nil {
+					util.Checkm(err, "Unable to search for context "+regex)
+				}
+
+				if verbose {
+					for _, c := range ctxs {
+						println(c.Id + ": " + c.Description)
+						for _, interval := range c.Intervals {
+							fmt.Printf("\t[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.DateTime), interval.End.Time.Format(time.DateTime))
+						}
+					}
+				} else {
+					for _, c := range ctxs {
+						println(c.Id + ": " + c.Description)
 					}
 				}
-			} else {
-				for _, c := range ctxs {
-					println(c.Id + ": " + c.Description)
-				}
-			}
+				return nil
+			})
 
 		},
 	}

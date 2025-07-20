@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"regexp"
 	"sort"
 	"time"
 
@@ -221,4 +222,15 @@ func (session *Session) CreateIfNotExistsAndSwitch(ctxId string, description str
 		}
 	}
 	return session.switchInternal(ctxId)
+}
+
+func (session *Session) Search(regex string) ([]Context, error) {
+	ctxs := []Context{}
+	re := regexp.MustCompile(regex)
+	for _, ctx := range session.State.Contexts {
+		if re.MatchString(ctx.Description) {
+			ctxs = append(ctxs, ctx)
+		}
+	}
+	return ctxs, nil
 }

@@ -165,3 +165,38 @@ func TestCreateIfNotExistsAndSwitch(t *testing.T) {
 	assert.Len(t, session.State.Contexts, 3)
 	assert.Equal(t, TEST_ID, session.State.CurrentId)
 }
+
+func TestSearchContext(t *testing.T) {
+	session := CreateTestSession()
+	assert.Len(t, session.State.Contexts, 2)
+
+	ctxs, err := session.Search("Test")
+	assert.NoError(t, err)
+	assert.Len(t, ctxs, 2)
+
+	ctxs, err = session.Search("Test2")
+	assert.NoError(t, err)
+	assert.Len(t, ctxs, 1)
+	assert.Equal(t, "Test2 Context", ctxs[0].Description)
+
+	ctxs, err = session.Search("NonExistent")
+	assert.NoError(t, err)
+	assert.Len(t, ctxs, 0)
+}
+func TestSearchContextWithRegex(t *testing.T) {
+	session := CreateTestSession()
+	assert.Len(t, session.State.Contexts, 2)
+
+	ctxs, err := session.Search("Test.*Context")
+	assert.NoError(t, err)
+	assert.Len(t, ctxs, 2)
+
+	ctxs, err = session.Search("Test2 Context")
+	assert.NoError(t, err)
+	assert.Len(t, ctxs, 1)
+	assert.Equal(t, "Test2 Context", ctxs[0].Description)
+
+	ctxs, err = session.Search("NonExistent")
+	assert.NoError(t, err)
+	assert.Len(t, ctxs, 0)
+}

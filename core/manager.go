@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -436,21 +435,4 @@ func (manager *ContextManager) EditContextIntervalById(id string, intervalId str
 		return nil
 	})
 
-}
-
-func (manager *ContextManager) Search(regex string) ([]Context, error) {
-	ctxs := []Context{}
-	re := regexp.MustCompile(regex)
-	err := manager.ContextStore.Read(func(s *State) error {
-		for _, ctx := range s.Contexts {
-			if re.MatchString(ctx.Description) {
-				ctxs = append(ctxs, ctx)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return ctxs, nil
 }
