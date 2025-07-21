@@ -16,11 +16,37 @@ type Session struct {
 	TimeProvider ctxtime.TimeProvider
 }
 
-func NewContextManager(timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State]) *ContextManager {
+func NewContextManager(timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State], archiveStore TransactionalStore[State]) *ContextManager {
 	return &ContextManager{
 		TimeProvider: timeProvider,
 		StateStore:   stateStore,
 	}
+}
+
+func (manager *ContextManager) WithArchiveSession(fn func(session Session) error) error {
+	archiveTx, archive, archiveErr := manager.StateStore.BeginAndGet()
+	if archiveErr != nil {
+		return errors.Join(archiveErr)
+	}
+
+	if err := fn(Session{
+		State:        archive,
+		TimeProvider: manager.TimeProvider,
+	}); err != nil {
+		return err
+	}
+
+	archiveErr = archiveTx.Commit()
+
+	if archiveErr != nil {
+		archiveRollbackErr := archiveTx.Rollback()
+
+		if archiveRollbackErr != nil {
+			panic(errors.Join(archiveRollbackErr))
+		}
+	}
+
+	return nil
 }
 
 func (manager *ContextManager) WithSession(fn func(session Session) error) error {
