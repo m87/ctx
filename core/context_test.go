@@ -119,6 +119,10 @@ func TestSwitchContext(t *testing.T) {
 	err = session.Switch(TEST_ID)
 	assert.NoError(t, err)
 	assert.Equal(t, TEST_ID, session.State.CurrentId)
+
+	for _, v := range session.State.Contexts[TEST_ID_2].Intervals {
+		assert.False(t, v.End.Time.IsZero())
+	}
 }
 
 func TestSwitchContextNotExists(t *testing.T) {
