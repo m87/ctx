@@ -74,8 +74,8 @@ func (session *Session) Free() error {
 	if err := session.ValidateAnyActiveContext(); err != nil {
 		return err
 	}
-	//now := session.TimeProvider.Now()
-	//manager.endInterval(session.State, session.State.CurrentId, now)
+	now := session.TimeProvider.Now()
+	session.endInterval(session.State.CurrentId, now)
 	session.State.CurrentId = ""
 	return nil
 }
@@ -191,7 +191,7 @@ func (session *Session) switchInternal(ctxId string) error {
 		//	"from": prevId,
 		//})
 		intervalId := uuid.NewString()
-		ctx.Intervals[intervalId] = Interval{Id: uuid.NewString(), Start: now}
+		ctx.Intervals[intervalId] = Interval{Id: intervalId, Start: now}
 		//manager.PublishContextEvent(state.Contexts[ctxId], now, START_INTERVAL, nil)
 		state.Contexts[ctxId] = ctx
 	}

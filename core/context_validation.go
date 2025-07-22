@@ -20,7 +20,7 @@ func (session *Session) ValidateActiveContext(id string) error {
 }
 
 func (session *Session) ValidateAnyActiveContext() error {
-	if session.State.CurrentId != "" {
+	if session.State.CurrentId == "" {
 		return errors.New("no active context")
 	}
 	return nil

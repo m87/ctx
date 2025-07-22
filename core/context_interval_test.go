@@ -104,14 +104,23 @@ func TestGetActiveIntervl(t *testing.T) {
 func TestEndInterval(t *testing.T) {
 	session := CreateTestSession()
 
-	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 2)
-	assert.Equal(t, session.State.Contexts[TEST_ID].Duration, 2*time.Hour)
+	session.State.Contexts[TEST_ID].Intervals[TEST_INTERVAL_2_ID] = Interval{
+		Id:       TEST_INTERVAL_2_ID,
+		Start:    session.TimeProvider.Now(),
+		End:      ctxtime.ZonedTime{},
+		Duration: 0,
+	}
+
+	dt, _ := time.Parse(time.DateTime, "2025-02-02T15:15:15Z")
+	session.TimeProvider = &TestTimeProvider{
+		currentTime: dt,
+	}
 
 	err := session.endInterval(TEST_ID, session.TimeProvider.Now())
 	assert.NoError(t, err)
 
 	interval := session.State.Contexts[TEST_ID].Intervals[TEST_INTERVAL_2_ID]
-	assert.NotEqual(t, interval.End.Time, session.TimeProvider.Now().Time)
+	assert.Equal(t, interval.End.Time, session.TimeProvider.Now().Time)
 }
 
 func TestEndIntervalNonExistentContext(t *testing.T) {

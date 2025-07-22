@@ -30,9 +30,6 @@ func (session *Session) GetActiveIntervals(ctxId string) ([]string, error) {
 	if err := session.ValidateContextExists(ctxId); err != nil {
 		return intervals, err
 	}
-	if err := session.ValidateActiveContext(ctxId); err != nil {
-		return intervals, err
-	}
 
 	for _, interval := range session.State.Contexts[ctxId].Intervals {
 		if interval.End.Time.IsZero() {
@@ -61,6 +58,7 @@ func (session *Session) endInterval(ctxId string, now ctxtime.ZonedTime) error {
 		interval.Duration = interval.End.Time.Sub(interval.Start.Time)
 		ctx.Intervals[interval.Id] = interval
 		ctx.Duration += interval.Duration
+		session.SetCtx(ctx)
 		//	manager.PublishContextEvent(state.Contexts[id], now, END_INTERVAL, map[string]string{
 		//		"duration": interval.Duration.String(),
 		//	})
