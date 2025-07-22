@@ -79,7 +79,6 @@ func (store *FileStore[T]) WithTx(fn func(t *T) error) error {
 func CreateManager() *core.ContextManager {
 	return core.NewContextManager(ctxtime.NewTimer(),
 		&FileStore[core.State]{path: filepath.Join(viper.GetString("storePath"), "state")},
-		&MultiFileStore[core.State]{path: filepath.Join(viper.GetString("storePath"), "archive", "state")},
 	)
 }
 

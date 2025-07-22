@@ -1,5 +1,3 @@
-//go:build preview
-
 package server
 
 import (
@@ -56,20 +54,27 @@ func contextList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	mgr := bootstrap.CreateManager()
+	manager := bootstrap.CreateManager()
 
-	json.NewEncoder(w).Encode(mgr.ListJson2())
+	manager.WithSession(func(session core.Session) error {
+		output := []core.Context{}
+		for _, c := range session.State.Contexts {
+			output = append(output, c)
+		}
+		json.NewEncoder(w).Encode(output)
+		return nil
+	})
 }
 
 func currentContext(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	mgr := bootstrap.CreateManager()
+	manager := bootstrap.CreateManager()
 
-	mgr.ContextStore.Read(func(s *core.State) error {
-		if s.CurrentId != "" {
-			json.NewEncoder(w).Encode(s.Contexts[s.CurrentId])
+	manager.WithSession(func(session core.Session) error {
+		if session.State.CurrentId != "" {
+			json.NewEncoder(w).Encode(session.State.Contexts[session.State.CurrentId])
 		} else {
 			json.NewEncoder(w).Encode(nil)
 		}
@@ -82,7 +87,7 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusOK)
-	mgr := bootstrap.CreateManager()
+	manager := bootstrap.CreateManager()
 
 	var p createAndSwitchRequest
 	err := json.NewDecoder(r.Body).Decode(&p)
@@ -92,13 +97,15 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	mgr.CreateIfNotExistsAndSwitch(util.GenerateId(p.Description), p.Description)
+	manager.WithArchiveSession(func(session core.Session) error {
+		return session.CreateIfNotExistsAndSwitch(util.GenerateId(p.Description), p.Description)
+	})
 }
 
 func updateInterval(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	mgr := bootstrap.CreateManager()
+	manager := bootstrap.CreateManager()
 
 	var p EditIntervalRequest
 	err := json.NewDecoder(r.Body).Decode(&p)
@@ -109,7 +116,10 @@ func updateInterval(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	mgr.EditContextInterval(p.Id, p.IntervalId, p.Start, p.End)
+	manager.WithSession(func(session core.Session) error {
+		session.EditContextInterval(p.Id, p.IntervalId, p.Start, p.End)
+		return nil
+	})
 }
 
 func roundDuration(d time.Duration, unit string) time.Duration {
@@ -138,18 +148,18 @@ func intervalsByDate(date time.Time) (IntervalsResponseEntry, error) {
 	if err != nil {
 		loc = time.UTC
 	}
-	mgr := bootstrap.CreateManager()
+	manager := bootstrap.CreateManager()
 
 	response.Date = date.Format(time.DateOnly)
 
-	mgr.ContextStore.Read(func(s *core.State) error {
-		for ctxId, _ := range s.Contexts {
-			intervals := mgr.GetIntervalsByDate(s, ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
+	manager.WithSession(func(session core.Session) error {
+		for ctxId, _ := range session.State.Contexts {
+			intervals := session.GetIntervalsByDate(ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 			for _, i := range intervals {
 				response.Intervals = append(response.Intervals, IntervalEntry{
 					Id:          i.Id,
 					CtxId:       ctxId,
-					Description: s.Contexts[ctxId].Description,
+					Description: session.State.Contexts[ctxId].Description,
 					Interval:    i,
 				})
 			}
@@ -186,7 +196,7 @@ func intervals(w http.ResponseWriter, r *http.Request) {
 
 func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 
-	mgr := bootstrap.CreateManager()
+	manager := bootstrap.CreateManager()
 	durations := map[string]time.Duration{}
 	overallDuration := time.Duration(0)
 	response := DaySummaryResponse{}
@@ -195,39 +205,41 @@ func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 		loc = time.UTC
 	}
 
-	mgr.ContextStore.Read(func(s *core.State) error {
-		for ctxId := range s.Contexts {
-			d, err := mgr.GetIntervalDurationsByDate(s, ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
+	manager.WithSession(func(session core.Session) error {
+		for ctxId, _ := range session.State.Contexts {
+			d, err := session.GetIntervalDurationsByDate(ctxId, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 			util.Checkm(err, "Unable to get interval durations for context "+ctxId)
 			durations[ctxId] = roundDuration(d, "nanosecond")
 		}
-		return nil
-	})
+		sortedIds := make([]string, 0, len(durations))
+		for k := range durations {
+			sortedIds = append(sortedIds, k)
+		}
+		sort.Strings(sortedIds)
 
-	sortedIds := make([]string, 0, len(durations))
-	for k := range durations {
-		sortedIds = append(sortedIds, k)
-	}
-	sort.Strings(sortedIds)
-
-	for _, c := range sortedIds {
-		d := durations[c]
-		ctx, _ := mgr.Ctx(c)
-		if d > 0 {
-			overallDuration += d
-			mgr.ContextStore.Read(func(s *core.State) error {
+		for _, c := range sortedIds {
+			d := durations[c]
+			ctx, _ := session.GetCtx(c)
+			if d > 0 {
+				overallDuration += d
+				intervals := session.GetIntervalsByDate(c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
+				intervalsMap := make(map[string]core.Interval)
+				for _, interval := range intervals {
+					intervalsMap[interval.Id] = interval
+				}
 				response.Contexts = append(response.Contexts, core.Context{
 					Id:          c,
 					Description: ctx.Description,
-					Intervals:   mgr.GetIntervalsByDate(s, c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()}),
+					Intervals:   intervalsMap,
 					Duration:    d,
 				})
-				return nil
-			})
+			}
 		}
-	}
 
-	response.Duration = overallDuration
+		response.Duration = overallDuration
+		return nil
+	})
+
 	return response, nil
 }
 
@@ -338,8 +350,10 @@ func moveInterval(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	mgr := bootstrap.CreateManager()
-	mgr.MoveIntervalById(p.Src, p.Target, p.Id)
+	manager := bootstrap.CreateManager()
+	manager.WithArchiveSession(func(session core.Session) error {
+		return session.MoveIntervalById(p.Src, p.Target, p.Id)
+	})
 }
 
 func splitInterval(w http.ResponseWriter, r *http.Request) {
@@ -358,8 +372,10 @@ func splitInterval(w http.ResponseWriter, r *http.Request) {
 	ctxId := strings.TrimSpace(r.PathValue("ctxId"))
 	id := strings.TrimSpace(r.PathValue("id"))
 
-	mgr := bootstrap.CreateManager()
-	mgr.SplitContextIntervalById(ctxId, id, p.Split.Time)
+	manager := bootstrap.CreateManager()
+	manager.WithSession(func(session core.Session) error {
+		return session.SplitContextIntervalById(ctxId, id, p.Split.Time)
+	})
 
 }
 
@@ -468,14 +484,18 @@ func switchContext(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	mgr := bootstrap.CreateManager()
-	mgr.Switch(p.Id)
+	manager := bootstrap.CreateManager()
+	manager.WithSession(func(session core.Session) error {
+		return session.Switch(p.Id)
+	})
 }
 
 func freeContext(w http.ResponseWriter, request *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	mgr := bootstrap.CreateManager()
-	mgr.Free()
+	manager := bootstrap.CreateManager()
+	manager.WithSession(func(session core.Session) error {
+		return session.Free()
+	})
 }

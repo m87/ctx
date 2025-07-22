@@ -15,7 +15,7 @@ export function TodaySummary() {
         <div className="flex flex-col">
             <div className="flex-1 flex items-center justify-center">
             </div>
-            <Timeline data={intervals ?? {}} ctxNames={names} hideDates={true} hideGuides={true} onItemSelect={(interval) => {setSelectedInterval(interval)}}/>
+            <Timeline data={intervals ?? {}} ctxNames={names ?? []} hideDates={true} hideGuides={true} onItemSelect={(interval) => {setSelectedInterval(interval)}}/>
             <SectionCards contextList={summary?.contexts} term={selectedInterval?.description ?? ''} expandId={selectedInterval?.ctxId ?? ''}></SectionCards>
         </div>
     );

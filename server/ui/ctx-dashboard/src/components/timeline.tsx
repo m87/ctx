@@ -114,7 +114,7 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames}: Timelin
                     </div>
 
                     {dates.map((date, rowIndex) => (
-                        <div key={`row-${rowIndex}`}
+                        <div key={`row-${rowIndex}-${date}`}
                              className={clsx(rowIndex === 0 && !hideGuides ? "border-t" : "", !hideGuides ? "border-b" : "", "pt-1 pb-1 relative w-full h-10 flex items-center")}>
                             {!hideDates &&
                                 <div className="w-24 pr-2 text-sm font-bold text-right text-gray-700 flex">

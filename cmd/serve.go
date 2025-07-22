@@ -1,5 +1,3 @@
-//go:build preview
-
 package cmd
 
 import (
@@ -11,9 +9,8 @@ import (
 
 func NewServeCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
-		Use:   "serve",
-		Short: "Run as a server",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use: "serve",
+		Run: func(cmd *cobra.Command, ars []string) {
 			server.Serve(manager)
 		},
 	}

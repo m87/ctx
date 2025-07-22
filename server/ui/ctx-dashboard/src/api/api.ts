@@ -35,7 +35,7 @@ export interface Interval {
 export interface Context {
     id: string,
     description: string,
-    intervals: Interval[],
+    intervals: { [key: string]: Interval },
     duration: number,
     labels: string[],
 }
@@ -58,7 +58,7 @@ export function mapContext(obj: any): Context {
     id: obj.id,
     description: obj.description,
     duration: obj.duration,
-    intervals: obj.intervals.map(mapInterval),
+    intervals: Object.fromEntries(Object.entries(obj.intervals).map(([key, value]) => [key, mapInterval(value)])),
     labels: obj.labels ?? [],
   };
 }

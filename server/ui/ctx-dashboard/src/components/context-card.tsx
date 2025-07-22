@@ -1,7 +1,7 @@
 import { ArrowDown, ChevronDown, ChevronUp, PlayCircleIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
-import { api, ZonedDateTime } from "@/api/api";
+import { api, ZonedDateTime, Interval } from "@/api/api";
 import IntervalComponent from "./interval-component";
 import { Badge } from "./ui/badge";
 import { colorHash } from "@/lib/utils";
@@ -59,7 +59,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
             </CardHeader>
             {expanded && <CardContent className="flex flex-col gap-2">
                 <div className="flex flex-col justify-center">
-                    {context.intervals?.map((interval) => (
+                    {Object.values(context.intervals ?? []).map((interval: Interval) => (
                         <IntervalComponent key={interval.id} interval={interval} onChange={updateInterval} />
                     ))}
                 </div>

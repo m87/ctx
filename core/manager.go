@@ -16,7 +16,7 @@ type Session struct {
 	TimeProvider ctxtime.TimeProvider
 }
 
-func NewContextManager(timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State], archiveStore TransactionalStore[State]) *ContextManager {
+func NewContextManager(timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State]) *ContextManager {
 	return &ContextManager{
 		TimeProvider: timeProvider,
 		StateStore:   stateStore,
