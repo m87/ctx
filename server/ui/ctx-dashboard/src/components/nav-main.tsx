@@ -1,38 +1,25 @@
 "use client"
 
-import {type LucideIcon} from "lucide-react"
 import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarMenu,
 } from "@/components/ui/sidebar"
-import {Link} from "react-router-dom";
+import { Calendar } from "@/components/ui/calendar"
+import { useState } from "react";
 
-export function NavMain({
-                            items,
-                        }: {
-    items: {
-        title: string
-        url: string
-        icon?: LucideIcon
-    }[]
-}) {
+export function NavMain() {
+    const [selected, setSelected] = useState<Date | undefined>(new Date());
     return (
         <SidebarGroup>
             <SidebarGroupContent className="flex flex-col gap-2">
                 <SidebarMenu>
-                    {items.map((item) => (
-                        <Link to={item.url}>
-                            <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton tooltip={item.title}>
-                                    {item.icon && <item.icon/>}
-                                    <span>{item.title}</span>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </Link>
-                    ))}
+                    <Calendar className="p-0" classNames={{
+                        day_today: "border border-muted-foreground",
+                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                    }}
+                        selected={selected}
+                        onSelect={setSelected}></Calendar>
                 </SidebarMenu>
             </SidebarGroupContent>
         </SidebarGroup>
