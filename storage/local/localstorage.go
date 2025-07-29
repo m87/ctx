@@ -91,7 +91,7 @@ func Load[T any](path string) T {
 	obj := new(T)
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
-		log.Fatal("Unable to parse state file")
+		log.Fatal("Unable to parse state file", err)
 	}
 
 	return *obj
@@ -115,7 +115,7 @@ func LoadState() core.State {
 	state := core.State{}
 	err = json.Unmarshal(data, &state)
 	if err != nil {
-		log.Fatal("Unable to parse state file")
+		log.Fatal("Unable to parse state file", err)
 	}
 
 	return state

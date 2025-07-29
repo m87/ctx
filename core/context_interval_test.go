@@ -142,3 +142,30 @@ func TestEndIntervalNoActiveIntervals(t *testing.T) {
 
 	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 0)
 }
+
+func TestGetIntervalsByData(t *testing.T) {
+	session := CreateTestSession()
+
+	intervals := session.GetIntervalsByDate(TEST_ID, ctxtime.ZonedTime{Time: session.TimeProvider.Now().Time})
+	assert.Len(t, intervals, 2)
+}
+
+func TestGetIntervalsByDateCropEndToCurrentDay(t *testing.T) {
+	session := CreateTestSession()
+	ctx := session.MustGetCtx(TEST_ID)
+	interval := ctx.Intervals[TEST_INTERVAL_2_ID]
+	interval.End = ctxtime.ZonedTime{Time: session.TimeProvider.Now().Time.Add(48 * time.Hour), Timezone: "UTC"}
+	ctx.Intervals[TEST_INTERVAL_2_ID] = interval
+	session.SetCtx(ctx)
+
+	intervals := session.GetIntervalsByDate(TEST_ID, ctxtime.ZonedTime{Time: session.TimeProvider.Now().Time})
+	assert.Len(t, intervals, 2)
+	for _, interval := range intervals {
+		if interval.Id == TEST_INTERVAL_2_ID {
+			assert.Equal(t, interval.Duration, 10*time.Hour + 47*time.Minute + 47*time.Second)
+	    loc, _ := time.LoadLocation("UTC")
+			dt, _ := time.ParseInLocation(time.DateTime, "2025-02-02 23:59:59", loc)
+			assert.Equal(t, interval.End.Time, dt)
+		}
+	}
+}

@@ -9,7 +9,7 @@ import (
 var TEST_ID = "test-context"
 var TEST_ID_2 = "test-context-2"
 var TEST_INTERVAL_ID = "test-interval-1"
-var TEST_INTERVAL_2_ID = "test-interval-1"
+var TEST_INTERVAL_2_ID = "test-interval-2"
 
 type TestTimeProvider struct {
 	currentTime time.Time

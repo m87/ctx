@@ -199,7 +199,7 @@ func (session *Session) GetIntervalsByDate(ctxId string, date ctxtime.ZonedTime)
 	}
 
 	intervals := []Interval{}
-	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
+	loc, err := time.LoadLocation(date.Timezone)
 	if err != nil {
 		loc = time.UTC
 	}
@@ -210,11 +210,21 @@ func (session *Session) GetIntervalsByDate(ctxId string, date ctxtime.ZonedTime)
 		if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
 			intervals = append(intervals, Interval(interval))
 		} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.Day() == startOfDay.Day() && interval.End.Time.Month() == startOfDay.Month() && interval.End.Time.Year() == startOfDay.Year() {
-			intervals = append(intervals, Interval(interval))
+			interval := Interval(interval)
+			interval.Start.Time = startOfDay
+			interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+			intervals = append(intervals, interval)
 		} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
-			intervals = append(intervals, Interval(interval))
+			interval := Interval(interval)
+			interval.End.Time = startOfDay.Add(24 * time.Hour - time.Second)
+			interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+			intervals = append(intervals, interval)
 		} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
-			intervals = append(intervals, Interval(interval))
+			interval := Interval(interval)
+			interval.Start.Time = startOfDay
+			interval.End.Time = startOfDay.Add(24 * time.Hour - time.Second)	
+			interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+			intervals = append(intervals, interval)
 		}
 	}
 	return intervals
