@@ -1,6 +1,7 @@
 package core
 
 import (
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -72,11 +73,12 @@ func (session *Session) SplitContextIntervalById(ctxId string, id string, split 
 	if err := session.ValidateContextExists(ctxId); err != nil {
 		return err
 	}
-	context := session.MustGetCtx(id)
+	context := session.MustGetCtx(ctxId)
 
 	interval := context.Intervals[id]
 	interval.End.Time = split
 	interval.Duration = split.Sub(interval.Start.Time)
+	context.Intervals[id] = interval
 	newId := uuid.NewString()
 	context.Intervals[newId] = Interval{
 		Id: newId,
@@ -91,7 +93,7 @@ func (session *Session) SplitContextIntervalById(ctxId string, id string, split 
 		Duration: interval.End.Time.Sub(split),
 	}
 
-	state.Contexts[id] = context
+	state.Contexts[ctxId] = context
 
 	return nil
 
