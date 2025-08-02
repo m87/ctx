@@ -61,7 +61,7 @@ func contextList(w http.ResponseWriter, r *http.Request) {
 		for _, c := range session.State.Contexts {
 			output = append(output, c)
 		}
-		json.NewEncoder(w).Encode(output)
+			json.NewEncoder(w).Encode(output)
 		return nil
 	})
 }

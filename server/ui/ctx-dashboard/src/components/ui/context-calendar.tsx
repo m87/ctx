@@ -1,7 +1,7 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
-import { isSameDay, parseISO } from "date-fns"
+import { isSameDay, isToday, parseISO } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -29,7 +29,7 @@ function ContextCalendar({
       className={cn("p-3", className)}
       modifiers={{
         hasContext: (date) =>
-          contextDates.some((ctxDate) => isSameDay(ctxDate, date)),
+          contextDates.some((ctxDate) => isSameDay(ctxDate, date) && !isToday(ctxDate)),
       }}
       modifiersClassNames={{
         hasContext: "bg-sky-100",

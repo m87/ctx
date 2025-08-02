@@ -13,7 +13,7 @@ export interface CardsProps {
 
 export function SectionCards({contextList, term, expandId}: CardsProps) {
     const [searchTerm, setSearchTerm] = useState(term);
-    const filteredList = contextList?.filter((context) =>
+    const filteredList = (contextList ?? []).filter((context) =>
         context.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -50,12 +50,15 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
                 </div>}
             </div>
             <ScrollArea className="h-full flex-2 overflow-auto">
-                <div
+                {filteredList?.length  > 0 && <div
                     className="*:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card lg:px-6">
                     {filteredList?.map((context) => (
                         <ContextCard key={context.id} context={context} expandCard={expandId === context.id}> </ContextCard>
                     ))}
-                </div>
+                </div>}
+                {filteredList?.length === 0 && <div className="flex items-center justify-center h-full">
+                    <div className="text-muted-foreground">No contexts found</div>
+                </div>}
             </ScrollArea>
         </div>
     )

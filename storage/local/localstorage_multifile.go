@@ -82,7 +82,7 @@ func LoadMultifile[T any](path string) T {
 	obj := new(T)
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
-		log.Fatal("Unable to parse state file", err)
+		log.Println("Unable to parse state file ", err)
 	}
 
 	return *obj
