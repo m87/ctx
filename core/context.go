@@ -234,3 +234,14 @@ func (session *Session) Search(regex string) ([]Context, error) {
 	}
 	return ctxs, nil
 }
+
+func (session *Session) GetContextCountByDateMap() map[string]int {
+	counts := make(map[string]int)
+	for _, ctx := range session.State.Contexts {
+		for _, interval := range ctx.Intervals {
+			date := interval.Start.Time.Format("2006-01-02")
+			counts[date]++
+		}
+	}
+	return counts
+}

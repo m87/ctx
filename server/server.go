@@ -243,6 +243,21 @@ func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 	return response, nil
 }
 
+func dayListSummary(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	mgr := bootstrap.CreateManager()
+
+	response := make(map[string]int)
+	mgr.WithSession(func(session core.Session) error {
+		response = session.GetContextCountByDateMap()
+		return nil
+	})
+
+	json.NewEncoder(w).Encode(response)
+}
+
 func daySummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -413,6 +428,7 @@ func Serve(manager *core.ContextManager) {
 	http.HandleFunc("/api/context/interval", updateInterval)
 	http.HandleFunc("/api/summary/day/{date}", daySummary)
 	http.HandleFunc("/api/summary/day", daySummary)
+	http.HandleFunc("/api/summary/day/list", dayListSummary)
 	http.HandleFunc("/api/intervals/{date}", intervals)
 	http.HandleFunc("/api/intervals", intervals)
 	http.HandleFunc("/api/intervals/recent/{n}", recentIntervals)
