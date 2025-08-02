@@ -1,5 +1,9 @@
 package core
 
+import "sync"
+
+var Mutex sync.Mutex
+
 type TransactionalStore[T any] interface {
 	Begin() (Tx[T], error)
 	BeginAndGet() (Tx[T], *T, error)

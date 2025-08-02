@@ -83,21 +83,25 @@ func CreateManager() *core.ContextManager {
 }
 
 func Load[T any](path string) T {
+	core.Mutex.Lock()
+	defer core.Mutex.Unlock()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatal("Unable to read state file")
 	}
 
-	obj := new(T)
+	var obj T
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
-		log.Println("Unable to parse state file ", err)
+		log.Fatal("Unable to parse state file ", err)
 	}
 
-	return *obj
+	return obj
 }
 
 func Save[T any](obj *T, path string) {
+	core.Mutex.Lock()
+	defer core.Mutex.Unlock()
 	data, err := json.Marshal(obj)
 	if err != nil {
 		panic(err)
@@ -115,7 +119,7 @@ func LoadState() core.State {
 	state := core.State{}
 	err = json.Unmarshal(data, &state)
 	if err != nil {
-		log.Println("Unable to parse state file ", err)
+		log.Fatal("Unable to parse state file ", err)
 	}
 
 	return state
