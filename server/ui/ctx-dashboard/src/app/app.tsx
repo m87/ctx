@@ -16,6 +16,7 @@ export function App() {
                 <SiteHeader/>
                 <div className="flex flex-col h-full flex-1 min-h-0min-h-0">
                     <Routes>
+                        <Route path="/day/:day" element={<TodaySummary/>}/>
                         <Route path="/recent" element={<Recent/>}/>
                         <Route path="/contexts" element={<Contexts/>}/>
                         <Route path="/today" element={<TodaySummary/>}/>

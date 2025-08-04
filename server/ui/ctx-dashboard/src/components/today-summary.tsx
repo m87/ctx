@@ -1,24 +1,39 @@
 import { useQuery } from "@tanstack/react-query";
-import {api} from "@/api/api";
+import { api } from "@/api/api";
 import { SectionCards } from "./section-cards";
-import Timeline, {intervalsResponseAsTimelineData} from "@/components/timeline";
-import { useState } from "react";
+import Timeline, { intervalsResponseAsTimelineData } from "@/components/timeline";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { format, isValid, parseISO } from "date-fns";
 
 
 export function TodaySummary() {
-    const [selectedInterval, setSelectedInterval] = useState(null)
-    const {data: summary} = useQuery({...api.summary.todaySummaryQuery});
-    const {data: intervals} = useQuery({...api.intervals.intervalsQuery, select: intervalsResponseAsTimelineData})
-    const {data: names} = useQuery({...api.context.listNamesQuery})
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedInterval, setSelectedInterval] = useState(null)
+  const { data: summary } = useQuery({ ...api.summary.daySummaryQuery(format(selectedDate, "yyyy-MM-dd")) });
+  const { data: intervals } = useQuery({ ...api.intervals.intervalsQuery, select: intervalsResponseAsTimelineData })
+  const { data: names } = useQuery({ ...api.context.listNamesQuery })
+  const { day } = useParams();
 
-    return (
-        <div className="flex flex-col">
-            <div className="flex-1 flex items-center justify-center">
-            </div>
-            <Timeline data={intervals ?? {}} ctxNames={names ?? []} hideDates={true} hideGuides={true} onItemSelect={(interval) => {setSelectedInterval(interval)}}/>
-            <SectionCards contextList={summary?.contexts} term={selectedInterval?.description ?? ''} expandId={selectedInterval?.ctxId ?? ''}></SectionCards>
-        </div>
-    );
+  useEffect(() => {
+    if (day) {
+      const date = parseISO(day)
+      if (isValid(date)) {
+        setSelectedDate(date)
+      }
+    }
+  }, [day])
+
+
+
+  return (
+    <div className="flex flex-col">
+      <div className="flex-1 flex items-center justify-center">
+      </div>
+      <Timeline data={intervals ?? {}} ctxNames={names ?? []} hideDates={true} hideGuides={true} onItemSelect={(interval) => { setSelectedInterval(interval) }} />
+      <SectionCards contextList={summary?.contexts} term={selectedInterval?.description ?? ''} expandId={selectedInterval?.ctxId ?? ''}></SectionCards>
+    </div>
+  );
 }
 
 export default TodaySummary;

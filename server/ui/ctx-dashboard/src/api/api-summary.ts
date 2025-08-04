@@ -7,7 +7,7 @@ export interface DaySummary {
 
 export class SummaryApi {
     daySummary = (day: string) => http.get<DaySummary>(`/summary/day/${day}`).then(response => {response.data.contexts = response.data.contexts.map(mapContext); return response.data; });
-    daySummaryQuery = { queryKey: ["todaySummary"], queryFn: this.daySummary};
+    daySummaryQuery = (day: string) => ({ queryKey: ["daySummary", day], queryFn: () => this.daySummary(day)});
 
     todaySummary = () => http.get<DaySummary>(`/summary/day`).then(response => {response.data.contexts = response.data.contexts.map(mapContext); return response.data; });
     todaySummaryQuery = { queryKey: ["todaySummary"], queryFn: this.todaySummary };

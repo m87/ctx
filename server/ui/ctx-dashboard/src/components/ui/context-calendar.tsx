@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   contextMap?: Record<string, number>
+  onClick?: (date: Date) => void,
 }
 
 function ContextCalendar({
@@ -15,6 +16,7 @@ function ContextCalendar({
   classNames,
   showOutsideDays = true,
   contextMap = {},
+  onClick = (date: Date) => date,
   ...props
 }: CalendarProps) {
   const contextDates = React.useMemo(() => {
@@ -25,6 +27,7 @@ function ContextCalendar({
 
   return (
     <DayPicker
+      onDayClick={(e) => onClick(e) }
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       modifiers={{
