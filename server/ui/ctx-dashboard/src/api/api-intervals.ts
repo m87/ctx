@@ -1,5 +1,6 @@
-import { http, Interval, mapInterval, ZonedDateTime } from "@/api/api";
+import { http, Interval, invalidateQueriesByDate, mapInterval, ZonedDateTime } from "@/api/api";
 import { QueryClient } from "@tanstack/react-query";
+import { DateTime } from "luxon";
 
 
 export interface IntervalEntry {
@@ -76,8 +77,17 @@ export class IntervalsApi {
     target: string,
     id: string
   }) => http.post<void>("/intervals/move", data).then(response => response)
+ 
+  moveMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: { src: string, target: string, id: string, day?: string }) => this.move(data),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
 
   delete = (ctxId: string, id: string) => http.delete<void>(`/intervals/${ctxId}/${id}`).then(response => response)
+  deleteMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: {ctxId: string, id: string, day?: string}) => this.delete(data.ctxId, data.id),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
 
   split = (ctxId: string, id: string, split: Split) => http.post<void>(`/intervals/${ctxId}/${id}/split`, { split: split }).then(response => response)
   splitMutation = (queryClient: QueryClient) => ({

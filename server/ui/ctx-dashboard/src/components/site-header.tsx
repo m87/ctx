@@ -1,12 +1,19 @@
 import { api } from "@/api/api";
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isValid, parseISO } from "date-fns";
+import { Pause } from "lucide-react";
+import { useEffect } from "react";
 import { Route, Routes, useParams } from "react-router-dom";
 
 export function SiteHeader() {
 
   const { data: currentContext } = useQuery({ ...api.context.currentQuery, refetchInterval: 5000 });
+  const querClient = useQueryClient()
+  const freeMutation = useMutation(api.context.freeMutaiton(querClient))
+  const { day } = useParams();
+
 
   return (
     <header
@@ -38,6 +45,7 @@ export function SiteHeader() {
           {currentContext?.description &&
             <div className="flex rounded-lg p-1 pl-2 pr-2 font-semibold bg-green-200 animate-pulse">
               <div>{currentContext?.description}</div>
+              <Pause className="cursor-pointer" onClick={() => freeMutation.mutate({day: day})}></Pause>
             </div>
           }
         </div>

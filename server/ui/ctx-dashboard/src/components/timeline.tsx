@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Search} from "lucide-react";
 import {Input} from "@/components/ui/input";
-import {api} from "@/api/api";
+import {api, Context} from "@/api/api";
 import TimelineSplit from "./timeline-split";
 
 
@@ -47,7 +47,9 @@ export interface TimelineProps {
     hideDates: boolean;
     hideGuides: boolean;
     onItemSelect: (interval: TimeInterval | null) => void;
+    onItemDelete: (interval: TimeInterval) => void;
     onItemSplit: (interval: TimeInterval, time: string) => void;
+    onItemMove: (interval: TimeInterval, ctx: {description: string, id: string}) => void;
     ctxNames: {description: string, id: string}[];
 }
 
@@ -56,7 +58,7 @@ function timeToDecimal(time: string): number {
     return (h * 3600 + m * 60 + s) / 86400;
 }
 
-function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames, onItemSplit}: TimelineProps) {
+function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames, onItemSplit, onItemMove, onItemDelete}: TimelineProps) {
     const hours = Array.from({length: 24}, (_, i) => i);
     const dates = Object.keys(data);
     const boxRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -148,7 +150,7 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames, onItemSp
                                             </ContextMenuTrigger>
                                             <ContextMenuContent>
                                                 <ContextMenuItem>Edit</ContextMenuItem>
-                                                  <ContextMenuItem onClick={() => api.intervals.delete(interval.ctxId, interval.id)}>Delete</ContextMenuItem>
+                                                  <ContextMenuItem onClick={() => onItemDelete(interval)}>Delete</ContextMenuItem>
                                               <ContextMenuSub>
                                                     <ContextMenuSubTrigger inset>Split</ContextMenuSubTrigger>
                                                     <ContextMenuSubContent className="w-44">
@@ -166,11 +168,7 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames, onItemSp
                                                         {
                                                             ctxNames.filter((ctx) => ctx.description.startsWith(ctxNameSearchTerm)).map((ctx) => {
                                                                 return (
-                                                                    <ContextMenuItem key={ctx.id} onClick={() => api.intervals.move({
-                                                                        src: interval.ctxId,
-                                                                        target: ctx.id,
-                                                                        id: interval.id
-                                                                    })}>{ctx.description}</ContextMenuItem>)
+                                                                    <ContextMenuItem key={ctx.id} onClick={() => onItemMove(interval, ctx)}>{ctx.description}</ContextMenuItem>)
                                                             })
                                                         }
                                                     </ContextMenuSubContent>
