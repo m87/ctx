@@ -14,10 +14,7 @@ import {
 import { Search} from "lucide-react";
 import {Input} from "@/components/ui/input";
 import {api} from "@/api/api";
-import { Calendar } from "./ui/calendar";
-import { Button } from "./ui/button";
 import TimelineSplit from "./timeline-split";
-import { Interval } from "luxon";
 
 
 export function intervalsResponseAsTimelineData(data: IntervalsResponse): Record<string, TimeInterval[]> {
@@ -50,6 +47,7 @@ export interface TimelineProps {
     hideDates: boolean;
     hideGuides: boolean;
     onItemSelect: (interval: TimeInterval | null) => void;
+    onItemSplit: (interval: TimeInterval, time: string) => void;
     ctxNames: {description: string, id: string}[];
 }
 
@@ -58,7 +56,7 @@ function timeToDecimal(time: string): number {
     return (h * 3600 + m * 60 + s) / 86400;
 }
 
-function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames}: TimelineProps) {
+function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames, onItemSplit}: TimelineProps) {
     const hours = Array.from({length: 24}, (_, i) => i);
     const dates = Object.keys(data);
     const boxRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -154,7 +152,7 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames}: Timelin
                                               <ContextMenuSub>
                                                     <ContextMenuSubTrigger inset>Split</ContextMenuSubTrigger>
                                                     <ContextMenuSubContent className="w-44">
-                                                    <TimelineSplit interval={interval}></TimelineSplit>
+                                                    <TimelineSplit onChange={(interval, time) => onItemSplit(interval, time)} interval={interval}></TimelineSplit>
                                                     </ContextMenuSubContent>
                                                 </ContextMenuSub>
                                                 <ContextMenuSub>

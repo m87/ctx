@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,20 +39,11 @@ func NewEditContextIntervalSplitCmd(manager *core.ContextManager) *cobra.Command
 					intervalId := args[1]
 					util.Checkm(err, "Unable to parse interval index")
 
-					interval := ctx.Intervals[intervalId]
-					loc, _ := time.LoadLocation(interval.Start.Timezone)
-					split, err := time.ParseInLocation(time.DateTime, strings.TrimSpace(args[2]), loc)
-					util.Checkm(err, "Unable to parse split datetime")
+					h, _ := strconv.Atoi(args[2])
+					m, _ := strconv.Atoi(args[3])
+					s, _ := strconv.Atoi(args[4])
 
-					if split.Before(interval.Start.Time) {
-						panic("split time is before interval start time")
-					}
-
-					if split.After(interval.End.Time) {
-						panic("split time is after interval end time")
-					}
-
-					session.SplitContextIntervalById(id, intervalId, split)
+					session.SplitContextIntervalById(id, intervalId, h, m ,s)
 				} else {
 					for _, interval := range ctx.Intervals {
 						fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))

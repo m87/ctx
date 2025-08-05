@@ -389,7 +389,7 @@ func splitInterval(w http.ResponseWriter, r *http.Request) {
 
 	manager := bootstrap.CreateManager()
 	manager.WithSession(func(session core.Session) error {
-		return session.SplitContextIntervalById(ctxId, id, p.Split.Time)
+		return session.SplitContextIntervalById(ctxId, id, p.Split.H, p.Split.M, p.Split.S)
 	})
 
 }
@@ -437,9 +437,14 @@ func Serve(manager *core.ContextManager) {
 	http.HandleFunc("/api/intervals/{ctxId}/{id}/split", splitInterval)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+type Split struct {
+	H int `json:"h"`
+	M int `json:"m"`
+	S int `json:"s"`
+}
 
 type SplitRequest struct {
-	Split ctxtime.ZonedTime `json:"split"`
+	Split Split `json:"split"`
 }
 
 type SwitchRequest struct {

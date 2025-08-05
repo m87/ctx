@@ -12,6 +12,10 @@ export class ZonedDateTime {
     return new ZonedDateTime(dt.toISO(), dt.zoneName);
   }
 
+  public static fromtTimeString(time: string, timezone: string): ZonedDateTime {
+    return new ZonedDateTime(DateTime.fromISO(time).toISO(), timezone)
+  }
+
   public toDateTime(): DateTime {
     return DateTime.fromISO(this.time ?? '', { zone: this.timezone ?? "utc" });
   }

@@ -66,7 +66,7 @@ func (session *Session) endInterval(ctxId string, now ctxtime.ZonedTime) error {
 	return nil
 }
 
-func (session *Session) SplitContextIntervalById(ctxId string, id string, split time.Time) error {
+func (session *Session) SplitContextIntervalById(ctxId string, id string, h int, m int, s int) error {
 	state := session.State
 
 	if err := session.ValidateContextExists(ctxId); err != nil {
@@ -75,22 +75,27 @@ func (session *Session) SplitContextIntervalById(ctxId string, id string, split 
 	context := session.MustGetCtx(ctxId)
 
 	interval := context.Intervals[id]
-	interval.End.Time = split
-	interval.Duration = split.Sub(interval.Start.Time)
-	context.Intervals[id] = interval
+
 	newId := uuid.NewString()
+	newStartTime := time.Date(interval.Start.Time.Year(), interval.Start.Time.Month(), interval.Start.Time.Day(), h, m, s, interval.Start.Time.Nanosecond(), interval.Start.Time.Location())
+
 	context.Intervals[newId] = Interval{
 		Id: newId,
 		Start: ctxtime.ZonedTime{
-			Time:     split,
+			Time:     newStartTime,
 			Timezone: interval.Start.Timezone,
 		},
 		End: ctxtime.ZonedTime{
 			Time:     interval.End.Time,
 			Timezone: interval.End.Timezone,
 		},
-		Duration: interval.End.Time.Sub(split),
+		Duration: interval.End.Time.Sub(newStartTime),
 	}
+
+	newEndTime := time.Date(interval.End.Time.Year(), interval.End.Time.Month(), interval.End.Time.Day(), h, m, s, interval.End.Time.Nanosecond(), interval.End.Time.Location())
+	interval.Duration = newEndTime.Sub(interval.Start.Time)
+	interval.End.Time = newEndTime
+	context.Intervals[id] = interval
 
 	state.Contexts[ctxId] = context
 

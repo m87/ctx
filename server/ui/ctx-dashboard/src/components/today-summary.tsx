@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/api/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, mapZoned, ZonedDateTime } from "@/api/api";
 import { SectionCards } from "./section-cards";
 import Timeline, { intervalsResponseAsTimelineData } from "@/components/timeline";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { format, isValid, parseISO } from "date-fns";
+import { TimeStringAsSplit } from "@/api/api-intervals";
+import { DateTime } from "luxon";
 
 
 export function TodaySummary() {
@@ -14,6 +16,10 @@ export function TodaySummary() {
   const { data: intervals } = useQuery({ ...api.intervals.intervalsByDayQuery(format(selectedDate, "yyyy-MM-dd")), select: intervalsResponseAsTimelineData })
   const { data: names } = useQuery({ ...api.context.listNamesQuery })
   const { day } = useParams();
+
+  const querClient = useQueryClient();
+  const splitMutation = useMutation(api.intervals.splitMutation(querClient))
+
 
   useEffect(() => {
     if (day) {
@@ -30,7 +36,13 @@ export function TodaySummary() {
     <div className="flex flex-col">
       <div className="flex-1 flex items-center justify-center">
       </div>
-      <Timeline data={intervals ?? {}} ctxNames={names ?? []} hideDates={true} hideGuides={true} onItemSelect={(interval) => { setSelectedInterval(interval) }} />
+      <Timeline
+        data={intervals ?? {}}
+        ctxNames={names ?? []}
+        hideDates={true}
+        hideGuides={true}
+        onItemSelect={(interval) => { setSelectedInterval(interval) }}
+        onItemSplit={(interval, time) => splitMutation.mutate({ctxId: interval.ctxId, id: interval.id, split: TimeStringAsSplit(time), day: day ?? DateTime.now().toFormat("yyyy-MM-dd")})}  />
       <SectionCards contextList={summary?.contexts} term={selectedInterval?.description ?? ''} expandId={selectedInterval?.ctxId ?? ''}></SectionCards>
     </div>
   );

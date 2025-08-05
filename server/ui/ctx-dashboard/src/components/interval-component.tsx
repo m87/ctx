@@ -20,7 +20,7 @@ export function IntervalComponent({ interval, onChange }: Readonly<{ interval: I
         <div>-</div>
         <DateTimeInput datetime={end.toDateTime()} editable={true} onChange={handleEndChange}></DateTimeInput>
         <div>
-          ({interval.duration / 60000000000 } min)
+          ({Math.floor(interval.duration / 60000000000) } min)
         </div>
         <div><CheckIcon className="cursor-pointer" onClick={() => {
           onChange(interval.id, start, end)
@@ -36,7 +36,7 @@ export function IntervalComponent({ interval, onChange }: Readonly<{ interval: I
           <DateTimeInput datetime={end.toDateTime()} ></DateTimeInput>
         </div>
         <div>
-          ({interval.duration / 60000000000 } min)
+          ({Math.ceil(interval.duration / 60000000000) } min)
         </div>
         <div><EditIcon className="cursor-pointer" onClick={() => setEdited(true)}></EditIcon></div>
       </div>}
