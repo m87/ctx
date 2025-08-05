@@ -1,3 +1,4 @@
+//go:build preview
 package server
 
 import (
