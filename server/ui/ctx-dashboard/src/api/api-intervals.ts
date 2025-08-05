@@ -39,7 +39,7 @@ export class IntervalsApi {
         response.data.days = response.data.days.map(mapIntervalResponseEntry)
         return response.data;
     });
-    intervalsByDayQuery = {queryKey: ["intervals"], queryFn: this.intervalsByDay};
+    intervalsByDayQuery = (day: string) => ({queryKey: ["intervals", day], queryFn: () => this.intervalsByDay(day)});
 
     intervals = () => http.get<IntervalsResponse>(`/intervals`).then(response => {
         response.data.days = response.data.days.map(mapIntervalResponseEntry)

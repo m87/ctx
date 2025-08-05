@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { ContextCalendar } from "./ui/context-calendar";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/api";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { format, isValid, parseISO } from "date-fns";
 
 export function NavMain() {
@@ -15,6 +15,7 @@ export function NavMain() {
   const { data } = useQuery(api.summary.dayListSummaryQuery);
   const navigate = useNavigate();
   const { day } = useParams();
+  const location = useLocation();
 
   useEffect(() => {
     if (day) {
@@ -24,7 +25,7 @@ export function NavMain() {
       }
     }
 
-  }, [day])
+  }, [day, location.pathname])
 
   return (
     <SidebarGroup>
@@ -37,8 +38,7 @@ export function NavMain() {
               day_today: "border border-muted-foreground",
               day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
             }}
-            selected={selected}
-            onSelect={setSelected}></ContextCalendar>
+            selected={selected}></ContextCalendar>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

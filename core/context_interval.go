@@ -217,16 +217,40 @@ func (session *Session) GetIntervalsByDate(ctxId string, date ctxtime.ZonedTime)
 			intervals = append(intervals, interval)
 		} else if interval.Start.Time.Day() == startOfDay.Day() && interval.Start.Time.Month() == startOfDay.Month() && interval.Start.Time.Year() == startOfDay.Year() && interval.End.Time.After(startOfDay) {
 			interval := Interval(interval)
-			interval.End.Time = startOfDay.Add(24 * time.Hour - time.Second)
+			interval.End.Time = startOfDay.Add(24*time.Hour - time.Second)
 			interval.Duration = interval.End.Time.Sub(interval.Start.Time)
 			intervals = append(intervals, interval)
 		} else if interval.Start.Time.Before(startOfDay) && interval.End.Time.After(startOfDay) {
 			interval := Interval(interval)
 			interval.Start.Time = startOfDay
-			interval.End.Time = startOfDay.Add(24 * time.Hour - time.Second)	
+			interval.End.Time = startOfDay.Add(24*time.Hour - time.Second)
 			interval.Duration = interval.End.Time.Sub(interval.Start.Time)
 			intervals = append(intervals, interval)
 		}
 	}
 	return intervals
+}
+
+func GetDateCountsFromInterval(interval Interval) []string {
+	output := []string{}
+	for d := interval.Start.Time; !d.After(interval.End.Time); d = d.AddDate(0, 0, 1) {
+		output = append(output, d.Format(time.DateOnly))
+	}
+
+	return output
+}
+
+func (session *Session) GetDateCounts(ctxId string) map[string]int {
+	ctx := session.MustGetCtx(ctxId)
+	output := make(map[string]int)
+
+	for _, interval := range ctx.Intervals {
+		part := GetDateCountsFromInterval(interval)
+
+		for _, d := range part {
+			output[d]++
+		}
+	}
+
+	return output
 }

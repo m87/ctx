@@ -11,7 +11,7 @@ export function TodaySummary() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedInterval, setSelectedInterval] = useState(null)
   const { data: summary } = useQuery({ ...api.summary.daySummaryQuery(format(selectedDate, "yyyy-MM-dd")) });
-  const { data: intervals } = useQuery({ ...api.intervals.intervalsQuery, select: intervalsResponseAsTimelineData })
+  const { data: intervals } = useQuery({ ...api.intervals.intervalsByDayQuery(format(selectedDate, "yyyy-MM-dd")), select: intervalsResponseAsTimelineData })
   const { data: names } = useQuery({ ...api.context.listNamesQuery })
   const { day } = useParams();
 
