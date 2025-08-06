@@ -29,6 +29,14 @@ jobs:
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
       run: npm ci --legacy-peer-deps
+      
+    - name: Install test utils (start-server-and-test, concurrently)
+      working-directory: ./server/ui/ctx-dashboard
+      run: npm install --save-dev start-server-and-test concurrently
+
+    - name: Run E2E tests
+      working-directory: ./server/ui/ctx-dashboard
+      run: npm run test:e2e
 
     - name: Install Cypress
       working-directory: ./server/ui/ctx-dashboard
@@ -39,9 +47,7 @@ jobs:
 
     - name: Run Nx affected for ctx-dashboard
       working-directory: ./server/ui/ctx-dashboard
-      run: npx nx affected -t lint build #test e2e
-
-
+      run: npx nx affected -t lint build
 
     - name: Set up Go
       uses: actions/setup-go@v4
@@ -53,3 +59,7 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Run Cypress E2E tests
+      working-directory: ./server/ui/ctx-dashboard
+      run: npm run test:e2e
