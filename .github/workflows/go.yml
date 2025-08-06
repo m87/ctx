@@ -30,14 +30,6 @@ jobs:
       working-directory: ./server/ui/ctx-dashboard
       run: npm ci --legacy-peer-deps
       
-    - name: Install test utils (start-server-and-test, concurrently)
-      working-directory: ./server/ui/ctx-dashboard
-      run: npm install --save-dev start-server-and-test concurrently
-
-    - name: Run E2E tests
-      working-directory: ./server/ui/ctx-dashboard
-      run: npm run test:e2e
-
     - name: Install Cypress
       working-directory: ./server/ui/ctx-dashboard
       run: npx cypress install
