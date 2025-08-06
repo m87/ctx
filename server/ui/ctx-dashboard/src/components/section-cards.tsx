@@ -4,6 +4,8 @@ import {useEffect, useRef, useState} from "react";
 import ContextCard from "./context-card";
 import {Input} from "./ui/input";
 import {ScrollArea} from "@radix-ui/react-scroll-area";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 
 export interface CardsProps {
   contextList?: Context[]
@@ -16,10 +18,9 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
     const filteredList = (contextList ?? []).filter((context) =>
         context.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    const createNewContext = (description: string) => {
-        api.context.createAndSwitch(description);
-    };
+    const queryClient = useQueryClient();
+    const createAndSwitchMutation = useMutation(api.context.createAndSwitchMutation(queryClient))
+    const {day} = useParams();
 
     useEffect(() => {
       setSearchTerm(term);
@@ -35,7 +36,7 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
                            }
 
                            if (e.key === 'Enter' && filteredList?.length === 0) {
-                               createNewContext(searchTerm);
+                               createAndSwitchMutation.mutate({description: searchTerm, day});
                                setSearchTerm('');
                            }
                        }}
@@ -43,7 +44,7 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
                 {filteredList?.length == 0 && <div>
                     <PlusIcon className="cursor-pointer" onClick={() => {
                         if (searchTerm.trim() !== '') {
-                            createNewContext(searchTerm)
+                            createAndSwitchMutation.mutate({description: searchTerm, day})
                             setSearchTerm('');
                         }
                     }}></PlusIcon>

@@ -1,13 +1,13 @@
 import axios, { AxiosRequestTransformer } from "axios";
-import { ContextApi } from "@/api/api-context";
+import {ContextApi} from "@/api/api-context";
 import { DateTime, Zone } from "luxon";
 import { SummaryApi } from "./api-summary";
-import { IntervalsApi } from "@/api/api-intervals";
+import {IntervalsApi} from "@/api/api-intervals";
 import { QueryClient } from "@tanstack/react-query";
 
 
 export class ZonedDateTime {
-  constructor(public time: string | null, public timezone: string | null) { }
+  constructor(public time: string | null, public timezone: string | null) {}
 
   public static fromDateTime(dt: DateTime): ZonedDateTime {
     return new ZonedDateTime(dt.toISO(), dt.zoneName);
@@ -31,18 +31,18 @@ export class ZonedDateTime {
 }
 
 export interface Interval {
-  id: string
-  start: ZonedDateTime,
-  end: ZonedDateTime,
-  duration: number,
+    id: string
+    start: ZonedDateTime,
+    end: ZonedDateTime,
+    duration: number,
 }
 
 export interface Context {
-  id: string,
-  description: string,
-  intervals: { [key: string]: Interval },
-  duration: number,
-  labels: string[],
+    id: string,
+    description: string,
+    intervals: { [key: string]: Interval },
+    duration: number,
+    labels: string[],
 }
 
 export function mapZoned(obj: any): ZonedDateTime {
@@ -69,31 +69,31 @@ export function mapContext(obj: any): Context {
 }
 
 export const httpConfig = {
-  baseURL: "/api",
-  withCredentials: true,
-  withXSRFToken: true,
-  timeout: 6000,
-  headers: {
-    Accept: "application/json",
-  },
+    baseURL: "/api",
+    withCredentials: true,
+    withXSRFToken: true,
+    timeout: 6000,
+    headers: {
+        Accept: "application/json",
+    },
 };
 
 
 export function invalidateQueriesByDate(queryClient: QueryClient, variables: any) {
-  const today = DateTime.now().toFormat("yyyy-MM-dd")
-  queryClient.invalidateQueries({ queryKey: ["intervals", variables.day ?? today] })
-  queryClient.invalidateQueries({ queryKey: ["currentContext"] })
-  queryClient.invalidateQueries({ queryKey: ["todaySummary"] })
-  queryClient.invalidateQueries({ queryKey: ["daySummary", variables.day ?? today] })
+      const today = DateTime.now().toFormat("yyyy-MM-dd")
+      queryClient.invalidateQueries({ queryKey: ["intervals", variables.day ?? today] })
+      queryClient.invalidateQueries({ queryKey: ["currentContext"] })
+      queryClient.invalidateQueries({ queryKey: ["todaySummary"] })
+      queryClient.invalidateQueries({ queryKey: ["daySummary", variables.day ?? today] })
 }
-
+ 
 
 export const http = axios.create(httpConfig);
 
 export class Api {
-  context = new ContextApi();
-  summary = new SummaryApi();
-  intervals = new IntervalsApi();
+    context = new ContextApi();
+    summary = new SummaryApi();
+    intervals = new IntervalsApi();
 }
 
 export const api = new Api();

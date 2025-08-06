@@ -1,11 +1,13 @@
 import { ArrowDown, ChevronDown, ChevronUp, PlayCircleIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
-import { api, ZonedDateTime, Interval } from "@/api/api";
+import { api, ZonedDateTime, Interval, Context } from "@/api/api";
 import IntervalComponent from "./interval-component";
 import { Badge } from "./ui/badge";
 import { colorHash } from "@/lib/utils";
-import { Context } from "vm";
+import { compareAsc } from "date-fns";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 
 export interface ContextCardProps {
   context: Context
@@ -16,17 +18,14 @@ export interface ContextCardProps {
 export function ContextCard({ context, expandCard }: ContextCardProps) {
     const [hovered, setHovered] = useState(false);
     const [expanded, setExpand] = useState(false);
-    const cardClick = (id: string) => {
-        api.context.switch(id)
-    };
+    const querClient = useQueryClient();
+    const switchMutation = useMutation(api.context.switchMutation(querClient))
+    const updateIntervalMutation = useMutation(api.context.updateIntervalMutation(querClient))
+    const {day} = useParams();
 
     useEffect(() => {
       setExpand(expandCard);
     }, [expandCard])
-
-    const updateInterval = (id: string, start: ZonedDateTime, end: ZonedDateTime) => {
-        api.context.updateInterval(context.id, id, start, end);
-    };
 
     return (
         <Card key={context.id} className="flex w-full"
@@ -38,7 +37,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
             <CardHeader className="relative">
                 <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums flex justify-between w-full items-center">
                     <div className="flex w-full items-center ">
-                        {hovered && <div className="cursor-pointer"><PlayCircleIcon size={30} onClick={() => cardClick(context.id)} /></div>}
+                        {hovered && <div className="cursor-pointer"><PlayCircleIcon size={30} onClick={() => switchMutation.mutate({id: context.id, day})} /></div>}
                         <div className="flex flex-col items-start">
                             <div>    {context.description} </div>
                             <div className="flex">
@@ -59,8 +58,8 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
             </CardHeader>
             {expanded && <CardContent className="flex flex-col gap-2">
                 <div className="flex flex-col justify-center">
-                    {Object.values(context.intervals ?? []).map((interval: Interval) => (
-                        <IntervalComponent key={interval.id} interval={interval} onChange={updateInterval} />
+                    {Object.values(context.intervals ?? []).sort((a,b) =>  compareAsc(a.start.time, b.start.time)).map((interval: Interval) => (
+                        <IntervalComponent key={interval.id} interval={interval} onChange={(id: string, start: ZonedDateTime, end: ZonedDateTime) => updateIntervalMutation.mutate({contextId: context.id, intervalId: id, start, end, day})} />
                     ))}
                 </div>
             </CardContent>

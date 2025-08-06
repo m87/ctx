@@ -16,10 +16,23 @@ export class ContextApi {
   })
 
   switch = (id: string) => http.post<void>("/context/switch", { id: id }).then(response => response)
+  switchMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: {id: string, day?: string}) => this.switch(data.id),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  }) 
 
   createAndSwitch = (description: string) =>
     http.post<Context>("/context/createAndSwitch", { description: description }).then(response => response.data);
+  createAndSwitchMutation= (queryClient: QueryClient) => ({
+    mutationFn: (data: {description: string, day?: string}) => this.createAndSwitch(data.description),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
+
 
   updateInterval = (contextId: string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime) =>
     http.put<void>("/context/interval", { contextId: contextId, intervalId: intervalId, start: start, end: end }).then(response => response);
+  updateIntervalMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: {contextId:string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime, day?: string}) => this.updateInterval(data.contextId, data.intervalId, data.start, data.end),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
 }
