@@ -32,6 +32,7 @@ export function NavMain() {
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <ContextCalendar
+            id="context-calendar"
             onClick={(date) => navigate(`/day/${format(date, 'yyyy-MM-dd')}`)}
             contextMap={data}
             className="p-0" classNames={{
