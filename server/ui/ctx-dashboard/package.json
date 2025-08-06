@@ -8,7 +8,7 @@
     "build": "nx build",
     "test": "nx test",
     "start:frontend": "npm start",
-    "start:backend": "go run --tags preview ../../.. serve",
+    "start:backend": "go run --tags preview ../../.. adm reset && go run --tags preview ../../.. adm init && go run --tags preview ../../.. serve",
     "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "cy:run": "cypress run",
     "test:e2e": "start-server-and-test start:all http://localhost:4200 cy:run"
