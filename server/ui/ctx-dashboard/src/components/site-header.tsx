@@ -2,17 +2,30 @@ import { api } from "@/api/api";
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { Pause } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Route, Routes, useParams } from "react-router-dom";
 
 export function SiteHeader() {
 
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { data: summary } = useQuery({ ...api.summary.daySummaryQuery(format(selectedDate, "yyyy-MM-dd")) });
   const { data: currentContext } = useQuery({ ...api.context.currentQuery, refetchInterval: 5000 });
   const querClient = useQueryClient()
   const freeMutation = useMutation(api.context.freeMutaiton(querClient))
   const { day } = useParams();
+
+  useEffect(() => {
+    if (day) {
+      const date = parseISO(day)
+      if (isValid(date)) {
+        setSelectedDate(date)
+      }
+    }
+  }, [day])
+
+
 
 
   return (
@@ -24,14 +37,14 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium">
+        <h1 className="text-base font-medium flex w-full">
           <Routes>
             <Route path="/contexts" element={"Contexts"} />
             <Route path="/day/:day" element={
               (() => {
                 const DayComponent = () => {
                   const { day } = useParams();
-                  return <div>{day}</div>;
+                  return <div>{day}</div> ;
                 };
                 return <DayComponent />;
               })()
@@ -40,6 +53,7 @@ export function SiteHeader() {
             <Route path="/today" element={new Date().toLocaleDateString()} />
             <Route path="/" element={new Date().toLocaleDateString()} />
           </Routes>
+        <div className="ml-5 w-full">({Math.floor(summary?.duration / 60000000000 / 60) } min {Math.floor(summary?.duration / 60000000000 % 60) } min)</div>
         </h1>
         <div className="flex w-full justify-end">
           {currentContext?.description &&
