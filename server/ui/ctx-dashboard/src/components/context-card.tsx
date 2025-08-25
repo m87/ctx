@@ -41,7 +41,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                         <div className="flex flex-col items-start">
                             <div className="flex">    <div>{context.description} </div> 
 
-        <div className="ml-5 w-full">({Math.floor(context.duration / 60000000000 / 60) } min {Math.floor(context.duration / 60000000000 % 60) } min)</div>
+        <div className="ml-5 w-full">({Math.floor(context.duration / 60000000000 / 60) } h {Math.floor(context.duration / 60000000000 % 60) } min)</div>
                             </div>
                             <div className="flex">
                                 {context.labels?.map((label: string) => (

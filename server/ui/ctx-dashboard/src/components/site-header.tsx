@@ -53,7 +53,7 @@ export function SiteHeader() {
             <Route path="/today" element={new Date().toLocaleDateString()} />
             <Route path="/" element={new Date().toLocaleDateString()} />
           </Routes>
-        <div className="ml-5 w-full">({Math.floor(summary?.duration / 60000000000 / 60) } min {Math.floor(summary?.duration / 60000000000 % 60) } min)</div>
+        <div className="ml-5 w-full">({Math.floor(summary?.duration / 60000000000 / 60) } h {Math.floor(summary?.duration / 60000000000 % 60) } min)</div>
         </h1>
         <div className="flex w-full justify-end">
           {currentContext?.description &&
