@@ -3,9 +3,9 @@ import {PlusIcon} from "lucide-react";
 import {useEffect, useRef, useState} from "react";
 import ContextCard from "./context-card";
 import {Input} from "./ui/input";
-import {ScrollArea} from "@radix-ui/react-scroll-area";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
+import { ScrollArea } from "./ui/scroll-area";
 
 export interface CardsProps {
   contextList?: Context[]
@@ -26,7 +26,7 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
       setSearchTerm(term);
     },[term])
 
-    return (<div>
+    return (<div className="flex flex-col h-screen">
             <div className="pt-3 pb-2 pr-6 pl-6 flex items-center">
                 <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                        onKeyDown={(e) => {
@@ -50,7 +50,8 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
                     }}></PlusIcon>
                 </div>}
             </div>
-            <ScrollArea className="h-full flex-2 overflow-auto">
+            <div className="flex-1 min-h-0 mb-44"> 
+            <ScrollArea className="h-full">
                 {filteredList?.length  > 0 && <div
                     className="*:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card lg:px-6">
                     {filteredList?.map((context) => (
@@ -61,6 +62,7 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
                     <div className="text-muted-foreground">No contexts found</div>
                 </div>}
             </ScrollArea>
+            </div>
         </div>
     )
-}
+} 
