@@ -13,7 +13,7 @@ export function Contexts() {
         api.context.free()
     };
     return <>
-        <div className="@container/main flex flex-col gap-2 h-full flex-1 min-h-0min-h-0">
+        <div className="@container/main flex flex-col gap-2 h-full flex-1 min-h-0">
             <div className="flex flex-col gap-4 py-4 h-full flex-1 min-h-0">
                 {currentContext &&
                     <div
@@ -34,7 +34,7 @@ export function Contexts() {
                     </div>
                 }
 
-                <div className="h-[100px]">
+                <div className="flex-1 min-h-0">
                     <SectionCards contextList={contextList}></SectionCards>
                 </div>
 
