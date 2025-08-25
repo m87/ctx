@@ -39,7 +39,10 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                     <div className="flex w-full items-center ">
                         {hovered && <div className="cursor-pointer"><PlayCircleIcon size={30} onClick={() => switchMutation.mutate({id: context.id, day})} /></div>}
                         <div className="flex flex-col items-start">
-                            <div>    {context.description} </div>
+                            <div className="flex">    <div>{context.description} </div> 
+
+        <div className="ml-5 w-full">({Math.floor(context.duration / 60000000000 / 60) } h {Math.floor(context.duration / 60000000000 % 60) } min)</div>
+                            </div>
                             <div className="flex">
                                 {context.labels?.map((label: string) => (
                                     <Badge variant={"secondary"}>{label}</Badge>
