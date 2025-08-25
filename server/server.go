@@ -412,7 +412,7 @@ func deleteInterval(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func Serve(manager *core.ContextManager) {
+func Serve(manager *core.ContextManager, port string) {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
 		log.Fatal(err)
@@ -435,7 +435,7 @@ func Serve(manager *core.ContextManager) {
 	http.HandleFunc("/api/intervals/move", moveInterval)
 	http.HandleFunc("/api/intervals/{ctxId}/{id}", deleteInterval)
 	http.HandleFunc("/api/intervals/{ctxId}/{id}/split", splitInterval)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 type Split struct {
