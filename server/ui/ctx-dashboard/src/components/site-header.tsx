@@ -37,7 +37,7 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium flex w-full">
+        <h1 className="text-base font-medium flex w-full justify-start">
           <Routes>
             <Route path="/contexts" element={"Contexts"} />
             <Route path="/day/:day" element={
@@ -53,7 +53,7 @@ export function SiteHeader() {
             <Route path="/today" element={new Date().toLocaleDateString()} />
             <Route path="/" element={new Date().toLocaleDateString()} />
           </Routes>
-        <div className="ml-5 w-full">({Math.floor(summary?.duration / 60000000000 / 60) } h {Math.floor(summary?.duration / 60000000000 % 60) } min)</div>
+          {summary?.duration && <div className="ml-5">({Math.floor(summary?.duration / 60000000000 / 60) } h {Math.floor(summary?.duration / 60000000000 % 60) } min)</div>}
         </h1>
         <div className="flex w-full justify-end">
           {currentContext?.description &&
