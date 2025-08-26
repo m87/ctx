@@ -42,7 +42,7 @@ export function SectionCards({contextList, term, expandId}: CardsProps) {
                        }}
                        placeholder="Search or create new..."></Input>
                 {filteredList?.length == 0 && <div>
-                    <PlusIcon className="cursor-pointer" onClick={() => {
+                    <PlusIcon className="cursor-pointer ml-4" onClick={() => {
                         if (searchTerm.trim() !== '') {
                             createAndSwitchMutation.mutate({description: searchTerm, day})
                             setSearchTerm('');

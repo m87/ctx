@@ -1,6 +1,6 @@
 import { CheckIcon, EditIcon } from "lucide-react";
 import { useCallback, useState } from "react";
-import { api, Interval, ZonedDateTime } from "@/api/api";
+import { Interval, ZonedDateTime } from "@/api/api";
 import { DateTimeInput } from "./ui/datetime";
 import { DateTime } from "luxon";
 
