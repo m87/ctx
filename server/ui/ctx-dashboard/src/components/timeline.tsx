@@ -102,7 +102,7 @@ function Timeline({data, hideDates, hideGuides, onItemSelect, ctxNames, onItemSp
                         {hours.map((hour) => (
                             <div
                                 key={`hour-${hour}`}
-                                className="absolute top-0 text-xs font-semibold text-center border-l border-black/30"
+                                className="absolute top-0 text-xs font-semibold text-center first:border-l-0 border-l border-black/30"
                                 style={{
                                     left: `${(hour / 24) * BLOCK}%`,
                                     width: `${BLOCK / 24}%`,
