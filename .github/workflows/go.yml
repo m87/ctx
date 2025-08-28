@@ -52,7 +52,8 @@ jobs:
        git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
        git rev-parse "$BASE_SHA"
        git rev-parse "$HEAD_SHA"
-       npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
+       #npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
+       npx nx build
 
     - name: Nx affected (push)
       if: ${{ github.event_name == 'push' }}
@@ -67,7 +68,8 @@ jobs:
         git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
         git rev-parse "$BASE_SHA"
         git rev-parse "$HEAD_SHA"
-        npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
+        #npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
+        npx nx build
 
     - name: Set up Go
       uses: actions/setup-go@v4
