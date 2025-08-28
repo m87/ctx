@@ -58,7 +58,7 @@ jobs:
       if: ${{ github.event_name == 'push' }}
       working-directory: ./server/ui/ctx-dashboard
       env:
-      NX_BASE: ''
+        NX_BASE: ''
         NX_HEAD: ''
       run: |
         set -euxo pipefail
