@@ -17,4 +17,14 @@ export function colorHash(id: string) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+export function durationAsH(duration: number) {
+  return Math.floor(duration / 60000000000 / 60)
+}
 
+export function durationAsM(duration: number) {
+  return Math.floor(duration / 60000000000 % 60)
+}
+
+export function durationAsS(duration: number) {
+  return Math.floor(duration / 1000000000 % 60)
+}

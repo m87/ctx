@@ -72,9 +72,21 @@ func currentContext(w http.ResponseWriter, r *http.Request) {
 
 	manager := bootstrap.CreateManager()
 
+	res := CurrentContextResponse{
+		CurrentDuration: 0,
+	}
 	manager.WithSession(func(session core.Session) error {
 		if session.State.CurrentId != "" {
-			json.NewEncoder(w).Encode(session.State.Contexts[session.State.CurrentId])
+			currentCtx := session.MustGetCtx(session.State.CurrentId)
+			res.Context = currentCtx
+
+			for _, interval := range currentCtx.Intervals {
+				if interval.End.Time.IsZero() {
+					res.CurrentDuration = manager.TimeProvider.Now().Time.Sub(interval.Start.Time)
+				}
+			}
+
+			json.NewEncoder(w).Encode(res)
 		} else {
 			json.NewEncoder(w).Encode(nil)
 		}
@@ -95,7 +107,7 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() 
 
 	manager.WithArchiveSession(func(session core.Session) error {
 		return session.CreateIfNotExistsAndSwitch(util.GenerateId(p.Description), p.Description)
@@ -279,43 +291,6 @@ func daySummary(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func recentDaysSummary(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
-	if err != nil {
-		loc = time.UTC
-	}
-	mgr := bootstrap.CreateManager()
-	date := mgr.TimeProvider.Now().Time.In(loc)
-	rawDate := strings.TrimSpace(r.PathValue("date"))
-
-	if rawDate != "" {
-		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
-	}
-
-	n := 10
-	rawN := strings.TrimSpace(r.PathValue("n"))
-	if rawN != "" {
-		n, _ = strconv.Atoi(rawN)
-	}
-
-	response := DaysSyummaryResponse{}
-	response.Sumarries = make(map[string]DaySummaryResponse)
-
-	for i := 0; i < n; i++ {
-		d := date.AddDate(0, 0, -i)
-		summary, err := daySUmmaryByDate(d)
-		if err != nil {
-			http.Error(w, "Error fetching summary for date "+d.Format(time.DateOnly), http.StatusInternalServerError)
-			return
-		}
-		response.Sumarries[d.Format(time.DateOnly)] = summary
-	}
-	json.NewEncoder(w).Encode(response)
-}
-
 func recentIntervals(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -446,6 +421,11 @@ type Split struct {
 
 type SplitRequest struct {
 	Split Split `json:"split"`
+}
+
+type CurrentContextResponse struct {
+	Context core.Context `json:"context"`
+	CurrentDuration time.Duration `json:"currentDuration"`
 }
 
 type SwitchRequest struct {
