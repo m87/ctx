@@ -39,12 +39,35 @@ jobs:
     - name: Set Nx SHAs
       uses: nrwl/nx-set-shas@v4
 
-    - name: Run Nx affected for ctx-dashboard
+    - name: Nx affected (PR)
+      if: ${{ github.event_name == 'pull_request' }}
       working-directory: ./server/ui/ctx-dashboard
+      env:
+        NX_BASE: ''
+        NX_HEAD: ''
       run: |
-        BASE_SHA="${{ github.event.pull_request.base.sha }}"
-        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-        npx nx affected -t lint build -base="$BASE_SHA" --head="$HEAD_SHA" 
+       set -euxo pipefail
+       BASE_SHA="${{ github.event.pull_request.base.sha }}"
+       HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+       git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
+       git rev-parse "$BASE_SHA"
+       git rev-parse "$HEAD_SHA"
+       npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
+
+    - name: Nx affected (push)
+      if: ${{ github.event_name == 'push' }}
+      working-directory: ./server/ui/ctx-dashboard
+      env:
+      NX_BASE: ''
+        NX_HEAD: ''
+      run: |
+        set -euxo pipefail
+        BASE_SHA="${{ github.event.before }}"
+        HEAD_SHA="${{ github.sha }}"  # to samo co github.event.after
+        git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
+        git rev-parse "$BASE_SHA"
+        git rev-parse "$HEAD_SHA"
+        npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
 
     - name: Set up Go
       uses: actions/setup-go@v4
