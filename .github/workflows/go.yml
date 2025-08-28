@@ -39,7 +39,7 @@ jobs:
 
     - name: Run Nx affected for ctx-dashboard
       working-directory: ./server/ui/ctx-dashboard
-      run: npx nx affected -t lint build
+      run: npx nx affected -t lint build --base=master
 
     - name: Set up Go
       uses: actions/setup-go@v4
