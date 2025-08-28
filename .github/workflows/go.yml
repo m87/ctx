@@ -41,7 +41,10 @@ jobs:
 
     - name: Run Nx affected for ctx-dashboard
       working-directory: ./server/ui/ctx-dashboard
-      run: npx nx affected -t lint build --base=master
+      run: |
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        npx nx affected -t lint build -base="$BASE_SHA" --head="$HEAD_SHA" 
 
     - name: Set up Go
       uses: actions/setup-go@v4
