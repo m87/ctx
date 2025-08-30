@@ -58,9 +58,9 @@ export function SiteHeader() {
         </h1>
         <div className="flex w-full justify-end">
           {currentContext?.context.description &&
-            <div className="flex rounded-lg p-1 pl-2 pr-2 font-semibold bg-green-200 animate-pulse">
+            <div className="flex rounded-lg p-1 pl-2 pr-2 font-semibold bg-green-200 animate-pulse items-center">
               <div>{currentContext?.context.description} ({durationAsH(currentContext?.currentDuration)} h {durationAsM(currentContext?.currentDuration) } min)</div>
-              <Pause className="cursor-pointer" onClick={() => freeMutation.mutate({day: day})}></Pause>
+              <Pause className="cursor-pointer shrink-0" onClick={() => freeMutation.mutate({day: day})}></Pause>
             </div>
           }
         </div>
