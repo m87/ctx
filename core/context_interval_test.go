@@ -169,3 +169,16 @@ func TestGetIntervalsByDateCropEndToCurrentDay(t *testing.T) {
 		}
 	}
 }
+
+func TestMoveInterval(t *testing.T) {
+	session := CreateTestSession()
+
+	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 2)
+	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 2)
+	session.MoveIntervalById(TEST_ID, TEST_ID_2, TEST_INTERVAL_ID)
+	
+	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 1)
+	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 3)
+}
+ 
+
