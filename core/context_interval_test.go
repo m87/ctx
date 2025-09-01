@@ -36,7 +36,7 @@ func TestDeleteIntervalNonExistentInterval(t *testing.T) {
 	assert.ErrorContains(t, err, "interval does not exist")
 }
 
-func TestDeleteINtervalActiveContext(t *testing.T) {
+func TestDeleteIntervalActiveContext(t *testing.T) {
 	session := CreateTestSession()
 
 	session.State.CurrentId = TEST_ID
