@@ -41,8 +41,6 @@ func NewSummarizeContextCmd(manager *core.ContextManager) *cobra.Command {
 				if verbose {
 					fmt.Printf("Id: %s\n", ctx.Id)
 				}
-				// ceationTime, _ := getContextCreationTimeFromEvents(ctx.Id)
-				// fmt.Printf("Created: %s\n", ceationTime)
 				fmt.Printf("Duration: %s\n", ctx.Duration)
 
 				return nil
@@ -50,21 +48,6 @@ func NewSummarizeContextCmd(manager *core.ContextManager) *cobra.Command {
 		},
 	}
 }
-
-// func getContextCreationTimeFromEvents(ctxId string) (string, error) {
-// 	mgr := localstorage.CreateManager()
-// 	var creationTime string
-// 	err := mgr.EventsStore.Read(func(er *core.EventRegistry) error {
-// 		for _, event := range er.Events {
-// 			if event.Type == core.CREATE_CTX && event.CtxId == ctxId {
-// 				creationTime = event.DateTime.Time.Format(time.RFC3339)
-// 				return nil
-// 			}
-// 		}
-// 		return nil
-// 	})
-// 	return creationTime, err
-// }
 
 func init() {
 	cmd := NewSummarizeContextCmd(bootstrap.CreateManager())

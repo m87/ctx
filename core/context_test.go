@@ -205,5 +205,19 @@ func TestSearchContextWithRegex(t *testing.T) {
 	assert.Len(t, ctxs, 0)
 }
 
+func TestFree(t *testing.T) {
+	session := CreateTestSession()
 
+	session.Switch(TEST_ID)
+	assert.Equal(t, TEST_ID, session.State.CurrentId)
+	session.Free()
+	assert.Equal(t, "", session.State.CurrentId)
+}
 
+func TestFreeWithNowCurrentContext(t *testing.T) {
+	session := CreateTestSession()
+	err := session.Free()
+	assert.Equal(t, "", session.State.CurrentId)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "no active context")
+}

@@ -162,8 +162,8 @@ func TestGetIntervalsByDateCropEndToCurrentDay(t *testing.T) {
 	assert.Len(t, intervals, 2)
 	for _, interval := range intervals {
 		if interval.Id == TEST_INTERVAL_2_ID {
-			assert.Equal(t, interval.Duration, 10*time.Hour + 47*time.Minute + 47*time.Second)
-	    loc, _ := time.LoadLocation("UTC")
+			assert.Equal(t, interval.Duration, 10*time.Hour+47*time.Minute+47*time.Second)
+			loc, _ := time.LoadLocation("UTC")
 			dt, _ := time.ParseInLocation(time.DateTime, "2025-02-02 23:59:59", loc)
 			assert.Equal(t, interval.End.Time, dt)
 		}
@@ -176,9 +176,27 @@ func TestMoveInterval(t *testing.T) {
 	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 2)
 	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 2)
 	session.MoveIntervalById(TEST_ID, TEST_ID_2, TEST_INTERVAL_ID)
-	
+
 	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 1)
 	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 3)
 }
- 
 
+func TestErrOnEditCurrentContextInterval(t *testing.T) {
+	session := CreateTestSession()
+
+	session.Switch(TEST_ID)
+	err := session.EditContextInterval(TEST_ID, TEST_INTERVAL_ID, session.TimeProvider.Now(), session.TimeProvider.Now())
+
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context is active")
+}
+
+func TestEditContextInterval(t *testing.T) {
+	session := CreateTestSession()
+	now := session.TimeProvider.Now()
+	err := session.EditContextIntervalById(TEST_ID, TEST_INTERVAL_ID, now, now)
+
+	assert.NoError(t, err)
+	assert.Equal(t, session.MustGetCtx(TEST_ID).Intervals[TEST_INTERVAL_ID].Start.Time, now.Time)
+	assert.Equal(t, session.MustGetCtx(TEST_ID).Intervals[TEST_INTERVAL_ID].End.Time, now.Time)
+}

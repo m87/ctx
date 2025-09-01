@@ -59,9 +59,6 @@ func (session *Session) endInterval(ctxId string, now ctxtime.ZonedTime) error {
 		ctx.Intervals[interval.Id] = interval
 		ctx.Duration += interval.Duration
 		session.SetCtx(ctx)
-		//	manager.PublishContextEvent(state.Contexts[id], now, END_INTERVAL, map[string]string{
-		//		"duration": interval.Duration.String(),
-		//	})
 	}
 	return nil
 }
@@ -105,7 +102,7 @@ func (session *Session) SplitContextIntervalById(ctxId string, id string, h int,
 
 func (session *Session) EditContextInterval(ctxId string, intervalId string, start ctxtime.ZonedTime, end ctxtime.ZonedTime) error {
 
-	if err := session.ValidateContextExists(ctxId); err != nil {
+	if err := session.IsValidContext(ctxId); err != nil {
 		return err
 	}
 	context := session.MustGetCtx(ctxId)
@@ -146,8 +143,6 @@ func (session *Session) EditContextIntervalById(ctxId string, intervalId string,
 		return err
 	}
 	oldDuration := state.Contexts[ctxId].Intervals[intervalId].Duration
-	// oldStart := s.Contexts[id].Intervals[intervalId].Start.Time.Format(time.RFC3339)
-	// oldEnd := s.Contexts[id].Intervals[intervalId].End.Time.Format(time.RFC3339)
 
 	ctx := session.MustGetCtx(ctxId)
 
@@ -163,12 +158,6 @@ func (session *Session) EditContextIntervalById(ctxId string, intervalId string,
 	ctx.Duration = ctx.Duration + durationDiff
 
 	session.SetCtx(ctx)
-	// manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), EDIT_CTX_INTERVAL, map[string]string{
-	// 	"old.start": oldStart,
-	// 	"old.end":   oldEnd,
-	// 	"new.start": ctx.Intervals[intervalId].Start.Time.Format(time.RFC3339),
-	// 	"new.end":   ctx.Intervals[intervalId].End.Time.Format(time.RFC3339),
-	// })
 	return nil
 
 }

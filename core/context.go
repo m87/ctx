@@ -60,12 +60,6 @@ func (session *Session) RenameContext(srcId string, targetId string, description
 	ctx.Description = description
 	session.State.Contexts[targetId] = ctx
 	delete(session.State.Contexts, srcId)
-	//		manager.PublishContextEvent(ctx, manager.TimeProvider.Now(), RENAME_CTX, map[string]string{
-	//			"src.id":             ctx.Id,
-	//			"src.description":    ctx.Description,
-	//			"target.id":          targetId,
-	//			"target:description": name,
-	//		})
 	return nil
 
 }
@@ -101,9 +95,7 @@ func (session *Session) deleteInternal(ctxId string) error {
 		return err
 	}
 
-	// ctx := session.State.Contexts[ctxId]
 	delete(session.State.Contexts, ctxId)
-	// manager.PublishContextEvent(context, manager.TimeProvider.Now(), DELETE_CTX, nil)
 	return nil
 }
 
@@ -140,11 +132,6 @@ func (session *Session) MergeContext(from string, to string) error {
 	session.SetCtx(toCtx)
 	session.deleteInternal(from)
 
-	// manager.PublishContextEvent(state.Contexts[to], manager.TimeProvider.Now(), MERGE_CTX, map[string]string{
-	// 	"from": from,
-	// 	"to":   to,
-	// })
-
 	return nil
 }
 
@@ -165,7 +152,6 @@ func (session *Session) createContetxtInternal(id string, description string) er
 		Labels:      []string{},
 		Comments:    []string{},
 	}
-	//manager.PublishContextEvent(state.Contexts[id], manager.TimeProvider.Now(), CREATE_CTX, nil)
 	return nil
 }
 
@@ -180,19 +166,14 @@ func (session *Session) switchInternal(ctxId string) error {
 
 	state := session.State
 	now := session.TimeProvider.Now()
-	//prevId := state.CurrentId
 	if state.CurrentId != "" {
 		session.endInterval(state.CurrentId, now)
 	}
 
 	if ctx, ok := state.Contexts[ctxId]; ok {
 		state.CurrentId = ctx.Id
-		//manager.PublishContextEvent(state.Contexts[id], now, SWITCH_CTX, map[string]string{
-		//	"from": prevId,
-		//})
 		intervalId := uuid.NewString()
 		ctx.Intervals[intervalId] = Interval{Id: intervalId, Start: now}
-		//manager.PublishContextEvent(state.Contexts[ctxId], now, START_INTERVAL, nil)
 		state.Contexts[ctxId] = ctx
 	}
 	return nil
