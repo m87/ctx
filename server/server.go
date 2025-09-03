@@ -107,7 +107,7 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close() 
+	defer r.Body.Close()
 
 	manager.WithArchiveSession(func(session core.Session) error {
 		return session.CreateIfNotExistsAndSwitch(util.GenerateId(p.Description), p.Description)
@@ -231,7 +231,7 @@ func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 
 		for _, c := range sortedIds {
 			d := durations[c]
-			ctx, _ := session.GetCtx(c)
+			ctx := session.MustGetCtx(c)
 			if d > 0 {
 				overallDuration += d
 				intervals := session.GetIntervalsByDate(c, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
@@ -424,7 +424,7 @@ type SplitRequest struct {
 }
 
 type CurrentContextResponse struct {
-	Context core.Context `json:"context"`
+	Context         core.Context  `json:"context"`
 	CurrentDuration time.Duration `json:"currentDuration"`
 }
 
