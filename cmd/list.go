@@ -21,10 +21,14 @@ func NewListCmd(manager *core.ContextManager) *cobra.Command {
 			util.Check(err)
 			verbose, err := flags.ResolveVerboseFlag(cmd)
 			util.Check(err)
+			bash, err := flags.ResolveShellFlag(cmd)
+			util.Check(err)
 
 			manager.WithSession(func(session core.Session) error {
 				if json {
 					fmt.Println(tui.ListJson(session))
+				} else if bash {
+					fmt.Println(tui.ListBash(session))
 				} else if verbose {
 					fmt.Println(tui.ListFull(session))
 				} else {
@@ -40,6 +44,7 @@ func NewListCmd(manager *core.ContextManager) *cobra.Command {
 func init() {
 	cmd := NewListCmd(bootstrap.CreateManager())
 	flags.AddVerboseFlag(cmd)
+	flags.AddShellFlag(cmd)
 	flags.AddJsonFlag(cmd)
 	rootCmd.AddCommand(cmd)
 }

@@ -1,7 +1,6 @@
 package flags
 
 import (
-
 	"github.com/spf13/cobra"
 )
 
@@ -37,3 +36,10 @@ func ResolveJsonFlag(cmd *cobra.Command) (bool, error) {
 	return cmd.Flags().GetBool("json")
 }
 
+func AddShellFlag(cmd *cobra.Command) {
+	cmd.Flags().BoolP("shell", "s", false, "Shell friendly output")
+}
+
+func ResolveShellFlag(cmd *cobra.Command) (bool, error) {
+	return cmd.Flags().GetBool("shell")
+}
