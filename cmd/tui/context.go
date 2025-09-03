@@ -20,6 +20,18 @@ func List(session core.Session) string {
 	return output
 }
 
+func ListBash(session core.Session) string {
+	state := session.State
+	ids := session.GetSortedContextIds()
+	output := ""
+	for _, id := range ids {
+		v := state.Contexts[id]
+		output += fmt.Sprintf("%s\n", v.Description)
+	}
+
+	return output
+}
+
 func ListFull(session core.Session) string {
 	state := session.State
 	ids := session.GetSortedContextIds()
