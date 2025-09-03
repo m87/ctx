@@ -78,6 +78,15 @@ func (session *Session) MustGetCtx(ctxId string) Context {
 	return session.State.Contexts[ctxId]
 }
 
+func (session *Session) GetActiveCtx() (Context, error) {
+	ctxId := session.State.CurrentId
+	if err := session.ValidateAnyActiveContext(); err != nil {
+		return Context{}, err
+	}
+
+	return session.State.Contexts[ctxId], nil
+}
+
 func (session *Session) GetCtx(ctxId string) (Context, error) {
 	if err := session.IsValidContext(ctxId); err != nil {
 		return Context{}, err
