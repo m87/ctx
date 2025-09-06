@@ -1,10 +1,14 @@
 package bootstrap
 
 import (
+	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/m87/ctx/core"
 	localstorage "github.com/m87/ctx/storage/local"
+	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -24,7 +28,31 @@ func CreateManager() *core.ContextManager {
 	}
 
 	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err == nil {
+	viper.ReadInConfig()
+
+	if len(viper.ConfigFileUsed()) <= 0 {
+		log.Println("Ctx is not initialized. Iinitializing with defaults")
+		InitDefault()
+
+		home, err := os.UserHomeDir()
+		cobra.CheckErr(err)
+
+		viper.AddConfigPath(home)
+		viper.SetConfigType("yaml")
+		viper.SetConfigName(".ctx")
 	}
+
+	viper.ReadInConfig()
+
 	return localstorage.CreateManager()
+}
+
+func InitDefault() {
+	home, err := os.UserHomeDir()
+	util.Checkm(err, "Unable to get user home dir")
+
+	os.Mkdir(filepath.Join(home, ".ctx.d"), 0777)
+	os.WriteFile(filepath.Join(home, ".ctx"), []byte(fmt.Sprintf(`version: %s
+storePath: %s`, core.Version, filepath.Join(home, ".ctx.d"))), 0777)
+	os.WriteFile(filepath.Join(home, ".ctx.d", "state"), []byte("{\"contexts\": {}}"), 0777)
 }
