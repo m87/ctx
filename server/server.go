@@ -387,6 +387,17 @@ func deleteInterval(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func version(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	response := VersionResponse{}
+	response.Version = core.Version
+
+	json.NewEncoder(w).Encode(response)
+
+}
+
 func Serve(manager *core.ContextManager, port string) {
 	content, err := fs.Sub(staticFiles, "ui/ctx-dashboard/dist/ctx-dashboard")
 	if err != nil {
@@ -410,6 +421,7 @@ func Serve(manager *core.ContextManager, port string) {
 	http.HandleFunc("/api/intervals/move", moveInterval)
 	http.HandleFunc("/api/intervals/{ctxId}/{id}", deleteInterval)
 	http.HandleFunc("/api/intervals/{ctxId}/{id}/split", splitInterval)
+	http.HandleFunc("/api/version", version)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -426,6 +438,10 @@ type SplitRequest struct {
 type CurrentContextResponse struct {
 	Context         core.Context  `json:"context"`
 	CurrentDuration time.Duration `json:"currentDuration"`
+}
+
+type VersionResponse struct {
+	Version string `json:"version"`
 }
 
 type SwitchRequest struct {

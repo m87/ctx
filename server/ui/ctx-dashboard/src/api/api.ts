@@ -94,6 +94,9 @@ export class Api {
     context = new ContextApi();
     summary = new SummaryApi();
     intervals = new IntervalsApi();
+
+    version = () => http.get<string>("/version").then(response => response.data["version"]);
+    versionQuery = { queryKey: ["version"], queryFn: this.version};
 }
 
 export const api = new Api();
