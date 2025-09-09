@@ -16,6 +16,12 @@ import (
 var cfgFile string
 
 func CreateManager() *core.ContextManager {
+	l, err := core.LockWithTimeout()
+	if err != nil {
+		panic(err)
+	}
+	defer l.Unlock()
+
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
@@ -26,7 +32,6 @@ func CreateManager() *core.ContextManager {
 		viper.SetConfigType("yaml")
 		viper.SetConfigName(".ctx")
 	}
-
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
 

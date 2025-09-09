@@ -83,8 +83,13 @@ func CreateManager() *core.ContextManager {
 }
 
 func Load[T any](path string) T {
-	core.Mutex.Lock()
-	defer core.Mutex.Unlock()
+
+	l, err := core.LockWithTimeout()
+	if err != nil {
+		panic(err)
+	}
+	defer l.Unlock()
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatal("Unable to read state file")
@@ -100,8 +105,13 @@ func Load[T any](path string) T {
 }
 
 func Save[T any](obj *T, path string) {
-	core.Mutex.Lock()
-	defer core.Mutex.Unlock()
+
+	l, err := core.LockWithTimeout()
+	if err != nil {
+		panic(err)
+	}
+	defer l.Unlock()
+
 	data, err := json.Marshal(obj)
 	if err != nil {
 		panic(err)

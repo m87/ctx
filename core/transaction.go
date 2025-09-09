@@ -1,8 +1,28 @@
 package core
 
-import "sync"
+import (
+	"context"
+	"sync"
+	"time"
+
+	"github.com/gofrs/flock"
+)
 
 var Mutex sync.Mutex
+
+func LockWithTimeout() (*flock.Flock, error){
+	l := flock.New("/tmp/ctx.lock")
+	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
+	defer cancel()
+
+
+	if _, err := l.TryLockContext(ctx, 100*time.Millisecond); err != nil {
+		return nil, err
+	}
+
+	return l, nil
+}
+
 
 type TransactionalStore[T any] interface {
 	Begin() (Tx[T], error)
