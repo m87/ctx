@@ -40,6 +40,8 @@ ctx sw "new task"
 ctx serve //ui localhost:8080
 ```
 
+![screen](img/screenshot.png)
+
 ## Why?
 
 This whole thing started as an excuse to mess around with **Go** and **React**.  
