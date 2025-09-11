@@ -11,7 +11,7 @@ import (
 var Mutex sync.Mutex
 
 func LockWithTimeout() (*flock.Flock, error){
-	l := flock.New("/tmp/ctx.lock")
+	l := flock.New("ctx.lock")
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
 
