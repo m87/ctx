@@ -119,7 +119,6 @@ func renameContext(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	manager := bootstrap.CreateManager()
 
-
 	var p RenameRequest
 	err := json.NewDecoder(r.Body).Decode(&p)
 	if err != nil {
@@ -515,7 +514,7 @@ type IntervalEntry struct {
 
 type RenameRequest struct {
 	CtxId string `json:"ctxId"`
-	Name string `json:"name"`
+	Name  string `json:"name"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {

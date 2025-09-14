@@ -1,5 +1,5 @@
-import { ArrowDown, ChevronDown, ChevronUp, PlayCircleIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { ArrowDown, ChevronDown, ChevronUp, Edit, PlayCircleIcon } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
 import { api, ZonedDateTime, Interval, Context } from "@/api/api";
 import IntervalComponent from "./interval-component";
@@ -8,6 +8,12 @@ import { colorHash } from "@/lib/utils";
 import { compareAsc } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "./ui/context-menu";
+import { Button } from "./ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
+import { EditContextDialog } from "./edit-context-dialog";
 
 export interface ContextCardProps {
   context: Context
@@ -18,9 +24,9 @@ export interface ContextCardProps {
 export function ContextCard({ context, expandCard }: ContextCardProps) {
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpand] = useState(false);
-  const [edited, setEdited] = useState(false);
   const querClient = useQueryClient();
   const switchMutation = useMutation(api.context.switchMutation(querClient))
+  const renameMutation = useMutation(api.context.renameMutation(querClient))
   const updateIntervalMutation = useMutation(api.context.updateIntervalMutation(querClient))
   const { day } = useParams();
 
@@ -29,7 +35,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
   }, [expandCard])
 
   return (
-    <Card key={context.id} className="flex w-full"
+    <Card key={context.id} className="flex w-full h-full"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -42,9 +48,8 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
               <div className="flex flex-col items-start">
                 <div className="flex flex-grow min-w-0">
 
-                {edited ? <input value="{context.description}"/> :
                   <div>{context.description} </div>
-                }
+
                   <div className="ml-5 flex-shrink-0 whitespace-nowrap">({Math.floor(context.duration / 60000000000 / 60)} h {Math.floor(context.duration / 60000000000 % 60)} min)</div>
                 </div>
                 <div className="flex">
@@ -68,6 +73,11 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
             {Object.values(context.intervals ?? []).sort((a, b) => compareAsc(a.start.time, b.start.time)).map((interval: Interval) => (
               <IntervalComponent key={interval.id} interval={interval} onChange={(id: string, start: ZonedDateTime, end: ZonedDateTime) => updateIntervalMutation.mutate({ contextId: context.id, intervalId: id, start, end, day })} />
             ))}
+          </div>
+          <div className="w-full flex justify-end items-end">
+            <EditContextDialog context={context} onChange={(ctx) => renameMutation.mutate({ctxId: ctx.id, name: ctx.description})}>
+              <Button variant="outline" size="sm"><Edit />Edit context</Button>
+            </EditContextDialog>
           </div>
         </CardContent>
         }
