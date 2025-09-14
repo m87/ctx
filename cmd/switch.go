@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
+func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "switch",
 		Aliases: []string{"sw", "s"},
@@ -42,7 +42,7 @@ func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	switchCmd := NewSwitchCmd(bootstrap.CreateManager())
+	switchCmd := newSwitchCmd(bootstrap.CreateManager())
 	switchCmd.Flags().BoolP("id", "i", false, "stop by description")
 	rootCmd.AddCommand(switchCmd)
 }

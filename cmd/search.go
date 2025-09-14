@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewSearchCmd(manager *core.ContextManager) *cobra.Command {
+func newSearchCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "search",
 		Aliases: []string{"S", "search"},
@@ -53,7 +53,7 @@ func NewSearchCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewSearchCmd(bootstrap.CreateManager())
+	cmd := newSearchCmd(bootstrap.CreateManager())
 	flags.AddVerboseFlag(cmd)
 	rootCmd.AddCommand(cmd)
 }

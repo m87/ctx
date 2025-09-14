@@ -38,7 +38,7 @@ type DaySummary struct {
 	Duration time.Duration  `json:"duration"`
 }
 
-func NewSummarizeDayCmd(manager *core.ContextManager) *cobra.Command {
+func newSummarizeDayCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "day",
 		Aliases: []string{"d", "day"},
@@ -151,7 +151,7 @@ func containsInterval(intervals []core.Interval, id string) bool {
 }
 
 func init() {
-	summarizeDayCmd := NewSummarizeDayCmd(bootstrap.CreateManager())
+	summarizeDayCmd := newSummarizeDayCmd(bootstrap.CreateManager())
 	summarizeDayCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
 	summarizeDayCmd.Flags().StringP("round", "r", "nanosecond", "Round to the nearest nanosecond, microsecond, millisecond, second, minute, hour")
 	summarizeDayCmd.Flags().BoolP("json", "j", false, "Json output")

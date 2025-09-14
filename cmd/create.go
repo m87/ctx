@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
+func newCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "create",
 		Aliases: []string{"new", "c"},
@@ -30,7 +30,7 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewCreateContextCmd(bootstrap.CreateManager())
+	cmd := newCreateContextCmd(bootstrap.CreateManager())
 
 	rootCmd.AddCommand(cmd)
 }

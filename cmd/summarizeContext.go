@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewSummarizeContextCmd(manager *core.ContextManager) *cobra.Command {
+func newSummarizeContextCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "context",
 		Aliases: []string{"ctx", "c"},
@@ -50,7 +50,7 @@ func NewSummarizeContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewSummarizeContextCmd(bootstrap.CreateManager())
+	cmd := newSummarizeContextCmd(bootstrap.CreateManager())
 	cmd.Flags().BoolP("verbose", "v", false, "Verbose output")
 	summarizeCmd.AddCommand(cmd)
 }

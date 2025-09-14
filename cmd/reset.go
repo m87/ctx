@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewAdmResetCmd(manager *core.ContextManager) *cobra.Command {
+func newAdmResetCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "reset",
 		Aliases: []string{"r"},
@@ -28,5 +28,5 @@ func NewAdmResetCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	admCmd.AddCommand(NewAdmResetCmd(bootstrap.CreateManager()))
+	admCmd.AddCommand(newAdmResetCmd(bootstrap.CreateManager()))
 }

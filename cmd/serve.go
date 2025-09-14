@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewServeCmd(manager *core.ContextManager) *cobra.Command {
+func newServeCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use: "serve",
 		Run: func(cmd *cobra.Command, ars []string) {
@@ -18,7 +18,7 @@ func NewServeCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	serveCmd := NewServeCmd(bootstrap.CreateManager())
+	serveCmd := newServeCmd(bootstrap.CreateManager())
 	serveCmd.Flags().StringP("port", "p", "8080", "server port")
 	rootCmd.AddCommand(serveCmd)
 }

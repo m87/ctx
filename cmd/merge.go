@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewMergeCmd(manager *core.ContextManager) *cobra.Command {
+func newMergeCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "merge <from> <to>",
 		Aliases: []string{"m", "combine"},
@@ -27,7 +27,7 @@ func NewMergeCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewMergeCmd(bootstrap.CreateManager())
+	cmd := newMergeCmd(bootstrap.CreateManager())
 	flags.AddCustomContextFlag(cmd, "from", "f", "Source context to merge from")
 	flags.AddCustomContextFlag(cmd, "to", "t", "Target context to merge into")
 	rootCmd.AddCommand(cmd)

@@ -130,7 +130,7 @@ func renameContext(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	manager.WithSession(func(session core.Session) error {
-		session.RenameContext(p.CtxId, util.GenerateId(name), p.Name)
+		session.RenameContext(p.CtxId, util.GenerateId(p.Name), p.Name)
 		return nil
 	})
 

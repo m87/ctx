@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewEditContextIntervalMoveCmd(manager *core.ContextManager) *cobra.Command {
+func newEditContextIntervalMoveCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "move",
 		Aliases: []string{"mv"},
@@ -58,6 +58,6 @@ func NewEditContextIntervalMoveCmd(manager *core.ContextManager) *cobra.Command 
 }
 
 func init() {
-	cmd := NewEditContextIntervalMoveCmd(bootstrap.CreateManager())
+	cmd := newEditContextIntervalMoveCmd(bootstrap.CreateManager())
 	editContextIntervalCmd.AddCommand(cmd)
 }
