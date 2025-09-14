@@ -114,6 +114,28 @@ func createAndSwitchContext(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func renameContext(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	manager := bootstrap.CreateManager()
+
+
+	var p RenameRequest
+	err := json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		log.Println("Error decoding JSON:", err)
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	manager.WithSession(func(session core.Session) error {
+		session.RenameContext(p.CtxId, util.GenerateId(name), p.Name)
+		return nil
+	})
+
+}
+
 func updateInterval(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -412,6 +434,7 @@ func Serve(manager *core.ContextManager, port string) {
 	http.HandleFunc("/api/context/switch", switchContext)
 	http.HandleFunc("/api/context/createAndSwitch", createAndSwitchContext)
 	http.HandleFunc("/api/context/interval", updateInterval)
+	http.HandleFunc("/api/context/rename", renameContext)
 	http.HandleFunc("/api/summary/day/{date}", daySummary)
 	http.HandleFunc("/api/summary/day", daySummary)
 	http.HandleFunc("/api/summary/day/list", dayListSummary)
@@ -488,6 +511,11 @@ type IntervalEntry struct {
 	CtxId       string        `json:"ctxId"`
 	Description string        `json:"description"`
 	Interval    core.Interval `json:"interval"`
+}
+
+type RenameRequest struct {
+	CtxId string `json:"ctxId"`
+	Name string `json:"name"`
 }
 
 func switchContext(w http.ResponseWriter, r *http.Request) {
