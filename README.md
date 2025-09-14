@@ -35,10 +35,13 @@ ctx help (for now)
 
 ## Quick start
 ```
-ctx adm init
-ctx sw "new task"
-ctx serve //ui localhost:8080
+ctx switch "new task"
+ctx sw "other task"
+
+ctx ls -v
 ```
+
+![screen](img/screenshot.png)
 
 ## Why?
 
