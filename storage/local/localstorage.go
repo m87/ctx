@@ -16,6 +16,12 @@ type fileTx[T any] struct {
 	data T
 }
 
+type PathMapper[K comparable] interface {
+	PathOf(key K) string
+}
+
+type SingleFileMapper[K comparable] struct { Path string }
+
 type FileStore[T any] struct {
 	path string
 }
