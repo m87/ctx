@@ -12,9 +12,14 @@ func NewArchiveCmd(manager *core.ContextManager) *cobra.Command {
 		Use:     "archive",
 		Aliases: []string{"archive", "a"},
 		Short:   "Archive contexts",
-	
+
 		Run: func(cmd *cobra.Command, args []string) {
-			util.Check(manager.WithSession(func(session core.Session) error { return session.Archive() }))
+			util.Check(manager.WithSession(func(session core.Session) error {
+				return manager.WithContextArchiver(func(archver core.Archiver[core.Context]) error {
+					archver.Archvie(session.getCon)
+					return nil
+				})
+			}))
 		},
 	}
 

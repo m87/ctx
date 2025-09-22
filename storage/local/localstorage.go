@@ -16,12 +16,6 @@ type fileTx[T any] struct {
 	data T
 }
 
-type PathMapper[K comparable] interface {
-	PathOf(key K) string
-}
-
-type SingleFileMapper[K comparable] struct { Path string }
-
 type FileStore[T any] struct {
 	path string
 }
@@ -85,6 +79,7 @@ func (store *FileStore[T]) WithTx(fn func(t *T) error) error {
 func CreateManager() *core.ContextManager {
 	return core.NewContextManager(ctxtime.NewTimer(),
 		&FileStore[core.State]{path: filepath.Join(viper.GetString("storePath"), "state")},
+		&LocalStoreContextArchiver{path: filepath.Join(viper.GetString("storePath"), "archive")},
 	)
 }
 

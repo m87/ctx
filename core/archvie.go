@@ -1,7 +1,5 @@
 package core
 
-
-func (session *Session) Archive() error {
-
-	return nil
-}  
+type Archiver[T any] interface {
+	Archvie(data []T) error
+}
