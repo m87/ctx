@@ -21,10 +21,15 @@ type FileStore[T any] struct {
 }
 
 func (store *FileStore[T]) Begin() (core.Tx[T], error) {
+	data, err := Load[T](store.path)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &fileTx[T]{
 		path: store.path,
-		data: Load[T](store.path),
-	}, nil
+		data: data}, nil
 }
 
 func (store *FileStore[T]) BeginAndGet() (core.Tx[T], *T, error) {
@@ -83,8 +88,8 @@ func CreateManager() *core.ContextManager {
 	)
 }
 
-func Load[T any](path string) T {
-
+func Load[T any](path string) (T, error) {
+	var none T
 	l, err := core.LockWithTimeout()
 	if err != nil {
 		panic(err)
@@ -93,31 +98,31 @@ func Load[T any](path string) T {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatal("Unable to read state file")
+		return none, err
 	}
 
 	var obj T
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
-		log.Fatal("Unable to parse state file ", err)
+		return none, err
 	}
 
-	return obj
+	return obj, err
 }
 
-func Save[T any](obj *T, path string) {
-
+func Save[T any](obj *T, path string) error {
 	l, err := core.LockWithTimeout()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer l.Unlock()
 
 	data, err := json.Marshal(obj)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	os.WriteFile(path, data, 0777)
+	return nil
 }
 
 func LoadState() core.State {

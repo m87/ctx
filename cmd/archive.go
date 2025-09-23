@@ -16,8 +16,17 @@ func NewArchiveCmd(manager *core.ContextManager) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			util.Check(manager.WithSession(func(session core.Session) error {
 				return manager.WithContextArchiver(func(archver core.Archiver[core.Context]) error {
-					archver.Archvie(session.getCon)
-					return nil
+					contextsToArchvie := []core.Context{}
+
+					for _, v := range session.State.Contexts {
+						if session.State.CurrentId == v.Id {
+							continue
+						}
+
+						contextsToArchvie = append(contextsToArchvie, v)
+					}
+
+					return archver.Archvie(contextsToArchvie, session)
 				})
 			}))
 		},
