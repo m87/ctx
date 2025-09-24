@@ -45,6 +45,11 @@ ctx sw "other task"
 ctx ls -v
 ```
 
+## Server
+
+```bash
+ctx serve -p 9999   #localhost:9999
+```
 ![screen](img/screenshot.png)
 
 ## Why?
