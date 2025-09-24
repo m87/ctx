@@ -53,6 +53,9 @@ changelog:
       - "^test:"
 
 release:
+  github:
+    owner: m87
+    name: ctx
   footer: >-
 
     ---
