@@ -36,3 +36,5 @@ go.work.sum
 
 ctx.lock
 .vscode
+# Added by goreleaser init:
+dist/
