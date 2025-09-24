@@ -31,8 +31,10 @@ go install github.com/m87/ctx
 
 ## Documentation
 
+[Documentation](https://github.com/m87/ctx/wiki/Documentation)
+
 ```
-ctx help (for now)
+ctx help
 ```
 
 ## Quick start
