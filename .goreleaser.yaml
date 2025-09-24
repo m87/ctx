@@ -25,10 +25,9 @@ builds:
     ldflags:
       - >
         -s -w
-        -X 'github.com/m87/ctx/core/version.Version={{.Version}}'
-        -X 'github.com/m87/ctx/core/version.Commit={{.FullCommit}}'
-        -X 'github.com/m87/ctx/core/version.Date={{.Date}}'
-
+        -X 'github.com/m87/ctx/core.Version={{.Version}}'
+        -X 'github.com/m87/ctx/core.Commit={{.FullCommit}}'
+        -X 'github.com/m87/ctx/core.Date={{.Date}}'
 
 archives:
   - formats: [tar.gz]
