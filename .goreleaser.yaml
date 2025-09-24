@@ -46,11 +46,24 @@ archives:
         formats: [zip]
 
 changelog:
+  use: git                  
   sort: asc
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
+      - '^chore'
+      - '^docs'
+      - '^test'
+      - 'Merge pull request'
+  groups:
+    - title: "🚀 Features"
+      regexp: "^feat(\\(.*\\))?:"
+      order: 0
+    - title: "🐞 Fixes"
+      regexp: "^fix(\\(.*\\))?:"
+      order: 1
+    - title: "🧰 Chores"
+      regexp: "^chore(\\(.*\\))?:"
+      order: 2
 
 release:
   github:
