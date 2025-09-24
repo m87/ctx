@@ -25,7 +25,9 @@ I built a full web UI too, for people who "don’t like typing." Whatever works.
 
 ## Installation
 
-> Work in progress – installation instructions coming soon.
+```
+go install github.com/m87/ctx
+```
 
 ## Documentation
 
