@@ -33,7 +33,7 @@ export default defineConfig(() => ({
   //  plugins: [ nxViteTsPaths() ],
   // },
   build: {
-    outDir: 'server/ui/ctx-dashboard/dist',
+    outDir: './dist/ctx-dashboard',
     emptyOutDir: true,
     reportCompressedSize: true,
     commonjsOptions: {

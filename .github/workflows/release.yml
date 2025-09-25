@@ -25,6 +25,50 @@ jobs:
           cache: 'npm'
           cache-dependency-path: server/ui/ctx-dashboard/package-lock.json
 
+      - name: Install frontend dependencies
+        working-directory: ./server/ui/ctx-dashboard
+        run: npm ci --legacy-peer-deps
+        
+      - name: Install Cypress
+        working-directory: ./server/ui/ctx-dashboard
+        run: npx cypress install
+
+      - name: Set Nx SHAs
+        uses: nrwl/nx-set-shas@v4
+
+      - name: Nx affected (PR)
+        if: ${{ github.event_name == 'pull_request' }}
+        working-directory: ./server/ui/ctx-dashboard
+        env:
+          NX_BASE: ''
+          NX_HEAD: ''
+        run: |
+          set -euxo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
+          git rev-parse "$BASE_SHA"
+          git rev-parse "$HEAD_SHA"
+          #npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
+          npx nx build
+
+      - name: Nx affected (push)
+        if: ${{ github.event_name == 'push' }}
+        working-directory: ./server/ui/ctx-dashboard
+        env:
+          NX_BASE: ''
+          NX_HEAD: ''
+        run: |
+          set -euxo pipefail
+          BASE_SHA="${{ github.event.before }}"
+          HEAD_SHA="${{ github.sha }}"  # to samo co github.event.after
+          git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
+          git rev-parse "$BASE_SHA"
+          git rev-parse "$HEAD_SHA"
+          #npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
+          npx nx build
+
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
