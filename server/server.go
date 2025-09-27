@@ -206,7 +206,7 @@ func intervals(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
+func daySUmmaryByDate(date time.Time, showAllContexts bool) (DaySummaryResponse, error) {
 
 	manager := bootstrap.CreateManager()
 	durations := map[string]time.Duration{}
@@ -248,11 +248,31 @@ func daySUmmaryByDate(date time.Time) (DaySummaryResponse, error) {
 			}
 		}
 
+		if showAllContexts {
+			response.OtherContexts = []core.Context{}
+			for k, v := range session.State.Contexts {
+				if !contextInList(response.Contexts, k) {
+					response.OtherContexts = append(response.OtherContexts, v)
+				}
+			}
+		}
+
 		response.Duration = overallDuration
 		return nil
 	})
 
 	return response, nil
+}
+
+func contextInList(contexts []core.Context, id string) bool {
+
+	for _, c := range contexts {
+		if c.Id == id {
+			return true
+		}
+	}
+
+	return false
 }
 
 func dayListSummary(w http.ResponseWriter, r *http.Request) {
@@ -274,6 +294,10 @@ func daySummary(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
+	query := r.URL.Query()
+
+	showAllContexts := query.Get("showAllContexts") == "true"
+
 	loc, err := time.LoadLocation(ctxtime.DetectTimezoneName())
 	if err != nil {
 		loc = time.UTC
@@ -286,7 +310,7 @@ func daySummary(w http.ResponseWriter, r *http.Request) {
 		date, _ = time.ParseInLocation(time.DateOnly, rawDate, loc)
 	}
 
-	response, _ := daySUmmaryByDate(date)
+	response, _ := daySUmmaryByDate(date, showAllContexts)
 
 	json.NewEncoder(w).Encode(response)
 }
@@ -466,8 +490,9 @@ type EditIntervalRequest struct {
 }
 
 type DaySummaryResponse struct {
-	Contexts []core.Context `json:"contexts"`
-	Duration time.Duration  `json:"duration"`
+	Contexts      []core.Context `json:"contexts"`
+	OtherContexts []core.Context `json:"otherContexts"`
+	Duration      time.Duration  `json:"duration"`
 }
 
 type DaysSyummaryResponse struct {

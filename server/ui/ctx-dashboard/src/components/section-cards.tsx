@@ -3,21 +3,29 @@ import { PlusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ContextCard from "./context-card";
 import { Input } from "./ui/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { ScrollArea } from "./ui/scroll-area";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
+import { format } from "date-fns";
+import { DaySummary } from "@/api/api-summary";
 
 export interface CardsProps {
-    contextList?: Context[]
     term: string
     expandId?: string
+    selectedDate: Date
 }
 
-export function SectionCards({ contextList, term, expandId }: CardsProps) {
+function concatContexts(summary: DaySummary | undefined) {
+    return summary ? [...summary.contexts, ...summary.otherContexts] : []
+}
+
+export function SectionCards({ term, expandId, selectedDate }: CardsProps) {
     const [searchTerm, setSearchTerm] = useState(term);
-    const filteredList = (contextList ?? []).filter((context) =>
+    const [showAllContexts, setShowAllContexts] = useState(false);
+    const { data: summary } = useQuery({ ...api.summary.daySummaryQuery(format(selectedDate, "yyyy-MM-dd"), showAllContexts) });
+    const filteredList = concatContexts(summary).filter((context) =>
         context.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
     const queryClient = useQueryClient();
@@ -32,7 +40,7 @@ export function SectionCards({ contextList, term, expandId }: CardsProps) {
         <div className="pt-3 pr-6 pl-6 flex items-start">
             <div className="flex flex-col w-full">
                 <div className="w-full flex">                
-                    <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-b-none rounded-r-none"
+                    <Input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="rounded-b-none"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && searchTerm.trim() !== '' && filteredList && filteredList?.length > 0) {
                             api.context.switch(filteredList[0].id);
@@ -45,19 +53,10 @@ export function SectionCards({ contextList, term, expandId }: CardsProps) {
                         }
                     }}
                     placeholder="Search or create new..."></Input>
-
-                    {filteredList?.length == 0 && <div className="h-full cursor-pointer border rounded-tl-none rounded-bl-none rounded-br-none rounded-md border-l-0">
-                        <PlusIcon  className="h-full" onClick={() => {
-                            if (searchTerm.trim() !== '') {
-                                createAndSwitchMutation.mutate({ description: searchTerm, day })
-                                setSearchTerm('');
-                            }
-                        }}></PlusIcon>
-                    </div>}
                 </div>
 
                 <div className="flex items-center gap-3 pt-2 pl-1 pr-1 pb-2 mb-3 opacity-70 border border-t-0 rounded-b-md">
-                    <Checkbox id="all-ctx" />
+                    <Checkbox id="all-ctx" onCheckedChange={(v) => setShowAllContexts(v)}/>
                     <Label htmlFor="all-ctx">Show all contexts</Label>
                 </div>
             </div>

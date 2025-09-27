@@ -12,7 +12,6 @@ import { DateTime } from "luxon";
 export function TodaySummary() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedInterval, setSelectedInterval] = useState(null)
-  const { data: summary } = useQuery({ ...api.summary.daySummaryQuery(format(selectedDate, "yyyy-MM-dd")) });
   const { data: intervals } = useQuery({ ...api.intervals.intervalsByDayQuery(format(selectedDate, "yyyy-MM-dd")), select: intervalsResponseAsTimelineData })
   const { data: names } = useQuery({ ...api.context.listNamesQuery })
   const { day } = useParams();
@@ -53,7 +52,7 @@ export function TodaySummary() {
         })}
         onItemDelete={(interval: TimeInterval) =>  deleteMutation.mutate({ctxId: interval.ctxId, id: interval.id, day: day})}
       />
-      <SectionCards contextList={summary?.contexts} term={selectedInterval?.description ?? ''} expandId={selectedInterval?.ctxId ?? ''}></SectionCards>
+      <SectionCards selectedDate={selectedDate} term={selectedInterval?.description ?? ''} expandId={selectedInterval?.ctxId ?? ''}></SectionCards>
     </div>
   );
 }
