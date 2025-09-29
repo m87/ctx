@@ -54,7 +54,7 @@ export function SiteHeader() {
             <Route path="/today" element={new Date().toLocaleDateString()} />
             <Route path="/" element={new Date().toLocaleDateString()} />
           </Routes>
-          {summary?.duration && <div className="ml-5">({durationAsH(summary?.duration)} h { durationAsM(summary?.duration) } min)</div>}
+          {summary?.duration ? <div className="ml-5">({durationAsH(summary?.duration)} h { durationAsM(summary?.duration) } min)</div> : <div></div>}
         </h1>
         <div className="flex w-full justify-end">
           {currentContext?.context.description &&
