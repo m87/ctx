@@ -28,7 +28,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
     }, [expandCard])
 
     return (
-        <Card key={context.id} className="flex w-full"
+        <Card key={context.id} className="flex w-full" style={{ borderLeftColor: "rgba(0,0,0,0)" }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
