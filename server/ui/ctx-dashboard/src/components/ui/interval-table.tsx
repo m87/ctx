@@ -13,7 +13,6 @@ import {
     IconChevronRight,
     IconChevronsLeft,
     IconChevronsRight,
-    IconDotsVertical,
 } from "@tabler/icons-react"
 import {
     ColumnDef,
@@ -32,13 +31,6 @@ import {
 } from "@tanstack/react-table"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import {
     Select,
@@ -55,12 +47,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Edit, SendToBack, Trash } from "lucide-react"
+import { Edit, Trash } from "lucide-react"
 export const schema = z.object({
     id: z.number(),
-    header: z.string(),
-    type: z.string(),
-    status: z.string(),
+    start: z.string(),
+    end: z.string(),
+    summary: z.string(),
 })
 const columns: ColumnDef<z.infer<typeof schema>>[] = [
     {
@@ -90,7 +82,6 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
         cell: () => (
             <div className="flex gap-2 justify-end">
                 <Button variant="secondary"><Edit></Edit></Button>
-                <Button variant="secondary"><SendToBack></SendToBack></Button>
                 <Button variant="destructive"><Trash></Trash></Button>
             </div>
         ),
