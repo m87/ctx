@@ -16,29 +16,6 @@ export function IntervalComponent({ interval, onChange }: Readonly<{ interval: I
 
   return (
     <div className="flex flex-col">
-      <DataTable data={[
-  {
-    "id": 1,
-    "start": "2025-10-12 12:11:00",
-    "end": "2025-10-12 12:13:45",
-    "summary": "1h 30m",
-  },
-  {
-    "id": 2,
-    "start": "2025-10-12 12:11:00",
-    "end": "2025-10-12 12:13:45",
-    "summary": "1h 30m",
-  },
-  {
-    "id": 3,
-    "start": "2025-10-12 12:11:00",
-    "end": "2025-10-12 12:13:45",
-    "summary": "1h 30m",
-  },
-]
-}></DataTable>
-
-
       {edited && <div className="flex gap-2 p-2 items-center">
         <DateTimeInput datetime={start.toDateTime()} editable={true} onChange={handleStartChange}></DateTimeInput>
         <div>-</div>
