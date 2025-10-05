@@ -67,6 +67,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                             .map((interval: Interval) => (
                                 {
                                     "id": interval.id,
+                                    "ctxId": context.id,
                                     "start": interval.start.toString(),
                                     "end": interval.end.toString(),
                                     "summary": durationAsH(interval.duration) + "h " +  durationAsM(interval.duration) + "min"

@@ -48,8 +48,11 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Edit, Trash } from "lucide-react"
+import { api, Interval } from "@/api/api"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 export const schema = z.object({
     id: z.string(),
+    ctxId: z.string(),
     start: z.string(),
     end: z.string(),
     summary: z.string(),
@@ -79,11 +82,8 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     },
     {
         id: "actions",
-        cell: () => (
-            <div className="flex gap-2 justify-end">
-                <Button variant="ghost"><Edit></Edit></Button>
-                <Button variant="ghost"><Trash className="text-red-700"></Trash></Button>
-            </div>
+        cell: ({ row }) => (
+            <ActionCell interval={row.original}></ActionCell>
         ),
     },
 ]
@@ -281,3 +281,20 @@ export function DataTable({
     )
 }
 
+function ActionCell({ interval }: { interval: {
+    id: string,
+    ctxId: string,
+    start: string,
+    end: string,
+    summary: string,
+} }) {
+    const qc = useQueryClient();
+    const deleteMutation = useMutation(api.intervals.deleteMutation(qc))
+
+    return (
+        <div className="flex gap-2 justify-end">
+            <Button variant="ghost"><Edit></Edit></Button>
+            <Button variant="ghost" onClick={() => deleteMutation.mutate({ctxId: interval.ctxId, id: interval.id})}><Trash className="text-red-700"></Trash></Button>
+        </div>
+    );
+}
