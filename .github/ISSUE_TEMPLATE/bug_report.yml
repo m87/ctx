@@ -63,6 +63,19 @@ body:
       description: Describe your environment (OS, browser, device, etc.)
       placeholder: e.g. Windows 11 / Chrome 128.0
 
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Which part of the project is affected?
+      multiple: true
+      options:
+        - cli
+        - web-ui
+        - server
+    validations:
+      required: true
+
   - type: checkboxes
     id: confirmation
     attributes:
