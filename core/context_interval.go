@@ -118,7 +118,11 @@ func (session *Session) EditContextInterval(ctxId string, intervalId string, sta
 
 func (session *Session) MoveIntervalById(idSrc string, idTarget string, intervalId string) error {
 	state := session.State
-	if err := session.ValidateActiveContext(idTarget); err != nil {
+	if err := session.ValidateContextsExist(idSrc, idTarget); err != nil {
+		return err
+	}
+
+	if err := session.ValidateActiveInterval(idSrc, intervalId); err != nil {
 		return err
 	}
 
