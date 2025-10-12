@@ -25,7 +25,8 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 20
-        cache: false
+        cache: 'npm'
+        cache-dependency-path: server/ui/ctx-dashboard/package-lock.json
 
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
