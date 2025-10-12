@@ -9,6 +9,7 @@ import { compareAsc } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { DataTable } from "./ui/interval-table";
+import { IntervalTable, IntervalTable2 } from "./intervals-table";
 
 export interface ContextCardProps {
     context: Context
@@ -21,7 +22,6 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
     const [expanded, setExpand] = useState(false);
     const querClient = useQueryClient();
     const switchMutation = useMutation(api.context.switchMutation(querClient))
-    const updateIntervalMutation = useMutation(api.context.updateIntervalMutation(querClient))
     const { day } = useParams();
 
     useEffect(() => {
@@ -62,16 +62,8 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                 </CardHeader>
                 {expanded && <CardContent className="flex flex-col gap-2">
                     <div className="flex flex-col justify-center">
-                        <DataTable data={Object.values(context.intervals ?? [])
-                            .sort((a, b) => compareAsc(a.start.time, b.start.time))
-                            .map((interval: Interval) => (
-                                {
-                                    "id": interval.id,
-                                    "ctxId": context.id,
-                                    "start": interval.start,
-                                    "end": interval.end,
-                                    "summary": durationAsH(interval.duration) + "h " +  durationAsM(interval.duration) + "min"
-                                }))}></DataTable>
+                        <IntervalTable ctxId={context.id} intervals={Object.values(context.intervals ?? [])
+                            .sort((a, b) => compareAsc(a.start.time, b.start.time))}></IntervalTable>
                     </div>
                 </CardContent>
                 }

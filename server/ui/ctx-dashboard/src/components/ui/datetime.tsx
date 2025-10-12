@@ -60,7 +60,7 @@ export function DateTimeInput({datetime, label, editable, onChange}: DateTimeInp
 
     <div className="flex gap-4">
             <div className="flex flex-col gap-3">
-         <Popover open={open} onOpenChange={setOpen}>
+         <Popover open={open} onOpenChange={setOpen} modal={true}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"

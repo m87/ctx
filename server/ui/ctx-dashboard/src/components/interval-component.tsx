@@ -3,7 +3,6 @@ import { useCallback, useState } from "react";
 import { Interval, ZonedDateTime } from "@/api/api";
 import { DateTimeInput } from "./ui/datetime";
 import { DateTime } from "luxon";
-import { DataTable } from "./ui/interval-table";
 
 
 export function IntervalComponent({ interval, onChange }: Readonly<{ interval: Interval, onChange: (id: string, start: ZonedDateTime, end: ZonedDateTime) => void }>) {
