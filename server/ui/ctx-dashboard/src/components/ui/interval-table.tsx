@@ -48,13 +48,19 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Edit, Trash } from "lucide-react"
-import { api, Interval } from "@/api/api"
+import { api, ZonedDateTime } from "@/api/api"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "./sheet"
+import { Input } from "./input"
+import { DateTimeInput } from "./datetime"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./dialog"
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "./item"
+import { Separator } from "./separator"
 export const schema = z.object({
     id: z.string(),
     ctxId: z.string(),
-    start: z.string(),
-    end: z.string(),
+    start: z.instanceof(ZonedDateTime),
+    end: z.instanceof(ZonedDateTime),
     summary: z.string(),
 })
 const columns: ColumnDef<z.infer<typeof schema>>[] = [
@@ -62,7 +68,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
         accessorKey: "startTime",
         header: "Start time",
         cell: ({ row }) => {
-            return <div className="flex justify-center">{row.original.start}</div>
+            return <div className="flex justify-center">{row.original.start.toString()}</div>
         },
         enableHiding: false,
     },
@@ -70,7 +76,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
         accessorKey: "endTime",
         header: "End time",
         cell: ({ row }) => (
-            <div className="flex justify-center">{row.original.end}</div>
+            <div className="flex justify-center">{row.original.end.toString()}</div>
         ),
     },
     {
@@ -281,20 +287,74 @@ export function DataTable({
     )
 }
 
-function ActionCell({ interval }: { interval: {
-    id: string,
-    ctxId: string,
-    start: string,
-    end: string,
-    summary: string,
-} }) {
+function ActionCell({ interval }: {
+    interval: {
+        id: string,
+        ctxId: string,
+        start: ZonedDateTime,
+        end: ZonedDateTime,
+        summary: string,
+    }
+}) {
     const qc = useQueryClient();
     const deleteMutation = useMutation(api.intervals.deleteMutation(qc))
 
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+    }
+
     return (
         <div className="flex gap-2 justify-end">
-            <Button variant="ghost"><Edit></Edit></Button>
-            <Button variant="ghost" onClick={() => deleteMutation.mutate({ctxId: interval.ctxId, id: interval.id})}><Trash className="text-red-700"></Trash></Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="ghost"><Edit /></Button>
+                </DialogTrigger>
+
+                <DialogContent className="grid grid-rows-[auto_1fr_auto] sm:max-w-[520px] p-0">
+                    <form className="contents" onSubmit={handleSubmit}>
+                        <div className="p-6 pb-4">
+                            <DialogHeader>
+                                <DialogTitle>Edit interval</DialogTitle>
+                                <DialogDescription>Adjust start and end times.</DialogDescription>
+                            </DialogHeader>
+                        </div>
+
+                        <div className="p-6 pt-0 overflow-auto">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="start">Start</Label>
+                                    <DateTimeInput id="start" datetime={interval.start.toDateTime()} editable />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="end">End</Label>
+                                    <DateTimeInput id="end" datetime={interval.end.toDateTime()} editable />
+                                </div>
+                            </div>
+
+                            <div className="mt-6">
+                                <Item variant="outline" className="border-destructive/30 bg-destructive/5">
+                                    <ItemContent>
+                                        <ItemTitle className="text-destructive">Delete interval</ItemTitle>
+                                        <ItemDescription className="text-muted-foreground"> This action is irreversible </ItemDescription>
+                                    </ItemContent>
+                                    <ItemActions>
+                                        <Button type="button" variant="destructive" size="sm" onClick={() => deleteMutation.mutate({ ctxId: interval.ctxId, id: interval.id })}>
+                                            <Trash></Trash>
+                                        </Button>
+                                    </ItemActions>
+                                </Item>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="sm:space-x-0 gap-2 flex-row justify-end border-t bg-background p-4">
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button type="submit">Save changes</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

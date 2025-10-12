@@ -68,8 +68,8 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                                 {
                                     "id": interval.id,
                                     "ctxId": context.id,
-                                    "start": interval.start.toString(),
-                                    "end": interval.end.toString(),
+                                    "start": interval.start,
+                                    "end": interval.end,
                                     "summary": durationAsH(interval.duration) + "h " +  durationAsM(interval.duration) + "min"
                                 }))}></DataTable>
                     </div>
