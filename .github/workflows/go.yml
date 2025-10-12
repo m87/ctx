@@ -30,6 +30,7 @@ jobs:
         
 
     - name: Install (diagnostic)
+      working-directory: ./server/ui/ctx-dashboard
       run: |
         npm config set timing true
         npm ci --verbose --no-audit --no-fund --fetch-retries=1 --fetch-retry-maxtimeout=15000
