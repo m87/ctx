@@ -28,3 +28,7 @@ export function durationAsM(duration: number) {
 export function durationAsS(duration: number) {
   return Math.floor(duration / 1000000000 % 60)
 }
+
+export function durationAsHM(duration: number) {
+  return `${durationAsH(duration)}h ${durationAsM(duration)}m`
+}
