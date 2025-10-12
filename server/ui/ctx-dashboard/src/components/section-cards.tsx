@@ -1,5 +1,4 @@
-import { api, Context } from "@/api/api";
-import { PlusIcon } from "lucide-react";
+import { api } from "@/api/api";
 import { useEffect, useRef, useState } from "react";
 import ContextCard from "./context-card";
 import { Input } from "./ui/input";

@@ -11,12 +11,12 @@ import (
 func TestDeleteInterval(t *testing.T) {
 	session := CreateTestSession()
 
-	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 2)
+	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 3)
 	assert.Equal(t, session.State.Contexts[TEST_ID].Duration, 2*time.Hour)
 
 	err := session.DeleteInterval(TEST_ID, TEST_INTERVAL_ID)
 	assert.NoError(t, err)
-	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 1)
+	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 2)
 	assert.Equal(t, session.State.Contexts[TEST_ID].Duration, 1*time.Hour)
 
 }
@@ -66,8 +66,8 @@ func TestGetActiveIntervals(t *testing.T) {
 	active, err := session.GetActiveIntervals(TEST_ID)
 
 	assert.NoError(t, err)
-	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 4)
-	assert.Len(t, active, 2)
+	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 5)
+	assert.Len(t, active, 3)
 	assert.Contains(t, active, "active1")
 	assert.Contains(t, active, "active2")
 
@@ -86,7 +86,7 @@ func TestGetActiveIntervalsNoActiveIntervals(t *testing.T) {
 
 	active, err := session.GetActiveIntervals(TEST_ID)
 	assert.NoError(t, err)
-	assert.Len(t, active, 0)
+	assert.Len(t, active, 1)
 }
 
 func TestGetActiveIntervl(t *testing.T) {
@@ -96,7 +96,7 @@ func TestGetActiveIntervl(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, interval)
 
-	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 2)
+	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 3)
 	assert.Contains(t, session.State.Contexts[TEST_ID].Intervals, TEST_INTERVAL_ID)
 	assert.Contains(t, session.State.Contexts[TEST_ID].Intervals, TEST_INTERVAL_2_ID)
 }
@@ -173,12 +173,26 @@ func TestGetIntervalsByDateCropEndToCurrentDay(t *testing.T) {
 func TestMoveInterval(t *testing.T) {
 	session := CreateTestSession()
 
-	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 2)
+	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 3)
 	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 2)
 	session.MoveIntervalById(TEST_ID, TEST_ID_2, TEST_INTERVAL_ID)
 
-	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 1)
+	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 2)
 	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 3)
+}
+
+func TestMoveActiveInterval(t *testing.T) {
+	session := CreateTestSession()
+
+	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 3)
+	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 2)
+	err := session.MoveIntervalById(TEST_ID, TEST_ID_2, TEST_INTERVAL_3_ID)
+
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "interval is active")
+
+	assert.Len(t, session.MustGetCtx(TEST_ID).Intervals, 3)
+	assert.Len(t, session.MustGetCtx(TEST_ID_2).Intervals, 2)
 }
 
 func TestErrOnEditCurrentContextInterval(t *testing.T) {

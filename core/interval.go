@@ -13,3 +13,7 @@ type Interval struct {
 	Duration time.Duration     `json:"duration"`
 	Labels   []string          `json:"labels"`
 }
+
+func (interval *Interval) IsActive() bool {
+	return interval.End.Time.IsZero()
+}

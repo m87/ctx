@@ -10,6 +10,7 @@ var TEST_ID = "test-context"
 var TEST_ID_2 = "test-context-2"
 var TEST_INTERVAL_ID = "test-interval-1"
 var TEST_INTERVAL_2_ID = "test-interval-2"
+var TEST_INTERVAL_3_ID = "test-interval-3"
 
 type TestTimeProvider struct {
 	currentTime time.Time
@@ -53,6 +54,12 @@ func CreateTestSession() *Session {
 							Id:       "test-interval-2",
 							Start:    ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
 							End:      ctxtime.ZonedTime{Time: dt.Add(3 * time.Hour), Timezone: "UTC"},
+							Duration: 1 * time.Hour,
+						},
+						"test-interval-3": {
+							Id:       "test-interval-2",
+							Start:    ctxtime.ZonedTime{Time: dt.Add(1 * time.Hour), Timezone: "UTC"},
+							End:      ctxtime.ZonedTime{Time: time.Time{}, Timezone: "UTC"},
 							Duration: 1 * time.Hour,
 						},
 					},

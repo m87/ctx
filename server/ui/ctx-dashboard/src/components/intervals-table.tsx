@@ -36,7 +36,7 @@ export function IntervalTable({ ctxId, intervals }: { ctxId: string, intervals: 
                     {(intervals ?? []).map((interval) => (
                         <TableRow key={interval.id} className="hover:bg-muted/40">
                             <TableCell>{interval.start.toString()}</TableCell>
-                            <TableCell>{interval.end.toString()}</TableCell>
+                            <TableCell>{interval.end.toDateTime().year !== 1 ? interval.end.toString() : <span className="text-muted-foreground">—</span>}</TableCell>
                             <TableCell>{durationAsHM(interval.duration)}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex gap-2 justify-end">

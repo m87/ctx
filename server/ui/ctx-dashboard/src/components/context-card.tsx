@@ -1,4 +1,4 @@
-import { ArrowDown, ChevronDown, ChevronUp, PlayCircleIcon } from "lucide-react";
+import { ChevronDown, PlayCircleIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
 import { api, ZonedDateTime, Interval, Context } from "@/api/api";
