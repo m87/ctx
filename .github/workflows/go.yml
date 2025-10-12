@@ -26,6 +26,11 @@ jobs:
       with:
         node-version: 20
 
+    - name: Install (diagnostic)
+      run: |
+        npm config set timing true
+        npm ci --verbose --no-audit --no-fund --fetch-retries=1 --fetch-retry-maxtimeout=15000
+
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
       run: npm ci --legacy-peer-deps
