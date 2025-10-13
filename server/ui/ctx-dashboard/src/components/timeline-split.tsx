@@ -43,7 +43,7 @@ export function TimelineSplit({ interval, onChange }: TimelineSplitData) {
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="gap-2">{decimalToTime(value)}</div>
-      <Slider className="gap-2" onValueCommit={(n) => setValue(n[0])} disabled={end - start <= 1} value={[value]} min={start} max={end} step={1} />
+      <Slider className="gap-2" onValueChange={(n) => setValue(n[0])} disabled={end - start <= 1} value={[value]} min={start} max={end} step={1} />
       <Button className="gap-2 w-full" onClick={(e) => {
         onChange(interval, decimalToTime(value));
         e.currentTarget.dispatchEvent(
