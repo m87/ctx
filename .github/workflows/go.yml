@@ -17,10 +17,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    env:
-      CI: true
-      CYPRESS_INSTALL_BINARY: 0
-      npm_config_loglevel: verbose
     steps:
     - uses: actions/checkout@v4
       with:
@@ -34,8 +30,12 @@ jobs:
 
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
-      run: npm ci --legacy-peer-deps --no-audit --no-fund
+      run: npm build --legacy-peer-deps
       
+    - name: Install Cypress
+      working-directory: ./server/ui/ctx-dashboard
+      run: npx cypress install
+
     - name: Set Nx SHAs
       uses: nrwl/nx-set-shas@v4
 
@@ -81,3 +81,7 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Run Cypress E2E tests
+      working-directory: ./server/ui/ctx-dashboard
+      run: npm run test:e2e

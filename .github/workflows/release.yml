@@ -11,9 +11,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      CI: true
-      CYPRESS_INSTALL_BINARY: 0
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,8 +27,12 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: ./server/ui/ctx-dashboard
-        run: npm ci --legacy-peer-deps --no-audit --no-fund
+        run: npm ci --legacy-peer-deps
         
+      - name: Install Cypress
+        working-directory: ./server/ui/ctx-dashboard
+        run: npx cypress install
+
       - name: Set Nx SHAs
         uses: nrwl/nx-set-shas@v4
 
