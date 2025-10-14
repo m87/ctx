@@ -17,6 +17,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    env: 
+      npm_config_loglevel: verbose
     steps:
     - uses: actions/checkout@v4
       with:
