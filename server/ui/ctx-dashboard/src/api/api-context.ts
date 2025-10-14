@@ -36,6 +36,11 @@ export class ContextApi {
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
   })
 
+  rename = (ctxId: string, name: string) => http.post<void>("/context/rename", {ctxId, name}).then(response => response)
+  renameMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: {ctxId: string, name: string}) => this.rename(data.ctxId, data.name),
+    onSucess: (_, variables) => invalidateQueriesByDate(queryClient, variables)
+  })
 
   updateInterval = (contextId: string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime) =>
     http.put<void>("/context/interval", { contextId: contextId, intervalId: intervalId, start: start, end: end }).then(response => response);

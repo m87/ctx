@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func newDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "interval",
 		Aliases: []string{"int", "i"},
@@ -27,7 +27,7 @@ func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewDeleteIntervalCmd(bootstrap.CreateManager())
+	cmd := newDeleteIntervalCmd(bootstrap.CreateManager())
 	flags.AddContxtFlag(cmd)
 	flags.AddIntervalFlag(cmd)
 

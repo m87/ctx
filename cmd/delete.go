@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
+func newDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "delete",
 		Aliases: []string{"del", "d", "rm"},
@@ -22,7 +22,7 @@ func NewDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 
 }
 
-var deleteCmd = NewDeleteContextCmd(bootstrap.CreateManager())
+var deleteCmd = newDeleteContextCmd(bootstrap.CreateManager())
 
 func init() {
 	flags.AddContxtFlag(deleteCmd)

@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewRenameContextCmd(manager *core.ContextManager) *cobra.Command {
+func newRenameContextCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "rename",
 		Aliases: []string{"r"},
@@ -32,7 +32,7 @@ func NewRenameContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewRenameContextCmd(bootstrap.CreateManager())
+	cmd := newRenameContextCmd(bootstrap.CreateManager())
 	flags.AddCustomContextFlag(cmd, "src-ctx", "s", "Source context")
 	flags.AddCustomContextFlag(cmd, "target-ctx", "t", "Target context")
 	rootCmd.AddCommand(cmd)

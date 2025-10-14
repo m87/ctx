@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewEditContextIntervalSplitCmd(manager *core.ContextManager) *cobra.Command {
+func newEditContextIntervalSplitCmd(manager *core.ContextManager) *cobra.Command {
 
 	return &cobra.Command{
 		Use:     "split",
@@ -58,6 +58,6 @@ func NewEditContextIntervalSplitCmd(manager *core.ContextManager) *cobra.Command
 
 }
 func init() {
-	cmd := NewEditContextIntervalSplitCmd(bootstrap.CreateManager())
+	cmd := newEditContextIntervalSplitCmd(bootstrap.CreateManager())
 	editContextIntervalCmd.AddCommand(cmd)
 }

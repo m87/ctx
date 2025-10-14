@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewListCmd(manager *core.ContextManager) *cobra.Command {
+func newListCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls", "l"},
@@ -42,7 +42,7 @@ func NewListCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewListCmd(bootstrap.CreateManager())
+	cmd := newListCmd(bootstrap.CreateManager())
 	flags.AddVerboseFlag(cmd)
 	flags.AddShellFlag(cmd)
 	flags.AddJsonFlag(cmd)

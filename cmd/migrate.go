@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewMigrateCmd(manager *core.ContextManager) *cobra.Command {
+func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:   "migrate",
 		Short: "Migrate data to a new format or structure",
@@ -22,5 +22,5 @@ func NewMigrateCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	admCmd.AddCommand(NewMigrateCmd(bootstrap.CreateManager()))
+	admCmd.AddCommand(newMigrateCmd(bootstrap.CreateManager()))
 }

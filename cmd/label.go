@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewLabelContextCmd(manager *core.ContextManager) *cobra.Command { 
+func newLabelContextCmd(manager *core.ContextManager) *cobra.Command { 
 	return &cobra.Command{
 		Use:     "label",
 		Aliases: []string{"l", "lbl"},
@@ -36,7 +36,7 @@ func NewLabelContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewLabelContextCmd(bootstrap.CreateManager())
+	cmd := newLabelContextCmd(bootstrap.CreateManager())
 	flags.AddContxtFlag(cmd)
 	flags.AddDeleteFlag(cmd, "Delete label from context")
 	flags.AddLabelFlag(cmd)

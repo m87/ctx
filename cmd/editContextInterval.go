@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewEditContextIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func newEditContextIntervalCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:   "interval",
 		Short: "Edit selected interval",
@@ -58,7 +58,7 @@ func NewEditContextIntervalCmd(manager *core.ContextManager) *cobra.Command {
 
 }
 
-var editContextIntervalCmd = NewEditContextIntervalCmd(bootstrap.CreateManager())
+var editContextIntervalCmd = newEditContextIntervalCmd(bootstrap.CreateManager())
 
 func init() {
 	editContextCmd.AddCommand(editContextIntervalCmd)

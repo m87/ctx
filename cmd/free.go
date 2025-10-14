@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewFreeCmd(manager *core.ContextManager) *cobra.Command {
+func newFreeCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "free",
 		Aliases: []string{"f"},
@@ -19,6 +19,6 @@ func NewFreeCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	cmd := NewFreeCmd(bootstrap.CreateManager())
+	cmd := newFreeCmd(bootstrap.CreateManager())
 	rootCmd.AddCommand(cmd)
 }

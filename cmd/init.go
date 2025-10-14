@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewAdmInitCmd(manager *core.ContextManager) *cobra.Command {
+func newAdmInitCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "init",
 		Aliases: []string{"i"},
@@ -33,5 +33,5 @@ func NewAdmInitCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	admCmd.AddCommand(NewAdmInitCmd(bootstrap.CreateManager()))
+	admCmd.AddCommand(newAdmInitCmd(bootstrap.CreateManager()))
 }
