@@ -84,7 +84,8 @@ export function invalidateQueriesByDate(queryClient: QueryClient, variables: any
       queryClient.invalidateQueries({ queryKey: ["intervals", variables.day ?? today] })
       queryClient.invalidateQueries({ queryKey: ["currentContext"] })
       queryClient.invalidateQueries({ queryKey: ["todaySummary"] })
-      queryClient.invalidateQueries({ queryKey: ["daySummary", variables.day ?? today] })
+      queryClient.invalidateQueries({ queryKey: ["daySummary", variables.day ?? today, true] })
+      queryClient.invalidateQueries({ queryKey: ["daySummary", variables.day ?? today, false] })
 }
  
 

@@ -14,7 +14,7 @@ export function colorHash(id: string) {
   const r = (hash >> 0) & 0xFF;
   const g = (hash >> 8) & 0xFF;
   const b = (hash >> 16) & 0xFF;
-  return `rgb(${r}, ${g}, ${b})`;
+  return `rgba(${r}, ${g}, ${b}, 1)`;
 }
 
 export function durationAsH(duration: number) {
@@ -27,4 +27,8 @@ export function durationAsM(duration: number) {
 
 export function durationAsS(duration: number) {
   return Math.floor(duration / 1000000000 % 60)
+}
+
+export function durationAsHM(duration: number) {
+  return `${durationAsH(duration)}h ${durationAsM(duration)}m`
 }

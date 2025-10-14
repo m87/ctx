@@ -33,20 +33,20 @@ func (session *Session) ValidateContextExists(id string) error {
 	return nil
 }
 
+func (session *Session) ValidateContextsExist(ids ...string) error {
+	for _, id := range ids {
+		if err := session.ValidateContextExists(id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (session *Session) ValidateContextAlreadyExists(id string) error {
 	if _, ok := session.State.Contexts[id]; ok {
 		return errors.New("context already exists")
 	}
 	return nil
-}
-
-func (session *Session) ValidateContextsExist(ids ...string) error {
-	errs := []error{}
-	for _, id := range ids {
-		errs = append(errs, session.ValidateContextExists(id))
-	}
-
-	return errors.Join(errs...)
 }
 
 func (session *Session) ValidateIntervalExists(ctxId, id string) error {
@@ -55,6 +55,18 @@ func (session *Session) ValidateIntervalExists(ctxId, id string) error {
 		return nil
 	}
 	return errors.New("interval does not exist")
+}
+
+func (session *Session) ValidateActiveInterval(ctxId, id string) error {
+	if err := session.ValidateIntervalExists(ctxId, id); err != nil {
+		return err
+	}
+	interval := session.State.Contexts[ctxId].Intervals[id]
+	if interval.IsActive() {
+		return errors.New("interval is active")
+	}
+
+	return nil
 }
 
 func IsValidDescription(description string) error {

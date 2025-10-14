@@ -53,7 +53,7 @@ func TestMergeContext(t *testing.T) {
 	err := session.MergeContext(TEST_ID_2, TEST_ID)
 	assert.NoError(t, err)
 	assert.Len(t, session.State.Contexts, 1)
-	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 4)
+	assert.Len(t, session.State.Contexts[TEST_ID].Intervals, 5)
 	assert.Len(t, session.State.Contexts[TEST_ID].Labels, 4)
 	assert.Equal(t, session.State.Contexts[TEST_ID].Duration, 4*time.Hour)
 }

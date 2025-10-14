@@ -1,3 +1,7 @@
 package core
 
-const Version = "0.0.5"
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+)

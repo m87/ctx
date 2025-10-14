@@ -25,12 +25,16 @@ I built a full web UI too, for people who "don’t like typing." Whatever works.
 
 ## Installation
 
-> Work in progress – installation instructions coming soon.
+```
+go install github.com/m87/ctx
+```
 
 ## Documentation
 
+[Documentation](https://github.com/m87/ctx/wiki/Documentation)
+
 ```
-ctx help (for now)
+ctx help
 ```
 
 ## Quick start
@@ -41,6 +45,11 @@ ctx sw "other task"
 ctx ls -v
 ```
 
+## Server
+
+```bash
+ctx serve -p 9999   #localhost:9999
+```
 ![screen](img/screenshot.png)
 
 ## Why?

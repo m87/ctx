@@ -21,6 +21,7 @@ func newAdmInitCmd(manager *core.ContextManager) *cobra.Command {
 				path := viper.GetString("storePath")
 
 				os.Mkdir(path, 0777)
+				os.Mkdir(filepath.Join(path, "archive"), 0777)
 				os.WriteFile(filepath.Join(path, "state"), []byte("{\"contexts\": {}}"), 0777)
 			} else {
 				bootstrap.InitDefault()
