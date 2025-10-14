@@ -1,10 +1,10 @@
 import { api, Interval, ZonedDateTime } from "@/api/api";
 import { Children, ReactNode, useCallback, useState } from "react";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { Label } from "./ui/label";
-import { DateTimeInput } from "./ui/datetime";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "./ui/item";
-import { Button } from "./ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+import { Label } from "../ui/label";
+import { DateTimeInput } from "../ui/datetime";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "../ui/item";
+import { Button } from "../ui/button";
 import { Trash } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DateTime } from "luxon";

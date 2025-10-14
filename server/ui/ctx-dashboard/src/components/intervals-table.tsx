@@ -8,7 +8,7 @@ import { DateTimeInput } from "./ui/datetime";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "./ui/item";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { durationAsHM } from "@/lib/utils";
-import { EditIntervalDialog } from "./edit-interval-dialog";
+import { EditIntervalDialog } from "./dialogs/edit-interval-dialog";
 
 
 
