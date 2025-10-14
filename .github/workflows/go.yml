@@ -33,7 +33,7 @@ jobs:
 
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
-      run: npm ci --legacy-peer-deps
+      run: npm ci --legacy-peer-deps --no-audit --no-fund
       
     - name: Set Nx SHAs
       uses: nrwl/nx-set-shas@v4
