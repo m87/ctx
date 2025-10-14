@@ -21,13 +21,6 @@ jobs:
       CI: true
       CYPRESS_INSTALL_BINARY: 0
       npm_config_loglevel: verbose
-      npm_config_foreground_scripts: true
-      npm_config_fetch_retries: 5
-      npm_config_fetch_retry_maxtimeout: 600000
-      npm_config_fetch_retry_mintimeout: 2000
-      npm_config_audit: false
-      npm_config_fund: false
-      npm_config_progress: false
     steps:
     - uses: actions/checkout@v4
       with:
