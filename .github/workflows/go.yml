@@ -30,7 +30,7 @@ jobs:
 
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
-      run: npm run build --legacy-peer-deps
+      run: npm install --legacy-peer-deps
       
     - name: Install Cypress
       working-directory: ./server/ui/ctx-dashboard
