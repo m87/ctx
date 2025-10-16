@@ -31,6 +31,7 @@ jobs:
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
       env:
+        NX_DAEMON: false
         npm_config_loglevel: verbose
         npm_config_foreground_scripts: true
         npm_config_timing: true
@@ -39,13 +40,12 @@ jobs:
       run: |
         set -euxo pipefail
         npm ci --legacy-peer-deps --no-audit --no-fund --timing --logs-dir .npm-logsrun: npm ci --legacy-peer-deps
-    - name: Upload npm logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: npm-logs
-        path: server/ui/ctx-dashboard/.npm-logs/*
-        if-no-files-found: ignore
+
+    - name: Kill Nx daemon if any
+      working-directory: ./server/ui/ctx-dashboard
+      run: |
+        npx nx daemon --stop || true
+        npx nx reset || true
           
     - name: Install Cypress
       working-directory: ./server/ui/ctx-dashboard
