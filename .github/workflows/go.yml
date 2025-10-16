@@ -60,21 +60,32 @@ jobs:
     - name: Set Nx SHAs
       uses: nrwl/nx-set-shas@v4
 
-    - name: Nx affected (PR)
+    - name: Nx build (PR, pinned + verbose)
       if: ${{ github.event_name == 'pull_request' }}
-      working-directory: ./server/ui/ctx-dashboard
+      working-directory: .
       env:
-        NX_BASE: ''
-        NX_HEAD: ''
+        CI: true
+        NX_DAEMON: false          
+        NX_NATIVE_LOGGING: trace  
       run: |
-       set -euxo pipefail
-       BASE_SHA="${{ github.event.pull_request.base.sha }}"
-       HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-       git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
-       git rev-parse "$BASE_SHA"
-       git rev-parse "$HEAD_SHA"
-       #npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
-       npx nx build
+        set -euxo pipefail
+
+        # SHAs do wglądu (jak miałeś)
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
+        git rev-parse "$BASE_SHA"
+        git rev-parse "$HEAD_SHA"
+
+        npx nx report || true
+        npx nx show projects || true
+
+        PROJECT=ctx-dashboard
+
+        npx nx daemon --stop || true
+        npx nx reset || true
+
+        npx nx build "$PROJECT" --verbose --skip-nx-cache --output-style=stream
 
     - name: Nx affected (push)
       if: ${{ github.event_name == 'push' }}
