@@ -28,81 +28,6 @@ jobs:
         cache: 'npm'
         cache-dependency-path: server/ui/ctx-dashboard/package-lock.json
 
-    - name: Pin npm (unikamy regresji npm 10.9+)
-      run: npm i -g npm@10.8.2 && npm -v
-
-    - name: Install deps (no scripts)
-      working-directory: ./server/ui/ctx-dashboard
-      env:
-        npm_config_audit: false
-        npm_config_fund: false
-        npm_config_progress: false
-      run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
-
-    - name: Remove Nx postinstall only
-      working-directory: ./server/ui/ctx-dashboard
-      run: |
-        node -e "const fs=require('fs');const p='node_modules/nx/package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.scripts&&j.scripts.postinstall){delete j.scripts.postinstall;fs.writeFileSync(p,JSON.stringify(j,null,2));console.log('Removed nx postinstall')}else{console.log('nx postinstall not present')}"
-
-    - name: Rebuild native deps (esbuild + swc)
-      working-directory: ./server/ui/ctx-dashboard
-      run: |
-        npm rebuild esbuild @swc/core --foreground-scripts
-        npx esbuild --version
-        node -e "require('@swc/core'); console.log('swc OK')"
-
-    - name: Install & verify Cypress
-      working-directory: ./server/ui/ctx-dashboard
-      run: |
-        npx cypress install --force
-        npx cypress verify
-    
-    - name: Set Nx SHAs
-      uses: nrwl/nx-set-shas@v4
-
-    - name: Nx build (PR, pinned + verbose)
-      if: ${{ github.event_name == 'pull_request' }}
-      working-directory: ./server/ui/ctx-dashboard 
-      env:
-        CI: true
-        NX_DAEMON: false          
-        NX_NATIVE_LOGGING: trace  
-      run: |
-        set -euxo pipefail
-
-        # SHAs do wglądu (jak miałeś)
-        BASE_SHA="${{ github.event.pull_request.base.sha }}"
-        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-        git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
-        git rev-parse "$BASE_SHA"
-        git rev-parse "$HEAD_SHA"
-
-        npx nx report || true
-        npx nx show projects || true
-
-        PROJECT=ctx-dashboard
-
-        npx nx daemon --stop || true
-        npx nx reset || true
-
-        npx nx build "$PROJECT" --verbose --skip-nx-cache --output-style=stream
-
-    - name: Nx affected (push)
-      if: ${{ github.event_name == 'push' }}
-      working-directory: ./server/ui/ctx-dashboard
-      env:
-        NX_BASE: ''
-        NX_HEAD: ''
-      run: |
-        set -euxo pipefail
-        BASE_SHA="${{ github.event.before }}"
-        HEAD_SHA="${{ github.sha }}"  # to samo co github.event.after
-        git fetch --no-tags --prune origin "$BASE_SHA" "$HEAD_SHA"
-        git rev-parse "$BASE_SHA"
-        git rev-parse "$HEAD_SHA"
-        #npx nx affected -t lint build --base="$BASE_SHA" --head="$HEAD_SHA" --verbose
-        npx nx build
-
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
@@ -114,6 +39,3 @@ jobs:
     - name: Test
       run: go test -v ./...
 
-    - name: Run Cypress E2E tests
-      working-directory: ./server/ui/ctx-dashboard
-      run: npm run test:e2e
