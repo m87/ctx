@@ -27,31 +27,36 @@ jobs:
         node-version: 20.19.0
         cache: 'npm'
         cache-dependency-path: server/ui/ctx-dashboard/package-lock.json
-    - name: Downgrade npm
+
+    - name: Pin npm (unikamy regresji npm 10.9+)
       run: npm i -g npm@10.8.2 && npm -v
-    - name: Install frontend dependencies
+
+    - name: Install deps (no scripts)
       working-directory: ./server/ui/ctx-dashboard
       env:
-        NX_DAEMON: false
-        npm_config_loglevel: verbose
-        npm_config_foreground_scripts: true
-        npm_config_timing: true
         npm_config_audit: false
         npm_config_fund: false
-      run: |
-        set -euxo pipefail
-        npm ci --legacy-peer-deps --no-audit --no-fund --timing --logs-dir .npm-logsrun: npm ci --legacy-peer-deps
+        npm_config_progress: false
+      run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
 
-    - name: Kill Nx daemon if any
+    - name: Remove Nx postinstall only
       working-directory: ./server/ui/ctx-dashboard
       run: |
-        npx nx daemon --stop || true
-        npx nx reset || true
-          
-    - name: Install Cypress
-      working-directory: ./server/ui/ctx-dashboard
-      run: npx cypress install
+        node -e "const fs=require('fs');const p='node_modules/nx/package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(j.scripts&&j.scripts.postinstall){delete j.scripts.postinstall;fs.writeFileSync(p,JSON.stringify(j,null,2));console.log('Removed nx postinstall')}else{console.log('nx postinstall not present')}"
 
+    - name: Rebuild native deps (esbuild + swc)
+      working-directory: ./server/ui/ctx-dashboard
+      run: |
+        npm rebuild esbuild @swc/core --foreground-scripts
+        npx esbuild --version
+        node -e "require('@swc/core'); console.log('swc OK')"
+
+    - name: Install & verify Cypress
+      working-directory: ./server/ui/ctx-dashboard
+      run: |
+        npx cypress install --force
+        npx cypress verify
+    
     - name: Set Nx SHAs
       uses: nrwl/nx-set-shas@v4
 
