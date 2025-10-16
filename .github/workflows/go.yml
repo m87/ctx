@@ -62,7 +62,7 @@ jobs:
 
     - name: Nx build (PR, pinned + verbose)
       if: ${{ github.event_name == 'pull_request' }}
-      working-directory: .
+      working-directory: ./server/ui/ctx-dashboard 
       env:
         CI: true
         NX_DAEMON: false          
