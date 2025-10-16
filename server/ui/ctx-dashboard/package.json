@@ -4,17 +4,15 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "start": "nx serve",
-    "build": "nx build",
-    "test": "nx test",
-    "start:frontend": "npm start",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "start:frontend": "npm run dev",
     "start:backend": "go run --tags preview ../../.. adm reset && go run --tags preview ../../.. adm init && go run --tags preview ../../.. serve",
     "start:all": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "cy:run": "cypress run",
     "test:e2e": "start-server-and-test start:all http://localhost:4200 cy:run"
-  },
-  "nx": {
-    "includedScripts": []
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.9",
@@ -49,18 +47,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
-    "@nx/cypress": "21.4.1",
-    "@nx/eslint": "21.4.1",
-    "@nx/eslint-plugin": "21.4.1",
-    "@nx/js": "21.4.1",
-    "@nx/react": "21.4.1",
-    "@nx/vite": "21.4.1",
-    "@nx/web": "21.4.1",
-    "@nx/workspace": "21.4.1",
-    "@swc-node/register": "~1.9.1",
-    "@swc/cli": "~0.6.0",
-    "@swc/core": "^1.5.29",
-    "@swc/helpers": "~0.5.11",
     "@tanstack/react-query": "^5.51.21",
     "@tanstack/react-query-devtools": "^5.51.21",
     "@testing-library/dom": "10.4.0",
@@ -84,7 +70,6 @@
     "eslint-plugin-react-hooks": "5.0.0",
     "jiti": "2.4.2",
     "jsdom": "~22.1.0",
-    "nx": "21.4.1",
     "postcss": "8.4.38",
     "prettier": "^2.6.2",
     "start-server-and-test": "^2.0.13",
@@ -93,6 +78,8 @@
     "typescript": "5.8.3",
     "typescript-eslint": "^8.19.0",
     "vite": "^6.0.0",
+    "vite-plugin-static-copy": "^3.1.4",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.0.0"
   }
 }

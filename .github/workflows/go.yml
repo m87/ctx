@@ -28,6 +28,15 @@ jobs:
         cache: 'npm'
         cache-dependency-path: server/ui/ctx-dashboard/package-lock.json
 
+    - name: Install UI deps
+      working-directory: ./server/ui/ctx-dashboard
+      run: |
+        npm ci --legacy-peer-deps
+
+    - name: Build UI (Vite)
+      working-directory: ./server/ui/ctx-dashboard
+      run: npm run build
+
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
@@ -39,3 +48,6 @@ jobs:
     - name: Test
       run: go test -v ./...
 
+    - name: Run Cypress E2E tests
+      working-directory: ./server/ui/ctx-dashboard
+      run: npm run test:e2e
