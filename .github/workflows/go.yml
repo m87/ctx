@@ -30,7 +30,7 @@ jobs:
 
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
-        env:
+      env:
         npm_config_loglevel: verbose
         npm_config_foreground_scripts: true
         npm_config_timing: true
