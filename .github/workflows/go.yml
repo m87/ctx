@@ -27,7 +27,8 @@ jobs:
         node-version: 20.19.0
         cache: 'npm'
         cache-dependency-path: server/ui/ctx-dashboard/package-lock.json
-
+    - name: Downgrade npm
+      run: npm i -g npm@10.8.2 && npm -v
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
       env:
