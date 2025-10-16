@@ -33,6 +33,16 @@ jobs:
       run: |
         npm ci --legacy-peer-deps
 
+    - name: Ensure rollup native (linux-x64-gnu)
+      working-directory: ./server/ui/ctx-dashboard
+      run: |
+        set -euxo pipefail
+        npm config set optional true
+        ROLLUP_VER=$(node -p "require('rollup/package.json').version")
+        npm i --no-save @rollup/rollup-linux-x64-gnu@$ROLLUP_VER
+        node -e "console.log('rollup', require('rollup/package.json').version)"
+        ls -la node_modules/@rollup | sed -n '1,80p'
+
     - name: Build UI (Vite)
       working-directory: ./server/ui/ctx-dashboard
       run: npm run build
