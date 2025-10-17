@@ -30,8 +30,6 @@ jobs:
 
     - name: Install frontend dependencies
       working-directory: ./server/ui/ctx-dashboard
-      env:
-        npm_config_loglevel: verbose
       run: npm ci --legacy-peer-deps
 
     - name: Install Cypress
