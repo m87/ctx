@@ -27,7 +27,7 @@ jobs:
       working-directory: ./server/ui/ctx-dashboard
       env:
         CI: true
-      run: npm ci --legacy-peer-deps
+      run: npm install --legacy-peer-deps
 
     - name: Install Cypress
       working-directory: ./server/ui/ctx-dashboard
