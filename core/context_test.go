@@ -14,8 +14,28 @@ func TestRenameContext(t *testing.T) {
 	err := session.RenameContext(TEST_ID, "newId", "new")
 	assert.NoError(t, err)
 	assert.Len(t, session.State.Contexts, 2)
+	assert.Equal(t, "newId", session.State.Contexts["newId"].Id)
 	assert.Equal(t, "new", session.State.Contexts["newId"].Description)
 
+}
+
+func TestRenameActiveContext(t *testing.T) {
+	session := CreateTestSession()
+	assert.Len(t, session.State.Contexts, 2)
+	session.Switch(TEST_ID)
+
+	err := session.RenameContext(TEST_ID, "newId", "new")
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context is active")
+}
+
+func TestRenameToExistingContext(t *testing.T) {
+	session := CreateTestSession()
+	assert.Len(t, session.State.Contexts, 2)
+
+	err := session.RenameContext(TEST_ID, TEST_ID_2, "new")
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "target context already exists")
 }
 
 func TestDeleteContext(t *testing.T) {

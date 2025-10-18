@@ -5,6 +5,7 @@ import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogT
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { useParams } from "react-router-dom";
 
 
 export function RenameContextDialog({ context, children }: { context: Context, children: ReactNode }) {
@@ -12,10 +13,11 @@ export function RenameContextDialog({ context, children }: { context: Context, c
     const qc = useQueryClient();
     const renameMutation = useMutation(api.context.renameMutation(qc))
     const [name, setName] = useState(context.description);
+    const {day} = useParams()
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        renameMutation.mutate({ ctxId: context.id, name })
+        renameMutation.mutate({ ctxId: context.id, name, day })
         setOpen(false);
     }
 
