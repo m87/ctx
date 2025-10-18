@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/server"
@@ -12,7 +14,9 @@ func newServeCmd(manager *core.ContextManager) *cobra.Command {
 		Use: "serve",
 		Run: func(cmd *cobra.Command, ars []string) {
 			port, _ := cmd.Flags().GetString("port")
-			server.Serve(manager, port)
+			mgr := bootstrap.CreateManager()
+			srv := server.New(mgr)
+			log.Fatal(srv.Listen(":" + port))
 		},
 	}
 }
