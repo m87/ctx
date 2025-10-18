@@ -1,84 +1,129 @@
-import { ChevronDown, Edit, PlayCircleIcon } from "lucide-react";
+import { ChevronDown, Clock, Delete, Edit, PlayCircleIcon, PlayIcon, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
-import { api, ZonedDateTime, Interval, Context } from "@/api/api";
-import IntervalComponent from "./interval-component";
+import { api, Context } from "@/api/api";
 import { Badge } from "./ui/badge";
-import { colorHash, durationAsH, durationAsM } from "@/lib/utils";
+import { colorHash } from "@/lib/utils";
 import { compareAsc } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { DataTable } from "./ui/interval-table";
-import { IntervalTable, IntervalTable2 } from "./intervals-table";
+import { IntervalTable } from "./intervals-table";
 import { Button } from "./ui/button";
 import { RenameContextDialog } from "./dialogs/rename-context-dialog";
+import { Separator } from "./ui/separator";
 
 export interface ContextCardProps {
-  context: Context
-  expandCard: boolean
+  context: Context;
+  expandCard: boolean;
 }
-
 
 export function ContextCard({ context, expandCard }: ContextCardProps) {
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpand] = useState(false);
-  const querClient = useQueryClient();
-  const switchMutation = useMutation(api.context.switchMutation(querClient))
+  const queryClient = useQueryClient();
+  const switchMutation = useMutation(api.context.switchMutation(queryClient));
   const { day } = useParams();
 
   useEffect(() => {
     setExpand(expandCard);
-  }, [expandCard])
+  }, [expandCard]);
+
+  const hours = Math.floor(context.duration / 60000000000 / 60);
+  const minutes = Math.floor((context.duration / 60000000000) % 60);
 
   return (
-    <Card key={context.id} className="flex w-full" style={{ borderLeftColor: "rgba(0,0,0,0)" }}
+    <Card
+      key={context.id}
+      className="flex w-full transition-all hover:shadow-md hover:scale-[1.01] relative"
+      style={{ borderLeftColor: "rgba(0,0,0,0)" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="h-full w-2 rounded-l-xl" style={{ backgroundColor: colorHash(context.id) }}></div>
-      <div className="@container/card w-full">
-        <CardHeader className="relative">
-          <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums flex justify-between w-full items-center">
-            <div className="flex w-full items-center ">
-              {hovered && <div className="cursor-pointer"><PlayCircleIcon size={30} onClick={() => switchMutation.mutate({ id: context.id, day })} /></div>}
-              <div className="flex flex-col items-start">
-                <div className="flex flex-grow min-w-0">
-                  <div>{context.description}
+      <div
+        className="h-full w-2 rounded-l-xl"
+        style={{ backgroundColor: colorHash(context.id) }}
+      />
+
+      <div className="relative w-full">
+        <div
+          className={`@container/card w-full transition-[padding] duration-200`}
+        >
+          <CardHeader className="relative p-3">
+            <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums flex justify-between items-center w-full">
+              <div className="flex items-center gap-4 w-full">
+
+                <div className="flex flex-col min-w-0">
+                  <div className="flex justify-between w-full items-center">
+                    <div className="flex items-end">
+                      <span className="truncate font-medium">{context.description}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
+                      <Clock size={16}></Clock>
+                      <span>
+                        {hours > 0 && `${hours} h `}{minutes} min
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="ml-5 flex-shrink-0 whitespace-nowrap">({Math.floor(context.duration / 60000000000 / 60)} h {Math.floor(context.duration / 60000000000 % 60)} min)</div>
-                </div>
-                <div className="flex">
-                  {context.labels?.map((label: string) => (
-                    <Badge variant={"secondary"}>{label}</Badge>
-                  ))}
+                  {context.labels?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {context.labels.map((label: string) => (
+                        <Badge key={label} variant="secondary">
+                          {label}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-            <div>
-              <div onClick={() => setExpand(!expanded)} className="cursor-pointer">
+
+              <div
+                className={`transition-opacity duration-200 ${hovered ? "opacity-100" : "opacity-0 pointer-events-none"
+                  }`}
+              >
+                <Button variant="outline" size="sm" className="flex items-center gap-1"
+                  onClick={() => switchMutation.mutate({ id: context.id, day })}
+                >
+                  <PlayIcon size={16} /> Switch context
+                </Button>
+              </div>
+
+              <div
+                onClick={() => setExpand(!expanded)}
+                className="cursor-pointer ml-3 p-1 hover:bg-muted rounded-md transition"
+              >
                 <ChevronDown
                   className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
                 />
               </div>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        {expanded && <CardContent className="flex flex-col gap-2">
-          <div className="flex flex-col justify-center">
-            <div className="flex justify-end">
-              <RenameContextDialog context={context}>
-                <Button variant="outline">Rename <Edit></Edit></Button>
-              </RenameContextDialog>
-            </div>
-            <IntervalTable ctxId={context.id} intervals={Object.values(context.intervals ?? [])
-              .sort((a, b) => compareAsc(a.start.time, b.start.time))}></IntervalTable>
-          </div>
-        </CardContent>
-        }
+            </CardTitle>
+          </CardHeader>
+
+          {expanded && (
+            <CardContent className="flex flex-col gap-3 pt-3">
+              <IntervalTable
+                ctxId={context.id}
+                intervals={Object.values(context.intervals ?? []).sort((a, b) =>
+                  compareAsc(a.start.time, b.start.time)
+                )}
+              />
+              <Separator />
+              <div className="flex mb-2 gap-1 w-full justify-end">
+                <RenameContextDialog context={context}>
+                  <Button variant="outline" size="sm" className="flex items-center gap-1">
+                    <Edit size={16} /> Rename
+                  </Button>
+                </RenameContextDialog>
+                {/* <Button variant="destructive" size="sm" className="flex items-center gap-1">
+                  <Trash size={16} /> Delete
+                </Button> */}
+              </div>
+            </CardContent>
+          )}
+        </div>
       </div>
     </Card>
-  )
+  );
 }
 
 export default ContextCard;
