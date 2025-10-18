@@ -18,7 +18,7 @@ func registerContext(mux *http.ServeMux, mgr *core.ContextManager) {
 	mux.HandleFunc("POST /free", h.free)
 	mux.HandleFunc("POST /switch", h.switchContext)
 	mux.HandleFunc("POST /createAndSwitch", h.createAndSwitch)
-	mux.HandleFunc("POST /interval", h.updateInterval)
+	mux.HandleFunc("PUT /interval", h.updateInterval)
 	mux.HandleFunc("POST /rename", h.rename)
 }
 

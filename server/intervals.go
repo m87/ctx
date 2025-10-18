@@ -11,36 +11,36 @@ import (
 	ctxtime "github.com/m87/ctx/time"
 )
 
-type intervalsHandlers struct{ mgr *core.ContextManager }
+type intervalHandler struct{ contextManager *core.ContextManager }
 
-func registerIntervals(mux *http.ServeMux, mgr *core.ContextManager) {
-	h := &intervalsHandlers{mgr: mgr}
-	mux.HandleFunc("GET /{date}", h.byDate)
-	mux.HandleFunc("GET /", h.all)
-	mux.HandleFunc("GET /recent/{n}", h.recent)
-	mux.HandleFunc("POST /move", h.move)
-	mux.HandleFunc("DELETE /{ctxId}/{id}", h.deleteOne)
-	mux.HandleFunc("POST /{ctxId}/{id}/split", h.split) // POST, bo body
+func registerIntervals(mux *http.ServeMux, contextManager *core.ContextManager) {
+	handler := &intervalHandler{contextManager: contextManager}
+	mux.HandleFunc("GET /{date}", handler.byDate)
+	mux.HandleFunc("GET /", handler.all)
+	mux.HandleFunc("GET /recent/{n}", handler.recent)
+	mux.HandleFunc("POST /move", handler.move)
+	mux.HandleFunc("DELETE /{ctxId}/{id}", handler.deleteOne)
+	mux.HandleFunc("POST /{ctxId}/{id}/split", handler.split)
 }
 
-func (h *intervalsHandlers) all(w http.ResponseWriter, r *http.Request) {
+func (h *intervalHandler) all(w http.ResponseWriter, r *http.Request) {
 	loc := getLoc()
-	date := h.mgr.TimeProvider.Now().Time.In(loc)
+	date := h.contextManager.TimeProvider.Now().Time.In(loc)
 	h.respondIntervals(w, date)
 }
 
-func (h *intervalsHandlers) byDate(w http.ResponseWriter, r *http.Request) {
+func (h *intervalHandler) byDate(w http.ResponseWriter, r *http.Request) {
 	loc := getLoc()
-	date := h.mgr.TimeProvider.Now().Time.In(loc)
+	date := h.contextManager.TimeProvider.Now().Time.In(loc)
 	if raw := strings.TrimSpace(r.PathValue("date")); raw != "" {
 		date, _ = time.ParseInLocation(time.DateOnly, raw, loc)
 	}
 	h.respondIntervals(w, date)
 }
 
-func (h *intervalsHandlers) recent(w http.ResponseWriter, r *http.Request) {
+func (h *intervalHandler) recent(w http.ResponseWriter, r *http.Request) {
 	loc := getLoc()
-	date := h.mgr.TimeProvider.Now().Time.In(loc)
+	date := h.contextManager.TimeProvider.Now().Time.In(loc)
 
 	n := 10
 	if raw := strings.TrimSpace(r.PathValue("n")); raw != "" {
@@ -61,7 +61,7 @@ func (h *intervalsHandlers) recent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *intervalsHandlers) move(w http.ResponseWriter, r *http.Request) {
+func (h *intervalHandler) move(w http.ResponseWriter, r *http.Request) {
 	var p MoveIntervalRequest
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -70,12 +70,12 @@ func (h *intervalsHandlers) move(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	w.WriteHeader(http.StatusOK)
-	h.mgr.WithArchiveSession(func(s core.Session) error {
+	h.contextManager.WithArchiveSession(func(s core.Session) error {
 		return s.MoveIntervalById(p.Src, p.Target, p.Id)
 	})
 }
 
-func (h *intervalsHandlers) deleteOne(w http.ResponseWriter, r *http.Request) {
+func (h *intervalHandler) deleteOne(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -83,10 +83,10 @@ func (h *intervalsHandlers) deleteOne(w http.ResponseWriter, r *http.Request) {
 	ctxID := strings.TrimSpace(r.PathValue("ctxId"))
 	id := strings.TrimSpace(r.PathValue("id"))
 	w.WriteHeader(http.StatusOK)
-	h.mgr.WithSession(func(s core.Session) error { return s.DeleteInterval(ctxID, id) })
+	h.contextManager.WithSession(func(s core.Session) error { return s.DeleteInterval(ctxID, id) })
 }
 
-func (h *intervalsHandlers) split(w http.ResponseWriter, r *http.Request) {
+func (h *intervalHandler) split(w http.ResponseWriter, r *http.Request) {
 	var p SplitRequest
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -97,20 +97,20 @@ func (h *intervalsHandlers) split(w http.ResponseWriter, r *http.Request) {
 	ctxID := strings.TrimSpace(r.PathValue("ctxId"))
 	id := strings.TrimSpace(r.PathValue("id"))
 	w.WriteHeader(http.StatusOK)
-	h.mgr.WithSession(func(s core.Session) error {
+	h.contextManager.WithSession(func(s core.Session) error {
 		return s.SplitContextIntervalById(ctxID, id, p.Split.H, p.Split.M, p.Split.S)
 	})
 }
 
-func (h *intervalsHandlers) respondIntervals(w http.ResponseWriter, date time.Time) {
+func (h *intervalHandler) respondIntervals(w http.ResponseWriter, date time.Time) {
 	entry, _ := h.intervalsByDate(date)
 	writeJSON(w, http.StatusOK, IntervalsResponse{Days: []IntervalsResponseEntry{entry}})
 }
 
-func (h *intervalsHandlers) intervalsByDate(date time.Time) (IntervalsResponseEntry, error) {
+func (h *intervalHandler) intervalsByDate(date time.Time) (IntervalsResponseEntry, error) {
 	loc := getLoc()
 	resp := IntervalsResponseEntry{Date: date.Format(time.DateOnly)}
-	h.mgr.WithSession(func(s core.Session) error {
+	h.contextManager.WithSession(func(s core.Session) error {
 		for ctxID := range s.State.Contexts {
 			ints := s.GetIntervalsByDate(ctxID, ctxtime.ZonedTime{Time: date, Timezone: loc.String()})
 			for _, iv := range ints {
