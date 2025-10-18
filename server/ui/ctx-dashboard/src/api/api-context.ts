@@ -38,8 +38,8 @@ export class ContextApi {
 
   rename = (ctxId: string, name: string) => http.post<void>("/context/rename", {ctxId, name}).then(response => response)
   renameMutation = (queryClient: QueryClient) => ({
-    mutationFn: (data: {ctxId: string, name: string}) => this.rename(data.ctxId, data.name),
-    onSucess: (_, variables) => invalidateQueriesByDate(queryClient, variables)
+    mutationFn: (data: {ctxId: string, name: string, day?: string}) => this.rename(data.ctxId, data.name),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables)
   })
 
   updateInterval = (contextId: string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime) =>

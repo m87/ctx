@@ -56,8 +56,17 @@ func (session *Session) GetSortedContextIds() []string {
 }
 
 func (session *Session) RenameContext(srcId string, targetId string, description string) error {
+	if err := session.IsValidContext(srcId); err != nil {
+		return err
+	}
+
+	if err := session.ValidateContextExists(targetId); err == nil {
+		return errors.New("target context already exists")
+	}
+
 	ctx := session.State.Contexts[srcId]
 	ctx.Description = description
+	ctx.Id = targetId
 	session.State.Contexts[targetId] = ctx
 	delete(session.State.Contexts, srcId)
 	return nil
