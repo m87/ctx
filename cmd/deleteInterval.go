@@ -13,7 +13,7 @@ func newDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 		Use:     "interval",
 		Aliases: []string{"int", "i"},
 		Run: func(cmd *cobra.Command, args []string) {
-			contextId, err := flags.ResolveContextId(cmd)
+			contextId, err := flags.ResolveContextIdLegacy(cmd)
 			util.Check(err)
 			id, err := flags.ResolveIntervalId(cmd)
 			util.Check(err)

@@ -9,22 +9,32 @@ import (
 )
 
 func newDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
-	return &cobra.Command{
+	var (
+		ctxId          string
+		ctxDescription string
+	)
+
+	cmd := &cobra.Command{
 		Use:     "delete",
 		Aliases: []string{"del", "d", "rm"},
 		Short:   "Delete context",
+		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ctxId, err := flags.ResolveContextId(cmd)
+			if len(args) == 0 {
+				panic("Please provide a description or id")
+			}
+			id, _, _, err := flags.ResolveContextId(args[0], ctxId, ctxDescription)
 			util.Check(err)
-			util.Check(manager.WithSession(func(session core.Session) error { return session.Delete(ctxId) }))
+			util.Check(manager.WithSession(func(session core.Session) error { return session.Delete(id) }))
 		},
 	}
 
+	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	return cmd
 }
 
 var deleteCmd = newDeleteContextCmd(bootstrap.CreateManager())
 
 func init() {
-	flags.AddContxtFlag(deleteCmd)
 	rootCmd.AddCommand(deleteCmd)
 }

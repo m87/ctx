@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-func Id(arg string, isRaw bool) (string, error) {
+func Id(arg string, isRawId bool) (string, error) {
 	id := strings.TrimSpace(arg)
 	if id == "" {
 		return "", errors.New("")
 	}
 
-	if !isRaw {
+	if !isRawId {
 		id = GenerateId(id)
 	}
 	return id, nil

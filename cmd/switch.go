@@ -1,16 +1,20 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/cmd/flags"
 	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
 )
 
 func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
-	return &cobra.Command{
+	var (
+		ctxId          string
+		ctxDescription string
+	)
+
+	cmd := &cobra.Command{
 		Use:     "switch",
 		Aliases: []string{"sw", "s"},
 		Short:   "Switch context",
@@ -21,14 +25,16 @@ func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 			if len(args) == 0 {
 				panic("Please provide a description or id")
 			}
+			id, description, isRawId, err := flags.ResolveContextId(args[0], ctxId, ctxDescription)
 
-			description := strings.TrimSpace(args[0])
-			byId, _ := cmd.Flags().GetBool("id")
-			id, err := util.Id(description, byId)
-			util.Checkm(err, "Unable to process id "+description)
+			if isRawId {
+				util.Checkm(err, "Unable to process context id "+id)
+			} else {
+				util.Checkm(err, "Unable to process context "+description)
+			}
 
 			util.Check(manager.WithSession(func(session core.Session) error {
-				if byId {
+				if isRawId {
 					return session.Switch(id)
 				} else {
 					return session.CreateIfNotExistsAndSwitch(id, description)
@@ -39,10 +45,11 @@ func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 		},
 	}
 
+	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	return cmd
 }
 
 func init() {
 	switchCmd := newSwitchCmd(bootstrap.CreateManager())
-	switchCmd.Flags().BoolP("id", "i", false, "stop by description")
 	rootCmd.AddCommand(switchCmd)
 }
