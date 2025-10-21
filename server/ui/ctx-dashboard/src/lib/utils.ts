@@ -30,5 +30,9 @@ export function durationAsS(duration: number) {
 }
 
 export function durationAsHM(duration: number) {
-  return `${durationAsH(duration)}h ${durationAsM(duration)}m`
+  const h = durationAsH(duration)
+  const m = durationAsM(duration)
+  const hStr = h > 0 ? `${h}h` : ''
+  const mStr = m > 0 ? `${m}m` : ''
+  return `${hStr} ${mStr}`
 }
