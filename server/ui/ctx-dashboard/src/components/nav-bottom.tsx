@@ -5,6 +5,7 @@ import {
   SidebarMenu,
 } from "@/components/ui/sidebar"
 import { useQuery } from "@tanstack/react-query";
+import { Card } from "./ui/card";
 
 
 export function NavBottom() {
@@ -13,9 +14,9 @@ export function NavBottom() {
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2 opacity-50">
-        <SidebarMenu>
+        {/* <SidebarMenu>
           {version}
-        </SidebarMenu>
+        </SidebarMenu> */}
       </SidebarGroupContent>
     </SidebarGroup>
   )

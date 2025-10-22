@@ -4,9 +4,14 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { durationAsH, durationAsHM, durationAsM } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isValid, parseISO } from "date-fns";
-import { Clock, Pause } from "lucide-react";
+import { Clock, Clock10, Pause } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Route, Routes, useParams } from "react-router-dom";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Spinner } from "./ui/spinner";
+import { TickingClock } from "./ui/tickclock";
+import { StopIcon } from "@radix-ui/react-icons";
 
 export function SiteHeader() {
 
@@ -16,6 +21,8 @@ export function SiteHeader() {
   const querClient = useQueryClient()
   const freeMutation = useMutation(api.context.freeMutaiton(querClient))
   const { day } = useParams();
+
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (day) {
@@ -32,7 +39,7 @@ export function SiteHeader() {
   return (
     <header
       className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 pr-2 mr-0">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
@@ -45,7 +52,7 @@ export function SiteHeader() {
               (() => {
                 const DayComponent = () => {
                   const { day } = useParams();
-                  return <div>{day}</div> ;
+                  return <div>{day}</div>;
                 };
                 return <DayComponent />;
               })()
@@ -54,16 +61,20 @@ export function SiteHeader() {
             <Route path="/today" element={new Date().toLocaleDateString()} />
             <Route path="/" element={new Date().toLocaleDateString()} />
           </Routes>
-          {summary?.duration ? <div className="ml-5 flex gap-1 items-center text-muted-foreground text-sm"><Clock size={16}></Clock>{ durationAsHM(summary?.duration)} </div> : <div></div>}
+          {summary?.duration ? <div className="ml-5 flex gap-1 items-center text-muted-foreground text-sm"><Clock size={16}></Clock>{durationAsHM(summary?.duration)} </div> : <div></div>}
         </h1>
-        <div className="flex w-full justify-end">
-          {currentContext?.context.description &&
-            <div className="flex rounded-lg p-1 pl-2 pr-2 font-semibold bg-green-200 animate-pulse items-center">
-              <div className="flex items-center gap-2">{currentContext?.context.description} <div className="flex gap-1 items-center text-muted-foreground text-sm"><Clock size={16}></Clock>{ durationAsHM(currentContext?.currentDuration)} </div> </div>
-              <Pause className="cursor-pointer shrink-0" onClick={() => freeMutation.mutate({day: day})}></Pause>
+        {currentContext?.context.description &&
+          <div className="flex rounded-lg font-li items-center justify-between"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          >
+            <div className="flex items-center gap-2 border rounded-md pl-2">
+              <div className="flex items-center gap-2"><span className="text-ellipsis overflow-hidden whitespace-nowrap max-w-64 mr-1">{currentContext?.context.description}</span></div>
+              <div className="flex gap-1 items-center text-muted-foreground text-sm mt-2 mb-2"><TickingClock size={16}></TickingClock>{durationAsHM(currentContext?.currentDuration)} </div>
+              <Button variant="ghost" onClick={() => freeMutation.mutate({ day: day })} className="flex items-center gap-2 border-l-2 rounded-l-none shadow-none p-1 pr-2 pl-2"><Pause size={16} className="cursor-pointer shrink-0" ></Pause> </Button>
             </div>
-          }
-        </div>
+          </div>
+        }
       </div>
     </header>
   )

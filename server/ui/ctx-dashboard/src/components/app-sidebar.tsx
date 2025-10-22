@@ -9,11 +9,13 @@ import {
   ChartNoAxesGantt,
   ChartNoAxesGanttIcon,
   ClipboardListIcon,
+  Clock,
   DatabaseIcon,
   FileCodeIcon,
   FileTextIcon,
   HelpCircleIcon,
   LayoutDashboardIcon,
+  Pause,
   SearchIcon,
   SettingsIcon,
 } from "lucide-react"
@@ -30,6 +32,15 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { NavBottom } from "./nav-bottom"
+import { Card } from "./ui/card"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { api } from "@/api/api"
+import { useParams } from "react-router-dom"
+import { isValid, parseISO } from "date-fns"
+import { durationAsHM } from "@/lib/utils"
+import { IconProgress } from "@tabler/icons-react"
+import { Spinner } from "./ui/spinner"
+import { Button } from "./ui/button"
 
 const data = {
   user: {
@@ -124,6 +135,24 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+
+  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
+  const { data: currentContext } = useQuery({ ...api.context.currentQuery, refetchInterval: 5000 });
+  const querClient = useQueryClient()
+  const freeMutation = useMutation(api.context.freeMutaiton(querClient))
+  const { day } = useParams();
+
+
+  React.useEffect(() => {
+    if (day) {
+      const date = parseISO(day)
+      if (isValid(date)) {
+        setSelectedDate(date)
+      }
+    }
+  }, [day])
+
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -142,11 +171,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain  />
+        <NavMain />
       </SidebarContent>
       <SidebarFooter>
         <NavBottom />
       </SidebarFooter>
+
     </Sidebar>
   )
 }
