@@ -44,7 +44,7 @@ func AddCustomContextFlag(cmd *cobra.Command, name string, short string, descrip
 
 func AddContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription *string) {
 	cmd.Flags().StringVar(ctxId, "ctx-id", "", "context id")
-	cmd.Flags().StringVar(ctxDescription, "ctx", "", "context description")
+	cmd.Flags().StringVarP(ctxDescription, "ctx", "c", "", "context description")
 	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
 }
 
