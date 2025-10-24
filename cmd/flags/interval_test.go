@@ -9,7 +9,8 @@ import (
 
 func TestResolveIntervalIdWithIdFlag(t *testing.T) {
 	cmd := cobra.Command{}
-	AddIntervalFlag(&cmd)
+	intervalId := ""
+	AddIntervalFlag(&cmd, &intervalId)
 
 	args := []string{
 		"--interval=test",
@@ -17,7 +18,7 @@ func TestResolveIntervalIdWithIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	id, err := ResolveIntervalId(&cmd)
+	id, err := ResolveIntervalId(intervalId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "test", id)
@@ -25,20 +26,22 @@ func TestResolveIntervalIdWithIdFlag(t *testing.T) {
 
 func TestResolveIntervalIdNoFlags(t *testing.T) {
 	cmd := cobra.Command{}
-	AddIntervalFlag(&cmd)
+	intervalId := ""
+	AddIntervalFlag(&cmd, &intervalId)
 
 	args := []string{}
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveIntervalId(&cmd)
+	_, err := ResolveIntervalId(intervalId)
 
 	assert.ErrorContains(t, err, "--interval must be provided")
 }
 
 func TestResolveIntervalIdWithShortIdFlag(t *testing.T) {
 	cmd := cobra.Command{}
-	AddIntervalFlag(&cmd)
+	intervalId := ""
+	AddIntervalFlag(&cmd, &intervalId)
 
 	args := []string{
 		"-i=test2",
@@ -46,7 +49,7 @@ func TestResolveIntervalIdWithShortIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	id, err := ResolveIntervalId(&cmd)
+	id, err := ResolveIntervalId(intervalId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "test2", id)
@@ -54,7 +57,8 @@ func TestResolveIntervalIdWithShortIdFlag(t *testing.T) {
 
 func TestResolveIntervalIdWithEmptyIdFlag(t *testing.T) {
 	cmd := cobra.Command{}
-	AddIntervalFlag(&cmd)
+	intervalId := ""
+	AddIntervalFlag(&cmd, &intervalId)
 
 	args := []string{
 		"-i",
@@ -62,7 +66,7 @@ func TestResolveIntervalIdWithEmptyIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveIntervalId(&cmd)
+	_, err := ResolveIntervalId(intervalId)
 
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "--interval must be provided")

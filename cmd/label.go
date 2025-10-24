@@ -8,12 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newLabelContextCmd(manager *core.ContextManager) *cobra.Command { 
+func newLabelContextCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use:     "label",
 		Aliases: []string{"l", "lbl"},
 		Run: func(cmd *cobra.Command, args []string) {
-			contextId, err := flags.ResolveContextId(cmd)
+			contextId, err := flags.ResolveContextIdLegacy(cmd)
 			util.Check(err)
 
 			delFlag, err := flags.ResolveDeleteFlag(cmd)

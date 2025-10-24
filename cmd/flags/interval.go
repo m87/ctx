@@ -6,18 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ResolveIntervalId(cmd *cobra.Command) (string, error) {
-	flags := cmd.Flags()
-
-	id, err := flags.GetString("interval")
-	if err != nil {
-		return "", err
-	}
-
-	if !flags.Changed("interval") {
-		id = ""
-	}
-
+func ResolveIntervalId(id string) (string, error) {
 	if id != "" {
 		return id, nil
 	}
@@ -25,6 +14,6 @@ func ResolveIntervalId(cmd *cobra.Command) (string, error) {
 	return "", errors.New("--interval must be provided")
 }
 
-func AddIntervalFlag(cmd *cobra.Command) {
-	cmd.Flags().StringP("interval", "i", "", "Interval id")
+func AddIntervalFlag(cmd *cobra.Command, intervalId *string) {
+	cmd.Flags().StringVarP(intervalId, "interval", "i", "", "Interval id")
 }

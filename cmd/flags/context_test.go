@@ -19,7 +19,7 @@ func TestResolveContextIdWithCtxAndCtxIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveContextId(&cmd)
+	_, err := ResolveContextIdLegacy(&cmd)
 
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "both --ctx and --ctx-id provided")
@@ -34,7 +34,7 @@ func TestResolveContextIdWithCtxFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	id, err := ResolveContextId(&cmd)
+	id, err := ResolveContextIdLegacy(&cmd)
 
 	assert.NoError(t, err)
 	assert.Equal(t, util.GenerateId("test2"), id)
@@ -48,7 +48,7 @@ func TestResolveContextIdNoFlags(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveContextId(&cmd)
+	_, err := ResolveContextIdLegacy(&cmd)
 
 	assert.ErrorContains(t, err, "either --ctx or --ctx-id must be provided")
 }
@@ -63,7 +63,7 @@ func TestResolveContextIdWithEmptyCtxAndCtxIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	id, err := ResolveContextId(&cmd)
+	id, err := ResolveContextIdLegacy(&cmd)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "test2", id)
@@ -80,7 +80,7 @@ func TestResolveContextIdWithEmptyCtxIdFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveContextId(&cmd)
+	_, err := ResolveContextIdLegacy(&cmd)
 
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "both --ctx and --ctx-id provided")
@@ -98,7 +98,7 @@ func TestResolveContextIdWithEmptyCtxFlag(t *testing.T) {
 	cmd.SetArgs(args)
 	cmd.ParseFlags(args)
 
-	_, err := ResolveContextId(&cmd)
+	_, err := ResolveContextIdLegacy(&cmd)
 
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "both --ctx and --ctx-id provided")
