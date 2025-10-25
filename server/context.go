@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
@@ -20,6 +21,14 @@ func registerContext(mux *http.ServeMux, mgr *core.ContextManager) {
 	mux.HandleFunc("POST /createAndSwitch", h.createAndSwitch)
 	mux.HandleFunc("PUT /interval", h.updateInterval)
 	mux.HandleFunc("POST /rename", h.rename)
+	mux.HandleFunc("DELETE /{ctxId}", h.delete)
+}
+
+func (h *contextHandlers) delete(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	if ctxId := strings.TrimSpace(r.PathValue("ctxId")); ctxId != "" {
+		h.mgr.WithSession(func(s core.Session) error { return s.Delete(ctxId) })
+	}
 }
 
 func (h *contextHandlers) list(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +37,7 @@ func (h *contextHandlers) list(w http.ResponseWriter, r *http.Request) {
 		for _, c := range s.State.Contexts {
 			out = append(out, c)
 		}
-		// stabilna kolejność
+
 		sort.Slice(out, func(i, j int) bool { return out[i].Description < out[j].Description })
 		writeJSON(w, http.StatusOK, out)
 		return nil

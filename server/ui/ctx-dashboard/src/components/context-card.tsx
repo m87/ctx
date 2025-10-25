@@ -11,6 +11,7 @@ import { IntervalTable } from "./intervals-table";
 import { Button } from "./ui/button";
 import { RenameContextDialog } from "./dialogs/rename-context-dialog";
 import { Separator } from "./ui/separator";
+import { DeleteContextDialog } from "./dialogs/delete-context-dialog";
 
 export interface ContextCardProps {
   context: Context;
@@ -114,9 +115,11 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                     <Edit size={16} /> Rename
                   </Button>
                 </RenameContextDialog>
-                {/* <Button variant="destructive" size="sm" className="flex items-center gap-1">
+                <DeleteContextDialog context={context}>
+                <Button variant="destructive" size="sm" className="flex items-center gap-1">
                   <Trash size={16} /> Delete
-                </Button> */}
+                </Button>
+                </DeleteContextDialog>
               </div>
             </CardContent>
           )}

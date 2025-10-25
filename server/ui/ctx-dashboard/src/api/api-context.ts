@@ -29,6 +29,12 @@ export class ContextApi {
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
   }) 
 
+  delete = (id: string) => http.delete<void>(`/context/${id}`).then(response => response)
+  deleteMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: {id: string, day?: string}) => this.delete(data.id),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
+
   createAndSwitch = (description: string) =>
     http.post<Context>("/context/createAndSwitch", { description: description }).then(response => response.data);
   createAndSwitchMutation= (queryClient: QueryClient) => ({
