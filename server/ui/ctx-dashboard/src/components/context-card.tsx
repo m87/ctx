@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, Delete, Edit, PlayCircleIcon, PlayIcon, Trash } from "lucide-react";
+import { ChevronDown, Clock, Delete, Edit, MessageSquareText, PlayCircleIcon, PlayIcon, Tag, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
 import { api, Context } from "@/api/api";
@@ -64,6 +64,20 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                         {hours > 0 && `${hours} h `}{minutes} min
                       </span>
                     </div>
+
+                                <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
+                      <Tag size={16}></Tag>
+                      <span>
+                          5
+                      </span>
+                    </div>
+
+                                <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
+                      <MessageSquareText size={16}></MessageSquareText>
+                      <span>
+                        2
+                      </span>
+                    </div>
                   </div>
 
                   {context.labels?.length > 0 && (
@@ -76,6 +90,11 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                     </div>
                   )}
                 </div>
+               <div className="flex gap-2">
+
+
+               </div>
+
               </div>
 
               <div
@@ -101,13 +120,24 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
           </CardHeader>
 
           {expanded && (
-            <CardContent className="flex flex-col gap-3 pt-3">
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex gap-2"><Badge variant={"secondary"}>asd</Badge>
+              <Badge variant={"secondary"}>asd</Badge>
+              <Badge variant={"secondary"}>asd</Badge>
+              <Badge variant={"secondary"}>asd</Badge>
+              <Badge variant={"secondary"}>asd</Badge>
+              <Badge variant={"secondary"}>asd</Badge></div>
+              
               <IntervalTable
                 ctxId={context.id}
                 intervals={Object.values(context.intervals ?? []).sort((a, b) =>
                   compareAsc(a.start.time, b.start.time)
                 )}
               />
+               <div className="flex flex-col">
+                  <h4 className="font-medium">Comments</h4>
+                  <div>asdlsajl  d lsajd  lksaj s lkdsalk djlksajd lkdsajlksa djdl</div>
+              </div>
               <Separator />
               <div className="flex mb-2 gap-1 w-full justify-end">
                 <RenameContextDialog context={context}>
@@ -121,6 +151,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                 </Button>
                 </DeleteContextDialog>
               </div>
+             
             </CardContent>
           )}
         </div>

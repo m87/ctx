@@ -9,6 +9,7 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "./ui
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { durationAsHM } from "@/lib/utils";
 import { EditIntervalDialog } from "./dialogs/edit-interval-dialog";
+import { Separator } from "./ui/separator";
 
 
 
@@ -16,7 +17,8 @@ import { EditIntervalDialog } from "./dialogs/edit-interval-dialog";
 export function IntervalTable({ ctxId, intervals }: { ctxId: string, intervals: Interval[] }) {
 
     return <>
-        <h4 className="font-medium mb-2">Intervals</h4>
+        <h4 className="font-medium">Intervals</h4>
+
         <div className="rounded-lg border">
             <Table>
                 <TableHeader>
