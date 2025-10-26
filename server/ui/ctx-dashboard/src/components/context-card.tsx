@@ -68,27 +68,17 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                                 <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
                       <Tag size={16}></Tag>
                       <span>
-                          5
+                          {(context.labels ?? []).length}
                       </span>
                     </div>
 
-                                <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
+                                {/* <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
                       <MessageSquareText size={16}></MessageSquareText>
                       <span>
-                        2
+                        {(context.comments ?? []).length}
                       </span>
-                    </div>
+                    </div> */}
                   </div>
-
-                  {context.labels?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {context.labels.map((label: string) => (
-                        <Badge key={label} variant="secondary">
-                          {label}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
                 </div>
                <div className="flex gap-2">
 
@@ -121,12 +111,9 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
 
           {expanded && (
             <CardContent className="flex flex-col gap-3">
-              <div className="flex gap-2"><Badge variant={"secondary"}>asd</Badge>
-              <Badge variant={"secondary"}>asd</Badge>
-              <Badge variant={"secondary"}>asd</Badge>
-              <Badge variant={"secondary"}>asd</Badge>
-              <Badge variant={"secondary"}>asd</Badge>
-              <Badge variant={"secondary"}>asd</Badge></div>
+              <div className="flex gap-2">
+{(context.labels ?? []).map(label => <Badge variant={"secondary"}>{label}</Badge>)}
+                  </div>
               
               <IntervalTable
                 ctxId={context.id}
@@ -134,10 +121,10 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                   compareAsc(a.start.time, b.start.time)
                 )}
               />
-               <div className="flex flex-col">
+               {/* <div className="flex flex-col">
                   <h4 className="font-medium">Comments</h4>
                   <div>asdlsajl  d lsajd  lksaj s lkdsalk djlksajd lkdsajlksa djdl</div>
-              </div>
+              </div> */}
               <Separator />
               <div className="flex mb-2 gap-1 w-full justify-end">
                 <RenameContextDialog context={context}>
