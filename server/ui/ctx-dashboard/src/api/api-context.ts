@@ -14,44 +14,50 @@ export class ContextApi {
   current = () => http.get<CurrentContext>("/context/current").then(response => response.data ? {
     context: mapContext(response.data.context),
     currentDuration: response.data.currentDuration
-  }: null);
+  } : null);
   currentQuery = { queryKey: ["currentContext"], queryFn: this.current };
 
   free = () => http.post<void>("/context/free").then(response => response)
   freeMutaiton = (queryClient: QueryClient) => ({
-    mutationFn: (data: {day?: string}) => this.free(),
+    mutationFn: (data: { day?: string }) => this.free(),
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
   })
 
   switch = (id: string) => http.post<void>("/context/switch", { id: id }).then(response => response)
   switchMutation = (queryClient: QueryClient) => ({
-    mutationFn: (data: {id: string, day?: string}) => this.switch(data.id),
+    mutationFn: (data: { id: string, day?: string }) => this.switch(data.id),
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
-  }) 
+  })
 
   delete = (id: string) => http.delete<void>(`/context/${id}`).then(response => response)
   deleteMutation = (queryClient: QueryClient) => ({
-    mutationFn: (data: {id: string, day?: string}) => this.delete(data.id),
+    mutationFn: (data: { id: string, day?: string }) => this.delete(data.id),
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
+
+  editLabels = (id: string, labels: string[]) => http.post<void>(`/context/labels`, { id, labels }).then(response => response)
+  editLabelsMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: { id: string, labels: string[], day?: string }) => this.editLabels(data.id, data.labels),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables)
   })
 
   createAndSwitch = (description: string) =>
     http.post<Context>("/context/createAndSwitch", { description: description }).then(response => response.data);
-  createAndSwitchMutation= (queryClient: QueryClient) => ({
-    mutationFn: (data: {description: string, day?: string}) => this.createAndSwitch(data.description),
+  createAndSwitchMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: { description: string, day?: string }) => this.createAndSwitch(data.description),
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
   })
 
-  rename = (ctxId: string, name: string) => http.post<void>("/context/rename", {ctxId, name}).then(response => response)
+  rename = (ctxId: string, name: string) => http.post<void>("/context/rename", { ctxId, name }).then(response => response)
   renameMutation = (queryClient: QueryClient) => ({
-    mutationFn: (data: {ctxId: string, name: string, day?: string}) => this.rename(data.ctxId, data.name),
+    mutationFn: (data: { ctxId: string, name: string, day?: string }) => this.rename(data.ctxId, data.name),
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables)
   })
 
   updateInterval = (contextId: string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime) =>
     http.put<void>("/context/interval", { contextId: contextId, intervalId: intervalId, start: start, end: end }).then(response => response);
   updateIntervalMutation = (queryClient: QueryClient) => ({
-    mutationFn: (data: {contextId:string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime, day?: string}) => this.updateInterval(data.contextId, data.intervalId, data.start, data.end),
+    mutationFn: (data: { contextId: string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime, day?: string }) => this.updateInterval(data.contextId, data.intervalId, data.start, data.end),
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
   })
 }

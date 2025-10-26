@@ -81,6 +81,11 @@ type createAndSwitchRequest struct {
 	Description string `json:"description"`
 }
 
+type EditContextLabelsRequest struct {
+	Id     string   `json:"id"`
+	Labels []string `json:"labels"`
+}
+
 type EditIntervalRequest struct {
 	Id         string            `json:"contextId"`
 	IntervalId string            `json:"intervalId"`

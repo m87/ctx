@@ -12,6 +12,7 @@ import { Button } from "./ui/button";
 import { RenameContextDialog } from "./dialogs/rename-context-dialog";
 import { Separator } from "./ui/separator";
 import { DeleteContextDialog } from "./dialogs/delete-context-dialog";
+import { LabelsDialog } from "./dialogs/labels-dialog";
 
 export interface ContextCardProps {
   context: Context;
@@ -65,25 +66,19 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                       </span>
                     </div>
 
-                                <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
+                    <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
                       <Tag size={16}></Tag>
                       <span>
-                          {(context.labels ?? []).length}
+                        {(context.labels ?? []).length}
                       </span>
                     </div>
 
-                                {/* <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
-                      <MessageSquareText size={16}></MessageSquareText>
-                      <span>
-                        {(context.comments ?? []).length}
-                      </span>
-                    </div> */}
                   </div>
                 </div>
-               <div className="flex gap-2">
+                <div className="flex gap-2">
 
 
-               </div>
+                </div>
 
               </div>
 
@@ -111,17 +106,19 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
 
           {expanded && (
             <CardContent className="flex flex-col gap-3">
+
+              <h4 className="font-medium flex gap-2 items-center">Labels <LabelsDialog context={context}><Edit size={16} className="cursor-pointer"></Edit></LabelsDialog></h4>
               <div className="flex gap-2">
-{(context.labels ?? []).map(label => <Badge variant={"secondary"}>{label}</Badge>)}
-                  </div>
-              
+                {(context.labels ?? []).map(label => <Badge variant={"secondary"}>{label}</Badge>)}
+              </div> 
+
               <IntervalTable
                 ctxId={context.id}
                 intervals={Object.values(context.intervals ?? []).sort((a, b) =>
                   compareAsc(a.start.time, b.start.time)
                 )}
               />
-               {/* <div className="flex flex-col">
+              {/* <div className="flex flex-col">
                   <h4 className="font-medium">Comments</h4>
                   <div>asdlsajl  d lsajd  lksaj s lkdsalk djlksajd lkdsajlksa djdl</div>
               </div> */}
@@ -133,12 +130,12 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                   </Button>
                 </RenameContextDialog>
                 <DeleteContextDialog context={context}>
-                <Button variant="destructive" size="sm" className="flex items-center gap-1">
-                  <Trash size={16} /> Delete
-                </Button>
+                  <Button variant="destructive" size="sm" className="flex items-center gap-1">
+                    <Trash size={16} /> Delete
+                  </Button>
                 </DeleteContextDialog>
               </div>
-             
+
             </CardContent>
           )}
         </div>
