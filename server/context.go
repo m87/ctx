@@ -22,6 +22,22 @@ func registerContext(mux *http.ServeMux, mgr *core.ContextManager) {
 	mux.HandleFunc("PUT /interval", h.updateInterval)
 	mux.HandleFunc("POST /rename", h.rename)
 	mux.HandleFunc("DELETE /{ctxId}", h.delete)
+	mux.HandleFunc("POST /labels", h.editLabels)
+}
+
+func (h *contextHandlers) editLabels(w http.ResponseWriter, r *http.Request) {
+	var p EditContextLabelsRequest
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	w.WriteHeader(http.StatusOK)
+	h.mgr.WithSession(func(s core.Session) error {
+		s.UpdateContextLabels(p.Id, p.Labels)
+		return nil
+	})
 }
 
 func (h *contextHandlers) delete(w http.ResponseWriter, r *http.Request) {

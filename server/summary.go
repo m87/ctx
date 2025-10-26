@@ -76,6 +76,7 @@ func (h *summaryHandlers) respondDay(w http.ResponseWriter, date time.Time, show
 			}
 			resp.Contexts = append(resp.Contexts, core.Context{
 				Id: id, Description: ctx.Description, Intervals: m, Duration: d,
+				Comments: ctx.Comments, Labels: ctx.Labels,
 			})
 		}
 		if showAll {

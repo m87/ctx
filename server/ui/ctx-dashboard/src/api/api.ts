@@ -43,6 +43,7 @@ export interface Context {
     intervals: { [key: string]: Interval },
     duration: number,
     labels: string[],
+    comments: string[]
 }
 
 export function mapZoned(obj: any): ZonedDateTime {

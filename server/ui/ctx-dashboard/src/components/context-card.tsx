@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, Delete, Edit, PlayCircleIcon, PlayIcon, Trash } from "lucide-react";
+import { ChevronDown, Clock, Delete, Edit, MessageSquareText, PlayCircleIcon, PlayIcon, Tag, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
 import { api, Context } from "@/api/api";
@@ -12,6 +12,7 @@ import { Button } from "./ui/button";
 import { RenameContextDialog } from "./dialogs/rename-context-dialog";
 import { Separator } from "./ui/separator";
 import { DeleteContextDialog } from "./dialogs/delete-context-dialog";
+import { LabelsDialog } from "./dialogs/labels-dialog";
 
 export interface ContextCardProps {
   context: Context;
@@ -64,18 +65,21 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                         {hours > 0 && `${hours} h `}{minutes} min
                       </span>
                     </div>
-                  </div>
 
-                  {context.labels?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {context.labels.map((label: string) => (
-                        <Badge key={label} variant="secondary">
-                          {label}
-                        </Badge>
-                      ))}
+                    <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
+                      <Tag size={16}></Tag>
+                      <span>
+                        {(context.labels ?? []).length}
+                      </span>
                     </div>
-                  )}
+
+                  </div>
                 </div>
+                <div className="flex gap-2">
+
+
+                </div>
+
               </div>
 
               <div
@@ -101,13 +105,23 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
           </CardHeader>
 
           {expanded && (
-            <CardContent className="flex flex-col gap-3 pt-3">
+            <CardContent className="flex flex-col gap-3">
+
+              <h4 className="font-medium flex gap-2 items-center">Labels <LabelsDialog context={context}><Edit size={16} className="cursor-pointer"></Edit></LabelsDialog></h4>
+              <div className="flex gap-2">
+                {(context.labels ?? []).map(label => <Badge variant={"secondary"}>{label}</Badge>)}
+              </div> 
+
               <IntervalTable
                 ctxId={context.id}
                 intervals={Object.values(context.intervals ?? []).sort((a, b) =>
                   compareAsc(a.start.time, b.start.time)
                 )}
               />
+              {/* <div className="flex flex-col">
+                  <h4 className="font-medium">Comments</h4>
+                  <div>asdlsajl  d lsajd  lksaj s lkdsalk djlksajd lkdsajlksa djdl</div>
+              </div> */}
               <Separator />
               <div className="flex mb-2 gap-1 w-full justify-end">
                 <RenameContextDialog context={context}>
@@ -116,11 +130,12 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                   </Button>
                 </RenameContextDialog>
                 <DeleteContextDialog context={context}>
-                <Button variant="destructive" size="sm" className="flex items-center gap-1">
-                  <Trash size={16} /> Delete
-                </Button>
+                  <Button variant="destructive" size="sm" className="flex items-center gap-1">
+                    <Trash size={16} /> Delete
+                  </Button>
                 </DeleteContextDialog>
               </div>
+
             </CardContent>
           )}
         </div>
