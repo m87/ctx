@@ -12,7 +12,11 @@ type LocalStoreContextArchiver struct {
 	path string
 }
 
-func (archiver *LocalStoreContextArchiver) Archvie(contextsToArchvie []core.Context, session core.Session) error {
+func (archiver *LocalStoreContextArchiver) Update(contextsToUpdate []core.Context, session core.Session) error {
+	return nil
+}
+
+func (archiver *LocalStoreContextArchiver) Archive(contextsToArchvie []core.Context, session core.Session) error {
 	for _, context := range contextsToArchvie {
 		err := archiver.archiveContext(context)
 		if err != nil {
