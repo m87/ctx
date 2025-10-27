@@ -1,7 +1,7 @@
 package core
 
 type Migrator interface {
-	Migrate(session Session) error
+	Migrate() error
 	MigrateArchive(archiver Archiver[Context]) error
 }
 

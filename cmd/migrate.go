@@ -17,9 +17,7 @@ func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Migration process started...")
 			for _, migration := range manager.MigrationManager.CreateMigrationChain(core.Version{Major: 1, Minor: 0, Patch: 0}, core.Version{Major: 3, Minor: 2, Patch: 0}) {
-				util.Checkm(manager.WithSession(func(session core.Session) error {
-					return migration.Migrate(session)
-				}), "Migration failed")
+				util.Check(migration.Migrate())
 
 				util.Checkm(manager.WithContextArchiver(func(archiver core.Archiver[core.Context]) error {
 					return migration.MigrateArchive(archiver)

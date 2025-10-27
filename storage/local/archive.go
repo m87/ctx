@@ -40,7 +40,11 @@ func merge(src *core.Context, dst *core.Context) *core.Context {
 	src.Id = dst.Id
 	src.Description = dst.Description
 	src.Duration = src.Duration + dst.Duration
-	src.Comments = append(src.Comments, dst.Description)
+
+	for _, comment := range dst.Comments {
+		src.Comments[comment.Id] = comment
+	}
+
 	src.Labels = append(src.Labels, dst.Labels...)
 	src.State = dst.State
 
