@@ -7,5 +7,5 @@ import (
 )
 
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, VersionResponse{Version: core.Version})
+	writeJSON(w, http.StatusOK, VersionResponse{Version: core.Release})
 }

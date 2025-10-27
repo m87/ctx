@@ -14,7 +14,7 @@ import (
 var cfgFile string
 var rootCmd = cobra.Command{
 	Use:     "ctx",
-	Version: core.Version,
+	Version: core.Release,
 	Run: func(cmd *cobra.Command, args []string) {
 		manager := bootstrap.CreateManager()
 		util.Check(manager.WithSession(func(session core.Session) error {
