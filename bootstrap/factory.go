@@ -59,6 +59,6 @@ func InitDefault() {
 	os.Mkdir(filepath.Join(home, ".ctx.d"), 0777)
 	os.Mkdir(filepath.Join(home, ".ctx.d", "archive"), 0777)
 	os.WriteFile(filepath.Join(home, ".ctx"), []byte(fmt.Sprintf(`version: %s
-storePath: %s`, core.Version, filepath.Join(home, ".ctx.d"))), 0777)
+storePath: %s`, core.Release, filepath.Join(home, ".ctx.d"))), 0777)
 	os.WriteFile(filepath.Join(home, ".ctx.d", "state"), []byte("{\"contexts\": {}}"), 0777)
 }

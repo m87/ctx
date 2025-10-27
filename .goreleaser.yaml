@@ -14,7 +14,7 @@ builds:
     ldflags:
       - >-
         -s -w
-        -X {{ .ModulePath }}/core.Version={{ .Version }}
+        -X {{ .ModulePath }}/core.Release={{ .Version }}
         -X {{ .ModulePath }}/core.Commit={{ .FullCommit }}
         -X {{ .ModulePath }}/core.Date={{ .Date }}
 

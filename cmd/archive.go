@@ -26,7 +26,7 @@ func NewArchiveCmd(manager *core.ContextManager) *cobra.Command {
 						contextsToArchvie = append(contextsToArchvie, v)
 					}
 
-					return archver.Archvie(contextsToArchvie, session)
+					return archver.Archive(contextsToArchvie, session)
 				})
 			}))
 		},

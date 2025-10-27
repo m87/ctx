@@ -14,7 +14,7 @@ func newVersionCmd(manager *core.ContextManager) *cobra.Command {
 		Use:     "version",
 		Aliases: []string{"v", "ver"},
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(core.Version)
+			fmt.Println(core.Release)
 		},
 	}
 }

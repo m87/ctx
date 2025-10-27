@@ -1,5 +1,6 @@
 package core
 
 type Archiver[T any] interface {
-	Archvie(data []T, session Session) error
+	Archive(data []T, session Session) error
+	Update(data []T, session Session) error
 }
