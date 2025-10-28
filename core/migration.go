@@ -10,7 +10,8 @@ import (
 type Migrator interface {
 	Id() string
 	Migrate() error
-	MigrateArchive(archiver Archiver[Context]) error
+	MigrateArchive() error
+	MigrateConfig() error
 }
 
 type MigrationManager interface {
@@ -89,6 +90,17 @@ func callMigrationChain(fromVersion Version, toVersion Version, registry Migrati
 		if err != nil {
 			return err
 		}
+
+		err = migrator.MigrateArchive()
+		if err != nil {
+			return err
+		}
+
+		err = migrator.MigrateConfig()
+		if err != nil {
+			return err
+		}
+
 		registry.RegisterMigration(migrator)
 	}
 

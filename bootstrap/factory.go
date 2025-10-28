@@ -49,6 +49,11 @@ func CreateManager() *core.ContextManager {
 
 	viper.ReadInConfig()
 
+	if viper.GetString("version") != core.Release {
+		log.Printf("Ctx version mismatch: local version %s, current version %s\n", viper.GetString("version"), core.Release)
+		log.Panic("Run `ctx adm migrate` to migrate data to the new version")
+	}
+
 	return localstorage.CreateManager()
 }
 
