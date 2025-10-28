@@ -43,6 +43,11 @@ func (manager *LocalStorageMigrationManager) CallMigrationChain(fromVersion core
 		migrationsToApply = append(migrationsToApply, migrations[version])
 	}
 
+	if len(migrationsToApply) == 0 {
+		log.Println("No migrations to apply")
+		return nil
+	}
+
 	for _, migrator := range migrationsToApply {
 		if registry.MigrationExecuted(migrator) {
 			log.Println("Skipping already executed migration:", migrator.Id())

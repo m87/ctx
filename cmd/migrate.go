@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
 	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
@@ -18,11 +20,11 @@ func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Migration process started...")
 
-			registry, err := localstorage.LoadLocalMigrationRegistry("migrations.json")
+			registry, err := localstorage.LoadLocalMigrationRegistry(filepath.Join(viper.GetString("storePath"), "migrations"))
 			if err != nil {
 				util.Check(err)
 			}
-			util.Check(manager.MigrationManager.CallMigrationChain(core.Version{Major: 1, Minor: 0, Patch: 0}, core.Version{Major: 3, Minor: 2, Patch: 0}, registry))
+			util.Check(core.Migrate(manager.MigrationManager, registry))
 
 			fmt.Println("Migration completed")
 		},
