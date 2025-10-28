@@ -14,7 +14,7 @@ type Migrator interface {
 }
 
 type MigrationManager interface {
-	CallMigrationChain(fromVersion Version, toVersion Version, registry MigrationRegistry) error
+	CreateMigrationMap(fromVersion Version, toVersion Version) map[Version]Migrator
 }
 
 type MigrationRegistry interface {
@@ -38,12 +38,62 @@ func Migrate(manager MigrationManager, registry MigrationRegistry) error {
 	log.Println("Migration process started...")
 
 	localVersion := viper.GetString("version")
-	err := manager.CallMigrationChain(ParseVersion(localVersion), ParseVersion(Release), registry)
+	err := callMigrationChain(ParseVersion(localVersion), ParseVersion(Release), registry, manager)
 
 	if err != nil {
 		return err
 	}
 
 	log.Println("Migration completed")
+	return nil
+}
+
+func callMigrationChain(fromVersion Version, toVersion Version, registry MigrationRegistry, manager MigrationManager) error {
+
+	migrations := manager.CreateMigrationMap(fromVersion, toVersion)
+
+	chain := make([]Version, 0, len(migrations))
+	for v := range migrations {
+		chain = append(chain, v)
+	}
+	Sort(chain)
+
+	migrationsToApply := []Migrator{}
+	for _, version := range chain {
+		if version.Major < fromVersion.Major ||
+			(version.Major == fromVersion.Major && version.Minor < fromVersion.Minor) ||
+			(version.Major == fromVersion.Major && version.Minor == fromVersion.Minor && version.Patch < fromVersion.Patch) {
+			continue
+		}
+		if version.Major > toVersion.Major ||
+			(version.Major == toVersion.Major && version.Minor > toVersion.Minor) ||
+			(version.Major == toVersion.Major && version.Minor == toVersion.Minor && version.Patch > toVersion.Patch) {
+			break
+		}
+		migrationsToApply = append(migrationsToApply, migrations[version])
+	}
+
+	if len(migrationsToApply) == 0 {
+		log.Println("No migrations to apply")
+		return nil
+	}
+
+	for _, migrator := range migrationsToApply {
+		if registry.MigrationExecuted(migrator) {
+			log.Println("Skipping already executed migration:", migrator.Id())
+			continue
+		}
+		err := migrator.Migrate()
+		if err != nil {
+			return err
+		}
+		registry.RegisterMigration(migrator)
+	}
+
+	err := registry.Save()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -2,11 +2,9 @@ package localstorage
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 
 	"github.com/m87/ctx/core"
-	"golang.org/x/exp/maps"
 )
 
 type LocalMigrationRegistry struct {
@@ -19,53 +17,10 @@ type LocalStorageMigrationManager struct {
 	archivePath string
 }
 
-func (manager *LocalStorageMigrationManager) CallMigrationChain(fromVersion core.Version, toVersion core.Version, registry core.MigrationRegistry) error {
-
-	migrations := map[core.Version]core.Migrator{
+func (manager *LocalStorageMigrationManager) CreateMigrationMap(fromVersion core.Version, toVersion core.Version) map[core.Version]core.Migrator {
+	return map[core.Version]core.Migrator{
 		core.Version{Major: 2, Minor: 1, Patch: 0}: &LocalStorageMigratorV2_1_0_V_2_2_0{statePath: manager.statePath, archivePath: manager.archivePath},
 	}
-
-	chain := maps.Keys(migrations)
-	core.Sort(chain)
-
-	migrationsToApply := []core.Migrator{}
-	for _, version := range chain {
-		if version.Major < fromVersion.Major ||
-			(version.Major == fromVersion.Major && version.Minor < fromVersion.Minor) ||
-			(version.Major == fromVersion.Major && version.Minor == fromVersion.Minor && version.Patch < fromVersion.Patch) {
-			continue
-		}
-		if version.Major > toVersion.Major ||
-			(version.Major == toVersion.Major && version.Minor > toVersion.Minor) ||
-			(version.Major == toVersion.Major && version.Minor == toVersion.Minor && version.Patch > toVersion.Patch) {
-			break
-		}
-		migrationsToApply = append(migrationsToApply, migrations[version])
-	}
-
-	if len(migrationsToApply) == 0 {
-		log.Println("No migrations to apply")
-		return nil
-	}
-
-	for _, migrator := range migrationsToApply {
-		if registry.MigrationExecuted(migrator) {
-			log.Println("Skipping already executed migration:", migrator.Id())
-			continue
-		}
-		err := migrator.Migrate()
-		if err != nil {
-			return err
-		}
-		registry.RegisterMigration(migrator)
-	}
-
-	err := registry.Save()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func LoadLocalMigrationRegistry(path string) (*LocalMigrationRegistry, error) {

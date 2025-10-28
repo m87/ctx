@@ -34,3 +34,4 @@ func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
 func init() {
 	admCmd.AddCommand(newMigrateCmd(bootstrap.CreateManager()))
 }
+
