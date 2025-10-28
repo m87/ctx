@@ -19,11 +19,16 @@ const (
 type Context struct {
 	Id          string              `json:"id"`
 	Description string              `json:"description"`
-	Comments    []string            `json:"comments"`
+	Comments    map[string]Comment  `json:"comments"`
 	State       ContextState        `json:"state"`
 	Duration    time.Duration       `json:"duration"`
 	Intervals   map[string]Interval `json:"intervals"`
 	Labels      []string            `json:"labels"`
+}
+
+type Comment struct {
+	Id      string `json:"id"`
+	Content string `json:"content"`
 }
 
 type ContextArchive struct {
@@ -137,7 +142,10 @@ func (session *Session) MergeContext(from string, to string) error {
 	fromCtx := session.MustGetCtx(from)
 	toCtx := session.MustGetCtx(to)
 
-	toCtx.Comments = append(toCtx.Comments, fromCtx.Comments...)
+	for _, comment := range fromCtx.Comments {
+		toCtx.Comments[comment.Id] = comment
+	}
+
 	toCtx.Labels = append(toCtx.Labels, fromCtx.Labels...)
 	toCtx.Duration = toCtx.Duration + fromCtx.Duration
 
@@ -168,7 +176,7 @@ func (session *Session) createContetxtInternal(id string, description string) er
 		State:       ACTIVE,
 		Intervals:   map[string]Interval{},
 		Labels:      []string{},
-		Comments:    []string{},
+		Comments:    map[string]Comment{},
 	}
 	return nil
 }
