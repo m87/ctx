@@ -14,6 +14,10 @@ type LocalStorageMigratorV2_1_0_V_2_2_0 struct {
 	archivePath string
 }
 
+func (migrator *LocalStorageMigratorV2_1_0_V_2_2_0) Id() string {
+	return "V2_1_0_V_2_2_0"
+}
+
 func (migrator *LocalStorageMigratorV2_1_0_V_2_2_0) Migrate() error {
 	log.Println(`Migration v2.1.0 -> v2.2.0
 	Migration plan:
