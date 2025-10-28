@@ -35,10 +35,12 @@ func ParseVersion(versionStr string) Version {
 }
 
 func Migrate(manager MigrationManager, registry MigrationRegistry) error {
-	log.Println("Migration process started...")
-
 	localVersion := viper.GetString("version")
-	err := callMigrationChain(ParseVersion(localVersion), ParseVersion(Release), registry, manager)
+	fromVersion := ParseVersion(localVersion)
+	toVersion := ParseVersion(Release)
+
+	log.Println("Migration process started... from version", localVersion, "to version", Release)
+	err := callMigrationChain(fromVersion, toVersion, registry, manager)
 
 	if err != nil {
 		return err
