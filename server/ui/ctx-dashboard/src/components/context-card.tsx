@@ -1,4 +1,4 @@
-import { ChevronDown, Clock, Delete, Edit, MessageSquareText, PlayCircleIcon, PlayIcon, Tag, Trash } from "lucide-react";
+import { ChevronDown, Clock, Delete, DeleteIcon, Edit, MessageSquareText, PlayCircleIcon, PlayIcon, Plus, Tag, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useEffect, useState } from "react";
 import { api, Context } from "@/api/api";
@@ -13,6 +13,8 @@ import { RenameContextDialog } from "./dialogs/rename-context-dialog";
 import { Separator } from "./ui/separator";
 import { DeleteContextDialog } from "./dialogs/delete-context-dialog";
 import { LabelsDialog } from "./dialogs/labels-dialog";
+import { CommentDialog } from "./dialogs/comment-dialog";
+import { DeleteContextCommentDialog } from "./dialogs/delete-context-commnet-dialog";
 
 export interface ContextCardProps {
   context: Context;
@@ -73,6 +75,13 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                       </span>
                     </div>
 
+                 <div className="flex items-center text-sm text-muted-foreground ml-3 whitespace-nowrap gap-1">
+                      <MessageSquareText size={16}></MessageSquareText>
+                      <span>
+                        {Object.entries(context.comments ?? {}).length}
+                      </span>
+                    </div>
+
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -110,7 +119,7 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
               <h4 className="font-medium flex gap-2 items-center">Labels <LabelsDialog context={context}><Edit size={16} className="cursor-pointer"></Edit></LabelsDialog></h4>
               <div className="flex gap-2">
                 {(context.labels ?? []).map(label => <Badge variant={"secondary"}>{label}</Badge>)}
-              </div> 
+              </div>
 
               <IntervalTable
                 ctxId={context.id}
@@ -118,10 +127,21 @@ export function ContextCard({ context, expandCard }: ContextCardProps) {
                   compareAsc(a.start.time, b.start.time)
                 )}
               />
-              {/* <div className="flex flex-col">
-                  <h4 className="font-medium">Comments</h4>
-                  <div>asdlsajl  d lsajd  lksaj s lkdsalk djlksajd lkdsajlksa djdl</div>
-              </div> */}
+              <div className="flex flex-col w-full">
+                <h4 className="font-medium flex items-center gap-1">
+                  <span>Comments</span>
+                  <CommentDialog context={context}><Button variant={"ghost"}><Plus size={16} className="cursor-pointer"></Plus></Button></CommentDialog></h4>
+                {Object.entries(context.comments ?? {}).map(([key, comment]) =>
+                <div className="flex items-center w-full gap-2 mb-2" key={key}>
+                  <div key={comment.id} className="w-full p-2 border rounded-md bg-secondary/50 flex-grow">
+                    {comment.content} 
+                  </div>
+                  <DeleteContextCommentDialog context={context} comment={comment}>
+                    <Button variant={"destructive"}><Trash size={16} className="cursor-pointer"></Trash></Button>
+                  </DeleteContextCommentDialog>
+                </div>
+                )}
+              </div>
               <Separator />
               <div className="flex mb-2 gap-1 w-full justify-end">
                 <RenameContextDialog context={context}>

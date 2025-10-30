@@ -1,6 +1,10 @@
 package core
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/google/uuid"
+)
 
 func (session *Session) SaveContextComment(contextId string, comment Comment) error {
 	ctx, exists := session.State.Contexts[contextId]
@@ -9,6 +13,9 @@ func (session *Session) SaveContextComment(contextId string, comment Comment) er
 	}
 	if ctx.Comments == nil {
 		ctx.Comments = make(map[string]Comment)
+	}
+	if comment.Id == "" {
+		comment.Id = uuid.New().String()
 	}
 	ctx.Comments[comment.Id] = comment
 	session.State.Contexts[contextId] = ctx
