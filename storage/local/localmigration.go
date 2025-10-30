@@ -13,13 +13,13 @@ type LocalMigrationRegistry struct {
 }
 
 type LocalStorageMigrationManager struct {
-	statePath   string
-	archivePath string
+	StatePath   string
+	ArchivePath string
 }
 
 func (manager *LocalStorageMigrationManager) CreateMigrationMap(fromVersion core.Version, toVersion core.Version) map[core.Version]core.Migrator {
 	return map[core.Version]core.Migrator{
-		// core.Version{Major: 2, Minor: 1, Patch: 0}: &LocalStorageMigratorV2_1_0_V_2_2_0{statePath: manager.statePath, archivePath: manager.archivePath},
+		core.Version{Major: 2, Minor: 1, Patch: 0}: &LocalStorageMigratorV2_1_0_V_2_2_0{statePath: manager.StatePath, archivePath: manager.ArchivePath},
 	}
 }
 

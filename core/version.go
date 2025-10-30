@@ -3,7 +3,7 @@ package core
 import "slices"
 
 var (
-	Release = "dev"
+	Release = "2.2.0"
 	Commit  = "none"
 	Date    = "unknown"
 )
