@@ -160,9 +160,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <a href="#" className="gap-0">
                 <ChartNoAxesGanttIcon className="h-5 w-5" />
                 <span className="text-base font-semibold">Ctx</span>
               </a>
