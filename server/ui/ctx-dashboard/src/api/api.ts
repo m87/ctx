@@ -43,8 +43,14 @@ export interface Context {
     intervals: { [key: string]: Interval },
     duration: number,
     labels: string[],
-    comments: string[]
+    comments: { [key: string]: Comment } | null,
 }
+
+export interface Comment {
+    id: string, 
+    content: string,
+}
+
 
 export function mapZoned(obj: any): ZonedDateTime {
   return new ZonedDateTime(obj.time ?? null, obj.timezone ?? null);
@@ -64,6 +70,7 @@ export function mapContext(obj: any): Context {
     id: obj.id,
     description: obj.description,
     duration: obj.duration,
+    comments: obj.comments ?? {},
     intervals: Object.fromEntries(Object.entries(obj.intervals).map(([key, value]) => [key, mapInterval(value)])),
     labels: obj.labels ?? [],
   };

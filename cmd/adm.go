@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func newAdminCmd(manager *core.ContextManager) *cobra.Command {
+func newAdminCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "admin",
 		Aliases: []string{"adm"},
@@ -14,7 +12,8 @@ func newAdminCmd(manager *core.ContextManager) *cobra.Command {
 	}
 }
 
-var admCmd = newAdminCmd(bootstrap.CreateManager())
+var admCmd = newAdminCmd()
+
 func init() {
 	rootCmd.AddCommand(admCmd)
 }

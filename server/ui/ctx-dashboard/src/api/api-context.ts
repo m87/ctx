@@ -54,6 +54,27 @@ export class ContextApi {
     onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables)
   })
 
+  comment = (ctxId: string, content: string) =>
+    http.post<void>(`/context/${ctxId}/comment`, { content }).then(response => response);
+  commentMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: { ctxId: string, content: string, day?: string }) => this.comment(data.ctxId, data.content),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
+
+  commentEdit = (ctxId: string, commentId: string, content: string) => 
+    http.post<void>(`/context/${ctxId}/comment`, { id: commentId, content }).then(response => response);
+  commentEditMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: { ctxId: string, commentId: string, content: string, day?: string }) => this.commentEdit(data.ctxId, data.commentId, data.content),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
+
+  deleteComment = (ctxId: string, commentId: string) =>
+    http.delete<void>(`/context/${ctxId}/comment/${commentId}`).then(response => response);
+  deleteCommentMutation = (queryClient: QueryClient) => ({
+    mutationFn: (data: { ctxId: string, commentId: string, day?: string }) => this.deleteComment(data.ctxId, data.commentId),
+    onSuccess: (_, variables) => invalidateQueriesByDate(queryClient, variables),
+  })
+
   updateInterval = (contextId: string, intervalId: string, start: ZonedDateTime, end: ZonedDateTime) =>
     http.put<void>("/context/interval", { contextId: contextId, intervalId: intervalId, start: start, end: end }).then(response => response);
   updateIntervalMutation = (queryClient: QueryClient) => ({

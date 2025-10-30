@@ -7,10 +7,9 @@ import (
 )
 
 type ContextManager struct {
-	TimeProvider     ctxtime.TimeProvider
-	StateStore       TransactionalStore[State]
-	ContextArchiver  Archiver[Context]
-	MigrationManager MigrationManager
+	TimeProvider    ctxtime.TimeProvider
+	StateStore      TransactionalStore[State]
+	ContextArchiver Archiver[Context]
 }
 
 type Session struct {
@@ -18,12 +17,11 @@ type Session struct {
 	TimeProvider ctxtime.TimeProvider
 }
 
-func NewContextManager(timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State], contextArchiver Archiver[Context], migrationManager MigrationManager) *ContextManager {
+func NewContextManager(timeProvider ctxtime.TimeProvider, stateStore TransactionalStore[State], contextArchiver Archiver[Context]) *ContextManager {
 	return &ContextManager{
-		TimeProvider:     timeProvider,
-		StateStore:       stateStore,
-		ContextArchiver:  contextArchiver,
-		MigrationManager: migrationManager,
+		TimeProvider:    timeProvider,
+		StateStore:      stateStore,
+		ContextArchiver: contextArchiver,
 	}
 }
 

@@ -85,7 +85,6 @@ func CreateManager() *core.ContextManager {
 	return core.NewContextManager(ctxtime.NewTimer(),
 		&FileStore[core.State]{path: filepath.Join(viper.GetString("storePath"), "state")},
 		&LocalStoreContextArchiver{path: filepath.Join(viper.GetString("storePath"), "archive")},
-		&LocalStorageMigrationManager{statePath: filepath.Join(viper.GetString("storePath"), "state"), archivePath: filepath.Join(viper.GetString("storePath"), "archive")},
 	)
 }
 

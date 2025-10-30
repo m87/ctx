@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
 	localstorage "github.com/m87/ctx/storage/local"
 	"github.com/m87/ctx/util"
@@ -12,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
+func newMigrateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "migrate",
 		Short: "Migrate data to a new format or structure",
@@ -24,7 +23,9 @@ func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
 			if err != nil {
 				util.Check(err)
 			}
-			util.Check(core.Migrate(manager.MigrationManager, registry))
+
+			manager := &localstorage.LocalStorageMigrationManager{StatePath: filepath.Join(viper.GetString("storePath"), "state"), ArchivePath: filepath.Join(viper.GetString("storePath"), "archive")}
+			util.Check(core.Migrate(manager, registry))
 
 			fmt.Println("Migration completed")
 		},
@@ -32,6 +33,5 @@ func newMigrateCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	admCmd.AddCommand(newMigrateCmd(bootstrap.CreateManager()))
+	admCmd.AddCommand(newMigrateCmd())
 }
-
