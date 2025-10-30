@@ -81,6 +81,11 @@ type createAndSwitchRequest struct {
 	Description string `json:"description"`
 }
 
+type SaveCommentRequest struct {
+	CtxId   string       `json:"ctxId"`
+	Comment core.Comment `json:"comment"`
+}
+
 type EditContextLabelsRequest struct {
 	Id     string   `json:"id"`
 	Labels []string `json:"labels"`

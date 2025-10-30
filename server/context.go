@@ -23,6 +23,8 @@ func registerContext(mux *http.ServeMux, mgr *core.ContextManager) {
 	mux.HandleFunc("POST /rename", h.rename)
 	mux.HandleFunc("DELETE /{ctxId}", h.delete)
 	mux.HandleFunc("POST /labels", h.editLabels)
+	mux.HandleFunc("POST /{ctxId}/comment", h.saveContextComment)
+	mux.HandleFunc("DELETE /{ctxId}/comment/{commentId}", h.deleteContextComment)
 }
 
 func (h *contextHandlers) editLabels(w http.ResponseWriter, r *http.Request) {
@@ -138,4 +140,31 @@ func (h *contextHandlers) switchContext(w http.ResponseWriter, r *http.Request) 
 func (h *contextHandlers) free(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	h.mgr.WithSession(func(s core.Session) error { return s.Free() })
+}
+
+func (h *contextHandlers) saveContextComment(w http.ResponseWriter, r *http.Request) {
+	var p core.Comment
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	if ctxId := strings.TrimSpace(r.PathValue("ctxId")); ctxId != "" {
+		w.WriteHeader(http.StatusOK)
+		h.mgr.WithSession(func(s core.Session) error {
+			return s.SaveContextComment(ctxId, p)
+		})
+	}
+}
+
+func (h *contextHandlers) deleteContextComment(w http.ResponseWriter, r *http.Request) {
+	if ctxId := strings.TrimSpace(r.PathValue("ctxId")); ctxId != "" {
+		if commentId := strings.TrimSpace(r.PathValue("commentId")); commentId != "" {
+			w.WriteHeader(http.StatusOK)
+			h.mgr.WithSession(func(s core.Session) error {
+				return s.DeleteContextComment(ctxId, commentId)
+			})
+		}
+	}
 }
