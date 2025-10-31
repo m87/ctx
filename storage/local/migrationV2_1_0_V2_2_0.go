@@ -2,6 +2,7 @@ package localstorage
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -86,6 +87,13 @@ func (migrator *LocalStorageMigratorV2_1_0_V_2_2_0) MigrateArchive() error {
 	- Convert context comments to objects with ids
 	`)
 
+	_, err := os.Stat(migrator.archivePath)
+	if os.IsNotExist(err) {
+		fmt.Println("Archive does not exists. Creating...")
+		os.Mkdir(migrator.archivePath, 0777)
+		return nil
+	}
+
 	log.Println("Migrating contexts in archive...")
 	entries, err := os.ReadDir(migrator.archivePath)
 	if err != nil {
@@ -102,6 +110,7 @@ func (migrator *LocalStorageMigratorV2_1_0_V_2_2_0) MigrateArchive() error {
 	for _, filePath := range files {
 		log.Println("Migrating archive file:", filePath)
 		var context map[string]any
+
 		f, err := os.Open(filePath)
 		if err != nil {
 			panic(err)
