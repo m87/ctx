@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type ContextCmdIdentifier struct {
+	Id          string
+	Description string
+}
+
 func ResolveContextIdLegacy(cmd *cobra.Command) (string, error) {
 	return ResolveCustomContextId(cmd, "ctx")
 }
@@ -43,8 +48,8 @@ func AddCustomContextFlag(cmd *cobra.Command, name string, short string, descrip
 }
 
 func AddContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription *string) {
-	cmd.Flags().StringVar(ctxId, "ctx-id", "", "context id")
-	cmd.Flags().StringVarP(ctxDescription, "ctx", "c", "", "context description")
+	cmd.Flags().StringP("ctx-id", "c", "", "context id")
+	cmd.Flags().String("ctx", "", "context description")
 	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
 }
 
@@ -74,6 +79,48 @@ func ResolveContextId(positional string, ctxId string, ctxDescription string) (s
 	}
 
 	return id, rawId, isId, nil
+}
+
+func ResolveContextIdentifier(cmd *cobra.Command, args []string) (ContextCmdIdentifier, error) {
+	ctxId, _ := cmd.Flags().GetString("ctx-id")
+	ctxDescription, _ := cmd.Flags().GetString("ctx")
+
+	var positional string
+	if len(args) > 0 {
+		positional = args[0]
+	}
+
+	if positional != "" && (ctxId != "" || ctxDescription != "") {
+		return ContextCmdIdentifier{}, errors.New("cannot use positional argument together with --ctx or --ctx-id flags")
+	}
+
+	if positional != "" {
+		return ContextCmdIdentifier{
+			Id:          util.GenerateId(positional),
+			Description: positional,
+		}, nil
+	}
+
+	if ctxId != "" && ctxDescription != "" {
+		return ContextCmdIdentifier{}, errors.New("both --ctx and --ctx-id provided")
+	}
+
+	if ctxDescription != "" {
+		generatedId := util.GenerateId(ctxDescription)
+		return ContextCmdIdentifier{
+			Id:          generatedId,
+			Description: ctxDescription,
+		}, nil
+	}
+
+	if ctxId != "" {
+		return ContextCmdIdentifier{
+			Id:          ctxId,
+			Description: "",
+		}, nil
+	}
+
+	return ContextCmdIdentifier{}, errors.New("no context identifier provided. Use either positional argument, --ctx or --ctx-id")
 }
 
 func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription *string, prefix string, docPrefix string) {

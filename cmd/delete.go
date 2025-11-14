@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/cmd/flags"
 	"github.com/m87/ctx/core"
@@ -20,12 +22,10 @@ func newDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 		Short:   "Delete context",
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				panic("Please provide a description or id")
-			}
-			id, _, _, err := flags.ResolveContextId(args[0], ctxId, ctxDescription)
+			cid, err := flags.ResolveContextIdentifier(cmd, args)
 			util.Check(err)
-			util.Check(manager.WithSession(func(session core.Session) error { return session.Delete(id) }))
+			log.Println(cid)
+			util.Check(manager.WithSession(func(session core.Session) error { return session.Delete(cid.Id) }))
 		},
 	}
 

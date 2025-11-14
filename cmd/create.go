@@ -31,6 +31,5 @@ func newCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 
 func init() {
 	cmd := newCreateContextCmd(bootstrap.CreateManager())
-
 	rootCmd.AddCommand(cmd)
 }
