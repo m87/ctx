@@ -9,11 +9,6 @@ import (
 )
 
 func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
-	var (
-		ctxId          string
-		ctxDescription string
-	)
-
 	cmd := &cobra.Command{
 		Use:     "switch",
 		Aliases: []string{"sw", "s"},
@@ -22,22 +17,13 @@ func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 	- switch description, created if not exists
 	- switch -i id"`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				panic("Please provide a description or id")
-			}
-			id, description, isRawId, err := flags.ResolveContextId(args[0], ctxId, ctxDescription)
+			cid, err := flags.ResolveContextIdentifier(cmd, args)
 
-			if isRawId {
-				util.Checkm(err, "Unable to process context id "+id)
-			} else {
-				util.Checkm(err, "Unable to process context "+description)
-			}
-
-			util.Check(manager.WithSession(func(session core.Session) error {
-				if isRawId {
-					return session.Switch(id)
+		util.Check(manager.WithSession(func(session core.Session) error {
+				if session.ValidateContextExists(cid) {
+					return session.Switch(cid)
 				} else {
-					return session.CreateIfNotExistsAndSwitch(id, description)
+					return session.CreateIfNotExistsAndSwitch(cid)
 				}
 
 			}))
@@ -45,7 +31,7 @@ func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 		},
 	}
 
-	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	flags.AddContextIdentifierFlags(cmd)
 	return cmd
 }
 

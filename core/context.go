@@ -51,6 +51,11 @@ type State struct {
 	CurrentId string             `json:"currentId"`
 }
 
+type Cid struct {
+	Id          string
+	Description string
+}
+
 func (session *Session) GetSortedContextIds() []string {
 	ids := []string{}
 	for k := range session.State.Contexts {
@@ -185,8 +190,8 @@ func (session *Session) CreateContext(ctxId string, description string) error {
 	return session.createContetxtInternal(ctxId, description)
 }
 
-func (session *Session) switchInternal(ctxId string) error {
-	if err := session.IsValidContext(ctxId); err != nil {
+func (session *Session) switchInternal(cid ContextIdentifier) error {
+	if err := session.IsValidContext(cid.Id); err != nil {
 		return nil
 	}
 
@@ -196,34 +201,34 @@ func (session *Session) switchInternal(ctxId string) error {
 		session.endInterval(state.CurrentId, now)
 	}
 
-	if ctx, ok := state.Contexts[ctxId]; ok {
+	if ctx, ok := state.Contexts[cid.Id]; ok {
 		state.CurrentId = ctx.Id
 		intervalId := uuid.NewString()
 		ctx.Intervals[intervalId] = Interval{Id: intervalId, Start: now}
-		state.Contexts[ctxId] = ctx
+		state.Contexts[cid.Id] = ctx
 	}
 	return nil
 }
 
-func (session *Session) Switch(ctxId string) error {
-	if err := session.IsValidContext(ctxId); err != nil {
+func (session *Session) Switch(cid Cid) error {
+	if err := session.IsValidContext(cid); err != nil {
 		return err
 	}
-	return session.switchInternal(ctxId)
+	return session.switchInternal(cid)
 }
 
-func (session *Session) contextExists(ctxId string) bool {
-	_, ok := session.State.Contexts[ctxId]
+func (session *Session) contextExists(cid Cid) bool {
+	_, ok := session.State.Contexts[cid.Id]
 	return ok
 }
 
-func (session *Session) contextNotExists(ctxId string) bool {
-	return !session.contextExists(ctxId)
+func (session *Session) contextNotExists(cid Cid)
+	return !session.contextExists(cid)
 }
 
-func (session *Session) CreateIfNotExistsAndSwitch(ctxId string, description string) error {
-	if session.contextNotExists(ctxId) {
-		err := session.createContetxtInternal(ctxId, description)
+func (session *Session) CreateIfNotExistsAndSwitch(cid Cid) error {
+	if session.contextNotExists(cid) {
+		err := session.createContetxtInternal(cid)
 		if err != nil {
 			return err
 		}
@@ -245,7 +250,7 @@ func (session *Session) Search(regex string) ([]Context, error) {
 func (session *Session) GetContextCountByDateMap() map[string]int {
 	counts := make(map[string]int)
 	for _, ctx := range session.State.Contexts {
-		for k, v := range session.GetDateCounts(ctx.Id) {
+		for k, v := range session.GetDateCounts(cid){
 			counts[k] = counts[k] + v
 		}
 	}

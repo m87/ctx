@@ -18,12 +18,10 @@ func newCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 	ctx create "new context with spaces"
 	`,
 		Run: func(cmd *cobra.Command, args []string) {
-			description, err := flags.GetStringArg(args, 0, "description")
-			util.Check(err)
-			id, err := flags.ResolveArgumentAsContextId(args, 0, "description")
+			cid, err := flags.ResolveContextIdentifier(cmd, args)
 			util.Check(err)
 
-			util.Check(manager.WithSession(func(session core.Session) error { return session.CreateContext(id, description) }))
+			util.Check(manager.WithSession(func(session core.Session) error { return session.CreateContext(cid.Id, cid.Description) }))
 		},
 	}
 

@@ -16,12 +16,12 @@ func newMergeCmd(manager *core.ContextManager) *cobra.Command {
 		Long:    "Merge the context with id <from> into the context with id <to>.",
 		Args:    cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
+			cid, err := flags.ResolveContextIdentifier(cmd, args)
+			util.Check(err)
 			fromId, err := flags.ResolveCustomContextId(cmd, "from")
 			util.Check(err)
-			toId, err := flags.ResolveCustomContextId(cmd, "to")
-			util.Check(err)
 
-			util.Check(manager.WithSession(func(session core.Session) error { return session.MergeContext(fromId, toId) }))
+			util.Check(manager.WithSession(func(session core.Session) error { return session.MergeContext(cid.Id, fromId) }))
 		},
 	}
 }
