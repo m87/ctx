@@ -6,11 +6,17 @@ before:
     - go generate ./...
 
 builds:
-  - env:
+  - id: ctx
+    main: ./main.go
+    binary: ctx
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - darwin
+    goarch:
+      - amd64
+      - arm64
     ldflags:
       - >-
         -s -w
@@ -28,8 +34,41 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
+
+dockers:
+  - id: ctx-amd64
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "ghcr.io/m87/ctx:{{ .Version }}-amd64"
+    dockerfile: docker/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+
+  - id: ctx-arm64
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "ghcr.io/m87/ctx:{{ .Version }}-arm64"
+    dockerfile: docker/Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+
+docker_manifests:
+  - name_template: "ghcr.io/m87/ctx:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/m87/ctx:{{ .Version }}-amd64"
+      - "ghcr.io/m87/ctx:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/m87/ctx:latest"
+    image_templates:
+      - "ghcr.io/m87/ctx:{{ .Version }}-amd64"
+      - "ghcr.io/m87/ctx:{{ .Version }}-arm64"
+
+
 changelog:
-  use: git                  
+  use: git
   sort: asc
   filters:
     exclude:

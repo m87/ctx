@@ -1,0 +1,36 @@
+FROM golang:1.24-alpine AS builder
+
+ARG TARGETOS=linux
+ARG TARGETARCH
+
+ARG VERSION=dev
+ARG COMMIT=dev
+ARG DATE=unknown
+
+WORKDIR /app
+
+COPY go.mod ./
+RUN go mod download
+
+COPY . .
+
+ENV MODULE=github.com/m87/ctx
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build \
+      -ldflags="-s -w \
+        -X ${MODULE}/core.Release=${VERSION} \
+        -X ${MODULE}/core.Commit=${COMMIT} \
+        -X ${MODULE}/core.Date=${DATE}" \
+      -o /out/ctx .
+
+# Final stage
+FROM alpine:3.20
+RUN addgroup -S ctx && \
+    adduser -S ctx -G ctx -h /home/ctx
+
+WORKDIR /home/ctx
+COPY --from=builder /out/ctx /usr/local/bin/ctx
+RUN chown -R ctx:ctx /home/ctx
+EXPOSE 8080
+USER ctx
+CMD ["ctx", "serve"]
