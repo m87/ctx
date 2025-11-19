@@ -39,13 +39,14 @@ export function SiteHeader() {
   return (
     <header
       className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 pr-2 mr-0">
+      <div className="flex w-full items-center justify-between gap-1 px-4 lg:gap-2 pr-2 mr-0">
+        <div className="flex">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium flex w-full justify-start flex-norwap">
+        <div className="text-base font-medium flex w-full justify-start flex-norwap">
           <Routes>
             <Route path="/contexts" element={"Contexts"} />
             <Route path="/day/:day" element={
@@ -62,7 +63,8 @@ export function SiteHeader() {
             <Route path="/" element={new Date().toLocaleDateString()} />
           </Routes>
           {summary?.duration ? <div className="ml-5 flex gap-1 items-center text-muted-foreground text-sm"><Clock size={16}></Clock>{durationAsHM(summary?.duration)} </div> : <div></div>}
-        </h1>
+        </div>
+</div>
         {currentContext?.context.description &&
           <div className="flex rounded-lg font-li items-center justify-between"
             onMouseEnter={() => setHovered(true)}
