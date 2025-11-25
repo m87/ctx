@@ -4,7 +4,7 @@ before:
   hooks:
     - go mod tidy
     - go generate ./...
-    - "sed -i 's/^version:.*/version: {{ trimprefix .Version \"v\" }}/' docker/ctx.yaml"
+    - "sed -i 's/^version:.*/version: {{ trimprefix .Version \"v\" }}/' ctx.yaml"
 
 builds:
   - id: ctx
