@@ -6,7 +6,7 @@ RUN addgroup -S ctx && \
 WORKDIR /home/ctx
 
 COPY ctx /usr/local/bin/ctx
-COPY docker/ctx.yaml /home/ctx/.ctx
+COPY ./docker/ctx.yaml /home/ctx/.ctx
 
 RUN chown -R ctx:ctx /home/ctx
 
