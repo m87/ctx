@@ -4,7 +4,7 @@ before:
   hooks:
     - go mod tidy
     - go generate ./...
-    - "sed -i 's/^version:.*/version: {{ trimprefix .Version \"v\" }}/' ctx.yaml"
+    - "sed -i 's/^version:.*/version: {{ trimprefix .Version \"v\" }}/' docker/ctx.yaml"
 
 builds:
   - id: ctx
@@ -46,6 +46,8 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
+    extra_files:
+      - docker/ctx.yaml
 
   - id: ctx-arm64
     goos: linux
@@ -56,6 +58,8 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64"
+    extra_files:
+      - docker/ctx.yaml
 
 docker_manifests:
   - name_template: "ghcr.io/m87/ctx:{{ .Version }}"
