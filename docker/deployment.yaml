@@ -1,0 +1,98 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ctx-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+    storageClassName: common-nfs-client
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctx
+  labels:
+    app: ctx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ctx
+  template:
+    metadata:
+      labels:
+        app: ctx
+    spec:
+      volumes:
+        - name: ctx-data
+          persistentVolumeClaim:
+            claimName: ctx-data-pvc
+
+      initContainers:
+        - name: ctx-init
+          image: ghcr.io/m87/ctx:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              cd /home/ctx/.ctx.d
+              echo "[ctx-init] Checking /home/ctx/.ctx.d contents..."
+              if [ -z "$(ls -A . 2>/dev/null)" ]; then
+                echo "[ctx-init] Empty directory, running 'ctx init'..."
+                ctx init
+              else
+                echo "[ctx-init] Directory not empty, skipping 'ctx init'."
+              fi
+          volumeMounts:
+            - name: ctx-data
+              mountPath: /home/ctx/.ctx.d
+
+      containers:
+        - name: ctx
+          image: ghcr.io/m87/ctx:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: ctx-data
+              mountPath: /home/ctx/.ctx.d
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ctx
+  labels:
+    app: ctx
+spec:
+  selector:
+    app: ctx
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80          
+      targetPort: 8080  
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ctx-ingress
+  labels:
+    app: ctx
+spec:
+  rules:
+    - host: ctx.k8s.pi
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ctx
+                port:
+                  number: 80
