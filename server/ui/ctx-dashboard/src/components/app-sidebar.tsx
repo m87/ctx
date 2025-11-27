@@ -138,6 +138,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const { data: currentContext } = useQuery({ ...api.context.currentQuery, refetchInterval: 5000 });
+  const { data: version } = useQuery({ ...api.versionQuery });
   const querClient = useQueryClient()
   const freeMutation = useMutation(api.context.freeMutaiton(querClient))
   const { day } = useParams();
@@ -161,10 +162,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton
               asChild
             >
-              <a href="#" className="gap-0">
-                <ChartNoAxesGanttIcon className="h-5 w-5" />
-                <span className="text-base font-semibold">Ctx</span>
-              </a>
+              <div className="flex justify-between items-center w-full">
+                <div>
+                  <a href="#" className="gap-0 flex gap-2 items-center">
+                    <ChartNoAxesGanttIcon className="h-5 w-5" />
+                    <span className="text-base font-semibold">Ctx</span>
+                  </a>
+                </div>
+                <div className="text-muted-foreground">
+                  <span>{version}</span>
+                </div>
+              </div>
+
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
