@@ -164,7 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <div className="flex justify-between items-center w-full">
                 <div>
-                  <a href="#" className="gap-0 flex gap-2 items-center">
+                  <a href="#" className="flex gap-2 items-center">
                     <ChartNoAxesGanttIcon className="h-5 w-5" />
                     <span className="text-base font-semibold">Ctx</span>
                   </a>
