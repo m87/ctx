@@ -2,6 +2,7 @@ package time
 
 import (
 	"encoding/json"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -27,6 +28,10 @@ func DetectTimezoneName() string {
 }
 
 func detectUnixTimezone() string {
+	if tz := os.Getenv("TZ"); tz != "" {
+		return tz
+	}
+
 	out, err := exec.Command("readlink", "-f", "/etc/localtime").Output()
 	if err != nil {
 		return "UTC"
