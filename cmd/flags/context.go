@@ -38,21 +38,6 @@ func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
 	return "", errors.New("either --" + name + " or --" + name + "-id must be provided")
 }
 
-func AddContxtFlag(cmd *cobra.Command) {
-	AddCustomContextFlag(cmd, "ctx", "c", "Context")
-}
-
-func AddCustomContextFlag(cmd *cobra.Command, name string, short string, description string) {
-	cmd.Flags().StringP(name, short, "", description+" description")
-	cmd.Flags().StringP(name+"-id", strings.ToUpper(short), "", description+" id")
-}
-
-func AddContextIdFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("ctx-id", "c", "", "context id")
-	cmd.Flags().String("ctx", "", "context description")
-	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
-}
-
 func resolveContextId(positional string, ctxId string, ctxDescription string) (string, bool) {
 	switch {
 	case ctxDescription != "":
@@ -130,11 +115,11 @@ func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription
 }
 
 func AddPrefixedContextIdentifierFlags(cmd *cobra.Command, prefix string, docPrefix string) {
-	cmd.Flags().String(ctxId, prefix+"ctx-id", "", docPrefix+"context id")
-	cmd.Flags().String(ctxDescription, prefix+"ctx", "", docPrefix+"context description")
+	cmd.Flags().String(prefix+"ctx-id", "", docPrefix+"context id")
+	cmd.Flags().String(prefix+"ctx", "", docPrefix+"context description")
 	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
 }
 
-func AddContextIdentifierFlags(cmd *cobra.Command, prefix string, docPrefix string) {
+func AddContextIdentifierFlags(cmd *cobra.Command) {
 	AddPrefixedContextIdentifierFlags(cmd, "", "")
 }

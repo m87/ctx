@@ -21,7 +21,7 @@ func newDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 		},
 	}
 
-	flags.AddContextIdFlags(cmd)
+	flags.AddContextIdentifierFlags(cmd)
 	return cmd
 }
 
