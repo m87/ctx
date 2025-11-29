@@ -45,7 +45,7 @@ func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 		},
 	}
 
-	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	flags.AddContextIdFlags(cmd)
 	return cmd
 }
 

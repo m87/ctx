@@ -35,7 +35,7 @@ func newDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 		},
 	}
 
-	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	flags.AddContextIdFlags(cmd)
 	flags.AddIntervalFlag(cmd, &intervalId)
 	return cmd
 }

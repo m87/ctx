@@ -241,3 +241,16 @@ func TestFreeWithNowCurrentContext(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "no active context")
 }
+
+func TestActiveContextValidation(t *testing.T) {
+	session := CreateTestSession()
+	session.State.CurrentId = TEST_ID
+	err := session.ValidateActiveContext(TEST_ID)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "context is active")
+	err = session.ValidateActiveContext(TEST_ID_2)
+	assert.NoError(t, err)
+
+	assert.True(t, session.IsContextActive(TEST_ID))
+	assert.False(t, session.IsContextActive(TEST_ID_2))
+}

@@ -251,3 +251,7 @@ func (session *Session) GetContextCountByDateMap() map[string]int {
 	}
 	return counts
 }
+
+func (session *Session) IsContextActive(ctxId string) bool {
+	return session.State.CurrentId == ctxId
+}
