@@ -8,10 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type ContextCmdIdentifier struct {
-	Id          string
-	Description string
-}
 
 func ResolveContextIdLegacy(cmd *cobra.Command) (string, error) {
 	return ResolveCustomContextId(cmd, "ctx")
@@ -128,3 +124,17 @@ func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription
 	cmd.Flags().StringVar(ctxDescription, prefix+"ctx", "", docPrefix+"context description")
 	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
 }
+
+
+func AddPrefixedContextIdentifierFlags(cmd *cobra.Command, prefix string, docPrefix string) {
+	cmd.Flags().String(ctxId, prefix+"ctx-id", "", docPrefix+"context id")
+	cmd.Flags().String(ctxDescription, prefix+"ctx", "", docPrefix+"context description")
+	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
+}
+
+
+func AddContextIdentifierFlags(cmd *cobra.Command, prefix string, docPrefix string) {
+	AddPrefixedContextIdentifierFlags(cmd, "", "")
+}
+
+
