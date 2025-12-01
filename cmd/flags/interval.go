@@ -15,5 +15,5 @@ func ResolveIntervalId(id string) (string, error) {
 }
 
 func AddIntervalFlag(cmd *cobra.Command, intervalId *string) {
-	cmd.Flags().StringVarP(intervalId, "interval", "i", "", "Interval id")
+	cmd.Flags().StringVar(intervalId, "interval-id", "", "Interval id")
 }

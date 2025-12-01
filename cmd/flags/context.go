@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type ContextId struct {
+	Id          string
+	Description string
+}
+
 func ResolveContextIdLegacy(cmd *cobra.Command) (string, error) {
 	return ResolveCustomContextId(cmd, "ctx")
 }
@@ -42,42 +47,23 @@ func AddCustomContextFlag(cmd *cobra.Command, name string, short string, descrip
 	cmd.Flags().StringP(name+"-id", strings.ToUpper(short), "", description+" id")
 }
 
-func AddContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription *string) {
+func AddContextIdFlags(cmd *cobra.Command, ctxId *string) {
 	cmd.Flags().StringVar(ctxId, "ctx-id", "", "context id")
-	cmd.Flags().StringVarP(ctxDescription, "ctx", "c", "", "context description")
-	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
 }
 
-func resolveContextId(positional string, ctxId string, ctxDescription string) (string, bool) {
+func ResolveContextId(positional []string, ctxId string) (ContextId, error) {
+	if len(positional) == 0 {
+		return ContextId{}, errors.New("either positional argument or --ctx-id must be provided")
+	}
 	switch {
-	case ctxDescription != "":
-		return ctxDescription, false
-
 	case ctxId != "":
-		return ctxId, true
+		return ContextId{Id: ctxId, Description: ""}, nil
 
 	default:
-		return positional, false
+		return ContextId{Id: util.GenerateId(strings.TrimSpace(positional[0])), Description: strings.TrimSpace(positional[0])}, nil
 	}
 }
 
-func ResolveContextId(positional string, ctxId string, ctxDescription string) (string, string, bool, error) {
-	rawId, isId := resolveContextId(positional, ctxId, ctxDescription)
-	trimmedId := strings.TrimSpace(rawId)
-	if trimmedId == "" {
-		return "", "", false, errors.New("context id not provided")
-	}
-
-	id, err := util.Id(trimmedId, isId)
-	if err != nil {
-		return "", "", false, err
-	}
-
-	return id, rawId, isId, nil
-}
-
-func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription *string, prefix string, docPrefix string) {
+func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, prefix string, docPrefix string) {
 	cmd.Flags().StringVar(ctxId, prefix+"ctx-id", "", docPrefix+"context id")
-	cmd.Flags().StringVar(ctxDescription, prefix+"ctx", "", docPrefix+"context description")
-	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
 }

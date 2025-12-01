@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/cmd/flags"
 	"github.com/m87/ctx/core"
@@ -8,34 +10,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func newDeleteLabelCmd(manager *core.ContextManager) *cobra.Command {
 	var (
-		ctxId      string
-		intervalId string
+		ctxId string
 	)
 
 	cmd := &cobra.Command{
-		Use:     "interval",
-		Aliases: []string{"int", "i"},
-		Args:    cobra.MaximumNArgs(1),
+		Use:   "label",
+		Short: "Delete context comment",
+		Args:  cobra.MaximumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, err := flags.ResolveContextId(args, ctxId)
+			label := strings.TrimSpace(args[1])
 			util.Check(err)
-			id, err := flags.ResolveIntervalId(intervalId)
-			util.Check(err)
-
 			util.Check(manager.WithSession(func(session core.Session) error {
-				return session.DeleteInterval(cid.Id, id)
+				return session.DeleteLabelContext(cid.Id, label)
 			}))
 		},
 	}
 
 	flags.AddContextIdFlags(cmd, &ctxId)
-	flags.AddIntervalFlag(cmd, &intervalId)
 	return cmd
 }
 
+var deleteLabelCmd = newDeleteLabelCmd(bootstrap.CreateManager())
+
 func init() {
-	cmd := newDeleteIntervalCmd(bootstrap.CreateManager())
-	deleteCmd.AddCommand(cmd)
+	deleteCmd.AddCommand(deleteLabelCmd)
 }
