@@ -1,125 +1,99 @@
-WIP
+# Command Design Guidelines for ctx CLI
 
-# Command Blueprint
+This document defines the syntax, conventions, and design rules for all commands in the `ctx` command-line interface.
+The goal is to maintain a consistent, predictable, and user-friendly CLI API.
 
-This document defines the structure and design conventions for creating new commands in the CLI.
+ `ctx` manages contexts, which are the primary resource in the system.
+All commands follow common CLI design principles inspired by tools such as `git`, `kubectl`, `docker`, and `gh`.
 
-## Root Command Structure
 
-All commands related to contexts must be registered under the rootCmd.
-This ensures consistent access to all context-related actions from the main command interface.
+##  General Principles
+### 1. Context is the primary resource
 
-## Basic Command Pattern
+Top-level commands operate directly on contexts.
+We do not prefix commands with a resource name (e.g., `ctx context list`); instead:
 
-Commands that operate on contexts should follow the structure:
-
-```
-ctx action [ "context description" | --ctx-id CONTEXT_ID ]
-```
-
-- `"context description"` — a human-readable identifier for the context.
-- `--ctx-id CONTEXT_ID` — an explicit context identifier (used when the description is not provided).
-
-Example
-```
-ctx switch "dev environment"
+```shell
+ctx list
+ctx switch Work
+ctx delete "Side Project"
 ```
 
-or equivalently:
-
+### 2. Verb-first command structure
+```shell
+ctx <action> [identifier] [flags] [arguments...]
 ```
-ctx switch --ctx-id 12345
-```
+Where identifier may be a name or ID (see rule #7).
 
-## Complex Command Chains
-
-For multi-step or hierarchical operations on contexts, commands should form a chain of subcommands:
-```
-ctx action [ "context description" | --ctx-id CONTEXT_ID ] subaction params subsubaction params ...
-```
-
-Each subsequent subcommand should perform a narrower or more specific operation on the selected context.
-
-Example
-```
-ctx edit "dev environment" interval --interval-id 123 --start "12-12-2025 12:22:00"
+### 3. Subcommands for secondary resources
+Tags, comments, and intervals are modeled as subcommands:
+```shell
+ctx tag add Work focus
+ctx comment delete Work 7
+ctx interval update Work 42 --from ... --to ...
 ```
 
-This command:
-
-1. Edits the context "dev environment".
-2. Modifies the interval with ID 123, updating its start time.
-
-## Design Guidelines
-
-To keep the CLI consistent across contributors, follow these rules:
-
-### Naming
-
-- Top-level after ctx: use verbs (switch, list, create, edit, delete).
-- Subactions: can be nouns describing the resource being modified (interval, variable, policy, target).
-- All command names should be lowercase.
-- Prefer short flags only when obvious (-i for --interval-id is fine, but avoid clever/unclear abbreviations).
-
-### Context selection
-
-Every command that touches a context must accept exactly one of:
-
-- a string description:
+### 4. Predictable, POSIX-style flags
+Use long flags such as:
+```shell
+--tag, --comment, --from, --to
 ```
-ctx edit "dev environment" ...
-```
+Short aliases SHOULD be avoided unless they significantly improve usability.
 
-- or an explicit ID:
-```
-ctx edit --ctx-id 123 ...
-```
+### 5. No “smart” parsing
+The grammar MUST remain simple and explicit.
+Avoid ambiguous situations or fluent-style chaining.
 
-If both are provided, the command should fail with a clear error (don’t guess).
+### 6. Clear, actionable errors
+When a command fails, errors should provide:
+- the reason,
+- what the user can do next,
+- usage hints.
 
->Note: Context selection by name should be the default for interactive use (human-readable).
-Context selection by ID must still be implemented to allow technical or automated execution, such as in scripts
+### 7. Identifier Rule
+Every command that operates on a context or any resource with an ID MUST accept either:
+the name of the resource, or
+the unique ID of the resource.
+Both forms should be interchangeable wherever a resource reference is required.
+Examples:
 
-### Parameters
+```shell
+ctx get Work
+ctx get --ctx-id ctx_8f29d12a
 
-- Prefer --long-flags over positional params for anything non-obvious.
-- Date/time params should be explicitly documented (format, timezone if relevant).
-- If the command modifies an existing entity (like interval), it must accept an identifier flag (--interval-id, etc.).
-- Exception: The context name is not subject to these ID rules.
- - Contexts are the top-level resource and their main identifier is always the context name.
- - Context IDs are generated internally and are primarily intended for non-interactive or automated scenarios.
- - Using the name directly is more natural and user-friendly for human use:
-  ```
-  ctx edit "prod environment"
-  ```
-  while IDs remain available for programmatic use:
-  ```
-  ctx edit --ctx-id 42
-  ```
-
-### Help / usage
-
-- Every new command must have a short description (1 sentence) and, if it’s complex, a long description with an example.
-
-- Examples should follow this pattern:
-```
-# good
-ctx switch "dev environment"
-
-# good
-ctx edit "dev environment" interval --interval-id 123 --start "12-12-2025 12:22:00"
+ctx comment delete Work --comment-id 7
+ctx comment delete --ctx-id ctx_23a7b2f1 --comment-id 7
 ```
 
-- If the command has mutually exclusive options (e.g. --ctx-id vs "context description"), state it in the help.
+Automations and scripts should rely on IDs, while humans often prefer names.
 
-### Errors
+### 8. Every command MUST provide short and long help
+Each command must support two help modes:
 
-- Prefer deterministic errors over silent fallback.
- - ✅ “either context description or --ctx-id must be provided”
- - ✅ “--ctx-id and description are mutually exclusive”
- - ❌ “context not found, so I made a new one”
+Short help 
+- One-paragraph explanation of what the command does
+- Display of syntax and required arguments
 
-### Consistency with Go/Cobra
-- Register under rootCmd → ctxCmd → subcommands.
-- Keep command files small: one file per command (e.g. switch.go, editInterval.go).
-- Add the example to Example: so --help shows it.
+Long help
+- Detailed description
+- Multiple usage examples
+- Edge cases and notes on identifier rules
+- Explanation of relevant flags
+
+### 9. Every command MUST support unified output formats
+Every command that produces output MUST support the following formats via a shared flag:
+- `--output json`
+- `--output yaml`
+- `--output shell`
+
+#### Default output MUST be human-readable.
+This default output should be formatted for readability, using clear labels, indentation, and friendly formatting intended for interactive CLI use.If no format is specified, shell SHOULD be the default for ease of scripting.
+
+Examples:
+```shell
+ctx get Work                # human-readable output
+ctx get Work --output json  # structured output
+ctx list --output yaml      # config-style output
+ctx tag list Work --output shell   # for scripting
+```
+Human-readable output SHOULD NOT be used in scripts; json, yaml, or shell SHOULD be selected explicitly for automation.
