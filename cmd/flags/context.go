@@ -67,3 +67,15 @@ func ResolveContextId(positional []string, ctxId string) (ContextId, error) {
 func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, prefix string, docPrefix string) {
 	cmd.Flags().StringVar(ctxId, prefix+"ctx-id", "", docPrefix+"context id")
 }
+
+func ResolveArgument(args []string, index int, property string, name string) (string, error) {
+	if property != "" {
+		return property, nil
+	}
+
+	if len(args) > index {
+		return args[index], nil
+	}
+
+	return "", errors.New("missing required argument: " + name)
+}
