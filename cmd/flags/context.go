@@ -34,8 +34,6 @@ func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
 	return "", errors.New("either --" + name + " or --" + name + "-id must be provided")
 }
 
-
-
 func AddCustomContextFlag(cmd *cobra.Command, name string, short string, description string) {
 	cmd.Flags().StringP(name, short, "", description+" description")
 	cmd.Flags().StringP(name+"-id", strings.ToUpper(short), "", description+" id")
@@ -46,16 +44,15 @@ func AddContextIdFlags(cmd *cobra.Command, ctxId *string) {
 }
 
 func ResolveContextId(positional []string, ctxId string) (ContextId, error) {
+	if ctxId != "" {
+		return ContextId{Id: ctxId, Description: ""}, nil
+	}
+
 	if len(positional) == 0 {
 		return ContextId{}, errors.New("either positional argument or --ctx-id must be provided")
 	}
-	switch {
-	case ctxId != "":
-		return ContextId{Id: ctxId, Description: ""}, nil
 
-	default:
-		return ContextId{Id: util.GenerateId(strings.TrimSpace(positional[0])), Description: strings.TrimSpace(positional[0])}, nil
-	}
+	return ContextId{Id: util.GenerateId(strings.TrimSpace(positional[0])), Description: strings.TrimSpace(positional[0])}, nil
 }
 
 func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, prefix string, docPrefix string) {

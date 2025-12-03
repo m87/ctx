@@ -24,7 +24,7 @@ func newAddCommentCmd(manager *core.ContextManager) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, err := flags.ResolveContextId(args, ctxId)
 			util.Check(err)
-			comment, err := flags.ResolveArgument(args, 1, comment, "comment")
+			comment, err := flags.ResolveArgument(args, flags.ConditionalIndexProvider(ctxId != "")(1), comment, "comment")
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error {
 				return session.SaveContextComment(cid.Id, core.Comment{Content: comment, Id: uuid.NewString()})
