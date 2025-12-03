@@ -13,10 +13,6 @@ type ContextId struct {
 	Description string
 }
 
-func ResolveContextIdLegacy(cmd *cobra.Command) (string, error) {
-	return ResolveCustomContextId(cmd, "ctx")
-}
-
 func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
 	flags := cmd.Flags()
 
@@ -38,9 +34,7 @@ func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
 	return "", errors.New("either --" + name + " or --" + name + "-id must be provided")
 }
 
-func AddContxtFlag(cmd *cobra.Command) {
-	AddCustomContextFlag(cmd, "ctx", "c", "Context")
-}
+
 
 func AddCustomContextFlag(cmd *cobra.Command, name string, short string, description string) {
 	cmd.Flags().StringP(name, short, "", description+" description")
