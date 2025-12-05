@@ -8,10 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newCreateContextCmd(manager *core.ContextManager) *cobra.Command {
+func newAddCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
-		Use:     "create",
-		Aliases: []string{"new", "c"},
+		Use:     "add",
+		Aliases: []string{"new", "c", "create"},
 		Short:   "Create new context",
 		Long: `Create new context from given description. Passed description is used to generate contextId with sha256. For example:
 	ctx create new-context
@@ -29,8 +29,8 @@ func newCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 
 }
 
-func init() {
-	cmd := newCreateContextCmd(bootstrap.CreateManager())
+var addCmd = newAddCmd(bootstrap.CreateManager())
 
-	rootCmd.AddCommand(cmd)
+func init() {
+	rootCmd.AddCommand(addCmd)
 }

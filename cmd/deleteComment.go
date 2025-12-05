@@ -6,38 +6,34 @@ import (
 	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/util"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func newDeleteCommentContextCmd(manager *core.ContextManager) *cobra.Command {
 	var (
-		ctxId          string
-		ctxDescription string
+		ctxId     string
+		commentId string
 	)
 
 	cmd := &cobra.Command{
-		Use:   "delete",
+		Use:   "comment",
 		Short: "Delete context comment",
 		Args:  cobra.MaximumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				panic("Please provide a description or id")
-			}
-			id, _, _, err := flags.ResolveContextId(args[0], ctxId, ctxDescription)
-			commentId := strings.TrimSpace(args[1])
+			cid, comment, err := flags.ResolveCidWithResourceId(args, ctxId, commentId, "comment id")
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error {
-				return session.DeleteContextComment(id, commentId)
+				return session.DeleteContextComment(cid.Id, comment)
 			}))
 		},
 	}
 
-	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	flags.AddContextIdFlags(cmd, &ctxId)
+	cmd.Flags().StringVar(&commentId, "comment-id", "", "comment id to delete")
 	return cmd
 }
 
 var deleteCommentCmd = newDeleteCommentContextCmd(bootstrap.CreateManager())
 
 func init() {
-	commentCmd.AddCommand(deleteCommentCmd)
+	deleteCmd.AddCommand(deleteCommentCmd)
 }

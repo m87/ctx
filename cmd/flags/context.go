@@ -8,8 +8,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func ResolveContextIdLegacy(cmd *cobra.Command) (string, error) {
-	return ResolveCustomContextId(cmd, "ctx")
+type ContextId struct {
+	Id          string
+	Description string
 }
 
 func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
@@ -33,51 +34,52 @@ func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
 	return "", errors.New("either --" + name + " or --" + name + "-id must be provided")
 }
 
-func AddContxtFlag(cmd *cobra.Command) {
-	AddCustomContextFlag(cmd, "ctx", "c", "Context")
-}
-
 func AddCustomContextFlag(cmd *cobra.Command, name string, short string, description string) {
 	cmd.Flags().StringP(name, short, "", description+" description")
 	cmd.Flags().StringP(name+"-id", strings.ToUpper(short), "", description+" id")
 }
 
-func AddContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription *string) {
+func AddContextIdFlags(cmd *cobra.Command, ctxId *string) {
 	cmd.Flags().StringVar(ctxId, "ctx-id", "", "context id")
-	cmd.Flags().StringVarP(ctxDescription, "ctx", "c", "", "context description")
-	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
 }
 
-func resolveContextId(positional string, ctxId string, ctxDescription string) (string, bool) {
-	switch {
-	case ctxDescription != "":
-		return ctxDescription, false
-
-	case ctxId != "":
-		return ctxId, true
-
-	default:
-		return positional, false
+func ResolveContextId(positional []string, ctxId string) (ContextId, error) {
+	if ctxId != "" {
+		return ContextId{Id: ctxId, Description: ""}, nil
 	}
+
+	if len(positional) == 0 {
+		return ContextId{}, errors.New("either positional argument or --ctx-id must be provided")
+	}
+
+	return ContextId{Id: util.GenerateId(strings.TrimSpace(positional[0])), Description: strings.TrimSpace(positional[0])}, nil
 }
 
-func ResolveContextId(positional string, ctxId string, ctxDescription string) (string, string, bool, error) {
-	rawId, isId := resolveContextId(positional, ctxId, ctxDescription)
-	trimmedId := strings.TrimSpace(rawId)
-	if trimmedId == "" {
-		return "", "", false, errors.New("context id not provided")
-	}
-
-	id, err := util.Id(trimmedId, isId)
-	if err != nil {
-		return "", "", false, err
-	}
-
-	return id, rawId, isId, nil
-}
-
-func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, ctxDescription *string, prefix string, docPrefix string) {
+func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, prefix string, docPrefix string) {
 	cmd.Flags().StringVar(ctxId, prefix+"ctx-id", "", docPrefix+"context id")
-	cmd.Flags().StringVar(ctxDescription, prefix+"ctx", "", docPrefix+"context description")
-	cmd.MarkFlagsMutuallyExclusive("ctx-id", "ctx")
+}
+
+func ResolveArgument(args []string, index int, property string, name string) (string, error) {
+	if property != "" {
+		return property, nil
+	}
+
+	if len(args) > index {
+		return args[index], nil
+	}
+
+	return "", errors.New("missing required argument: " + name)
+}
+
+func ResolveCidWithResourceId(args []string, ctxId, resourceId string, name string) (ContextId, string, error) {
+	cid, err := ResolveContextId(args, ctxId)
+	if err != nil {
+		return ContextId{}, "", err
+	}
+	comment, err := ResolveArgument(args, ConditionalIndexProvider(ctxId != "")(1), resourceId, name)
+	if err != nil {
+		return ContextId{}, "", err
+	}
+
+	return cid, comment, nil
 }
