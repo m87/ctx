@@ -17,8 +17,8 @@ func newDeleteLabelCmd(manager *core.ContextManager) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "label",
-		Short: "Delete context comment",
-		Args:  cobra.MaximumNArgs(2),
+		Short: "Delete context label",
+		Args:  cobra.RangeArgs(2, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, err := flags.ResolveContextId(args, ctxId)
 			label := strings.TrimSpace(args[1])
