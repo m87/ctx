@@ -19,13 +19,11 @@ func newDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 		Aliases: []string{"int", "i"},
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			cid, err := flags.ResolveContextId(args, ctxId)
-			util.Check(err)
-			id, err := flags.ResolveIntervalId(intervalId)
+			cid, intervalId, err := flags.ResolveCidWithResourceId(args, ctxId, intervalId, "interval id")
 			util.Check(err)
 
 			util.Check(manager.WithSession(func(session core.Session) error {
-				return session.DeleteInterval(cid.Id, id)
+				return session.DeleteInterval(cid.Id, intervalId)
 			}))
 		},
 	}

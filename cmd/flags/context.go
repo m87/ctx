@@ -70,3 +70,16 @@ func ResolveArgument(args []string, index int, property string, name string) (st
 
 	return "", errors.New("missing required argument: " + name)
 }
+
+func ResolveCidWithResourceId(args []string, ctxId, resourceId string, name string) (ContextId, string, error) {
+	cid, err := ResolveContextId(args, ctxId)
+	if err != nil {
+		return ContextId{}, "", err
+	}
+	comment, err := ResolveArgument(args, ConditionalIndexProvider(ctxId != "")(1), resourceId, name)
+	if err != nil {
+		return ContextId{}, "", err
+	}
+
+	return cid, comment, nil
+}

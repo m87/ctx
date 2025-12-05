@@ -21,9 +21,7 @@ func newAddLabelCmd(manager *core.ContextManager) *cobra.Command {
 	ctx add label "my-context-id" "production"
 	`,
 		Run: func(cmd *cobra.Command, args []string) {
-			cid, err := flags.ResolveContextId(args, ctxId)
-			util.Check(err)
-			label, err := flags.ResolveArgument(args, 1, label, "label")
+			cid, label, err := flags.ResolveCidWithResourceId(args, ctxId, label, "label")
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error {
 				return session.LabelContext(cid.Id, label)
