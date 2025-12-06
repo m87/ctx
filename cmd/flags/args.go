@@ -24,12 +24,3 @@ func ResolveArgumentAsContextId(args []string, i int, name string) (string, erro
 	}
 	return id, nil
 }
-
-func ConditionalIndexProvider(ctxIdExists bool) func(int) int {
-	return func(baseIndex int) int {
-		if ctxIdExists {
-			return baseIndex - 1
-		}
-		return baseIndex
-	}
-}
