@@ -17,7 +17,6 @@ func newEditCommentCmd(manager *core.ContextManager) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "comment",
 		Short: "Edit context comment",
-		Args:  cobra.MaximumNArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: commentId, Name: "comment-id"}, flags.ParamSpec{Default: comment, Name: "comment"})
 			util.Check(err)

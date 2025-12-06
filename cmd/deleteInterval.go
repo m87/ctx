@@ -17,7 +17,6 @@ func newDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "interval",
 		Aliases: []string{"int", "i"},
-		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: intervalId, Name: "interval-id"})
 			util.Check(err)
