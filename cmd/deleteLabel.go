@@ -11,6 +11,7 @@ import (
 func newDeleteLabelCmd(manager *core.ContextManager) *cobra.Command {
 	var (
 		ctxId string
+		label string
 	)
 
 	cmd := &cobra.Command{
@@ -18,7 +19,7 @@ func newDeleteLabelCmd(manager *core.ContextManager) *cobra.Command {
 		Short: "Delete context label",
 		Args:  cobra.RangeArgs(2, 2),
 		Run: func(cmd *cobra.Command, args []string) {
-			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Name: "label"})
+			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: label, Name: "label"})
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error {
 				return session.DeleteLabelContext(cid.Id, params["label"])
@@ -27,6 +28,7 @@ func newDeleteLabelCmd(manager *core.ContextManager) *cobra.Command {
 	}
 
 	flags.AddContextIdFlags(cmd, &ctxId)
+	cmd.Flags().StringVar(&label, "label", "", "label content")
 	return cmd
 }
 

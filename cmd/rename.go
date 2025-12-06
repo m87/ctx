@@ -22,9 +22,6 @@ Examples:
   ctx rename Work DeepWork
   ctx rename --ctx-id ctx_123abc DeepWork
   ctx rename "Old Project Name" "New Project Name"`,
-		Example: `  ctx rename Work DeepWork
-  ctx rename --ctx-id ctx_123abc DeepWork
-  ctx rename "Old Project Name" "New Project Name"`,
 		Args: cobra.RangeArgs(1, 2),
 		Run: func(cmd *cobra.Command, args []string) {
 			srcId, err := flags.ResolveCustomContextId(cmd, "src-ctx")
