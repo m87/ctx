@@ -22,10 +22,10 @@ func newAddCommentCmd(manager *core.ContextManager) *cobra.Command {
 	ctx add comment "my-context-id" "This is my comment"
 	`,
 		Run: func(cmd *cobra.Command, args []string) {
-			cid, comment, err := flags.ResolveCidWithResourceId(args, ctxId, comment, "comment")
+			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: comment, Name: "comment"})
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error {
-				return session.SaveContextComment(cid.Id, core.Comment{Content: comment, Id: uuid.NewString()})
+				return session.SaveContextComment(cid.Id, core.Comment{Content: params["comment"], Id: uuid.NewString()})
 			}))
 		},
 	}

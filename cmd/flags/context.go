@@ -13,6 +13,56 @@ type ContextId struct {
 	Description string
 }
 
+type ArgCursor struct {
+	next int
+}
+
+func NewArgCursor(ctxProvided bool) *ArgCursor {
+	c := &ArgCursor{}
+
+	if !ctxProvided {
+		c.next = 1
+	} else {
+		c.next = 0
+	}
+
+	return c
+}
+
+func (c *ArgCursor) Current() int {
+	return c.next
+}
+
+func (c *ArgCursor) Next() {
+	c.next++
+}
+
+type ParamSpec struct {
+	Default string
+	Name    string
+}
+
+func ResolveCidWithParams(args []string, ctxId string, params ...ParamSpec) (ContextId, map[string]string, error) {
+	cid, err := ResolveContextId(args, ctxId)
+	if err != nil {
+		return ContextId{}, nil, err
+	}
+	cursor := NewArgCursor(ctxId != "")
+	resolvedParams := make(map[string]string, len(params))
+	for _, param := range params {
+		idx := cursor.Current()
+		val, usedPos, err := ResolveArgument(args, idx, param.Default, param.Name)
+		if err != nil {
+			return ContextId{}, nil, err
+		}
+		resolvedParams[param.Name] = val
+		if usedPos {
+			cursor.Next()
+		}
+	}
+	return cid, resolvedParams, nil
+}
+
 func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
 	flags := cmd.Flags()
 
@@ -59,16 +109,16 @@ func AddPrefixedContextIdFlags(cmd *cobra.Command, ctxId *string, prefix string,
 	cmd.Flags().StringVar(ctxId, prefix+"ctx-id", "", docPrefix+"context id")
 }
 
-func ResolveArgument(args []string, index int, property string, name string) (string, error) {
+func ResolveArgument(args []string, index int, property string, name string) (string, bool, error) {
 	if property != "" {
-		return property, nil
+		return property, false, nil
 	}
 
 	if len(args) > index {
-		return args[index], nil
+		return args[index], true, nil
 	}
 
-	return "", errors.New("missing required argument: " + name)
+	return "", false, errors.New("missing required argument: " + name)
 }
 
 func ResolveCidWithResourceId(args []string, ctxId, resourceId string, name string) (ContextId, string, error) {
@@ -76,7 +126,7 @@ func ResolveCidWithResourceId(args []string, ctxId, resourceId string, name stri
 	if err != nil {
 		return ContextId{}, "", err
 	}
-	comment, err := ResolveArgument(args, ConditionalIndexProvider(ctxId != "")(1), resourceId, name)
+	comment, _, err := ResolveArgument(args, ConditionalIndexProvider(ctxId != "")(1), resourceId, name)
 	if err != nil {
 		return ContextId{}, "", err
 	}

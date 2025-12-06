@@ -19,10 +19,10 @@ func newDeleteCommentContextCmd(manager *core.ContextManager) *cobra.Command {
 		Short: "Delete context comment",
 		Args:  cobra.MaximumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			cid, comment, err := flags.ResolveCidWithResourceId(args, ctxId, commentId, "comment id")
+			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: commentId, Name: "comment-id"})
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error {
-				return session.DeleteContextComment(cid.Id, comment)
+				return session.DeleteContextComment(cid.Id, params["comment-id"])
 			}))
 		},
 	}

@@ -19,18 +19,14 @@ func newEditCommentCmd(manager *core.ContextManager) *cobra.Command {
 		Short: "Edit context comment",
 		Args:  cobra.MaximumNArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
-			cid, err := flags.ResolveContextId(args, ctxId)
-			util.Check(err)
-			commentId, err = flags.ResolveArgument(args, 1, commentId, "comment id")
-			util.Check(err)
-			comment, err = flags.ResolveArgument(args, 2, comment, "comment")
+			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: commentId, Name: "comment-id"}, flags.ParamSpec{Default: comment, Name: "comment"})
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error {
-				err := session.DeleteContextComment(cid.Id, commentId)
+				err := session.DeleteContextComment(cid.Id, params["comment-id"])
 				if err != nil {
 					return err
 				}
-				return session.SaveContextComment(cid.Id, core.Comment{Id: commentId, Content: comment})
+				return session.SaveContextComment(cid.Id, core.Comment{Id: params["comment-id"], Content: params["comment"]})
 			}))
 		},
 	}
