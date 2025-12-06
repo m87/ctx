@@ -10,8 +10,7 @@ import (
 
 func newDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 	var (
-		ctxId          string
-		ctxDescription string
+		ctxId string
 	)
 
 	cmd := &cobra.Command{
@@ -20,16 +19,13 @@ func newDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 		Short:   "Delete context",
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				panic("Please provide a description or id")
-			}
-			id, _, _, err := flags.ResolveContextId(args[0], ctxId, ctxDescription)
+			cid, _, err := flags.ResolveCidWithParams(args, ctxId)
 			util.Check(err)
-			util.Check(manager.WithSession(func(session core.Session) error { return session.Delete(id) }))
+			util.Check(manager.WithSession(func(session core.Session) error { return session.Delete(cid.Id) }))
 		},
 	}
 
-	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	flags.AddContextIdFlags(cmd, &ctxId)
 	return cmd
 }
 

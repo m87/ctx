@@ -43,7 +43,7 @@ func newEditContextIntervalSplitCmd(manager *core.ContextManager) *cobra.Command
 					m, _ := strconv.Atoi(args[3])
 					s, _ := strconv.Atoi(args[4])
 
-					session.SplitContextIntervalById(id, intervalId, h, m ,s)
+					session.SplitContextIntervalById(id, intervalId, h, m, s)
 				} else {
 					for _, interval := range ctx.Intervals {
 						fmt.Printf("[%s] %s - %s\n", interval.Id, interval.Start.Time.Format(time.RFC3339), interval.End.Time.Format(time.RFC3339))
@@ -59,5 +59,5 @@ func newEditContextIntervalSplitCmd(manager *core.ContextManager) *cobra.Command
 }
 func init() {
 	cmd := newEditContextIntervalSplitCmd(bootstrap.CreateManager())
-	editContextIntervalCmd.AddCommand(cmd)
+	editCmd.AddCommand(cmd)
 }

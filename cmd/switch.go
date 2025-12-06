@@ -22,22 +22,14 @@ func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 	- switch description, created if not exists
 	- switch -i id"`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				panic("Please provide a description or id")
-			}
-			id, description, isRawId, err := flags.ResolveContextId(args[0], ctxId, ctxDescription)
-
-			if isRawId {
-				util.Checkm(err, "Unable to process context id "+id)
-			} else {
-				util.Checkm(err, "Unable to process context "+description)
-			}
+			cid, err := flags.ResolveContextId(args, ctxId)
+			util.Check(err)
 
 			util.Check(manager.WithSession(func(session core.Session) error {
-				if isRawId {
-					return session.Switch(id)
+				if ctxDescription == "" {
+					return session.Switch(cid.Id)
 				} else {
-					return session.CreateIfNotExistsAndSwitch(id, description)
+					return session.CreateIfNotExistsAndSwitch(cid.Id, ctxDescription)
 				}
 
 			}))
@@ -45,7 +37,7 @@ func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 		},
 	}
 
-	flags.AddContextIdFlags(cmd, &ctxId, &ctxDescription)
+	flags.AddContextIdFlags(cmd, &ctxId)
 	return cmd
 }
 

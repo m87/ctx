@@ -58,8 +58,8 @@ func newEditContextIntervalCmd(manager *core.ContextManager) *cobra.Command {
 
 }
 
-var editContextIntervalCmd = newEditContextIntervalCmd(bootstrap.CreateManager())
+var editIntervalCmd = newEditContextIntervalCmd(bootstrap.CreateManager())
 
 func init() {
-	editContextCmd.AddCommand(editContextIntervalCmd)
+	editCmd.AddCommand(editIntervalCmd)
 }
