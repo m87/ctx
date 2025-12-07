@@ -9,24 +9,29 @@ import (
 )
 
 func newAddCmd(manager *core.ContextManager) *cobra.Command {
-	return &cobra.Command{
-		Use:     "add",
-		Aliases: []string{"new", "c", "create"},
+	var (
+		description string
+	)
+
+	cmd := &cobra.Command{
+		Use:     "create",
+		Aliases: []string{"c", "add"},
 		Short:   "Create new context",
 		Long: `Create new context from given description. Passed description is used to generate contextId with sha256. For example:
-	ctx create new-context
+	ctx add new-context
 	ctx create "new context with spaces"
 	`,
 		Run: func(cmd *cobra.Command, args []string) {
-			description, err := flags.GetStringArg(args, 0, "description")
+			params, err := flags.ResolveParams(args, flags.ParamSpec{Default: description, Name: "description"})
 			util.Check(err)
-			id, err := flags.ResolveArgumentAsContextId(args, 0, "description")
-			util.Check(err)
-
-			util.Check(manager.WithSession(func(session core.Session) error { return session.CreateContext(id, description) }))
+			util.Check(manager.WithSession(func(session core.Session) error {
+				return session.CreateContext(util.GenerateId(params["description"]), params["description"])
+			}))
 		},
 	}
 
+	cmd.Flags().StringVar(&description, "description", "", "context description")
+	return cmd
 }
 
 var addCmd = newAddCmd(bootstrap.CreateManager())
