@@ -42,25 +42,38 @@ type ParamSpec struct {
 	Name    string
 }
 
-func ResolveCidWithParams(args []string, ctxId string, params ...ParamSpec) (ContextId, map[string]string, error) {
-	cid, err := ResolveContextId(args, ctxId)
-	if err != nil {
-		return ContextId{}, nil, err
-	}
-	cursor := NewArgCursor(ctxId != "")
+func ResolveParams(args []string, params ...ParamSpec) (map[string]string, error) {
+	cursor := NewArgCursor(true)
+	return resolveParams(args, cursor, params...)
+}
+
+func resolveParams(args []string, cursor *ArgCursor, params ...ParamSpec) (map[string]string, error) {
 	resolvedParams := make(map[string]string, len(params))
 	for _, param := range params {
 		idx := cursor.Current()
 		val, usedPos, err := ResolveArgument(args, idx, param.Default, param.Name)
 		if err != nil {
-			return ContextId{}, nil, err
+			return nil, err
 		}
 		resolvedParams[param.Name] = val
 		if usedPos {
 			cursor.Next()
 		}
 	}
-	return cid, resolvedParams, nil
+	return resolvedParams, nil
+}
+
+func ResolveCidWithParams(args []string, ctxId string, params ...ParamSpec) (ContextId, map[string]string, error) {
+	cid, err := ResolveContextId(args, ctxId)
+	if err != nil {
+		return ContextId{}, nil, err
+	}
+	cursor := NewArgCursor(ctxId != "")
+	paramsMap, err := resolveParams(args, cursor, params...)
+	if err != nil {
+		return ContextId{}, nil, err
+	}
+	return cid, paramsMap, nil
 }
 
 func ResolveCustomContextId(cmd *cobra.Command, name string) (string, error) {
