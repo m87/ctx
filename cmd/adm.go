@@ -6,9 +6,8 @@ import (
 
 func newAdminCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "admin",
-		Aliases: []string{"adm"},
-		Short:   "Admin command",
+		Use:   "admin",
+		Short: "Admin command",
 	}
 }
 
