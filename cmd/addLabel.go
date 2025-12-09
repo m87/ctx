@@ -14,11 +14,12 @@ func newAddLabelCmd(manager *core.ContextManager) *cobra.Command {
 		label string
 	)
 	cmd := &cobra.Command{
-		Use:     "label",
-		Aliases: []string{"l"},
-		Short:   "Add label to context",
+		Use:   "label",
+		Short: "Add label to context",
 		Long: `Add label to context. For example:
-	ctx add label "my-context-id" "production"
+	ctx add label "my-context" "production"
+	ctx add label "my-context" --label "production"
+	ctx add label --ctx-id "my-context-id" --label "production"
 	`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: label, Name: "label"})

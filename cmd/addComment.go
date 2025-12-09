@@ -15,11 +15,12 @@ func newAddCommentCmd(manager *core.ContextManager) *cobra.Command {
 		comment string
 	)
 	cmd := &cobra.Command{
-		Use:     "comment",
-		Aliases: []string{"c"},
-		Short:   "Add comment to context",
+		Use:   "comment",
+		Short: "Add comment to context",
 		Long: `Add comment to context. For example:
-    ctx add comment "my-context-id" "This is my comment"
+    ctx add comment "my-context" "This is my comment"
+    ctx add comment "my-context" --comment "This is my comment"
+    ctx add comment --ctx-id "my-context-id" --comment "This is my comment"
 	`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: comment, Name: "comment"})

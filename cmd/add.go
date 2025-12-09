@@ -15,7 +15,7 @@ func newAddCmd(manager *core.ContextManager) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "create",
-		Aliases: []string{"c", "add"},
+		Aliases: []string{"add"},
 		Short:   "Create new context",
 		Long: `Create new context from given description. Passed description is used to generate contextId with sha256. For example:
 	ctx add new-context
