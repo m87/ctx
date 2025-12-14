@@ -15,8 +15,13 @@ func newDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:     "interval",
-		Aliases: []string{"int", "i"},
+		Use:   "interval",
+		Short: "Delete interval from context",
+		Long: `Delete interval from context. For example:
+	ctx delete interval "my-context" "interval-id"
+	ctx delete interval "my-context" --interval-id "interval-id"
+	ctx delete interval --ctx-id "my-context-id" --interval-id "interval-id"
+	`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: intervalId, Name: "interval-id"})
 			util.Check(err)

@@ -14,6 +14,7 @@ func newAddCommentCmd(manager *core.ContextManager) *cobra.Command {
 		ctxId   string
 		comment string
 	)
+
 	cmd := &cobra.Command{
 		Use:   "comment",
 		Short: "Add comment to context",

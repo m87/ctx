@@ -2,23 +2,22 @@ package cmd
 
 import (
 	"fmt"
-
-	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func newVersionCmd(manager *core.ContextManager) *cobra.Command {
-
+func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "version",
-		Aliases: []string{"v", "ver"},
+		Use: "version",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(core.Release)
+			fmt.Println("Version:", core.Release)
+			fmt.Println("Commit:", core.Commit)
+			fmt.Println("Date:", core.Date)
+
 		},
 	}
 }
 
 func init() {
-	rootCmd.AddCommand(newVersionCmd(bootstrap.CreateManager()))
+	rootCmd.AddCommand(newVersionCmd())
 }

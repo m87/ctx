@@ -9,9 +9,11 @@ import (
 
 func NewArchiveCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
-		Use:     "archive",
-		Aliases: []string{"archive", "a"},
-		Short:   "Archive contexts",
+		Use:   "archive",
+		Short: "Archive contexts",
+		Long: `Archive all contexts. Active context will be skipped. For example:
+	ctx archive
+	`,
 
 		Run: func(cmd *cobra.Command, args []string) {
 			util.Check(manager.WithSession(func(session core.Session) error {

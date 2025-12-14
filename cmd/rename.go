@@ -9,41 +9,34 @@ import (
 )
 
 func newRenameContextCmd(manager *core.ContextManager) *cobra.Command {
-	return &cobra.Command{
+	var (
+		ctxId       string
+		description string
+	)
+
+	cmd := &cobra.Command{
 		Use:     "rename",
 		Aliases: []string{"r"},
 		Short:   "Rename context",
-		Long: `Rename an existing context.
-
-The first argument may be a context name or an ID-like identifier.
-If --ctx-id is provided, it takes precedence over the positional context-name.
-
-Examples:
-  ctx rename Work DeepWork
-  ctx rename --ctx-id ctx_123abc DeepWork
-  ctx rename "Old Project Name" "New Project Name"`,
-		Args: cobra.RangeArgs(1, 2),
+		Long: `Rename context. For example:
+	ctx rename "my-context" --description "New Description"
+	ctx rename --ctx-id "my-context-id" --description "New Description"
+	`,
 		Run: func(cmd *cobra.Command, args []string) {
-			srcId, err := flags.ResolveCustomContextId(cmd, "src-ctx")
+			ctxId, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: description, Name: "description"})
 			util.Check(err)
-
-			targetId, err := flags.ResolveCustomContextId(cmd, "target-ctx")
-			util.Check(err)
-
-			target, err := cmd.Flags().GetString("target-ctx")
-			util.Check(err)
-
 			manager.WithSession(func(session core.Session) error {
-				return session.RenameContext(srcId, targetId, target)
+				return session.RenameContext(ctxId.Id, util.GenerateId(params["description"]), params["description"])
 			})
 
 		},
 	}
+
+	flags.AddContextIdFlags(cmd, &ctxId)
+	cmd.Flags().StringVar(&description, "description", "", "New context description")
+	return cmd
 }
 
 func init() {
-	cmd := newRenameContextCmd(bootstrap.CreateManager())
-	flags.AddCustomContextFlag(cmd, "src-ctx", "s", "Source context")
-	flags.AddCustomContextFlag(cmd, "target-ctx", "t", "Target context")
-	rootCmd.AddCommand(cmd)
+	rootCmd.AddCommand(newRenameContextCmd(bootstrap.CreateManager()))
 }

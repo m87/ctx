@@ -10,26 +10,26 @@ import (
 
 func newSwitchCmd(manager *core.ContextManager) *cobra.Command {
 	var (
-		ctxId          string
-		ctxDescription string
+		ctxId string
 	)
 
 	cmd := &cobra.Command{
 		Use:     "switch",
 		Aliases: []string{"sw", "s"},
 		Short:   "Switch context",
-		Long: `Switch context:
-	- switch description, created if not exists
-	- switch -i id"`,
+		Long: `Switch context. If the context does not exist, it will be created if a description is provided.:
+		ctx switch "my-context"
+		ctx switch --ctx-id "my-context-id"
+		`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, err := flags.ResolveContextId(args, ctxId)
 			util.Check(err)
 
 			util.Check(manager.WithSession(func(session core.Session) error {
-				if ctxDescription == "" {
+				if cid.Description == "" {
 					return session.Switch(cid.Id)
 				} else {
-					return session.CreateIfNotExistsAndSwitch(cid.Id, ctxDescription)
+					return session.CreateIfNotExistsAndSwitch(cid.Id, cid.Description)
 				}
 
 			}))

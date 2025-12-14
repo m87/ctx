@@ -12,10 +12,14 @@ import (
 func newServeCmd(manager *core.ContextManager) *cobra.Command {
 	return &cobra.Command{
 		Use: "serve",
+		Short: "Start server",
+		Long: `Start server to handle context management requests.
+For example:
+		ctx serve --port 8080
+`,
 		Run: func(cmd *cobra.Command, ars []string) {
 			port, _ := cmd.Flags().GetString("port")
-			mgr := bootstrap.CreateManager()
-			srv := server.New(mgr)
+			srv := server.New(manager)
 			log.Fatal(srv.Listen(":" + port))
 		},
 	}

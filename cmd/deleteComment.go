@@ -17,6 +17,11 @@ func newDeleteCommentContextCmd(manager *core.ContextManager) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "comment",
 		Short: "Delete context comment",
+		Long: `Delete context comment. For example:
+	ctx delete comment "my-context" "comment-id"
+	ctx delete comment "my-context" --comment-id "comment-id"
+	ctx delete comment --ctx-id "my-context-id" --comment-id "comment-id"
+	`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: commentId, Name: "comment-id"})
 			util.Check(err)

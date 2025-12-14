@@ -17,6 +17,11 @@ func newDeleteLabelCmd(manager *core.ContextManager) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "label",
 		Short: "Delete context label",
+		Long: `Delete context label. For example:
+	ctx delete label "my-context" "production"
+	ctx delete label "my-context" --label "production"
+	ctx delete label --ctx-id "my-context-id" --label "production"
+	`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: label, Name: "label"})
 			util.Check(err)

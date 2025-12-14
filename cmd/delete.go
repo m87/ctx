@@ -17,9 +17,12 @@ func newDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 		Use:     "delete",
 		Aliases: []string{"del", "d", "rm"},
 		Short:   "Delete context",
-		Args:    cobra.MaximumNArgs(1),
+		Long: `Delete context. For example:
+		ctx delete "my-context"
+		ctx delete --ctx-id "my-context-id"
+		`,
 		Run: func(cmd *cobra.Command, args []string) {
-			cid, _, err := flags.ResolveCidWithParams(args, ctxId)
+			cid, err := flags.ResolveContextId(args, ctxId)
 			util.Check(err)
 			util.Check(manager.WithSession(func(session core.Session) error { return session.Delete(cid.Id) }))
 		},

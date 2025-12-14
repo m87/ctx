@@ -17,6 +17,11 @@ func newEditCommentCmd(manager *core.ContextManager) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "comment",
 		Short: "Edit context comment",
+		Long: `Edit context comment. For example:
+	ctx edit comment "my-context" --comment-id "comment-id" --comment "new comment content"
+	ctx edit comment "my-context" "comment-id" "new comment content"
+	ctx edit comment --ctx-id "my-context-id" --comment-id "comment-id" --comment "new comment content"
+	`,
 		Run: func(cmd *cobra.Command, args []string) {
 			cid, params, err := flags.ResolveCidWithParams(args, ctxId, flags.ParamSpec{Default: commentId, Name: "comment-id"}, flags.ParamSpec{Default: comment, Name: "comment"})
 			util.Check(err)

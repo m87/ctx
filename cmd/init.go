@@ -5,17 +5,18 @@ import (
 	"path/filepath"
 
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func newAdmInitCmd(manager *core.ContextManager) *cobra.Command {
+func newAdmInitCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:     "init",
 		Aliases: []string{"i"},
 		Short:   "Initialize environment",
-		Long:    `Creates default directories and config file`,
+		Long: `Initialize environment. For example:
+		ctx adm init
+		`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(viper.ConfigFileUsed()) > 0 {
 				path := viper.GetString("storePath")
@@ -33,5 +34,5 @@ func newAdmInitCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	admCmd.AddCommand(newAdmInitCmd(bootstrap.CreateManager()))
+	admCmd.AddCommand(newAdmInitCmd())
 }
