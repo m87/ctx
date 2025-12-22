@@ -11,6 +11,7 @@ WORKDIR /home/ctx
 COPY ctx /usr/local/bin/ctx
 COPY ctx.yaml /home/ctx/.ctx
 
+RUN mkdir /data
 RUN chown -R ctx:ctx /home/ctx
 RUN chown -R ctx:ctx /data
 
