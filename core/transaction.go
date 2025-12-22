@@ -2,16 +2,18 @@ package core
 
 import (
 	"context"
+	"path"
 	"sync"
 	"time"
 
 	"github.com/gofrs/flock"
+	"github.com/spf13/viper"
 )
 
 var Mutex sync.Mutex
 
 func LockWithTimeout() (*flock.Flock, error){
-	l := flock.New("ctx.lock")
+	l := flock.New(path.Join(viper.GetString("storePath"), "ctx.lock"))
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
 
