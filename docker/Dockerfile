@@ -19,4 +19,5 @@ EXPOSE 8080
 
 USER ctx
 
+WORKDIR /data
 CMD ["ctx", "serve"]
