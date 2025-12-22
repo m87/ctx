@@ -12,6 +12,7 @@ COPY ctx /usr/local/bin/ctx
 COPY ctx.yaml /home/ctx/.ctx
 
 RUN chown -R ctx:ctx /home/ctx
+RUN chown -R ctx:ctx /data
 
 EXPOSE 8080
 

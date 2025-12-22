@@ -41,17 +41,15 @@ spec:
           args:
             - |
               set -e
-              cd /home/ctx/.ctx.d
-              echo "[ctx-init] Checking /home/ctx/.ctx.d contents..."
-              if [ -z "$(ls -A . 2>/dev/null)" ]; then
-                echo "[ctx-init] Empty directory, running 'ctx init'..."
-                ctx init
-              else
-                echo "[ctx-init] Directory not empty, skipping 'ctx init'."
+              cd /data
+              cd /data
+              if [ ! -f .initialized ]; then
+                ctx adm init
+                touch .initialized
               fi
           volumeMounts:
             - name: ctx-data
-              mountPath: /home/ctx/.ctx.d
+              mountPath: /data
 
       containers:
         - name: ctx
@@ -61,7 +59,7 @@ spec:
             - containerPort: 8080
           volumeMounts:
             - name: ctx-data
-              mountPath: /home/ctx/.ctx.d
+              mountPath: /data
 ---
 apiVersion: v1
 kind: Service
