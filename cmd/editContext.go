@@ -1,40 +1,36 @@
 /*
 Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"fmt"
 
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-// editContextCmd represents the editContext command
-var editContextCmd = &cobra.Command{
-	Use:   "editContext",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+func NewEditContextCmd(manager *core.ContextManager) *cobra.Command {
+	var (
+		id   string
+		name string
+	)
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("editContext called")
-	},
+	cmd := &cobra.Command{
+		Use:   "editContext",
+		Short: "Edit an existing context",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("editContext called")
+		},
+	}
+
+	cmd.Flags().StringVarP(&id, "id", "i", "", "ID of the context to edit")
+	cmd.Flags().StringVarP(&name, "name", "n", "", "New name for the context")
+
+	return cmd
 }
 
 func init() {
-	edit.AddCommand(editContextCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// editContextCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// editContextCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	editCmd.AddCommand(NewEditContextCmd(bootstrap.CreateManager()))
 }

@@ -1,6 +1,5 @@
 /*
 Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -26,7 +25,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	edit.AddCommand(editProjectCmd)
+	editCmd.AddCommand(editProjectCmd)
 
 	// Here you will define your flags and configuration settings.
 

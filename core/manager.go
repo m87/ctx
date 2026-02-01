@@ -21,6 +21,6 @@ func (cm *ContextManager) ExecuteUnchecked(fn func(repository *nod.Repository) e
 	return cm.repository.Transaction(fn)
 }
 
-func (cm *ContextManager) ExecuteChecked(fn func(repository *nod.Repository) error) {
+func (cm *ContextManager) Execute(fn func(repository *nod.Repository) error) {
 	utils.Check(cm.ExecuteUnchecked(fn))
 }
