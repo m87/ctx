@@ -1,26 +1,19 @@
 package core
 
-import (
-	"github.com/m87/ctx/utils"
-	"github.com/m87/nod"
-)
-
 type ContextManager struct {
-	TimeProvider TimeProvider
-	repository   *nod.Repository
+	TimeProvider        TimeProvider
+	ContextRepository   *ContextRepository
+	WorkspaceRepository *WorkspaceRepository
+	ProjectRepository   *ProjectRepository
+	IntervalRepository  *IntervalRepository
 }
 
-func NewContextManager(tp TimeProvider, repo *nod.Repository) *ContextManager {
+func NewContextManager(tp TimeProvider, contextRepo *ContextRepository, workspaceRepo *WorkspaceRepository, projectRepo *ProjectRepository, intervalRepo *IntervalRepository) *ContextManager {
 	return &ContextManager{
-		TimeProvider: tp,
-		repository:   repo,
+		TimeProvider:        tp,
+		ContextRepository:   contextRepo,
+		WorkspaceRepository: workspaceRepo,
+		ProjectRepository:   projectRepo,
+		IntervalRepository:  intervalRepo,
 	}
-}
-
-func (cm *ContextManager) ExecuteUnchecked(fn func(repository *nod.Repository) error) error {
-	return cm.repository.Transaction(fn)
-}
-
-func (cm *ContextManager) Execute(fn func(repository *nod.Repository) error) {
-	utils.Check(cm.ExecuteUnchecked(fn))
 }

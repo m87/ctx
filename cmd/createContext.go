@@ -1,40 +1,30 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-// createContextCmd represents the createContext command
-var createContextCmd = &cobra.Command{
-	Use:   "createContext",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("createContext called")
-	},
+func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
+	var (
+		name string
+	)
+	createContextCmd := &cobra.Command{
+		Use:   "context",
+		Short: "Create a new context",
+		Run: func(cmd *cobra.Command, args []string) {
+			context := &core.Context{
+				Name: name,
+			}
+			err := manager.Cre
+		},
+	}
+	createContextCmd.Flags().StringVarP(&name, "name", "n", "", "Name of the context")
+	createContextCmd.MarkFlagRequired("name")
+	return createContextCmd
 }
 
 func init() {
-	createCmd.AddCommand(createContextCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// createContextCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// createContextCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	createCmd.AddCommand(NewCreateContextCmd(bootstrap.CreateManager()))
 }
