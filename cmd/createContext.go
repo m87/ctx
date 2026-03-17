@@ -17,7 +17,12 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 			context := &core.Context{
 				Name: name,
 			}
-			err := manager.Cre
+			_, err := manager.ContextRepository.Save(context)
+			if err != nil {
+				cmd.PrintErrln("Error creating context:", err)
+				return
+			}
+			cmd.Println("Context created successfully")
 		},
 	}
 	createContextCmd.Flags().StringVarP(&name, "name", "n", "", "Name of the context")

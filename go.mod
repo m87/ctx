@@ -11,7 +11,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/m87/nod v0.0.2-0.20260304213444-fd9d79acc737 // indirect
+	github.com/m87/nod v0.0.2-0.20260306154929-55f21248044b // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect

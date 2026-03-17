@@ -18,10 +18,6 @@ func NewServer(manager *core.ContextManager) *Server {
 		mux:     http.NewServeMux(),
 	}
 
-	workspaceMux := http.NewServeMux()
-	registerWorksapceHandler(workspaceMux, manager)
-	s.mux.Handle("/workspaces/", http.StripPrefix("/workspaces", workspaceMux))
-
 	return s
 
 }
