@@ -26,3 +26,7 @@ func (r *ContextRepository) Save(context *core.Context) (string, error) {
 func (r *ContextRepository) Delete(id string) error {
 	return r.repository.Query().NodeId(id).Delete()
 }
+
+func (r *ContextRepository) List() ([]*core.Context, error) {
+	return r.repository.Query().KindEquals(core.ContextType).List()
+}

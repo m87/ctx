@@ -18,6 +18,16 @@ func NewServer(manager *core.ContextManager) *Server {
 		mux:     http.NewServeMux(),
 	}
 
+	contextMux := http.NewServeMux()
+	registerContextHandler(contextMux, manager)
+	s.mux.Handle("/context/", http.StripPrefix("/context", contextMux))
+	s.mux.Handle("/context", http.StripPrefix("/context", contextMux))
+
+	intervalMux := http.NewServeMux()
+	registerIntervalHandler(intervalMux, manager)
+	s.mux.Handle("/interval/", http.StripPrefix("/interval", intervalMux))
+	s.mux.Handle("/interval", http.StripPrefix("/interval", intervalMux))
+
 	return s
 
 }
