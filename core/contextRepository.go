@@ -5,4 +5,5 @@ type ContextRepository interface {
 	Save(context *Context) (string, error)
 	Delete(id string) error
 	List() ([]*Context, error)
+	GetActive() (*Context, error)
 }

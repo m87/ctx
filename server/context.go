@@ -19,7 +19,52 @@ func registerContextHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("DELETE /{id}", handler.deleteContext)
 	mux.HandleFunc("GET /{id}", handler.getContext)
 	mux.HandleFunc("PUT /{id}", handler.updateContext)
+	mux.HandleFunc("POST /switch", handler.switchContext)
+	mux.HandleFunc("GET /active", handler.getActiveContext)
+	mux.HandleFunc("GET /{id}/intervals", handler.listIntervals)
 
+}
+
+func (h *ContextHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if id == "" {
+		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		return
+	}
+	intervals, err := h.manager.IntervalRepository.ListByContextId(id)
+	if err != nil {
+		http.Error(w, "Failed to list intervals", http.StatusInternalServerError)
+		return
+	}
+
+	writeJson(w, http.StatusOK, intervals)
+}
+
+func (h *ContextHandler) getActiveContext(w http.ResponseWriter, r *http.Request) {
+	activeContext, err := h.manager.ContextRepository.GetActive()
+	if err != nil {
+		http.Error(w, "Failed to get active context", http.StatusInternalServerError)
+		return
+	}
+	if activeContext == nil {
+		http.Error(w, "No active context found", http.StatusNotFound)
+		return
+	}
+	writeJson(w, http.StatusOK, activeContext)
+}
+
+func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
+
+	var req *core.Context
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := h.manager.SwitchContext(req); err != nil {
+		http.Error(w, "Failed to switch context", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ContextHandler) listContexts(w http.ResponseWriter, r *http.Request) {

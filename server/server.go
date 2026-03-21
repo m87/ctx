@@ -39,6 +39,6 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) Listen(addr string) error {
-	ctxlog.Logger.Info("Starting server on ", addr)
+	ctxlog.Logger.Info("Starting server on " + addr)
 	return http.ListenAndServe(addr, s.Handler())
 }

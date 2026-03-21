@@ -6,6 +6,7 @@ type Context struct {
 	Id       string `json:"id"`
 	Name     string `json:"name"`
 	ParentId string `json:"parentId"`
+	Status   string `json:"status"`
 }
 
 const ContextType = "context"
@@ -24,6 +25,7 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 			Name:     context.Name,
 			ParentId: &context.ParentId,
 			Kind:     ContextType,
+			Status:   context.Status,
 		},
 	}
 	return node, nil
@@ -34,9 +36,11 @@ func (m *ContextMapper) FromNode(node *nod.Node) (*Context, error) {
 		Id:       node.Core.Id,
 		Name:     node.Core.Name,
 		ParentId: *node.Core.ParentId,
+		Status:   node.Core.Status,
 	}, nil
 }
 
 func (m *ContextMapper) IsApplicable(node *nod.Node) bool {
 	return node.Core.Kind == ContextType
 }
+
