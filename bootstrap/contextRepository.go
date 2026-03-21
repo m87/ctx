@@ -16,7 +16,7 @@ func NewContextRepository(repository *nod.Repository) *ContextRepository {
 }
 
 func (r *ContextRepository) GetById(id string) (*core.Context, error) {
-	return r.repository.Query().NodeId(id).KV().First()
+	return r.repository.Query().NodeId(id).KV().Tags().Content().First()
 }
 
 func (r *ContextRepository) Save(context *core.Context) (string, error) {

@@ -3,10 +3,12 @@ package core
 import "github.com/m87/nod"
 
 type Context struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	ParentId string `json:"parentId"`
-	Status   string `json:"status"`
+	Id          string   `json:"id"`
+	Name        string   `json:"name"`
+	ParentId    string   `json:"parentId"`
+	Status      string   `json:"status"`
+	Description string   `json:"description,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
 }
 
 const ContextType = "context"
@@ -28,19 +30,27 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 			Status:   context.Status,
 		},
 	}
+
+	node.Content = nod.ConvertStringMapToContent(map[string]string{
+		"description": context.Description,
+	})
+
+	node.Tags = nod.ConvertStringSliceToTags(context.Tags)
+
 	return node, nil
 }
 
 func (m *ContextMapper) FromNode(node *nod.Node) (*Context, error) {
 	return &Context{
-		Id:       node.Core.Id,
-		Name:     node.Core.Name,
-		ParentId: *node.Core.ParentId,
-		Status:   node.Core.Status,
+		Id:          node.Core.Id,
+		Name:        node.Core.Name,
+		ParentId:    *node.Core.ParentId,
+		Status:      node.Core.Status,
+		Description: nod.ConvertContentToStringMap(node.Content)["description"],
+		Tags:        nod.ConvertTagsToStringSlice(node.Tags),
 	}, nil
 }
 
 func (m *ContextMapper) IsApplicable(node *nod.Node) bool {
 	return node.Core.Kind == ContextType
 }
-

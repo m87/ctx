@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/m87/ctx/core"
 )
@@ -20,9 +21,31 @@ func registerContextHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("GET /{id}", handler.getContext)
 	mux.HandleFunc("PUT /{id}", handler.updateContext)
 	mux.HandleFunc("POST /switch", handler.switchContext)
+	mux.HandleFunc("POST /free", handler.freeContext)
 	mux.HandleFunc("GET /active", handler.getActiveContext)
 	mux.HandleFunc("GET /{id}/intervals", handler.listIntervals)
+	mux.HandleFunc("GET /{id}/stats/{date}", handler.getStats)
+}
 
+func (h *ContextHandler) getStats(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if id == "" {
+		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		return
+	}
+	dateStr := r.PathValue("date")
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		http.Error(w, "Invalid date format, expected YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+	stats, err := h.manager.GetStats(id, date)
+	if err != nil {
+		http.Error(w, "Failed to get stats", http.StatusInternalServerError)
+		return
+	}
+
+	writeJson(w, http.StatusOK, stats)
 }
 
 func (h *ContextHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +85,14 @@ func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.manager.SwitchContext(req); err != nil {
 		http.Error(w, "Failed to switch context", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ContextHandler) freeContext(w http.ResponseWriter, r *http.Request) {
+	if err := h.manager.FreeActiveContext(); err != nil {
+		http.Error(w, "Failed to free active context", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
