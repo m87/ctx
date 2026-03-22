@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 	"sort"
 	"time"
@@ -34,13 +35,98 @@ type DayStats struct {
 
 func registerIntervalHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	handler := &IntervalHandler{manager: manager}
-	mux.HandleFunc("GET /", handler.listIntervals)
 	mux.HandleFunc("GET /day/{date}", handler.listByDay)
 	mux.HandleFunc("GET /day/{date}/stats", handler.statsByDay)
+	mux.HandleFunc("DELETE /{id}", handler.deleteInterval)
+	mux.HandleFunc("PUT /{id}", handler.updateInterval)
+	mux.HandleFunc("POST /", handler.createInterval)
+	mux.HandleFunc("PATCH /{id}/move/{targetId}", handler.moveInterval)
 }
 
-func (h *IntervalHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
+func (h *IntervalHandler) moveInterval(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	targetId := r.PathValue("targetId")
+	if id == "" || targetId == "" {
+		http.Error(w, "Missing interval ID or target ID", http.StatusBadRequest)
+		return
+	}
 
+	interval, err := h.manager.IntervalRepository.GetById(id)
+	if err != nil || interval == nil {
+		http.Error(w, "Interval not found", http.StatusNotFound)
+		return
+	}
+
+	context, err := h.manager.ContextRepository.GetById(targetId)
+	if err != nil || context == nil {
+		http.Error(w, "Target context not found", http.StatusNotFound)
+		return
+	}
+
+	interval.ContextId = targetId
+	_, err = h.manager.IntervalRepository.Save(interval)
+	if err != nil {
+		http.Error(w, "Failed to move interval", http.StatusInternalServerError)
+		return
+	}
+
+	writeJson(w, http.StatusOK, interval)
+}
+
+func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request) {
+	var interval core.Interval
+	err := json.NewDecoder(r.Body).Decode(&interval)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	id, err := h.manager.IntervalRepository.Save(&interval)
+	if err != nil {
+		http.Error(w, "Failed to save interval", http.StatusInternalServerError)
+		return
+	}
+	interval.Id = id
+
+	writeJson(w, http.StatusOK, &interval)
+}
+
+func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		http.Error(w, "Missing interval ID", http.StatusBadRequest)
+		return
+	}
+
+	var interval core.Interval
+	err := json.NewDecoder(r.Body).Decode(&interval)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	interval.Id = id
+	_, err = h.manager.IntervalRepository.Save(&interval)
+	if err != nil {
+		http.Error(w, "Failed to save interval", http.StatusInternalServerError)
+		return
+	}
+
+	writeJson(w, http.StatusOK, &interval)
+}
+
+func (h *IntervalHandler) deleteInterval(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		http.Error(w, "Missing interval ID", http.StatusBadRequest)
+		return
+	}
+	err := h.manager.IntervalRepository.Delete(id)
+	if err != nil {
+		http.Error(w, "Failed to delete interval", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
