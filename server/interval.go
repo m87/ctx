@@ -81,6 +81,8 @@ func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	recalculateIntervalDuration(&interval)
+
 	id, err := h.manager.IntervalRepository.Save(&interval)
 	if err != nil {
 		http.Error(w, "Failed to save interval", http.StatusInternalServerError)
@@ -106,6 +108,7 @@ func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request)
 	}
 
 	interval.Id = id
+	recalculateIntervalDuration(&interval)
 	_, err = h.manager.IntervalRepository.Save(&interval)
 	if err != nil {
 		http.Error(w, "Failed to save interval", http.StatusInternalServerError)
@@ -113,6 +116,10 @@ func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeJson(w, http.StatusOK, &interval)
+}
+
+func recalculateIntervalDuration(interval *core.Interval) {
+	interval.Duration = interval.End.Time.Sub(interval.Start.Time)
 }
 
 func (h *IntervalHandler) deleteInterval(w http.ResponseWriter, r *http.Request) {
