@@ -142,9 +142,22 @@ func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to list intervals", http.StatusInternalServerError)
 		return
 	}
+	now := h.manager.TimeProvider.Now().Time.UTC()
+	clippedIntervals := make([]*core.Interval, 0, len(intervals))
 
 	seen := make(map[string]struct{})
 	for _, interval := range intervals {
+		rng, ok := core.ClipIntervalRangeToDay(interval, date, now)
+		if !ok {
+			continue
+		}
+
+		clipped := *interval
+		clipped.Start = core.ZonedTime{Time: rng.Start, Timezone: "UTC"}
+		clipped.End = core.ZonedTime{Time: rng.End, Timezone: "UTC"}
+		clipped.Duration = rng.End.Sub(rng.Start)
+
+		clippedIntervals = append(clippedIntervals, &clipped)
 		seen[interval.ContextId] = struct{}{}
 	}
 
@@ -159,7 +172,7 @@ func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 
 	writeJson(w, http.StatusOK, &DayReport{
 		Contexts:  contexts,
-		Intervals: intervals,
+		Intervals: clippedIntervals,
 	})
 }
 
@@ -177,20 +190,31 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
-	dayEnd := dayStart.Add(24 * time.Hour)
 	now := h.manager.TimeProvider.Now().Time.UTC()
 
 	contextsById := make(map[string]*core.Context)
 	intervalsByContext := make(map[string][]*core.Interval)
-	durationByContext := make(map[string]time.Duration)
+	rangesByContext := make(map[string][]core.TimeRange)
+	intervalCountByContext := make(map[string]int)
 
 	for _, interval := range intervals {
 		if interval == nil || interval.ContextId == "" {
 			continue
 		}
 
-		intervalsByContext[interval.ContextId] = append(intervalsByContext[interval.ContextId], interval)
+		rng, ok := core.ClipIntervalRangeToDay(interval, date, now)
+		if !ok {
+			continue
+		}
+
+		clipped := *interval
+		clipped.Start = core.ZonedTime{Time: rng.Start, Timezone: "UTC"}
+		clipped.End = core.ZonedTime{Time: rng.End, Timezone: "UTC"}
+		clipped.Duration = rng.End.Sub(rng.Start)
+
+		intervalsByContext[interval.ContextId] = append(intervalsByContext[interval.ContextId], &clipped)
+		rangesByContext[interval.ContextId] = append(rangesByContext[interval.ContextId], rng)
+		intervalCountByContext[interval.ContextId]++
 
 		if _, exists := contextsById[interval.ContextId]; !exists {
 			ctx, err := h.manager.ContextRepository.GetById(interval.ContextId)
@@ -198,28 +222,6 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 				contextsById[interval.ContextId] = ctx
 			}
 		}
-
-		start := interval.Start.Time.UTC()
-		end := interval.End.Time.UTC()
-		if end.IsZero() {
-			end = now
-		}
-
-		if end.Before(dayStart) || !start.Before(dayEnd) {
-			continue
-		}
-
-		if start.Before(dayStart) {
-			start = dayStart
-		}
-		if end.After(dayEnd) {
-			end = dayEnd
-		}
-		if !end.After(start) {
-			continue
-		}
-
-		durationByContext[interval.ContextId] += end.Sub(start)
 	}
 
 	contexts := make([]*core.Context, 0, len(contextsById))
@@ -228,17 +230,27 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(contexts, func(i, j int) bool { return contexts[i].Name < contexts[j].Name })
 
-	dayDuration := 24 * time.Hour
+	durationByContext := make(map[string]time.Duration, len(rangesByContext))
+	var totalTrackedDuration time.Duration
+	for contextId, ranges := range rangesByContext {
+		duration := core.SumMergedRangesDuration(ranges)
+		durationByContext[contextId] = duration
+		totalTrackedDuration += duration
+	}
+
 	distribution := make(map[string]float64, len(durationByContext))
 	contextStats := make([]*ContextStats, 0, len(durationByContext))
 	for contextId, duration := range durationByContext {
-		percentage := (float64(duration) / float64(dayDuration)) * 100
+		percentage := 0.0
+		if totalTrackedDuration > 0 {
+			percentage = (float64(duration) / float64(totalTrackedDuration)) * 100
+		}
 		distribution[contextId] = percentage
 		contextStats = append(contextStats, &ContextStats{
 			ContextId:     contextId,
 			Duration:      int64(duration),
 			Percentage:    percentage,
-			IntervalCount: len(intervalsByContext[contextId]),
+			IntervalCount: intervalCountByContext[contextId],
 		})
 	}
 	sort.Slice(contextStats, func(i, j int) bool { return contextStats[i].Duration > contextStats[j].Duration })

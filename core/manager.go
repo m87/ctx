@@ -1,6 +1,14 @@
 package core
 
-import "time"
+import (
+	"sort"
+	"time"
+)
+
+type TimeRange struct {
+	Start time.Time
+	End   time.Time
+}
 
 type ContextManager struct {
 	TimeProvider       TimeProvider
@@ -96,35 +104,49 @@ func (m *ContextManager) FreeActiveContext() error {
 }
 
 func (m *ContextManager) GetStats(contextId string, date time.Time) (*ContextStats, error) {
-	intervalsByDay, err := m.IntervalRepository.ListByDay(date)
-	if err != nil {
-		return nil, err
-	}
 	allIntervalsByContext, err := m.IntervalRepository.ListByContextId(contextId)
 	if err != nil {
 		return nil, err
 	}
 
+	now := m.TimeProvider.Now().Time.UTC()
+
 	var totalDuration time.Duration
 	var totalSessions int
-	var duration time.Duration
 	var sessions int
+	dayRanges := make([]TimeRange, 0, len(allIntervalsByContext))
 
 	for _, interval := range allIntervalsByContext {
-		totalDuration += interval.Duration
-		if interval.Duration > 0 {
+		intervalDuration := interval.Duration
+		if intervalDuration <= 0 {
+			start := interval.Start.Time.UTC()
+			if start.IsZero() {
+				intervalDuration = 0
+			} else {
+				end := interval.End.Time.UTC()
+				if end.IsZero() {
+					if interval.Status == "active" {
+						end = now
+					}
+				}
+				if end.After(start) {
+					intervalDuration = end.Sub(start)
+				}
+			}
+		}
+
+		totalDuration += intervalDuration
+		if intervalDuration > 0 {
 			totalSessions++
+		}
+
+		if dayRange, ok := ClipIntervalRangeToDay(interval, date, now); ok {
+			dayRanges = append(dayRanges, dayRange)
+			sessions++
 		}
 	}
 
-	for _, interval := range intervalsByDay {
-		if interval.ContextId == contextId {
-			duration += interval.Duration
-			if interval.Duration > 0 {
-				sessions++
-			}
-		}
-	}
+	duration := SumMergedRangesDuration(dayRanges)
 
 	return &ContextStats{
 		ContextId:     contextId,
@@ -134,6 +156,83 @@ func (m *ContextManager) GetStats(contextId string, date time.Time) (*ContextSta
 		TotalDuration: totalDuration,
 		TotalSessions: totalSessions,
 	}, nil
+}
+
+func ClipIntervalRangeToDay(interval *Interval, date time.Time, now time.Time) (TimeRange, bool) {
+	if interval == nil {
+		return TimeRange{}, false
+	}
+
+	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+	dayEnd := dayStart.Add(24 * time.Hour)
+
+	start := interval.Start.Time.UTC()
+	if start.IsZero() {
+		return TimeRange{}, false
+	}
+
+	end := interval.End.Time.UTC()
+	if end.IsZero() {
+		if interval.Status != "active" {
+			return TimeRange{}, false
+		}
+		end = now
+	}
+
+	if end.Before(dayStart) || !start.Before(dayEnd) {
+		return TimeRange{}, false
+	}
+
+	if start.Before(dayStart) {
+		start = dayStart
+	}
+	if end.After(dayEnd) {
+		end = dayEnd
+	}
+
+	if !end.After(start) {
+		return TimeRange{}, false
+	}
+
+	return TimeRange{Start: start, End: end}, true
+}
+
+func ClipIntervalDurationToDay(interval *Interval, date time.Time, now time.Time) time.Duration {
+	rng, ok := ClipIntervalRangeToDay(interval, date, now)
+	if !ok {
+		return 0
+	}
+	return rng.End.Sub(rng.Start)
+}
+
+func SumMergedRangesDuration(ranges []TimeRange) time.Duration {
+	if len(ranges) == 0 {
+		return 0
+	}
+
+	sort.Slice(ranges, func(i, j int) bool {
+		return ranges[i].Start.Before(ranges[j].Start)
+	})
+
+	mergedStart := ranges[0].Start
+	mergedEnd := ranges[0].End
+	var total time.Duration
+
+	for _, rng := range ranges[1:] {
+		if !rng.Start.After(mergedEnd) {
+			if rng.End.After(mergedEnd) {
+				mergedEnd = rng.End
+			}
+			continue
+		}
+
+		total += mergedEnd.Sub(mergedStart)
+		mergedStart = rng.Start
+		mergedEnd = rng.End
+	}
+
+	total += mergedEnd.Sub(mergedStart)
+	return total
 }
 
 type ContextStats struct {
