@@ -28,7 +28,7 @@ FROM --platform=$TARGETPLATFORM alpine:3.20
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates \
+RUN apk add --no-cache ca-certificates tzdata \
   && adduser -D -H -u 10001 appuser
 
 COPY --from=build /out/ctx /usr/local/bin/ctx
@@ -37,6 +37,7 @@ RUN mkdir /data
 RUN mkdir /blobs
 
 EXPOSE 8080
+ENV TZ=Europe/Warsaw
 ENV DATABASE_PATH=/data/ctx.db
 
 CMD ["ctx", "serve", "--addr", ":8080"]
