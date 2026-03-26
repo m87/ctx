@@ -16,6 +16,7 @@ type TimeProvider interface {
 type ZonedTime struct {
 	Time     time.Time `json:"time"`
 	Timezone string    `json:"timezone"`
+	IsZero   bool      `json:"isZero"`
 }
 
 func DetectTimezoneName() string {
@@ -50,9 +51,11 @@ func (zt ZonedTime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Time     string `json:"time"`
 		Timezone string `json:"timezone"`
+		IsZero   bool   `json:"isZero"`
 	}{
 		Time:     zt.Time.Format(time.RFC3339),
 		Timezone: zt.Time.Location().String(),
+		IsZero:   zt.Time.IsZero(),
 	})
 }
 
@@ -60,6 +63,7 @@ func (zt *ZonedTime) UnmarshalJSON(data []byte) error {
 	var tmp struct {
 		Time     string `json:"time"`
 		Timezone string `json:"timezone"`
+		IsZero   bool   `json:"isZero"`
 	}
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
@@ -74,6 +78,11 @@ func (zt *ZonedTime) UnmarshalJSON(data []byte) error {
 	}
 	zt.Time = t
 	zt.Timezone = tmp.Timezone
+	if zt.Time.IsZero() {
+		zt.IsZero = true
+	} else {
+		zt.IsZero = tmp.IsZero
+	}
 	return nil
 }
 
@@ -84,7 +93,7 @@ func (provider *RealTimeProvider) Now() ZonedTime {
 	if err != nil {
 		loc = time.UTC
 	}
-	return ZonedTime{Time: time.Now().In(loc), Timezone: loc.String()}
+	return ZonedTime{Time: time.Now().In(loc), Timezone: loc.String(), IsZero: false}
 }
 
 func NewTimer() *RealTimeProvider {
