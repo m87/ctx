@@ -9,6 +9,7 @@ import (
 )
 
 var cfgFile string
+var RemoteAddr string
 
 var rootCmd = &cobra.Command{
 	Use: "ctx",
@@ -30,6 +31,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ctx.yaml)")
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVarP(&RemoteAddr, "remote", "r", "", "Remote server address")
 }
 
 func initConfig() {
@@ -46,5 +48,9 @@ func initConfig() {
 
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err == nil {
+	}
+
+	if RemoteAddr == "" {
+		RemoteAddr = viper.GetString("remote")
 	}
 }

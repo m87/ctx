@@ -17,7 +17,13 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 			context := &core.Context{
 				Name: name,
 			}
-			_, err := manager.ContextRepository.Save(context)
+
+			var err error
+			if RemoteAddr != "" {
+				err = remoteCreateContext(context)
+			} else {
+				_, err = manager.ContextRepository.Save(context)
+			}
 			if err != nil {
 				cmd.PrintErrln("Error creating context:", err)
 				return
