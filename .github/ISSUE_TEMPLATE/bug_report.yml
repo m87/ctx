@@ -1,0 +1,85 @@
+name: 🐞 Bug report
+description: Report a problem or unexpected behavior
+title: "[BUG] Short description of the issue"
+labels: ["bug", "needs triage"]
+assignees:
+  - your_github_username
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!  
+        Please provide as much detail as possible to help us reproduce and fix the issue.
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: What version are you using? (e.g. v1.2.3)
+      placeholder: v1.2.3
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: What happened? Describe the problem clearly.
+      placeholder: A clear and concise description of the issue...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Observe the error message
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+      placeholder: Describe the expected result...
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or logs
+      description: If applicable, add screenshots or log snippets to help explain the issue.
+      placeholder: Drag and drop images here or paste a link...
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Describe your environment (OS, browser, device, etc.)
+      placeholder: e.g. Windows 11 / Chrome 128.0
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Which part of the project is affected?
+      multiple: true
+      options:
+        - cli
+        - web-ui
+        - server
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched for existing issues and found none that match this one.
+          required: true
