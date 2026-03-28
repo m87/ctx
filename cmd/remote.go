@@ -127,6 +127,34 @@ func remoteCreateContext(context *core.Context) error {
 	return httpClient.CreateContext(context)
 }
 
+func remoteListContexts(cmd *cobra.Command) ([]*core.Context, error) {
+	httpClient := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	return httpClient.ListContexts()
+}
+
+func (c *HttpClient) ListContexts() ([]*core.Context, error) {
+	status, body, err := c.Request(http.MethodGet, "/context/", nil)
+	if err != nil {
+		return nil, err
+	}
+	if status >= http.StatusBadRequest {
+		bodyText := strings.TrimSpace(string(body))
+		if bodyText == "" {
+			bodyText = http.StatusText(status)
+		}
+		return nil, fmt.Errorf("remote request failed (%d): %s", status, bodyText)
+	}
+
+	var contexts []*core.Context
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &contexts); err != nil {
+			return nil, fmt.Errorf("failed to parse response: %w", err)
+		}
+	}
+
+	return contexts, nil
+}
+
 func resolveRemoteAddr() string {
 	if strings.TrimSpace(RemoteAddr) != "" {
 		return RemoteAddr
