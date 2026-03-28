@@ -1,40 +1,34 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-// freeCmd represents the free command
-var freeCmd = &cobra.Command{
-	Use:   "free",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+func NewFreeCmd(manager *core.ContextManager) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "free",
+		Short: "Free active context",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if resolveRemoteAddr() != "" {
+				if err := remoteFreeContext(); err != nil {
+					return err
+				}
+			} else {
+				if err := manager.FreeActiveContext(); err != nil {
+					return err
+				}
+			}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("free called")
-	},
+			return printOutput(cmd, map[string]string{"status": "freed"}, func() string {
+				return "Active context freed"
+			}, nil)
+		},
+	}
+	return cmd
 }
 
 func init() {
-	rootCmd.AddCommand(freeCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// freeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// freeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.AddCommand(NewFreeCmd(bootstrap.CreateManager()))
 }

@@ -6,6 +6,7 @@ import (
 
 var createCmd = &cobra.Command{
 	Use:   "create",
+	Short: "Create resources",
 }
 
 func init() {

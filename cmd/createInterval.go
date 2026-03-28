@@ -10,9 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewEditIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func NewCreateIntervalCmd(manager *core.ContextManager) *cobra.Command {
 	var (
-		id        string
 		contextID string
 		startRaw  string
 		endRaw    string
@@ -21,47 +20,43 @@ func NewEditIntervalCmd(manager *core.ContextManager) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "interval",
-		Short: "Edit an existing interval",
+		Short: "Create a new interval",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			intervalID := strings.TrimSpace(id)
-			if intervalID == "" {
-				return fmt.Errorf("id is required")
+			if strings.TrimSpace(contextID) == "" {
+				return fmt.Errorf("context-id is required")
 			}
 
-			interval := &core.Interval{Id: intervalID}
-			if resolveRemoteAddr() == "" {
-				existing, err := manager.IntervalRepository.GetById(intervalID)
+			var start core.ZonedTime
+			if strings.TrimSpace(startRaw) == "" {
+				start = core.NewTimer().Now()
+			} else {
+				parsed, err := parseDateTime(startRaw)
 				if err != nil {
 					return err
 				}
-				if existing == nil {
-					return fmt.Errorf("interval not found")
-				}
-				interval = existing
+				start = parsed
 			}
 
-			if strings.TrimSpace(contextID) != "" {
-				interval.ContextId = strings.TrimSpace(contextID)
+			interval := &core.Interval{
+				ContextId: strings.TrimSpace(contextID),
+				Start:     start,
+				Status:    strings.TrimSpace(status),
 			}
-			if strings.TrimSpace(startRaw) != "" {
-				start, err := parseDateTime(startRaw)
-				if err != nil {
-					return err
+
+			if interval.Status == "" {
+				if strings.TrimSpace(endRaw) == "" {
+					interval.Status = "active"
+				} else {
+					interval.Status = "completed"
 				}
-				interval.Start = start
 			}
+
 			if strings.TrimSpace(endRaw) != "" {
 				end, err := parseDateTime(endRaw)
 				if err != nil {
 					return err
 				}
 				interval.End = end
-			}
-			if strings.TrimSpace(status) != "" {
-				interval.Status = strings.TrimSpace(status)
-			}
-
-			if !interval.End.Time.IsZero() {
 				if interval.End.Time.Before(interval.Start.Time) {
 					return fmt.Errorf("end must be after start")
 				}
@@ -71,30 +66,32 @@ func NewEditIntervalCmd(manager *core.ContextManager) *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteUpdateInterval(interval); err != nil {
+				if err := remoteCreateInterval(interval); err != nil {
 					return err
 				}
 			} else {
-				if _, err := manager.IntervalRepository.Save(interval); err != nil {
+				id, err := manager.IntervalRepository.Save(interval)
+				if err != nil {
 					return err
 				}
+				interval.Id = id
 			}
 
 			return printOutput(cmd, interval, func() string {
-				return "Interval updated successfully"
+				return "Interval created successfully"
 			}, nil)
 		},
 	}
 
-	cmd.Flags().StringVarP(&id, "id", "i", "", "ID of the interval to edit")
 	cmd.Flags().StringVar(&contextID, "context-id", "", "Context ID")
 	cmd.Flags().StringVar(&startRaw, "start", "", "Start datetime in RFC3339")
 	cmd.Flags().StringVar(&endRaw, "end", "", "End datetime in RFC3339")
 	cmd.Flags().StringVar(&status, "status", "", "Interval status")
-	_ = cmd.MarkFlagRequired("id")
+	_ = cmd.MarkFlagRequired("context-id")
+
 	return cmd
 }
 
 func init() {
-	editCmd.AddCommand(NewEditIntervalCmd(bootstrap.CreateManager()))
+	createCmd.AddCommand(NewCreateIntervalCmd(bootstrap.CreateManager()))
 }

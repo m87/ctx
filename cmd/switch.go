@@ -1,40 +1,68 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-// switchCmd represents the switch command
-var switchCmd = &cobra.Command{
-	Use:   "switch",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
+	var (
+		id   string
+		name string
+	)
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("switch called")
-	},
+	cmd := &cobra.Command{
+		Use:   "switch",
+		Short: "Switch active context",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			contextID := strings.TrimSpace(id)
+			contextName := strings.TrimSpace(name)
+			if contextID == "" && contextName == "" {
+				return fmt.Errorf("provide --id or --name")
+			}
+
+			if resolveRemoteAddr() != "" {
+				if err := remoteSwitchContext(contextID, contextName); err != nil {
+					return err
+				}
+				return printOutput(cmd, map[string]string{"id": contextID, "name": contextName, "status": "switched"}, func() string {
+					return "Context switched successfully"
+				}, nil)
+			}
+
+			context := &core.Context{Id: contextID, Name: contextName}
+			if contextID == "" && contextName != "" {
+				contexts, err := manager.ContextRepository.List()
+				if err != nil {
+					return err
+				}
+				for _, candidate := range contexts {
+					if strings.EqualFold(strings.TrimSpace(candidate.Name), contextName) {
+						context = candidate
+						break
+					}
+				}
+			}
+
+			if err := manager.SwitchContext(context); err != nil {
+				return err
+			}
+
+			return printOutput(cmd, context, func() string {
+				return "Context switched successfully"
+			}, nil)
+		},
+	}
+
+	cmd.Flags().StringVar(&id, "id", "", "Context ID")
+	cmd.Flags().StringVarP(&name, "name", "n", "", "Context name")
+	return cmd
 }
 
 func init() {
-	rootCmd.AddCommand(switchCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// switchCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// switchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.AddCommand(NewSwitchCmd(bootstrap.CreateManager()))
 }

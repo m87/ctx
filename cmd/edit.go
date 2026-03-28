@@ -5,10 +5,10 @@ import (
 )
 
 var editCmd = &cobra.Command{
-	Use: "edit",
+	Use:   "edit",
+	Short: "Edit resources",
 }
 
 func init() {
 	rootCmd.AddCommand(editCmd)
-
 }

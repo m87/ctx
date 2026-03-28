@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
@@ -13,26 +16,34 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 	createContextCmd := &cobra.Command{
 		Use:   "context",
 		Short: "Create a new context",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			context := &core.Context{
-				Name: name,
+				Name: strings.TrimSpace(name),
 			}
 
-			var err error
-			if RemoteAddr != "" {
-				err = remoteCreateContext(context)
+			if context.Name == "" {
+				return fmt.Errorf("name is required")
+			}
+
+			if resolveRemoteAddr() != "" {
+				if err := remoteCreateContext(context); err != nil {
+					return err
+				}
 			} else {
-				_, err = manager.ContextRepository.Save(context)
+				id, err := manager.ContextRepository.Save(context)
+				if err != nil {
+					return err
+				}
+				context.Id = id
 			}
-			if err != nil {
-				cmd.PrintErrln("Error creating context:", err)
-				return
-			}
-			cmd.Println("Context created successfully")
+
+			return printOutput(cmd, context, func() string {
+				return "Context created successfully"
+			}, nil)
 		},
 	}
 	createContextCmd.Flags().StringVarP(&name, "name", "n", "", "Name of the context")
-	createContextCmd.MarkFlagRequired("name")
+	_ = createContextCmd.MarkFlagRequired("name")
 	return createContextCmd
 }
 

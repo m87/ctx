@@ -2,25 +2,44 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-// deleteContextCmd represents the deleteContext command
-var deleteContextCmd = &cobra.Command{
-	Use:   "deleteContext",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+func NewDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
+	var contextId string
+	deleteContextCmd := &cobra.Command{
+		Use:   "context",
+		Short: "Delete a context by ID",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id := strings.TrimSpace(contextId)
+			if id == "" {
+				return fmt.Errorf("id is required")
+			}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("deleteContext called")
-	},
+			if resolveRemoteAddr() != "" {
+				if err := remoteDeleteContext(id); err != nil {
+					return err
+				}
+			} else {
+				if err := manager.ContextRepository.Delete(id); err != nil {
+					return err
+				}
+			}
+
+			return printOutput(cmd, map[string]string{"id": id, "status": "deleted"}, func() string {
+				return "Context deleted successfully"
+			}, nil)
+		},
+	}
+	deleteContextCmd.Flags().StringVarP(&contextId, "id", "i", "", "ID of the context to delete")
+	_ = deleteContextCmd.MarkFlagRequired("id")
+	return deleteContextCmd
 }
 
 func init() {
-	deleteCmd.AddCommand(deleteContextCmd)
+	deleteCmd.AddCommand(NewDeleteContextCmd(bootstrap.CreateManager()))
 }

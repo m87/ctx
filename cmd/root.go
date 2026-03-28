@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	ctxlog "github.com/m87/ctx/log"
 	"github.com/spf13/cobra"
@@ -10,11 +12,24 @@ import (
 
 var cfgFile string
 var RemoteAddr string
+var OutputFormat string
 
 var rootCmd = &cobra.Command{
 	Use: "ctx",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		ctxlog.SetupLogger(viper.GetString("log_level"))
+		format := strings.ToLower(strings.TrimSpace(OutputFormat))
+		switch format {
+		case "", "text", "json", "yaml", "shell":
+			if format == "" {
+				OutputFormat = "text"
+			} else {
+				OutputFormat = format
+			}
+			return nil
+		default:
+			return fmt.Errorf("unsupported output format: %s", OutputFormat)
+		}
 	},
 }
 
@@ -32,6 +47,7 @@ func init() {
 
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.PersistentFlags().StringVarP(&RemoteAddr, "remote", "r", "", "Remote server address")
+	rootCmd.PersistentFlags().StringVarP(&OutputFormat, "output", "o", "text", "Output format: text|json|yaml|shell")
 }
 
 func initConfig() {

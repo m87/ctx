@@ -1,40 +1,47 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-// deleteIntervalCmd represents the deleteInterval command
-var deleteIntervalCmd = &cobra.Command{
-	Use:   "deleteInterval",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
+	var intervalID string
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("deleteInterval called")
-	},
+	cmd := &cobra.Command{
+		Use:   "interval",
+		Short: "Delete an interval by ID",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id := strings.TrimSpace(intervalID)
+			if id == "" {
+				return fmt.Errorf("id is required")
+			}
+
+			if resolveRemoteAddr() != "" {
+				if err := remoteDeleteInterval(id); err != nil {
+					return err
+				}
+			} else {
+				if err := manager.IntervalRepository.Delete(id); err != nil {
+					return err
+				}
+			}
+
+			return printOutput(cmd, map[string]string{"id": id, "status": "deleted"}, func() string {
+				return "Interval deleted successfully"
+			}, nil)
+		},
+	}
+
+	cmd.Flags().StringVarP(&intervalID, "id", "i", "", "ID of the interval to delete")
+	_ = cmd.MarkFlagRequired("id")
+	return cmd
 }
 
 func init() {
-	deleteCmd.AddCommand(deleteIntervalCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// deleteIntervalCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// deleteIntervalCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	deleteCmd.AddCommand(NewDeleteIntervalCmd(bootstrap.CreateManager()))
 }

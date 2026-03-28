@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
@@ -10,27 +12,28 @@ func NewListContextCmd(manager *core.ContextManager) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "context",
 		Short: "List all contexts",
-		Run: func(cmd *cobra.Command, args []string) {
-
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var contexts []*core.Context
 			var err error
-			if RemoteAddr != "" {
-				contexts, err = remoteListContexts(cmd)
+			if resolveRemoteAddr() != "" {
+				contexts, err = remoteListContexts()
 			} else {
 				contexts, err = manager.ContextRepository.List()
 			}
-
 			if err != nil {
-				cmd.PrintErrln("Error listing contexts:", err)
-				return
+				return err
 			}
-			if len(contexts) == 0 {
-				cmd.Println("No contexts found")
-				return
-			}
-			for _, ctx := range contexts {
-				cmd.Printf("- ID: %s, Name: %s\n", ctx.Id, ctx.Name)
-			}
+
+			return printOutput(cmd, contexts, func() string {
+				if len(contexts) == 0 {
+					return "No contexts found"
+				}
+				lines := make([]string, 0, len(contexts))
+				for _, context := range contexts {
+					lines = append(lines, "- ID: "+context.Id+", Name: "+context.Name)
+				}
+				return strings.Join(lines, "\n")
+			}, nil)
 		},
 	}
 	return cmd

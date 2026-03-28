@@ -5,10 +5,10 @@ import (
 )
 
 var listCmd = &cobra.Command{
-	Use: "list",
+	Use:   "list",
+	Short: "List resources",
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
-
 }
