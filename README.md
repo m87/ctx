@@ -158,8 +158,6 @@ ctx list interval --day 2026-03-28 -o shell
 
 ## REST API (summary)
 
-Endpoints used by CLI:
-
 - `GET /context/`
 - `POST /context/`
 - `GET /context/{id}`
@@ -211,4 +209,4 @@ git submodule update --remote --merge ui
 
 ## License
 
-This project is licensed under `LICENSE`.
+This project is licensed under `Apache-2.0 license`.
