@@ -36,7 +36,7 @@ RUN apk add --no-cache ca-certificates tzdata nginx \
   && mkdir -p /data /run/nginx /var/lib/nginx/tmp /usr/share/nginx/html
 
 COPY --from=backend-build /out/ctx /usr/local/bin/ctx
-COPY --from=ui-build /ui/dist/nod-ui/browser /usr/share/nginx/html
+COPY --from=ui-build /ui/dist/ctx/browser /usr/share/nginx/html
 COPY docker/all-in-one/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/all-in-one/entrypoint.sh /entrypoint.sh
 
