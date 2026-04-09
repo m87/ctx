@@ -21,11 +21,16 @@ func NewContextMapper() *ContextMapper {
 }
 
 func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
+	var parentId *string
+	if context.ParentId != "" {
+		parentId = &context.ParentId
+	}
+
 	node := &nod.Node{
 		Core: nod.NodeCore{
 			Id:       context.Id,
 			Name:     context.Name,
-			ParentId: &context.ParentId,
+			ParentId: parentId,
 			Kind:     ContextType,
 			Status:   context.Status,
 		},

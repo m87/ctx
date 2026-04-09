@@ -15,7 +15,7 @@ func CreateManager() *core.ContextManager {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
-	repository := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewMapperRegistry())
+	repository, _ := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewMapperRegistry())
 	return core.NewContextManager(&core.RealTimeProvider{}, NewContextRepository(repository), NewIntervalRepository(repository))
 }
 
