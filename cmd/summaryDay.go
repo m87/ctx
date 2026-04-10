@@ -25,20 +25,50 @@ func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
 			dayStr := day.Format("2006-01-02")
 
 			if resolveRemoteAddr() != "" {
+				fmt.Printf("Fetching summary for %s from remote...\n", dayStr)
 				stats, err := remoteSummaryDay(dayStr)
 				if err != nil {
 					return err
 				}
-				return printOutput(cmd, stats, func() string {
+
+				if !Verbose {
+					minimal := map[string]any{"date": stats.Date, "contextStats": stats.ContextStats}
+					return printOutput(cmd, minimal, func() string {
+						if stats == nil || len(stats.ContextStats) == 0 {
+							return "No summary data found"
+						}
+						lines := []string{fmt.Sprintf("Summary for %s:", stats.Date)}
+						for _, stat := range stats.ContextStats {
+							lines = append(lines, fmt.Sprintf("- ContextID: %s, Duration: %s, Intervals: %d, Share: %.2f%%", stat.ContextId, time.Duration(stat.Duration).String(), stat.IntervalCount, stat.Percentage))
+						}
+						return strings.Join(lines, "\n")
+					}, nil)
+				}
+
+				textRenderer := func() string {
 					if stats == nil || len(stats.ContextStats) == 0 {
 						return "No summary data found"
 					}
 					lines := []string{fmt.Sprintf("Summary for %s:", stats.Date)}
-					for _, stat := range stats.ContextStats {
-						lines = append(lines, fmt.Sprintf("- ContextID: %s, Duration: %s, Intervals: %d, Share: %.2f%%", stat.ContextId, time.Duration(stat.Duration).String(), stat.IntervalCount, stat.Percentage))
+					for _, ctx := range stats.Contexts {
+						lines = append(lines, fmt.Sprintf("Context ID: %s, Name: %s, Status: %s", ctx.Id, ctx.Name, ctx.Status))
+						ivs := stats.Intervals[ctx.Id]
+						if len(ivs) == 0 {
+							lines = append(lines, "  (no intervals)")
+						} else {
+							for _, iv := range ivs {
+								endStr := "(ongoing)"
+								if !iv.End.IsZero {
+									endStr = iv.End.Time.In(iv.End.Time.Location()).Format(time.RFC3339)
+								}
+								lines = append(lines, fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s", iv.Id, iv.Start.Time.In(iv.Start.Time.Location()).Format(time.RFC3339), endStr, iv.Status))
+							}
+						}
 					}
 					return strings.Join(lines, "\n")
-				}, nil)
+				}
+
+				return printOutput(cmd, stats, textRenderer, nil)
 			}
 
 			intervals, err := manager.IntervalRepository.ListByDay(day)
@@ -70,17 +100,85 @@ func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
 				return fmt.Sprintf("%v", stats[i]["contextId"]) < fmt.Sprintf("%v", stats[j]["contextId"])
 			})
 
-			result := map[string]any{"date": dayStr, "contextStats": stats}
-			return printOutput(cmd, result, func() string {
-				if len(stats) == 0 {
+			if !Verbose {
+				result := map[string]any{"date": dayStr, "contextStats": stats}
+				return printOutput(cmd, result, func() string {
+					if len(stats) == 0 {
+						return "No summary data found"
+					}
+					lines := []string{fmt.Sprintf("Summary for %s:", dayStr)}
+					for _, item := range stats {
+						lines = append(lines, fmt.Sprintf("- ContextID: %v, Duration: %v, Intervals: %v", item["contextId"], item["duration"], item["intervals"]))
+					}
+					return strings.Join(lines, "\n")
+				}, nil)
+			}
+
+			intervalsByContext := map[string][]*core.Interval{}
+			for _, iv := range intervals {
+				intervalsByContext[iv.ContextId] = append(intervalsByContext[iv.ContextId], iv)
+			}
+
+			var totalDuration time.Duration
+			ctxStats := make([]*DayContextStats, 0, len(stats))
+			for _, item := range stats {
+				durationStr := item["duration"].(string)
+				d, _ := time.ParseDuration(durationStr)
+				totalDuration += d
+			}
+			for _, item := range stats {
+				cid := fmt.Sprintf("%v", item["contextId"])
+				durationStr := item["duration"].(string)
+				d, _ := time.ParseDuration(durationStr)
+				pct := 0.0
+				if totalDuration > 0 {
+					pct = (float64(d) / float64(totalDuration)) * 100.0
+				}
+				ctxStats = append(ctxStats, &DayContextStats{ContextId: cid, Duration: int64(d), Percentage: pct, IntervalCount: item["intervals"].(int)})
+			}
+
+			contexts := make([]*core.Context, 0, len(ctxStats))
+			intervalsMap := map[string][]*core.Interval{}
+			for _, cs := range ctxStats {
+				cObj, _ := manager.ContextRepository.GetById(cs.ContextId)
+				if cObj == nil {
+					cObj = &core.Context{Id: cs.ContextId}
+				}
+				contexts = append(contexts, cObj)
+				intervalsMap[cs.ContextId] = intervalsByContext[cs.ContextId]
+			}
+
+			verboseResult := &DayStats{
+				Date:         dayStr,
+				ContextStats: ctxStats,
+				Contexts:     contexts,
+				Intervals:    intervalsMap,
+			}
+
+			textRenderer := func() string {
+				if len(verboseResult.ContextStats) == 0 {
 					return "No summary data found"
 				}
-				lines := []string{fmt.Sprintf("Summary for %s:", dayStr)}
-				for _, item := range stats {
-					lines = append(lines, fmt.Sprintf("- ContextID: %v, Duration: %v, Intervals: %v", item["contextId"], item["duration"], item["intervals"]))
+				lines := []string{fmt.Sprintf("Summary for %s:", verboseResult.Date)}
+				for _, ctx := range verboseResult.Contexts {
+					lines = append(lines, fmt.Sprintf("Context ID: %s, Name: %s, Status: %s", ctx.Id, ctx.Name, ctx.Status))
+					ivs := verboseResult.Intervals[ctx.Id]
+					if len(ivs) == 0 {
+						lines = append(lines, "  (no intervals)")
+					} else {
+						for _, iv := range ivs {
+							endStr := "(ongoing)"
+							if !iv.End.IsZero {
+								endStr = iv.End.Time.In(iv.End.Time.Location()).Format(time.RFC3339)
+							}
+							lines = append(lines, fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s", iv.Id, iv.Start.Time.In(iv.Start.Time.Location()).Format(time.RFC3339), endStr, iv.Status))
+						}
+					}
 				}
 				return strings.Join(lines, "\n")
-			}, nil)
+			}
+
+			return printOutput(cmd, verboseResult, textRenderer, nil)
 		},
 	}
 
