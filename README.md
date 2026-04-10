@@ -1,11 +1,11 @@
 # ctx
 
-CLI for managing work contexts and time intervals, with local mode and remote mode (REST), extended with a Web UI in the `ui/` submodule.
+### Interval
 
-## Features
-
-- context management: create, edit, list, delete, switch, free active context
-- interval management: create, edit, list by day, delete
+- `create interval --context-id <ID> [--start "YYYY-MM-DD HH:MM:SS" | RFC3339] [--end "YYYY-MM-DD HH:MM:SS" | RFC3339] [--status <STATUS>]`
+- `list interval [--day YYYY-MM-DD]`
+- `edit interval --id <ID> [--context-id <ID>] [--start "YYYY-MM-DD HH:MM:SS" | RFC3339] [--end "YYYY-MM-DD HH:MM:SS" | RFC3339] [--status <STATUS>]`
+- `delete interval --id <ID>`
 - day summaries (`summary day`)
 - context merge (`merge context`)
 - local mode (SQLite), remote mode via API (`--remote` or config), and full app mode with Web UI
@@ -124,6 +124,7 @@ Notes:
 - `--remote, -r` remote server address
 - `--output, -o` output format: `text|json|yaml|shell`
 - `--config` config file path
+- `--verbose, -v` verbose output (include detailed fields and, for `list context`, the intervals). Affects `text`, `json`, `yaml`, and `shell` outputs.
 
 Output examples:
 

@@ -84,8 +84,8 @@ func NewCreateIntervalCmd(manager *core.ContextManager) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&contextID, "context-id", "", "Context ID")
-	cmd.Flags().StringVar(&startRaw, "start", "", "Start datetime in RFC3339")
-	cmd.Flags().StringVar(&endRaw, "end", "", "End datetime in RFC3339")
+	cmd.Flags().StringVar(&startRaw, "start", "", "Start datetime in format 'YYYY-MM-DD HH:MM:SS' or RFC3339")
+	cmd.Flags().StringVar(&endRaw, "end", "", "End datetime in format 'YYYY-MM-DD HH:MM:SS' or RFC3339")
 	cmd.Flags().StringVar(&status, "status", "", "Interval status")
 	_ = cmd.MarkFlagRequired("context-id")
 

@@ -13,6 +13,7 @@ import (
 var cfgFile string
 var RemoteAddr string
 var OutputFormat string
+var Verbose bool
 
 var rootCmd = &cobra.Command{
 	Use: "ctx",
@@ -48,6 +49,7 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.PersistentFlags().StringVarP(&RemoteAddr, "remote", "r", "", "Remote server address")
 	rootCmd.PersistentFlags().StringVarP(&OutputFormat, "output", "o", "text", "Output format: text|json|yaml|shell")
+	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "Verbose output (include detailed fields and intervals)")
 }
 
 func initConfig() {
