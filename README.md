@@ -1,5 +1,7 @@
 # ctx
 
+ctx is a lightweight time-tracking command-line tool and server with an optional Angular web UI. It supports local SQLite mode, remote API mode, and a full web application for managing named contexts and time intervals.
+
 ### Interval
 
 - `create interval --context-id <ID> [--start "YYYY-MM-DD HH:MM:SS" | RFC3339] [--end "YYYY-MM-DD HH:MM:SS" | RFC3339] [--status <STATUS>]`
