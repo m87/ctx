@@ -1,22 +1,5 @@
 # syntax=docker/dockerfile:1.6
 
-FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS backend-build
-
-WORKDIR /src
-
-RUN apk add --no-cache ca-certificates git
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-
-ARG TARGETOS
-ARG TARGETARCH
-
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags="-s -w" -o /out/ctx ./
-
 FROM --platform=$BUILDPLATFORM node:22-alpine AS ui-build
 
 WORKDIR /ui
@@ -27,24 +10,38 @@ RUN npm ci
 COPY ui .
 RUN npm run build -- --configuration production
 
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS backend-build
+
+WORKDIR /src
+
+RUN apk add --no-cache ca-certificates git
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+COPY --from=ui-build /ui/dist/ctx/browser ./server/spa/dist
+
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -tags allinone -trimpath -ldflags="-s -w" -o /out/ctx ./
+
 FROM --platform=$TARGETPLATFORM alpine:3.20
 
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates tzdata nginx \
+RUN apk add --no-cache ca-certificates tzdata \
   && adduser -D -H -u 10001 appuser \
-  && mkdir -p /data /run/nginx /var/lib/nginx/tmp /usr/share/nginx/html
+  && mkdir -p /data
 
 COPY --from=backend-build /out/ctx /usr/local/bin/ctx
-COPY --from=ui-build /ui/dist/ctx/browser /usr/share/nginx/html
-COPY docker/all-in-one/nginx.conf /etc/nginx/http.d/default.conf
-COPY docker/all-in-one/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh \
-  && chown -R appuser:appuser /data /usr/share/nginx/html /var/lib/nginx /run/nginx
+RUN chown -R appuser:appuser /data
 
-EXPOSE 80 8080
+EXPOSE 8080
 ENV TZ=Europe/Warsaw
 ENV DATABASE_PATH=/data/ctx.db
 
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ctx", "serve", "--addr", ":8080"]

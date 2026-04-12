@@ -1,2 +1,5 @@
 ctx.db
 ctx
+ui/dist
+server/spa/dist/*
+!server/spa/dist/.keep

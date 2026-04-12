@@ -15,11 +15,12 @@ ctx is a lightweight time-tracking command-line tool and server with an optional
 
 ## Architecture and operation modes
 
-This project can run in 3 modes:
+This project can run in 4 modes:
 
 - **CLI local**: `ctx` commands read/write directly to local SQLite
 - **CLI remote**: `ctx` commands send REST requests to a server (`--remote` or `remote` in config)
 - **Full app (API + Web UI)**: `ctx serve` backend + Angular frontend from `ui/` submodule
+- **All-in-one tagged mode**: `ctx serve` also serves embedded SPA files from `/` (build tag: `allinone`)
 
 ## Requirements
 
@@ -52,6 +53,23 @@ go build -o ctx .
 ctx serve --addr :8080
 ```
 
+### Start all-in-one server (embedded UI, no nginx)
+
+```bash
+cd ui
+npm install
+npm run build -- --configuration production
+cd ..
+sh ./scripts/prepare-spa-assets.sh
+go run -tags allinone . serve --addr :8080
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
 ### Start full app with Web UI
 
 1. Start backend:
@@ -75,6 +93,8 @@ http://localhost:4200
 ```
 
 In development mode, UI uses `proxy.conf.json` and forwards `/api` to `http://localhost:8080`.
+
+In all-in-one mode, backend exposes API under both `/api/*` and legacy paths (`/context/*`, `/interval/*`).
 
 ### Example local usage
 
@@ -194,6 +214,13 @@ By default, the container starts:
 
 ```bash
 ctx serve --addr :8080
+```
+
+Build all-in-one image (embedded UI in Go binary):
+
+```bash
+docker build -f Dockerfile.all-in-one -t ctx:all-in-one .
+docker run --rm -p 8080:8080 -v $(pwd)/data:/data ctx:all-in-one
 ```
 
 ## UI (submodule)

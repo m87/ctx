@@ -46,6 +46,9 @@ jobs:
         working-directory: ./ui
         run: npm run build -- --configuration production
 
+      - name: Prepare embedded SPA assets
+        run: sh ./scripts/prepare-spa-assets.sh
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -56,6 +59,9 @@ jobs:
 
       - name: Build
         run: go build -v ./...
+
+      - name: Build all-in-one tagged binary
+        run: go build -tags allinone -v ./...
 
       - name: Test
         run: go test -v ./...
