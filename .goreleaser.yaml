@@ -3,7 +3,7 @@ version: 2
 project_name: ctx
 
 builds:
-  - id: ctx
+  - id: ctx-server
     binary: ctx
     main: ./main.go
     env:
@@ -16,10 +16,37 @@ builds:
       - amd64
       - arm64
 
+  - id: ctx-allinone
+    binary: ctx-all-in-one
+    main: ./main.go
+    tags:
+      - allinone
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
 archives:
-  - id: ctx-archive
+  - id: ctx-server-archive
     ids:
-      - ctx
+      - ctx-server
+    name_template: "{{ .ProjectName }}_server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+  - id: ctx-allinone-archive
+    ids:
+      - ctx-allinone
+    name_template: "{{ .ProjectName }}_all-in-one_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats:
       - tar.gz
     format_overrides:

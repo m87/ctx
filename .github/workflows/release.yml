@@ -31,6 +31,24 @@ jobs:
         with:
           go-version: "1.25.5"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        working-directory: ./ui
+        run: npm ci
+
+      - name: Build UI
+        working-directory: ./ui
+        run: npm run build -- --configuration production
+
+      - name: Prepare embedded SPA assets
+        run: sh ./scripts/prepare-spa-assets.sh
+
       - name: Download deps
         run: go mod download
 
@@ -83,6 +101,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.APP_VERSION }}-all-in-one
             ${{ env.IMAGE_NAME }}:${{ env.APP_VERSION }}
 
       - name: Build and push server image
