@@ -1,59 +1,136 @@
 # ctx
 
-ctx is a lightweight time-tracking command-line tool and server with an optional Angular web UI. It supports local SQLite mode, remote API mode, and a full web application for managing named contexts and time intervals.
+A lightweight time tracker: CLI + Go server + optional Angular web UI. It works in local mode (SQLite), remote mode (remote API), and all-in-one mode with embedded SPA assets.
 
-### Interval
+![Desktop](.img/desktop.png)
+![Mobile](.img/mobile.png)
 
-- `create interval --context-id <ID> [--start "YYYY-MM-DD HH:MM:SS" | RFC3339] [--end "YYYY-MM-DD HH:MM:SS" | RFC3339] [--status <STATUS>]`
-- `list interval [--day YYYY-MM-DD]`
-- `edit interval --id <ID> [--context-id <ID>] [--start "YYYY-MM-DD HH:MM:SS" | RFC3339] [--end "YYYY-MM-DD HH:MM:SS" | RFC3339] [--status <STATUS>]`
-- `delete interval --id <ID>`
-- day summaries (`summary day`)
-- context merge (`merge context`)
-- local mode (SQLite), remote mode via API (`--remote` or config), and full app mode with Web UI
-- output formats: `text`, `json`, `yaml`, `shell`
+## 1) CLI usage examples
 
-## Architecture and operation modes
+### Simple local usage
 
-This project can run in 4 modes:
+```bash
+ctx create context --name "Work"
+ctx switch --name "Work"
+ctx create interval --context-id <CONTEXT_ID>
+ctx list context
+ctx summary day --day 2026-04-12
+```
 
-- **CLI local**: `ctx` commands read/write directly to local SQLite
-- **CLI remote**: `ctx` commands send REST requests to a server (`--remote` or `remote` in config)
-- **Full app (API + Web UI)**: `ctx serve` backend + Angular frontend from `ui/` submodule
-- **All-in-one tagged mode**: `ctx serve` also serves embedded SPA files from `/` (build tag: `allinone`)
+### Remote usage
 
-## Requirements
+```bash
+ctx --remote http://localhost:8080 list context
+ctx --remote http://localhost:8080 create context --name "Client A"
+ctx --remote http://localhost:8080 free
+```
+
+### Remote behind reverse proxy with `/api` prefix
+
+```bash
+ctx --remote https://ctx.example.com/api list context
+```
+
+## 2) Available modes
+
+- **CLI local** — commands read/write directly to local SQLite.
+- **CLI remote** — commands send requests to a server (`--remote` or `remote` in config).
+- **Backend + separate UI** — `ctx serve` as API + UI started separately from `ui/`.
+- **All-in-one (`allinone`)** — `ctx serve` also serves embedded SPA assets (no nginx).
+
+## 3) Configuration
+
+The app reads configuration from `~/.ctx.yaml` and environment variables.
+
+Example:
+
+```yaml
+remote: http://localhost:8080
+log_level: info
+database:
+  path: ctx.db
+```
+
+Key rules:
+
+- `--remote` has higher priority than `remote` from config.
+- If neither `--remote` nor `remote` is set, CLI runs in local mode.
+- `remote` may include a path prefix (e.g. `https://host/api`).
+
+Environment variables:
+
+| Variable        | Config key      | Default  | Description                                        |
+| --------------- | --------------- | -------- | -------------------------------------------------- |
+| `REMOTE`        | `remote`        | empty    | Remote server base URL used by CLI in remote mode. |
+| `LOG_LEVEL`     | `log_level`     | `info`   | Logger level (`debug`, `info`, `warn`, `error`).   |
+| `DATABASE_PATH` | `database.path` | `ctx.db` | SQLite database file path.                         |
+
+Global flags:
+
+- `--remote, -r`
+- `--output, -o` (`text|json|yaml|shell`)
+- `--config`
+- `--verbose, -v`
+
+## 4) Technology stack
+
+- **Backend/CLI:** Go 1.25+, Cobra, Viper, SQLite
+- **UI:** Angular 21, TypeScript, Tailwind
+- **Containers:** Docker (separate images + all-in-one)
+- **CI/CD:** GitHub Actions, GoReleaser
+
+## 5) Run and build instructions
+
+### Requirements
 
 - Go 1.25+
+- Node.js 22+ (for UI)
+- npm
 
-## Quick start
-
-### Clone with submodules
+### Clone (with submodule)
 
 ```bash
 git clone --recurse-submodules <REPO_URL>
 cd ctx
 ```
 
-If the repository is already cloned:
+If repository is already cloned:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-### Build
+### Build CLI/server
 
 ```bash
 go build -o ctx .
 ```
 
-### Start REST server
+### Run backend only
 
 ```bash
 ctx serve --addr :8080
 ```
 
-### Start all-in-one server (embedded UI, no nginx)
+### Run backend + separate UI (dev)
+
+Terminal 1:
+
+```bash
+ctx serve --addr :8080
+```
+
+Terminal 2:
+
+```bash
+cd ui
+npm install
+npm run start
+```
+
+UI: `http://localhost:4200`
+
+### Run all-in-one (embedded SPA)
 
 ```bash
 cd ui
@@ -64,179 +141,24 @@ sh ./scripts/prepare-spa-assets.sh
 go run -tags allinone . serve --addr :8080
 ```
 
-Then open:
+UI: `http://localhost:8080`
 
-```text
-http://localhost:8080
-```
+### Docker
 
-### Start full app with Web UI
-
-1. Start backend:
-
-```bash
-ctx serve --addr :8080
-```
-
-2. Start frontend in a second terminal:
-
-```bash
-cd ui
-npm install
-npm run start
-```
-
-3. Open the app:
-
-```text
-http://localhost:4200
-```
-
-In development mode, UI uses `proxy.conf.json` and forwards `/api` to `http://localhost:8080`.
-
-In all-in-one mode, backend exposes API under both `/api/*` and legacy paths (`/context/*`, `/interval/*`).
-
-### Example local usage
-
-```bash
-ctx create context --name "Work"
-ctx switch --name "Work"
-ctx create interval --context-id <CONTEXT_ID>
-ctx list context
-ctx list interval --day 2026-03-28
-ctx summary day --day 2026-03-28
-```
-
-### Example remote usage
-
-```bash
-ctx --remote http://localhost:8080 create context --name "Work"
-ctx --remote http://localhost:8080 list context
-ctx --remote http://localhost:8080 switch --name "Work"
-ctx --remote http://localhost:8080 free
-```
-
-Example for reverse proxy with `/api` prefix:
-
-```bash
-ctx --remote http://ctx.example.com/api list context
-```
-
-## Configuration
-
-The app reads configuration from `~/.ctx.yaml` and environment variables.
-
-Example `~/.ctx.yaml`:
-
-```yaml
-remote: http://localhost:8080
-log_level: info
-database:
-  path: ctx.db
-```
-
-Notes:
-
-- `--remote` has higher priority than `remote` in config
-- if `--remote` is not provided and `remote` is not configured, commands run locally
-- `remote` may include a path prefix, e.g. `https://host/api`
-
-## Global flags
-
-- `--remote, -r` remote server address
-- `--output, -o` output format: `text|json|yaml|shell`
-- `--config` config file path
-- `--verbose, -v` verbose output (include detailed fields and, for `list context`, the intervals). Affects `text`, `json`, `yaml`, and `shell` outputs.
-
-Output examples:
-
-```bash
-ctx list context -o json
-ctx summary day --day 2026-03-28 -o yaml
-ctx list interval --day 2026-03-28 -o shell
-```
-
-## Commands
-
-### Context
-
-- `create context --name <NAME>`
-- `list context`
-- `edit context --id <ID> [--name <NAME>] [--description <TEXT>] [--status <STATUS>]`
-- `delete context --id <ID>`
-- `switch [--id <ID> | --name <NAZWA>]`
-- `free`
-- `merge context --source-id <ID> --target-id <ID> [--delete-source=true|false]`
-
-### Interval
-
-- `create interval --context-id <ID> [--start <RFC3339>] [--end <RFC3339>] [--status <STATUS>]`
-- `list interval [--day YYYY-MM-DD]`
-- `edit interval --id <ID> [--context-id <ID>] [--start <RFC3339>] [--end <RFC3339>] [--status <STATUS>]`
-- `delete interval --id <ID>`
-
-### Summary
-
-- `summary day [--day YYYY-MM-DD]`
-
-## REST API (summary)
-
-- `GET /context/`
-- `POST /context/`
-- `GET /context/{id}`
-- `PUT /context/{id}`
-- `DELETE /context/{id}`
-- `POST /context/switch`
-- `POST /context/free`
-- `GET /context/{id}/intervals`
-- `GET /interval/day/{date}`
-- `GET /interval/day/{date}/stats`
-- `POST /interval`
-- `PUT /interval/{id}`
-- `DELETE /interval/{id}`
-- `PATCH /interval/{id}/move/{targetId}`
-
-## Docker
-
-Build image:
+Server:
 
 ```bash
 docker build -t ctx:latest .
-```
-
-Run container:
-
-```bash
 docker run --rm -p 8080:8080 -v $(pwd)/data:/data ctx:latest
 ```
 
-By default, the container starts:
-
-```bash
-ctx serve --addr :8080
-```
-
-Build all-in-one image (embedded UI in Go binary):
+All-in-one:
 
 ```bash
 docker build -f Dockerfile.all-in-one -t ctx:all-in-one .
 docker run --rm -p 8080:8080 -v $(pwd)/data:/data ctx:all-in-one
 ```
 
-## UI (submodule)
-
-Frontend is added as a Git submodule:
-
-- path: `ui/`
-- repo: `https://github.com/m87/ctx-ui`
-
-Useful commands:
-
-```bash
-git submodule status
-git submodule update --remote --merge ui
-```
-
 ## License
 
-This project is licensed under `Apache-2.0 license`.
+This project is licensed under `Apache-2.0`.
