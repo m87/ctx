@@ -11,5 +11,6 @@ if [ ! -d "$SRC_DIR" ]; then
 fi
 
 mkdir -p "$DEST_DIR"
-find "$DEST_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+find "$DEST_DIR" -mindepth 1 -maxdepth 1 ! -name '.keep' -exec rm -rf {} +
 cp -a "$SRC_DIR"/. "$DEST_DIR"/
+[ -f "$DEST_DIR/.keep" ] || touch "$DEST_DIR/.keep"
