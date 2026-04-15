@@ -87,18 +87,14 @@ Global flags:
 - Node.js 22+ (for UI)
 - npm
 
-### Clone (with submodule)
+### Clone
 
 ```bash
-git clone --recurse-submodules <REPO_URL>
+git clone <REPO_URL>
 cd ctx
 ```
 
-If repository is already cloned:
-
-```bash
-git submodule update --init --recursive
-```
+Note: the `ui/` directory is included in this repository and is no longer a git submodule; no submodule init step is required.
 
 ### Build CLI/server
 
