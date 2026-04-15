@@ -1,4 +1,0 @@
-[submodule "ui"]
-	path = ui
-	url = https://github.com/m87/ctx-ui.git
-	branch = master
