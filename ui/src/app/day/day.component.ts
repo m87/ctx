@@ -136,19 +136,14 @@ export class DayComponent {
       .contextStats.map((contextStats) => {
         const context = contextsById.get(contextStats.contextId);
         const distributionValue = this.dayStats().distribution[contextStats.contextId];
-        const distributionPercent =
-          distributionValue === undefined
-            ? undefined
-            : distributionValue <= 1
-              ? distributionValue * 100
-              : distributionValue;
+        const distributionPercent = distributionValue ?? 0;
 
         return {
           id: contextStats.contextId,
           name: context?.name ?? contextStats.contextId,
           duration: durationAsHM(contextStats.duration),
           percent: distributionPercent ?? contextStats.percentage,
-          distributionPercent: 0,
+          distributionPercent: distributionPercent ?? 0,
           color: colorHash(context?.id ?? contextStats.contextId),
           sessions: (this.dayStats().intervals[contextStats.contextId] ?? []).map(
             (interval) => `${interval.start.toTimeString()}–${interval.end.toTimeString()}`,
@@ -157,16 +152,7 @@ export class DayComponent {
       })
       .sort((left, right) => right.percent - left.percent);
 
-    const totalPercent = mappedContexts.reduce(
-      (sum, context) => sum + Math.max(context.percent, 0),
-      0,
-    );
-
-    return mappedContexts.map((context) => ({
-      ...context,
-      distributionPercent:
-        totalPercent > 0 ? (Math.max(context.percent, 0) / totalPercent) * 100 : 0,
-    }));
+    return mappedContexts;
   });
 
   totalTracked = computed(() => {
