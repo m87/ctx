@@ -8,7 +8,7 @@ import { SidebarStore } from './sidebar/sidebar.store';
   selector: 'app-root',
   imports: [HeaderComponent, SidebarComponent, MainComponent],
   template: `
-    <div class="flex justify-center w-full h-screen bg-background text-foreground">
+    <div class="flex justify-center w-full h-dvh bg-background text-foreground">
       <div class="w-full h-full flex flex-col">
         <app-header></app-header>
         <div class="relative flex flex-1 min-h-0" [class.sidebar-collapsed]="sidebar.collapsed()">
