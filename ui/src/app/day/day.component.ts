@@ -4,6 +4,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { DateTime } from 'luxon';
 import { injectQuery } from '@tanstack/angular-query-experimental';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideFlag, lucidePlay } from '@ng-icons/lucide';
 import { ContextQueries } from '../../api/context.quries';
 import { DayStats } from '../../api/context.service';
 import { colorHash, durationAsHM } from '../utils';
@@ -18,14 +20,40 @@ const EMPTY_DAY_STATS: DayStats = {
 
 @Component({
   selector: 'app-day',
-  imports: [RouterLink],
+  imports: [RouterLink, NgIcon],
+  providers: [
+    provideIcons({
+      lucidePlay,
+      lucideFlag,
+    }),
+  ],
   template: `
     <div class="w-full h-full overflow-hidden flex flex-col p-4 md:p-6">
       <div class="mb-5">
         <div class="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
           Daily summary
         </div>
-        <h1 class="text-2xl font-semibold tracking-tight mt-1">{{ formatDate(selectedDate()) }}</h1>
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-semibold tracking-tight mt-1">
+            {{ formatDate(selectedDate()) }}
+          </h1>
+          <div>
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <div class="flex items-center justify-between gap-1">
+                <span class="inline-flex items-center gap-1.5" [title]="'Start of first session'">
+                  <ng-icon name="lucidePlay" class="text-[11px]"></ng-icon>
+                </span>
+                <span class="tabular-nums">{{ firstContextStart() }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-1">
+                <span class="inline-flex items-center gap-1.5" [title]="'End of last session'">
+                  <ng-icon name="lucideFlag" class="text-[11px]"></ng-icon>
+                </span>
+                <span class="tabular-nums">{{ lastContextEnd() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 mb-6">
@@ -128,6 +156,34 @@ export class DayComponent {
 
   dayStatsQuery = injectQuery(() => this.contextQueries.dayStats(this.selectedDate()));
   dayStats = computed(() => this.dayStatsQuery.data() ?? EMPTY_DAY_STATS);
+  firstContextStart = computed(() => {
+    const intervals = Object.values(this.dayStats().intervals).flat();
+    if (intervals.length === 0) {
+      return '-';
+    }
+
+    let firstStart = intervals[0].start;
+    for (const interval of intervals) {
+      if (interval.start < firstStart) {
+        firstStart = interval.start;
+      }
+    }
+    return this.formatTime(firstStart);
+  });
+  lastContextEnd = computed(() => {
+    const intervals = Object.values(this.dayStats().intervals).flat();
+    if (intervals.length === 0) {
+      return '-';
+    }
+
+    let lastEnd = intervals[0].end;
+    for (const interval of intervals) {
+      if (interval.end > lastEnd) {
+        lastEnd = interval.end;
+      }
+    }
+    return this.formatTime(lastEnd);
+  });
 
   contexts = computed(() => {
     const contextsById = new Map(this.dayStats().contexts.map((context) => [context.id, context]));
@@ -171,5 +227,9 @@ export class DayComponent {
 
   formatDate(date: string): string {
     return DateTime.fromFormat(date, 'yyyy-MM-dd').toFormat('dd.MM.yyyy');
+  }
+
+  formatTime(date: { toTimeString: () => string }): string {
+    return date.toTimeString().slice(0, 5);
   }
 }

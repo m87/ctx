@@ -1,10 +1,14 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideCalendar,
+  lucideClock3,
   lucideGanttChart,
+  lucideHistory,
   lucidePanelLeft,
   lucidePause,
+  lucidePlus,
   lucideSearch,
   lucideX,
 } from '@ng-icons/lucide';
@@ -17,9 +21,11 @@ import { injectMutation, injectQuery } from '@tanstack/angular-query-experimenta
 import { Context } from '../../api/context.service';
 import { ContextQueries } from '../../api/context.quries';
 import { ContextMutations } from '../../api/context.mutations';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { DateTime } from 'luxon';
+import { catchError, filter, forkJoin, map, of, startWith, switchMap } from 'rxjs';
+import { ContextService, ContextStats } from '../../api/context.service';
 
 @Component({
   selector: 'app-header',
@@ -39,6 +45,9 @@ import { DateTime } from 'luxon';
       lucidePanelLeft,
       lucidePause,
       lucideX,
+      lucidePlus,
+      lucideClock3,
+      lucideHistory,
     }),
   ],
   template: `
@@ -74,19 +83,96 @@ import { DateTime } from 'luxon';
 
             @if (showSuggestions()) {
               <div
-                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-56 overflow-auto"
+                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto"
               >
-                @for (context of filteredContexts(); track context.id; let index = $index) {
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                  [class.bg-muted]="activeSuggestionIndex() === 0"
+                  [class.text-foreground]="activeSuggestionIndex() === 0"
+                  [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
+                  (mouseenter)="setActiveSuggestionIndex(0)"
+                  (mousedown)="createContextFromTerm(searchTerm().trim())"
+                >
+                  <ng-icon name="lucidePlus" class="text-xs"></ng-icon>
+                  <span class="truncate font-medium">{{ searchTerm().trim() }}</span>
+                </button>
+
+                @if (dayMatchedContexts().length > 0) {
+                  <div
+                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                  >
+                    {{ daySectionLabel() }}
+                  </div>
+                }
+                @for (context of dayMatchedContexts(); track context.id) {
                   <button
                     type="button"
-                    class="w-full text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
-                    [class.bg-muted]="activeSuggestionIndex() === index"
-                    [class.text-foreground]="activeSuggestionIndex() === index"
-                    [class.text-muted-foreground]="activeSuggestionIndex() !== index"
-                    (mouseenter)="setActiveSuggestionIndex(index)"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="activeSuggestionIndex() === suggestionIndex(context.id)"
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === suggestionIndex(context.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== suggestionIndex(context.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(suggestionIndex(context.id))"
                     (mousedown)="selectContext(context)"
                   >
-                    {{ context.name }}
+                    <span class="truncate">{{ context.name }}</span>
+                    <span
+                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                    >
+                      @if (contextTodayDuration(context.id); as todayDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          {{ todayDuration }}
+                        </span>
+                      }
+                      @if (contextTotalDuration(context.id); as totalDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          {{ totalDuration }}
+                        </span>
+                      }
+                    </span>
+                  </button>
+                }
+
+                @if (otherMatchedContexts().length > 0) {
+                  <div class="my-1 border-t border-border/70"></div>
+                }
+                @for (context of otherMatchedContexts(); track context.id) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="activeSuggestionIndex() === suggestionIndex(context.id)"
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === suggestionIndex(context.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== suggestionIndex(context.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(suggestionIndex(context.id))"
+                    (mousedown)="selectContext(context)"
+                  >
+                    <span class="truncate">{{ context.name }}</span>
+                    <span
+                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                    >
+                      @if (contextTodayDuration(context.id); as todayDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          {{ todayDuration }}
+                        </span>
+                      }
+                      @if (contextTotalDuration(context.id); as totalDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          {{ totalDuration }}
+                        </span>
+                      }
+                    </span>
                   </button>
                 }
               </div>
@@ -188,19 +274,96 @@ import { DateTime } from 'luxon';
 
             @if (showSuggestions()) {
               <div
-                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-56 overflow-auto"
+                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto"
               >
-                @for (context of filteredContexts(); track context.id; let index = $index) {
+                <button
+                  type="button"
+                  class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                  [class.bg-muted]="activeSuggestionIndex() === 0"
+                  [class.text-foreground]="activeSuggestionIndex() === 0"
+                  [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
+                  (mouseenter)="setActiveSuggestionIndex(0)"
+                  (mousedown)="createContextFromTerm(searchTerm().trim())"
+                >
+                  <ng-icon name="lucidePlus" class="text-xs"></ng-icon>
+                  <span class="truncate font-medium">{{ searchTerm().trim() }}</span>
+                </button>
+
+                @if (dayMatchedContexts().length > 0) {
+                  <div
+                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                  >
+                    {{ daySectionLabel() }}
+                  </div>
+                }
+                @for (context of dayMatchedContexts(); track context.id) {
                   <button
                     type="button"
-                    class="w-full text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
-                    [class.bg-muted]="activeSuggestionIndex() === index"
-                    [class.text-foreground]="activeSuggestionIndex() === index"
-                    [class.text-muted-foreground]="activeSuggestionIndex() !== index"
-                    (mouseenter)="setActiveSuggestionIndex(index)"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="activeSuggestionIndex() === suggestionIndex(context.id)"
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === suggestionIndex(context.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== suggestionIndex(context.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(suggestionIndex(context.id))"
                     (mousedown)="selectContext(context)"
                   >
-                    {{ context.name }}
+                    <span class="truncate">{{ context.name }}</span>
+                    <span
+                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                    >
+                      @if (contextTodayDuration(context.id); as todayDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          {{ todayDuration }}
+                        </span>
+                      }
+                      @if (contextTotalDuration(context.id); as totalDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          {{ totalDuration }}
+                        </span>
+                      }
+                    </span>
+                  </button>
+                }
+
+                @if (otherMatchedContexts().length > 0) {
+                  <div class="my-1 border-t border-border/70"></div>
+                }
+                @for (context of otherMatchedContexts(); track context.id) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="activeSuggestionIndex() === suggestionIndex(context.id)"
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === suggestionIndex(context.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== suggestionIndex(context.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(suggestionIndex(context.id))"
+                    (mousedown)="selectContext(context)"
+                  >
+                    <span class="truncate">{{ context.name }}</span>
+                    <span
+                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                    >
+                      @if (contextTodayDuration(context.id); as todayDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          {{ todayDuration }}
+                        </span>
+                      }
+                      @if (contextTotalDuration(context.id); as totalDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          {{ totalDuration }}
+                        </span>
+                      }
+                    </span>
                   </button>
                 }
               </div>
@@ -217,6 +380,7 @@ export class HeaderComponent {
   sidebar = inject(SidebarStore);
   private contextQueries = inject(ContextQueries);
   private contextMutations = inject(ContextMutations);
+  private contextService = inject(ContextService);
   private router = inject(Router);
   today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
 
@@ -224,7 +388,19 @@ export class HeaderComponent {
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   freeContextMutation = injectMutation(() => this.contextMutations.free());
   activeContextQuery = injectQuery(() => this.contextQueries.active());
+  selectedDate = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => this.resolveSelectedDate()),
+    ),
+    { initialValue: this.today() },
+  );
+  dayStatsQuery = injectQuery(() => this.contextQueries.dayStats(this.selectedDate()));
   activeContextName = computed(() => this.activeContextQuery.data()?.name ?? '');
+  daySectionLabel = computed(() =>
+    this.selectedDate() === DateTime.local().toFormat('yyyy-MM-dd') ? 'Today' : this.selectedDate(),
+  );
 
   readonly searchTerm = signal<string>('');
   readonly searchFocused = signal<boolean>(false);
@@ -234,20 +410,65 @@ export class HeaderComponent {
   readonly filteredContexts = computed<readonly Context[]>(() => {
     const term = this.searchTerm().trim().toLowerCase();
     if (!term) {
-      return this.contexts();
+      return [];
     }
     return this.contexts().filter((context) => context.name.toLowerCase().includes(term));
   });
+  readonly usedContextIdsForDay = computed(
+    () => new Set(this.dayStatsQuery.data()?.contextStats.map((stats) => stats.contextId) ?? []),
+  );
+  readonly dayMatchedContexts = computed<readonly Context[]>(() =>
+    this.filteredContexts().filter((context) => this.usedContextIdsForDay().has(context.id)),
+  );
+  readonly otherMatchedContexts = computed<readonly Context[]>(() =>
+    this.filteredContexts().filter((context) => !this.usedContextIdsForDay().has(context.id)),
+  );
+  readonly suggestionContexts = computed<readonly Context[]>(() => [
+    ...this.dayMatchedContexts(),
+    ...this.otherMatchedContexts(),
+  ]);
+  readonly suggestionCount = computed<number>(() =>
+    this.searchTerm().trim().length > 0 ? this.suggestionContexts().length + 1 : 0,
+  );
+  readonly statsByContextId = toSignal(
+    toObservable(
+      computed(() => ({
+        contexts: this.filteredContexts(),
+        date: this.selectedDate(),
+      })),
+    ).pipe(
+      switchMap(({ contexts, date }) => {
+        if (contexts.length === 0) {
+          return of({} as Record<string, ContextStats>);
+        }
+
+        return forkJoin(
+          contexts.map((context) =>
+            this.contextService.getStats(context.id, date).pipe(
+              map((stats) => [context.id, stats] as const),
+              catchError(() => of([context.id, null] as const)),
+            ),
+          ),
+        ).pipe(
+          map((entries) =>
+            Object.fromEntries(
+              entries.filter(
+                (entry): entry is readonly [string, ContextStats] => entry[1] !== null,
+              ),
+            ),
+          ),
+        );
+      }),
+    ),
+    { initialValue: {} as Record<string, ContextStats> },
+  );
   readonly showSuggestions = computed<boolean>(
-    () =>
-      this.searchFocused() &&
-      this.searchTerm().trim().length > 0 &&
-      this.filteredContexts().length > 0,
+    () => this.searchFocused() && this.searchTerm().trim().length > 0,
   );
 
   private readonly syncActiveSuggestionEffect = effect(() => {
     const visible = this.showSuggestions();
-    const suggestionsLength = this.filteredContexts().length;
+    const suggestionsLength = this.suggestionCount();
     const currentIndex = this.activeSuggestionIndex();
 
     if (!visible || suggestionsLength === 0) {
@@ -292,10 +513,18 @@ export class HeaderComponent {
 
   selectContext(context: Context): void {
     this.searchTerm.set(context.name);
-    this.searchFocused.set(false);
-    this.activeSuggestionIndex.set(-1);
-    this.mobileSearchOpen.set(false);
+    this.resetSearchUi();
     this.switchContextMutation.mutate(context);
+  }
+
+  createContextFromTerm(term: string): void {
+    const normalizedTerm = term.trim();
+    if (!normalizedTerm) {
+      return;
+    }
+    this.searchTerm.set(normalizedTerm);
+    this.resetSearchUi();
+    this.switchContextMutation.mutate({ id: '', name: normalizedTerm } as Context);
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -304,7 +533,7 @@ export class HeaderComponent {
         return;
       }
       event.preventDefault();
-      const suggestionsLength = this.filteredContexts().length;
+      const suggestionsLength = this.suggestionCount();
       const currentIndex = this.activeSuggestionIndex();
       this.activeSuggestionIndex.set((currentIndex + 1 + suggestionsLength) % suggestionsLength);
       return;
@@ -315,7 +544,7 @@ export class HeaderComponent {
         return;
       }
       event.preventDefault();
-      const suggestionsLength = this.filteredContexts().length;
+      const suggestionsLength = this.suggestionCount();
       const currentIndex = this.activeSuggestionIndex();
       this.activeSuggestionIndex.set((currentIndex - 1 + suggestionsLength) % suggestionsLength);
       return;
@@ -340,28 +569,55 @@ export class HeaderComponent {
       return;
     }
 
-    if (this.showSuggestions()) {
-      const selectedContext = this.filteredContexts()[this.activeSuggestionIndex()];
+    if (this.showSuggestions() && this.activeSuggestionIndex() > 0) {
+      const selectedContext = this.suggestionContexts()[this.activeSuggestionIndex() - 1];
       if (selectedContext) {
         this.selectContext(selectedContext);
         return;
       }
     }
 
-    const existingContext = this.contexts().find(
-      (context) => context.name.toLowerCase() === term.toLowerCase(),
-    );
+    this.createContextFromTerm(term);
+  }
 
-    if (existingContext) {
-      this.switchContextMutation.mutate(existingContext);
-      this.searchTerm.set(existingContext.name);
-      this.searchFocused.set(false);
-      this.activeSuggestionIndex.set(-1);
-      this.mobileSearchOpen.set(false);
-      return;
+  suggestionIndex(contextId: string): number {
+    return this.suggestionContexts().findIndex((context) => context.id === contextId) + 1;
+  }
+
+  contextTodayDuration(contextId: string): string | null {
+    const stats = this.statsByContextId()[contextId];
+    return this.formatDuration(stats?.duration ?? 0);
+  }
+
+  contextTotalDuration(contextId: string): string | null {
+    const stats = this.statsByContextId()[contextId];
+    return this.formatDuration(stats?.totalDuration ?? 0);
+  }
+
+  private resolveSelectedDate(): string {
+    const dayMatch = this.router.url.match(/\/day\/(\d{4}-\d{2}-\d{2})/);
+    return dayMatch?.[1] ?? DateTime.local().toFormat('yyyy-MM-dd');
+  }
+
+  private formatDuration(duration: number): string | null {
+    const totalMinutes = Math.max(0, Math.floor(duration / 60000000000));
+    if (totalMinutes === 0) {
+      return null;
     }
 
-    this.switchContextMutation.mutate({ id: '', name: term } as Context);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours > 0 && minutes > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    if (hours > 0) {
+      return `${hours}h`;
+    }
+    return `${minutes}m`;
+  }
+
+  private resetSearchUi(): void {
     this.searchFocused.set(false);
     this.activeSuggestionIndex.set(-1);
     this.mobileSearchOpen.set(false);
