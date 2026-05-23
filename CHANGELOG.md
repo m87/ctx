@@ -1,7 +1,7 @@
 ## 0.3.2
 
-- feat: search UI — create tile, grouped results (Today/date), per-context time badges
-- feat: daily summary — show first start and last end times
+- enhancement: search UI — create tile, grouped results (Today/date), per-context time badges
+- enhancement: daily summary — show first start and last end times
 
 ## 0.3.1
 
