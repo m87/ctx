@@ -16,12 +16,18 @@ func CreateManager() *core.ContextManager {
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
 	repository, _ := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewMapperRegistry())
-	return core.NewContextManager(&core.RealTimeProvider{}, NewContextRepository(repository), NewIntervalRepository(repository))
+	return core.NewContextManager(
+		&core.RealTimeProvider{},
+		NewContextRepository(repository),
+		NewIntervalRepository(repository),
+		NewWorkspaceRepository(repository),
+	)
 }
 
 func NewMapperRegistry() *nod.MapperRegistry {
 	registry := nod.NewMapperRegistry()
 	nod.RegisterMapper(registry, &core.IntervalMapper{})
 	nod.RegisterMapper(registry, &core.ContextMapper{})
+	nod.RegisterMapper(registry, &core.WorkspaceMapper{})
 	return registry
 }

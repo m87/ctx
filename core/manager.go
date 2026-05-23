@@ -11,16 +11,23 @@ type TimeRange struct {
 }
 
 type ContextManager struct {
-	TimeProvider       TimeProvider
-	ContextRepository  ContextRepository
-	IntervalRepository IntervalRepository
+	TimeProvider        TimeProvider
+	ContextRepository   ContextRepository
+	IntervalRepository  IntervalRepository
+	WorkspaceRepository WorkspaceRepository
 }
 
-func NewContextManager(tp TimeProvider, contextRepo ContextRepository, intervalRepo IntervalRepository) *ContextManager {
+func NewContextManager(
+	tp TimeProvider,
+	contextRepo ContextRepository,
+	intervalRepo IntervalRepository,
+	workspaceRepo WorkspaceRepository,
+) *ContextManager {
 	return &ContextManager{
-		TimeProvider:       tp,
-		ContextRepository:  contextRepo,
-		IntervalRepository: intervalRepo,
+		TimeProvider:        tp,
+		ContextRepository:   contextRepo,
+		IntervalRepository:  intervalRepo,
+		WorkspaceRepository: workspaceRepo,
 	}
 }
 

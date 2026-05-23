@@ -34,3 +34,7 @@ func (r *ContextRepository) List() ([]*core.Context, error) {
 func (r *ContextRepository) GetActive() (*core.Context, error) {
 	return r.repository.Query().KindEquals(core.ContextType).StatusEquals("active").KV().First()
 }
+
+func (r *ContextRepository) ListByWorkspace(workspaceId string) ([]*core.Context, error) {
+	return r.repository.Query().KindEquals(core.ContextType).NamespaceIdEquals(workspaceId).List()
+}
