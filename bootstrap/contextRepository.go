@@ -36,5 +36,5 @@ func (r *ContextRepository) GetActive() (*core.Context, error) {
 }
 
 func (r *ContextRepository) ListByWorkspace(workspaceId string) ([]*core.Context, error) {
-	return r.repository.Query().KindEquals(core.ContextType).NamespaceIdEquals(workspaceId).List()
+	return r.repository.Query().KindEquals(core.ContextType).NamespaceId(workspaceId).List()
 }

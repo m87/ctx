@@ -43,11 +43,21 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 }
 
 func (m *ContextMapper) FromNode(node *nod.Node) (*Context, error) {
+	parentId := ""
+	if node.Core.ParentId != nil {
+		parentId = *node.Core.ParentId
+	}
+
+	workspaceId := ""
+	if node.Core.NamespaceId != nil {
+		workspaceId = *node.Core.NamespaceId
+	}
+
 	return &Context{
 		Id:          node.Core.Id,
 		Name:        node.Core.Name,
-		ParentId:    *node.Core.ParentId,
-		WorkspaceId: *node.Core.NamespaceId,
+		ParentId:    parentId,
+		WorkspaceId: workspaceId,
 		Status:      node.Core.Status,
 		Description: nod.ConvertContentToStringMap(node.Content)["description"],
 		Tags:        nod.ConvertTagsToStringSlice(node.Tags),

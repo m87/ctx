@@ -146,6 +146,37 @@ func (c *HttpClient) requestJSON(method, path string, request any, response any)
 	return nil
 }
 
+func remoteCreateWorkspace(workspace *core.Workspace) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	var created core.Workspace
+	if err := client.requestJSON(http.MethodPost, "/workspace/", workspace, &created); err != nil {
+		return err
+	}
+	if created.Id != "" {
+		workspace.Id = created.Id
+	}
+	return nil
+}
+
+func remoteListWorkspaces() ([]*core.Workspace, error) {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	var workspaces []*core.Workspace
+	if err := client.requestJSON(http.MethodGet, "/workspace/", nil, &workspaces); err != nil {
+		return nil, err
+	}
+	return workspaces, nil
+}
+
+func remoteDeleteWorkspace(id string) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	return client.requestJSON(http.MethodDelete, "/workspace/"+strings.TrimSpace(id), nil, nil)
+}
+
+func remoteUpdateWorkspace(workspace *core.Workspace) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	return client.requestJSON(http.MethodPut, "/workspace/"+strings.TrimSpace(workspace.Id), workspace, workspace)
+}
+
 func remoteCreateContext(context *core.Context) error {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var created core.Context
