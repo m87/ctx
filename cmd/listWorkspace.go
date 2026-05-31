@@ -8,11 +8,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewListWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
+func NewListWorkspaceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "workspace",
 		Short: "List workspaces",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			var workspaces []*core.Workspace
 			var err error
 
@@ -47,5 +49,5 @@ func NewListWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	listCmd.AddCommand(NewListWorkspaceCmd(bootstrap.CreateManager()))
+	listCmd.AddCommand(NewListWorkspaceCmd())
 }

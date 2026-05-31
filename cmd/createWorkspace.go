@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCreateWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
+func NewCreateWorkspaceCmd() *cobra.Command {
 	var (
 		name string
 	)
@@ -15,6 +15,8 @@ func NewCreateWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "workspace",
 		Short: "Create a new workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			workspace := &core.Workspace{
 				Name: name,
 			}
@@ -43,5 +45,5 @@ func NewCreateWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	createCmd.AddCommand(NewCreateWorkspaceCmd(bootstrap.CreateManager()))
+	createCmd.AddCommand(NewCreateWorkspaceCmd())
 }

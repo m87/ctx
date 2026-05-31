@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
+func NewSwitchCmd() *cobra.Command {
 	var (
 		id   string
 		name string
@@ -19,6 +19,8 @@ func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "switch",
 		Short: "Switch active context",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			contextID := strings.TrimSpace(id)
 			contextName := strings.TrimSpace(name)
 			if contextID == "" && contextName == "" {
@@ -64,5 +66,5 @@ func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	rootCmd.AddCommand(NewSwitchCmd(bootstrap.CreateManager()))
+	rootCmd.AddCommand(NewSwitchCmd())
 }

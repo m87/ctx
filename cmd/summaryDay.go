@@ -11,13 +11,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
+func NewSummaryDayCmd() *cobra.Command {
 	var dayRaw string
 
 	cmd := &cobra.Command{
 		Use:   "day",
 		Short: "Show day summary",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			day, err := parseDay(dayRaw)
 			if err != nil {
 				return err
@@ -187,5 +189,5 @@ func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	summaryCmd.AddCommand(NewSummaryDayCmd(bootstrap.CreateManager()))
+	summaryCmd.AddCommand(NewSummaryDayCmd())
 }

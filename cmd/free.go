@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewFreeCmd(manager *core.ContextManager) *cobra.Command {
+func NewFreeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "free",
 		Short: "Free active context",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			if resolveRemoteAddr() != "" {
 				if err := remoteFreeContext(); err != nil {
 					return err
@@ -30,5 +31,5 @@ func NewFreeCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	rootCmd.AddCommand(NewFreeCmd(bootstrap.CreateManager()))
+	rootCmd.AddCommand(NewFreeCmd())
 }

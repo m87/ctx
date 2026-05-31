@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
+func NewCreateContextCmd() *cobra.Command {
 	var (
 		name string
 	)
@@ -17,6 +17,8 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "context",
 		Short: "Create a new context",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			context := &core.Context{
 				Name: strings.TrimSpace(name),
 			}
@@ -48,5 +50,5 @@ func NewCreateContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	createCmd.AddCommand(NewCreateContextCmd(bootstrap.CreateManager()))
+	createCmd.AddCommand(NewCreateContextCmd())
 }

@@ -5,11 +5,10 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewMergeContextCmd(manager *core.ContextManager) *cobra.Command {
+func NewMergeContextCmd() *cobra.Command {
 	var (
 		sourceID     string
 		targetID     string
@@ -20,6 +19,8 @@ func NewMergeContextCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "context",
 		Short: "Merge source context into target context",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			source := strings.TrimSpace(sourceID)
 			target := strings.TrimSpace(targetID)
 			if source == "" || target == "" {
@@ -92,5 +93,5 @@ func NewMergeContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	mergeCmd.AddCommand(NewMergeContextCmd(bootstrap.CreateManager()))
+	mergeCmd.AddCommand(NewMergeContextCmd())
 }

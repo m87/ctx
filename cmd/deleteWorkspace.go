@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewDeleteWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
+func NewDeleteWorkspaceCmd() *cobra.Command {
 	var workspaceId string
 
 	cmd := &cobra.Command{
@@ -16,6 +15,7 @@ func NewDeleteWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
 			if resolveRemoteAddr() != "" {
 				return remoteDeleteWorkspace(workspaceId)
 			}
+			manager := bootstrap.CreateManager()
 			return manager.WorkspaceRepository.Delete(workspaceId)
 		},
 	}
@@ -26,5 +26,5 @@ func NewDeleteWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	deleteCmd.AddCommand(NewDeleteWorkspaceCmd(bootstrap.CreateManager()))
+	deleteCmd.AddCommand(NewDeleteWorkspaceCmd())
 }

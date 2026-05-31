@@ -10,11 +10,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewListContextCmd(manager *core.ContextManager) *cobra.Command {
+func NewListContextCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "context",
 		Short: "List all contexts",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			var contexts []*core.Context
 			var err error
 			if resolveRemoteAddr() != "" {
@@ -112,5 +114,5 @@ func NewListContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	listCmd.AddCommand(NewListContextCmd(bootstrap.CreateManager()))
+	listCmd.AddCommand(NewListContextCmd())
 }

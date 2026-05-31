@@ -5,17 +5,18 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewListIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func NewListIntervalCmd() *cobra.Command {
 	var dayRaw string
 
 	cmd := &cobra.Command{
 		Use:   "interval",
 		Short: "List intervals for a day",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			day, err := parseDay(dayRaw)
 			if err != nil {
 				return err
@@ -58,5 +59,5 @@ func NewListIntervalCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	listCmd.AddCommand(NewListIntervalCmd(bootstrap.CreateManager()))
+	listCmd.AddCommand(NewListIntervalCmd())
 }

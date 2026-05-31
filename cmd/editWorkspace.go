@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewEditWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
+func NewEditWorkspaceCmd() *cobra.Command {
 	var (
 		workspaceId string
 		name        string
@@ -16,6 +15,8 @@ func NewEditWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "workspace",
 		Short: "Edit a workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager := bootstrap.CreateManager()
+
 			workspace, err := manager.WorkspaceRepository.GetById(workspaceId)
 			if err != nil {
 				return err
@@ -49,5 +50,5 @@ func NewEditWorkspaceCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	editCmd.AddCommand(NewEditWorkspaceCmd(bootstrap.CreateManager()))
+	editCmd.AddCommand(NewEditWorkspaceCmd())
 }
