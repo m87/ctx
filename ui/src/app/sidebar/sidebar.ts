@@ -2,19 +2,17 @@ import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SidebarContextListComponent } from './sidebar-context-list.component';
 import { SidebarStore } from './sidebar.store';
+import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.component';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [SidebarContextListComponent, RouterLink, RouterLinkActive],
+  imports: [SidebarContextListComponent, SidebarWorkspaceSelectComponent, RouterLink, RouterLinkActive],
   template: ` <div class="h-full w-full min-h-0 flex flex-col">
-    <div class="flex-1 min-h-0 flex flex-col border-b">
-      <div class="flex flex-col gap-2 p-2.5 border-b">
-        <!-- <div class="uppercase flex justify-between items-center text-sm text-muted-foreground">
-          <span>Workspace</span><ng-icon name="lucidePlus" class="cursor-pointer"></ng-icon>
-        </div>
-        <div class="font-bold text-blue-500 bg-blue-50 rounded-sm p-1">personal</div>
-        <div class="p-1">work</div>
-      </div> -->
+    <div class="flex-1 min-h-0 flex flex-col border-b bg-sidebar">
+      <div class="flex flex-col gap-2.5 p-2.5 border-b">
+        <app-sidebar-workspace-select></app-sidebar-workspace-select>
+      </div>
+      <div class="flex flex-col gap-2.5 p-2.5 border-b">
         <div class="flex-1 min-h-0 flex flex-col gap-1.5 p-1">
           <a
             routerLink="/day"
@@ -48,5 +46,5 @@ import { SidebarStore } from './sidebar.store';
   </div>`,
 })
 export class SidebarComponent {
-  constructor(public sidebar: SidebarStore) {}
+  constructor(public sidebar: SidebarStore) { }
 }

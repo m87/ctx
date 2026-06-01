@@ -83,7 +83,7 @@ import { ContextService, ContextStats } from '../../api/context.service';
 
             @if (showSuggestions()) {
               <div
-                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto"
+                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
               >
                 <button
                   type="button"
@@ -274,7 +274,7 @@ import { ContextService, ContextStats } from '../../api/context.service';
 
             @if (showSuggestions()) {
               <div
-                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto"
+                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
               >
                 <button
                   type="button"
