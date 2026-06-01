@@ -20,7 +20,7 @@ import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.comp
             class="uppercase flex justify-between items-center text-[11px] tracking-[0.08em] text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
             (click)="sidebar.closeMobile()"
           >
-            day
+            daily summary
           </a>
           <!-- <div
             class="uppercase flex justify-between items-center text-sm text-muted-foreground p-1 font-semibold"
