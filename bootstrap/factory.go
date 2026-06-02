@@ -23,5 +23,6 @@ func NewMapperRegistry() *nod.MapperRegistry {
 	registry := nod.NewMapperRegistry()
 	nod.RegisterMapper(registry, &core.IntervalMapper{})
 	nod.RegisterMapper(registry, &core.ContextMapper{})
+	nod.RegisterMapper(registry, &core.SettingsMapper{})
 	return registry
 }
