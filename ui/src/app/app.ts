@@ -1,8 +1,13 @@
-import { Component, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Component, effect, inject } from '@angular/core';
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { SettingsQueries } from '../api/settings.queries';
 import { HeaderComponent } from './header/header';
-import { SidebarComponent } from './sidebar/sidebar';
 import { MainComponent } from './main/main';
+import { SidebarComponent } from './sidebar/sidebar';
 import { SidebarStore } from './sidebar/sidebar.store';
+
+const themeKey = 'client.general.theme';
 
 @Component({
   selector: 'app-root',
@@ -45,4 +50,13 @@ import { SidebarStore } from './sidebar/sidebar.store';
 })
 export class App {
   sidebar = inject(SidebarStore);
+  private document = inject(DOCUMENT);
+  private settingsQueries = inject(SettingsQueries);
+
+  settingsQuery = injectQuery(() => this.settingsQueries.settings());
+
+  private readonly syncThemeEffect = effect(() => {
+    const theme = this.settingsQuery.data()?.[themeKey];
+    this.document.documentElement.classList.toggle('dark', theme === 'dark');
+  });
 }

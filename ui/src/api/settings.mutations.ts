@@ -14,10 +14,14 @@ export class SettingsMutations {
       mutationFn: (settings: Settings) =>
         lastValueFrom(this.settingsService.saveSettings(settings)),
       onSuccess: (_, settings) => {
+        this.queryClient.setQueryData([...SettingsQueries.key, 'settings'], settings);
         this.queryClient.invalidateQueries({ queryKey: [...SettingsQueries.key, 'settings'] });
 
         Object.keys(settings).forEach((key) => {
-          this.queryClient.invalidateQueries({ queryKey: [...SettingsQueries.key, 'setting', key] });
+          this.queryClient.setQueryData([...SettingsQueries.key, 'setting', key], settings[key]);
+          this.queryClient.invalidateQueries({
+            queryKey: [...SettingsQueries.key, 'setting', key],
+          });
         });
       },
     });

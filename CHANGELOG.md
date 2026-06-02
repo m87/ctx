@@ -1,3 +1,7 @@
+## 0.4.0
+- feature: settings view — currently supports first day of week and light/dark theme
+- enhancement: UI — display application version number
+
 ## 0.3.2
 
 - enhancement: search UI — create tile, grouped results (Today/date), per-context time badges
