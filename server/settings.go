@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/m87/ctx/core"
@@ -12,7 +13,7 @@ func registerSettingsHandler(mux *http.ServeMux, manager *core.SettingsManager) 
 	handler := &SettingsHandler{manager: manager}
 	mux.HandleFunc("GET /key/{key}", handler.getClientSetting)
 	mux.HandleFunc("GET /", handler.getClientSettings)
-	mux.HandleFunc("POST /", handler.saveClientSettings)
+	mux.HandleFunc("PATCH /", handler.saveClientSettings)
 }
 
 type SettingsHandler struct {
@@ -20,7 +21,12 @@ type SettingsHandler struct {
 }
 
 func (h *SettingsHandler) getClientSetting(w http.ResponseWriter, r *http.Request) {
-	key := r.PathValue("key")
+	raw := r.PathValue("key")
+	key, err := url.QueryUnescape(raw)
+	if err != nil {
+		http.Error(w, "Invalid setting key: "+err.Error(), http.StatusBadRequest)
+		return
+	}
 	if key == "" {
 		http.Error(w, "Missing setting key", http.StatusBadRequest)
 		return

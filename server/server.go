@@ -24,7 +24,7 @@ func NewServer(manager *core.ContextManager, settingsManager *core.SettingsManag
 
 	s.spa = registerSpaHandler()
 	registerApiRoutes(s.mux, manager, settingsManager)
-	registerLegacyRoutes(s.mux, manager)
+	registerLegacyRoutes(s.mux, manager, settingsManager)
 
 	return s
 
@@ -35,8 +35,8 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 
 	settingsMux := http.NewServeMux()
 	registerSettingsHandler(settingsMux, settingsManager)
-	apiMux.Handle("/settings/", http.StripPrefix("/settings", settingsMux))
-	apiMux.Handle("/settings", http.StripPrefix("/settings", settingsMux))
+	apiMux.Handle("/settings/", stripPrefixOrRoot("/settings", settingsMux))
+	apiMux.Handle("/settings", stripPrefixOrRoot("/settings", settingsMux))
 
 	contextMux := http.NewServeMux()
 	registerContextHandler(contextMux, manager)
@@ -52,7 +52,12 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 	mux.Handle("/api", http.StripPrefix("/api", apiMux))
 }
 
-func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager) {
+func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, settingsManager *core.SettingsManager) {
+	settingsMux := http.NewServeMux()
+	registerSettingsHandler(settingsMux, settingsManager)
+	mux.Handle("/settings/", stripPrefixOrRoot("/settings", settingsMux))
+	mux.Handle("/settings", stripPrefixOrRoot("/settings", settingsMux))
+
 	contextMux := http.NewServeMux()
 	registerContextHandler(contextMux, manager)
 	mux.Handle("/context/", http.StripPrefix("/context", contextMux))
@@ -62,6 +67,15 @@ func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager) {
 	registerIntervalHandler(intervalMux, manager)
 	mux.Handle("/interval/", http.StripPrefix("/interval", intervalMux))
 	mux.Handle("/interval", http.StripPrefix("/interval", intervalMux))
+}
+
+func stripPrefixOrRoot(prefix string, handler http.Handler) http.Handler {
+	return http.StripPrefix(prefix, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "" {
+			r.URL.Path = "/"
+		}
+		handler.ServeHTTP(w, r)
+	}))
 }
 
 func (s *Server) Handler() http.Handler {

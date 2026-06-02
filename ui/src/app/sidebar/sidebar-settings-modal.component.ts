@@ -1,6 +1,22 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideX } from '@ng-icons/lucide';
+import { SettingsMutations } from '../../api/settings.mutations';
+import { SettingsQueries } from '../../api/settings.queries';
+import { Settings } from '../../api/settings.service';
+
+const themeKey = 'client.general.theme';
+const firstDayKey = 'client.general.firstDay';
 
 @Component({
   selector: 'app-sidebar-settings-modal',
@@ -18,7 +34,9 @@ import { lucideX } from '@ng-icons/lucide';
           (click)="$event.stopPropagation()"
         >
           <div class="sm:w-60 border-b sm:border-b-0 sm:border-r p-3 sm:p-4 shrink-0">
-            <div class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground px-2 py-1 hidden sm:block">
+            <div
+              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground px-2 py-1 hidden sm:block"
+            >
               Settings
             </div>
             <div class="flex items-center gap-2 sm:block">
@@ -47,7 +65,9 @@ import { lucideX } from '@ng-icons/lucide';
             </div>
           </div>
           <div class="flex-1 min-h-0 flex flex-col">
-            <div class="h-14 sm:h-14 border-b px-5 sm:px-7 flex items-center justify-between hidden sm:flex">
+            <div
+              class="h-14 sm:h-14 border-b px-5 sm:px-7 flex items-center justify-between hidden sm:flex"
+            >
               <div class="font-semibold text-[15px]">{{ activeSettingsSection() }}</div>
               <button
                 type="button"
@@ -69,7 +89,8 @@ import { lucideX } from '@ng-icons/lucide';
                       class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
                       [class.bg-muted]="colorMode() === 'light'"
                       [class.text-foreground]="colorMode() === 'light'"
-                      (click)="colorMode.set('light')"
+                      [disabled]="saveSettingsMutation.isPending()"
+                      (click)="setColorMode('light')"
                     >
                       Light
                     </button>
@@ -78,7 +99,8 @@ import { lucideX } from '@ng-icons/lucide';
                       class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
                       [class.bg-muted]="colorMode() === 'dark'"
                       [class.text-foreground]="colorMode() === 'dark'"
-                      (click)="colorMode.set('dark')"
+                      [disabled]="saveSettingsMutation.isPending()"
+                      (click)="setColorMode('dark')"
                     >
                       Dark
                     </button>
@@ -94,7 +116,8 @@ import { lucideX } from '@ng-icons/lucide';
                       class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
                       [class.bg-muted]="weekStart() === 'monday'"
                       [class.text-foreground]="weekStart() === 'monday'"
-                      (click)="weekStart.set('monday')"
+                      [disabled]="saveSettingsMutation.isPending()"
+                      (click)="setWeekStart('monday')"
                     >
                       Monday
                     </button>
@@ -103,7 +126,8 @@ import { lucideX } from '@ng-icons/lucide';
                       class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
                       [class.bg-muted]="weekStart() === 'sunday'"
                       [class.text-foreground]="weekStart() === 'sunday'"
-                      (click)="weekStart.set('sunday')"
+                      [disabled]="saveSettingsMutation.isPending()"
+                      (click)="setWeekStart('sunday')"
                     >
                       Sunday
                     </button>
@@ -118,6 +142,9 @@ import { lucideX } from '@ng-icons/lucide';
   `,
 })
 export class SidebarSettingsModalComponent {
+  private settingsQueries = inject(SettingsQueries);
+  private settingsMutations = inject(SettingsMutations);
+
   @Input() open = false;
   @Output() openChange = new EventEmitter<boolean>();
 
@@ -126,7 +153,48 @@ export class SidebarSettingsModalComponent {
   readonly colorMode = signal<'light' | 'dark'>('light');
   readonly weekStart = signal<'monday' | 'sunday'>('monday');
 
+  settingsQuery = injectQuery(() => this.settingsQueries.settings());
+  saveSettingsMutation = injectMutation(() => this.settingsMutations.save());
+
+  private readonly settings = computed<Settings>(() => this.settingsQuery.data() ?? {});
+
+  private readonly syncSettingsEffect = effect(() => {
+    const settings = this.settings();
+    const theme = settings[themeKey];
+    const firstDay = settings[firstDayKey];
+
+    if (theme === 'light' || theme === 'dark') {
+      this.colorMode.set(theme);
+    }
+
+    if (firstDay === 'Monday') {
+      this.weekStart.set('monday');
+    }
+
+    if (firstDay === 'Sunday') {
+      this.weekStart.set('sunday');
+    }
+  });
+
   requestClose(): void {
     this.openChange.emit(false);
+  }
+
+  setColorMode(mode: 'light' | 'dark'): void {
+    this.colorMode.set(mode);
+    this.saveSettings();
+  }
+
+  setWeekStart(day: 'monday' | 'sunday'): void {
+    this.weekStart.set(day);
+    this.saveSettings();
+  }
+
+  private saveSettings(): void {
+    this.saveSettingsMutation.mutate({
+      ...this.settings(),
+      [themeKey]: this.colorMode(),
+      [firstDayKey]: this.weekStart() === 'monday' ? 'Monday' : 'Sunday',
+    });
   }
 }
