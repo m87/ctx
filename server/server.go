@@ -9,27 +9,34 @@ import (
 )
 
 type Server struct {
-	Manager *core.ContextManager
-	mux     *http.ServeMux
-	spa     http.Handler
+	Manager         *core.ContextManager
+	SettingsManager *core.SettingsManager
+	mux             *http.ServeMux
+	spa             http.Handler
 }
 
-func NewServer(manager *core.ContextManager) *Server {
+func NewServer(manager *core.ContextManager, settingsManager *core.SettingsManager) *Server {
 	s := &Server{
-		Manager: manager,
-		mux:     http.NewServeMux(),
+		Manager:         manager,
+		SettingsManager: settingsManager,
+		mux:             http.NewServeMux(),
 	}
 
 	s.spa = registerSpaHandler()
-	registerApiRoutes(s.mux, manager)
+	registerApiRoutes(s.mux, manager, settingsManager)
 	registerLegacyRoutes(s.mux, manager)
 
 	return s
 
 }
 
-func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager) {
+func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, settingsManager *core.SettingsManager) {
 	apiMux := http.NewServeMux()
+
+	settingsMux := http.NewServeMux()
+	registerSettingsHandler(settingsMux, settingsManager)
+	apiMux.Handle("/settings/", http.StripPrefix("/settings", settingsMux))
+	apiMux.Handle("/settings", http.StripPrefix("/settings", settingsMux))
 
 	contextMux := http.NewServeMux()
 	registerContextHandler(contextMux, manager)

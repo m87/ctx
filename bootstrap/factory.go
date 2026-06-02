@@ -19,10 +19,26 @@ func CreateManager() *core.ContextManager {
 	return core.NewContextManager(&core.RealTimeProvider{}, NewContextRepository(repository), NewIntervalRepository(repository))
 }
 
+func CreateSettingsManager() *core.SettingsManager {
+	viper.SetDefault("database.path", "ctx.db")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+	viper.ReadInConfig()
+	repository, _ := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewSystemMapperRegistry())
+	manager := core.NewSettingsManager(NewSettingsRepository(repository))
+	manager.InitSettingsIfNotExists()
+	return manager
+}
+
+func NewSystemMapperRegistry() *nod.MapperRegistry {
+	registry := nod.NewMapperRegistry()
+	nod.RegisterMapper(registry, &core.SettingsMapper{})
+	return registry
+}
+
 func NewMapperRegistry() *nod.MapperRegistry {
 	registry := nod.NewMapperRegistry()
 	nod.RegisterMapper(registry, &core.IntervalMapper{})
 	nod.RegisterMapper(registry, &core.ContextMapper{})
-	nod.RegisterMapper(registry, &core.SettingsMapper{})
 	return registry
 }
