@@ -33,6 +33,11 @@ func NewServer(manager *core.ContextManager, settingsManager *core.SettingsManag
 func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, settingsManager *core.SettingsManager) {
 	apiMux := http.NewServeMux()
 
+	versionMux := http.NewServeMux()
+	registerVersionHandler(versionMux)
+	apiMux.Handle("/version/", stripPrefixOrRoot("/version", versionMux))
+	apiMux.Handle("/version", stripPrefixOrRoot("/version", versionMux))
+
 	settingsMux := http.NewServeMux()
 	registerSettingsHandler(settingsMux, settingsManager)
 	apiMux.Handle("/settings/", stripPrefixOrRoot("/settings", settingsMux))
@@ -53,6 +58,11 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 }
 
 func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, settingsManager *core.SettingsManager) {
+	versionMux := http.NewServeMux()
+	registerVersionHandler(versionMux)
+	mux.Handle("/version/", stripPrefixOrRoot("/version", versionMux))
+	mux.Handle("/version", stripPrefixOrRoot("/version", versionMux))
+
 	settingsMux := http.NewServeMux()
 	registerSettingsHandler(settingsMux, settingsManager)
 	mux.Handle("/settings/", stripPrefixOrRoot("/settings", settingsMux))
@@ -91,7 +101,7 @@ func (s *Server) Handler() http.Handler {
 			return
 		}
 
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/interval") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") {
 			base.ServeHTTP(w, r)
 			return
 		}

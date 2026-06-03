@@ -8,6 +8,12 @@ builds:
     main: ./main.go
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - >-
+        -s -w
+        -X {{ .ModulePath }}/server.Release={{ .Version }}
+        -X {{ .ModulePath }}/server.Commit={{ .FullCommit }}
+        -X {{ .ModulePath }}/server.Date={{ .Date }}
     goos:
       - linux
       - darwin
@@ -23,6 +29,12 @@ builds:
       - allinone
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - >-
+        -s -w
+        -X {{ .ModulePath }}/server.Release={{ .Version }}
+        -X {{ .ModulePath }}/server.Commit={{ .FullCommit }}
+        -X {{ .ModulePath }}/server.Date={{ .Date }}
     goos:
       - linux
       - darwin

@@ -1,10 +1,12 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideSettings } from '@ng-icons/lucide';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SidebarContextListComponent } from './sidebar-context-list.component';
 import { SidebarSettingsModalComponent } from './sidebar-settings-modal.component';
 import { SidebarStore } from './sidebar.store';
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { VersionQueries } from '../../api/version.queries';
 
 @Component({
   selector: 'app-sidebar',
@@ -44,7 +46,7 @@ import { SidebarStore } from './sidebar.store';
         <app-sidebar-context-list></app-sidebar-context-list>
       </div>
       <div class="border-t mt-auto shrink-0 px-3 py-2 flex items-center justify-between">
-        <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]">v{{ appVersion }}</span>
+        <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]">v{{ appVersion() }}</span>
         <button
           type="button"
           class="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
@@ -61,7 +63,10 @@ import { SidebarStore } from './sidebar.store';
   </div>`,
 })
 export class SidebarComponent {
-  readonly appVersion = '0.0.0';
+  private versionQueries = inject(VersionQueries);
+
+  versionQuery = injectQuery(() => this.versionQueries.version());
+  readonly appVersion = computed(() => this.versionQuery.data()?.version ?? 'dev');
   readonly isSettingsOpen = signal<boolean>(false);
 
   constructor(public sidebar: SidebarStore) {}
@@ -69,5 +74,4 @@ export class SidebarComponent {
   openSettings(): void {
     this.isSettingsOpen.set(true);
   }
-
 }

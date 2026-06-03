@@ -1,4 +1,4 @@
-## 0.4.0
+## 0.4.0rc
 - feature: settings view — currently supports first day of week and light/dark theme
 - enhancement: UI — display application version number
 

@@ -16,9 +16,12 @@ COPY . .
 
 ARG TARGETOS
 ARG TARGETARCH
+ARG RELEASE=dev
+ARG COMMIT=
+ARG DATE=
 
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags="-s -w" -o /out/ctx ./
+    go build -trimpath -ldflags="-s -w -X github.com/m87/ctx/server.Release=${RELEASE} -X github.com/m87/ctx/server.Commit=${COMMIT} -X github.com/m87/ctx/server.Date=${DATE}" -o /out/ctx ./
 
 
 ########################
@@ -41,4 +44,3 @@ ENV TZ=Europe/Warsaw
 ENV DATABASE_PATH=/data/ctx.db
 
 CMD ["ctx", "serve", "--addr", ":8080"]
-
