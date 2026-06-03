@@ -8,6 +8,9 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+
+	"github.com/m87/nod"
 )
 
 type mockSettingsRepository struct {
@@ -35,7 +38,7 @@ func (r *mockSettingsRepository) Save(settings *Settings) error {
 }
 
 func TestSettingsManagerInitSettingsIfNotExistsCreatesDefaults(t *testing.T) {
-	repo := &mockSettingsRepository{loadErr: errors.New("not found")}
+	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
 	manager := NewSettingsManager(repo)
 
 	err := manager.InitSettingsIfNotExists()
@@ -52,14 +55,28 @@ func TestSettingsManagerInitSettingsIfNotExistsCreatesDefaults(t *testing.T) {
 }
 
 func TestSettingsManagerInitSettingsIfNotExistsDoesNotOverrideExisting(t *testing.T) {
+	existing := &Settings{raw: map[string]string{"client.general.theme": "dark"}}
 	repo := &mockSettingsRepository{
-		settings: &Settings{raw: map[string]string{"client.general.theme": "dark"}},
+		settings: existing,
 	}
 	manager := NewSettingsManager(repo)
 
 	err := manager.InitSettingsIfNotExists()
 
 	require.NoError(t, err)
+	require.Equal(t, 0, repo.saveCalls)
+	require.Same(t, existing, manager.cache)
+}
+
+func TestSettingsManagerInitSettingsIfNotExistsReturnsLoadError(t *testing.T) {
+	wantErr := errors.New("load failed")
+	repo := &mockSettingsRepository{loadErr: wantErr}
+	manager := NewSettingsManager(repo)
+
+	err := manager.InitSettingsIfNotExists()
+
+	require.ErrorIs(t, err, wantErr)
+	require.Equal(t, 1, repo.loadCalls)
 	require.Equal(t, 0, repo.saveCalls)
 	require.Nil(t, manager.cache)
 }
@@ -98,7 +115,7 @@ func TestSettingsManagerGetClientReturnsLoadError(t *testing.T) {
 }
 
 func TestSettingsManagerSaveClientSavesAndUpdatesCache(t *testing.T) {
-	repo := &mockSettingsRepository{}
+	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
 	manager := NewSettingsManager(repo)
 	settings := map[string]string{
 		"client.general.theme":    "dark",
@@ -115,9 +132,42 @@ func TestSettingsManagerSaveClientSavesAndUpdatesCache(t *testing.T) {
 	require.Equal(t, "Sunday", repo.saved.general.firstDay)
 }
 
+func TestSettingsManagerSaveClientMergesWithExistingSettings(t *testing.T) {
+	repo := &mockSettingsRepository{
+		settings: &Settings{raw: map[string]string{
+			"client.general.theme":    "light",
+			"client.general.firstDay": "Sunday",
+		}},
+	}
+	manager := NewSettingsManager(repo)
+
+	err := manager.SaveClient(map[string]string{"client.general.theme": "dark"})
+
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{
+		"client.general.theme":    "dark",
+		"client.general.firstDay": "Sunday",
+	}, repo.saved.raw)
+	require.Equal(t, "dark", repo.saved.general.theme)
+	require.Equal(t, "Sunday", repo.saved.general.firstDay)
+}
+
+func TestSettingsManagerSaveClientIgnoresNonClientSettings(t *testing.T) {
+	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+	manager := NewSettingsManager(repo)
+
+	err := manager.SaveClient(map[string]string{
+		"client.general.theme": "dark",
+		"database.path":        "/tmp/ctx.db",
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"client.general.theme": "dark"}, repo.saved.raw)
+}
+
 func TestSettingsManagerSaveClientReturnsSaveError(t *testing.T) {
 	wantErr := errors.New("save failed")
-	repo := &mockSettingsRepository{saveErr: wantErr}
+	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound, saveErr: wantErr}
 	manager := NewSettingsManager(repo)
 
 	err := manager.SaveClient(map[string]string{"client.general.theme": "dark"})
@@ -182,4 +232,43 @@ func TestSettingsManagerSaveSavesAndUpdatesCache(t *testing.T) {
 	require.Equal(t, 1, repo.saveCalls)
 	require.Equal(t, settings, repo.saved.raw)
 	require.Same(t, repo.saved, manager.cache)
+}
+
+func TestSettingsMapperFromNodeRestoresRawSettings(t *testing.T) {
+	theme := "dark"
+	firstDay := "Sunday"
+	mapper := NewSettingsMapper()
+	node, err := mapper.ToNode(NewSettings(map[string]string{
+		"client.general.theme":    theme,
+		"client.general.firstDay": firstDay,
+	}))
+	require.NoError(t, err)
+
+	settings, err := mapper.FromNode(node)
+
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{
+		"client.general.theme":    theme,
+		"client.general.firstDay": firstDay,
+	}, settings.raw)
+	require.Equal(t, theme, settings.general.theme)
+	require.Equal(t, firstDay, settings.general.firstDay)
+}
+
+func TestSettingsMapperFromNodeHandlesMissingAndNilKV(t *testing.T) {
+	theme := "dark"
+	mapper := NewSettingsMapper()
+	node := &nod.Node{
+		KV: map[string]*nod.KV{
+			"client.general.theme":    {Key: "client.general.theme", ValueText: &theme},
+			"client.general.firstDay": {Key: "client.general.firstDay"},
+		},
+	}
+
+	settings, err := mapper.FromNode(node)
+
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"client.general.theme": theme}, settings.raw)
+	require.Equal(t, theme, settings.general.theme)
+	require.Empty(t, settings.general.firstDay)
 }
