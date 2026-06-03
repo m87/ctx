@@ -100,8 +100,7 @@ func (s *Server) Handler() http.Handler {
 			base.ServeHTTP(w, r)
 			return
 		}
-
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") {
 			base.ServeHTTP(w, r)
 			return
 		}
