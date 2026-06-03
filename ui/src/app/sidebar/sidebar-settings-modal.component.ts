@@ -110,7 +110,7 @@ const firstDayKey = 'client.general.firstDay';
                 <div class="space-y-2">
                   <div class="text-foreground font-medium text-[15px]">First day of week</div>
                   <div class="text-[13px] sm:text-[14px]">Choose which day starts the week.</div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pt-1">
+                  <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
                     <button
                       type="button"
                       class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
