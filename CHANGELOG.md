@@ -2,6 +2,7 @@
 - feature: settings view — currently supports first day of week and light/dark theme
 - enhancement: UI — display application version number
 - fix: wrong 'top context' widget layout on mobile
+- style: favicon
 
 ## 0.3.2
 
