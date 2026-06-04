@@ -2,12 +2,11 @@ package cmd
 
 import (
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/m87/ctx/server"
 	"github.com/spf13/cobra"
 )
 
-func NewServeCmd(manager *core.ContextManager) *cobra.Command {
+func NewServeCmd() *cobra.Command {
 	var (
 		addr string
 	)
@@ -16,7 +15,12 @@ func NewServeCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "serve",
 		Short: "Start the context server",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := server.NewServer(manager)
+			settingsManager, err := bootstrap.CreateSettingsManager()
+			if err != nil {
+				return err
+			}
+			manager := bootstrap.CreateManager()
+			server := server.NewServer(manager, settingsManager)
 			return server.Listen(addr)
 		},
 	}
@@ -27,5 +31,5 @@ func NewServeCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	rootCmd.AddCommand(NewServeCmd(bootstrap.CreateManager()))
+	rootCmd.AddCommand(NewServeCmd())
 }

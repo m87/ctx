@@ -71,7 +71,7 @@ const EMPTY_DAY_STATS: DayStats = {
           <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Sessions</div>
           <div class="text-base font-semibold mt-1">{{ totalSessions() }}</div>
         </div>
-        <div class="rounded-lg border bg-card px-3 py-2.5 col-span-2 md:col-span-1">
+        <div class="rounded-lg border bg-card px-3 py-2.5">
           <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
             Top context
           </div>

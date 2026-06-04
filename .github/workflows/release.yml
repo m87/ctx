@@ -19,13 +19,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Set app version
-        shell: bash
-        run: |
-          APP_VERSION="${GITHUB_REF_NAME#v}"
-          echo "APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
-          echo "APP_VERSION=${APP_VERSION}"
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -75,6 +68,8 @@ jobs:
         run: |
           APP_VERSION="${GITHUB_REF_NAME#v}"
           echo "APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
+          echo "COMMIT=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ctx" >> "$GITHUB_ENV"
           echo "APP_VERSION=${APP_VERSION}"
 
@@ -98,6 +93,10 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.all-in-one
+          build-args: |
+            RELEASE=${{ env.APP_VERSION }}
+            COMMIT=${{ env.COMMIT }}
+            DATE=${{ env.BUILD_DATE }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
@@ -109,6 +108,10 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          build-args: |
+            RELEASE=${{ env.APP_VERSION }}
+            COMMIT=${{ env.COMMIT }}
+            DATE=${{ env.BUILD_DATE }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
