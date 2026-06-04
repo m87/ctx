@@ -48,6 +48,11 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 	apiMux.Handle("/context/", http.StripPrefix("/context", contextMux))
 	apiMux.Handle("/context", http.StripPrefix("/context", contextMux))
 
+	workspaceMux := http.NewServeMux()
+	registerWorkspaceHandler(workspaceMux, manager)
+	apiMux.Handle("/workspace/", http.StripPrefix("/workspace", workspaceMux))
+	apiMux.Handle("/workspace", http.StripPrefix("/workspace", workspaceMux))
+
 	intervalMux := http.NewServeMux()
 	registerIntervalHandler(intervalMux, manager)
 	apiMux.Handle("/interval/", http.StripPrefix("/interval", intervalMux))
@@ -72,6 +77,11 @@ func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, sett
 	registerContextHandler(contextMux, manager)
 	mux.Handle("/context/", http.StripPrefix("/context", contextMux))
 	mux.Handle("/context", http.StripPrefix("/context", contextMux))
+
+	workspaceMux := http.NewServeMux()
+	registerWorkspaceHandler(workspaceMux, manager)
+	mux.Handle("/workspace/", http.StripPrefix("/workspace", workspaceMux))
+	mux.Handle("/workspace", http.StripPrefix("/workspace", workspaceMux))
 
 	intervalMux := http.NewServeMux()
 	registerIntervalHandler(intervalMux, manager)
@@ -100,7 +110,7 @@ func (s *Server) Handler() http.Handler {
 			base.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") {
 			base.ServeHTTP(w, r)
 			return
 		}

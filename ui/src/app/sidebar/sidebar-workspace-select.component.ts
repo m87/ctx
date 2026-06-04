@@ -1,24 +1,23 @@
-import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideCheck,
   lucideChevronDown,
   lucideChevronUp,
-  lucidePencil,
   lucidePlus,
   lucideX,
 } from '@ng-icons/lucide';
 import { Store } from '@ngxs/store';
-import {
-  SelectWorkspace,
-  WorkspaceItem,
-  WorkspaceState,
-} from './workspace.state';
+import { SelectWorkspace, WorkspaceState } from './workspace.state';
+import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
+import { WorkspaceQueries } from '../../api/workspace.quries';
+import { WorkspaceMutations } from '../../api/workspace.mutations';
+import { Workspace } from '../../api/workspace.service';
 
 @Component({
   selector: 'app-sidebar-workspace-select',
   imports: [NgIcon],
-  providers: [provideIcons({ lucideCheck, lucideChevronDown, lucideChevronUp, lucidePencil, lucidePlus, lucideX })],
+  providers: [provideIcons({ lucideCheck, lucideChevronDown, lucideChevronUp, lucidePlus, lucideX })],
   template: `
     <div class="relative">
       <button
@@ -28,7 +27,7 @@ import {
         aria-label="Select workspace"
       >
         <div class="min-w-0 text-left leading-tight">
-          <div class="text-sm font-semibold truncate">{{ activeWorkspace().name }}</div>
+          <div class="text-sm font-semibold truncate">{{ activeWorkspaceName() }}</div>
           <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground/80">workspace</div>
         </div>
         <ng-icon [name]="isOpen() ? 'lucideChevronUp' : 'lucideChevronDown'" class="text-muted-foreground"></ng-icon>
@@ -48,6 +47,7 @@ import {
                 (input)="onNewWorkspaceInput($event)"
                 (keydown.enter)="confirmAddWorkspace()"
                 (keydown.escape)="cancelAddWorkspace()"
+                #newWorkspaceInput
               />
               <button type="button" class="h-8 w-8 shrink-0 rounded-md hover:bg-background flex items-center justify-center" (click)="confirmAddWorkspace()">
                 <ng-icon name="lucideCheck"></ng-icon>
@@ -68,6 +68,24 @@ import {
           }
 
           <div class="max-h-64 overflow-y-auto pr-1">
+            <button
+              type="button"
+              class="w-full rounded-md px-2.5 py-2 text-left hover:bg-muted/50 transition-colors"
+              (click)="selectWorkspace(null)"
+            >
+              <div class="flex items-center gap-1.5">
+                <span class="text-[13px] font-medium truncate">Default</span>
+                @if (activeWorkspaceId() === null) {
+                  <ng-icon name="lucideCheck" class="text-muted-foreground text-[12px]"></ng-icon>
+                }
+              </div>
+              <div class="text-[11px] text-muted-foreground mt-0.5">show contexts without selecting a workspace</div>
+            </button>
+
+            @if (listWorkspacesQuery.isLoading()) {
+              <div class="px-2.5 py-2 text-[12px] text-muted-foreground">Loading workspaces...</div>
+            }
+
             @for (workspace of workspaces(); track workspace.id) {
               <div class="group rounded-md border border-transparent hover:bg-muted/50 transition-colors">
                 <div class="px-2.5 py-2 flex items-start justify-between gap-1.5">
@@ -76,57 +94,20 @@ import {
                     class="min-w-0 flex-1 text-left overflow-hidden"
                     (click)="selectWorkspace(workspace.id)"
                   >
-                    @if (isEditingWorkspace(workspace.id)) {
-                      <input
-                        type="text"
-                        class="h-7 w-full rounded-md border bg-background px-2 text-[13px] outline-none focus:ring-1 focus:ring-ring"
-                        [value]="editingWorkspaceName()"
-                        (input)="onEditingWorkspaceInput($event)"
-                        (keydown.enter)="confirmRenameWorkspace(workspace.id)"
-                        (keydown.escape)="cancelRenameWorkspace()"
-                      />
-                    } @else {
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-[13px] font-medium truncate">{{ workspace.name }}</span>
-                        @if (activeWorkspaceId() === workspace.id) {
-                          <ng-icon name="lucideCheck" class="text-muted-foreground text-[12px]"></ng-icon>
-                        }
-                      </div>
-                    }
-                    <div class="text-[11px] text-muted-foreground mt-0.5">
-                      {{ workspace.contextsCount }} contexts · {{ workspace.updatedLabel }}
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[13px] font-medium truncate">{{ workspace.name }}</span>
+                      @if (activeWorkspaceId() === workspace.id) {
+                        <ng-icon name="lucideCheck" class="text-muted-foreground text-[12px]"></ng-icon>
+                      }
                     </div>
+                    <div class="text-[11px] text-muted-foreground mt-0.5">workspace</div>
                   </button>
-
-                  @if (!isEditingWorkspace(workspace.id)) {
-                    <button
-                      type="button"
-                      class="h-7 w-7 shrink-0 rounded-md hover:bg-background text-muted-foreground hover:text-foreground flex items-center justify-center opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto"
-                      aria-label="Rename workspace"
-                      (click)="startRenameWorkspace(workspace.id, workspace.name)"
-                    >
-                      <ng-icon name="lucidePencil"></ng-icon>
-                    </button>
-                  } @else {
-                    <div class="flex shrink-0 items-center gap-0.5">
-                      <button
-                        type="button"
-                        class="h-7 w-7 shrink-0 rounded-md hover:bg-background flex items-center justify-center"
-                        (click)="confirmRenameWorkspace(workspace.id)"
-                      >
-                        <ng-icon name="lucideCheck"></ng-icon>
-                      </button>
-                      <button
-                        type="button"
-                        class="h-7 w-7 shrink-0 rounded-md hover:bg-background flex items-center justify-center"
-                        (click)="cancelRenameWorkspace()"
-                      >
-                        <ng-icon name="lucideX"></ng-icon>
-                      </button>
-                    </div>
-                  }
                 </div>
               </div>
+            } @empty {
+              @if (!listWorkspacesQuery.isLoading()) {
+                <div class="px-2.5 py-2 text-[12px] text-muted-foreground">No workspaces yet</div>
+              }
             }
           </div>
         </div>
@@ -137,18 +118,29 @@ import {
 export class SidebarWorkspaceSelectComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly store = inject(Store);
+  private readonly workspaceQueries = inject(WorkspaceQueries);
+  private readonly workspaceMutations = inject(WorkspaceMutations);
+  private readonly newWorkspaceInput = viewChild<ElementRef<HTMLInputElement>>('newWorkspaceInput');
+
+  listWorkspacesQuery = injectQuery(() => this.workspaceQueries.list());
+  createWorkspaceMutation = injectMutation(() => this.workspaceMutations.create());
+
   readonly isOpen = signal<boolean>(false);
   readonly isAddingWorkspace = signal<boolean>(false);
   readonly newWorkspaceName = signal<string>('');
-  readonly editingWorkspaceId = signal<string | null>(null);
-  readonly editingWorkspaceName = signal<string>('');
 
   readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
-  readonly workspaces = this.store.selectSignal(WorkspaceState.workspaces);
+  readonly workspaces = computed<readonly Workspace[]>(() => this.listWorkspacesQuery.data() ?? []);
 
-  readonly activeWorkspace = computed<WorkspaceItem>(() => {
+  readonly activeWorkspaceName = computed<string>(() => {
     const selected = this.workspaces().find((workspace) => workspace.id === this.activeWorkspaceId());
-    return selected ?? this.workspaces()[0];
+    return selected?.name ?? 'Default';
+  });
+
+  private readonly focusInputEffect = effect(() => {
+    if (this.isAddingWorkspace()) {
+      this.newWorkspaceInput()?.nativeElement.focus();
+    }
   });
 
   toggleOpen(): void {
@@ -167,7 +159,7 @@ export class SidebarWorkspaceSelectComponent {
     }
   }
 
-  selectWorkspace(workspaceId: string): void {
+  selectWorkspace(workspaceId: string | null): void {
     this.store.dispatch(new SelectWorkspace(workspaceId));
     this.isOpen.set(false);
   }
@@ -188,29 +180,17 @@ export class SidebarWorkspaceSelectComponent {
   }
 
   confirmAddWorkspace(): void {
+    const name = this.newWorkspaceName().trim();
+    if (!name) {
+      this.cancelAddWorkspace();
+      return;
+    }
+
+    this.createWorkspaceMutation.mutate(name, {
+      onSuccess: (workspace) => {
+        this.store.dispatch(new SelectWorkspace(workspace.id));
+      },
+    });
     this.cancelAddWorkspace();
-  }
-
-  startRenameWorkspace(workspaceId: string, name: string): void {
-    this.editingWorkspaceId.set(workspaceId);
-    this.editingWorkspaceName.set(name);
-  }
-
-  cancelRenameWorkspace(): void {
-    this.editingWorkspaceId.set(null);
-    this.editingWorkspaceName.set('');
-  }
-
-  onEditingWorkspaceInput(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.editingWorkspaceName.set(target.value);
-  }
-
-  isEditingWorkspace(workspaceId: string): boolean {
-    return this.editingWorkspaceId() === workspaceId;
-  }
-
-  confirmRenameWorkspace(_workspaceId: string): void {
-    this.cancelRenameWorkspace();
   }
 }

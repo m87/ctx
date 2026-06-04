@@ -8,6 +8,8 @@ import { SidebarStore } from './sidebar.store';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { VersionQueries } from '../../api/version.queries';
 import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.component';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from './workspace.state';
 
 @Component({
   selector: 'app-sidebar',
@@ -27,6 +29,14 @@ import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.comp
             (click)="sidebar.closeMobile()"
           >
             daily summary
+          </a>
+          <a
+            [routerLink]="workspaceLink()"
+            routerLinkActive="bg-muted text-foreground"
+            class="uppercase flex justify-between items-center text-[11px] tracking-[0.08em] text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
+            (click)="sidebar.closeMobile()"
+          >
+            workspace
           </a>
           <!-- <div
             class="uppercase flex justify-between items-center text-sm text-muted-foreground p-1 font-semibold"
@@ -62,10 +72,16 @@ import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.comp
 })
 export class SidebarComponent {
   private versionQueries = inject(VersionQueries);
+  private store = inject(Store);
 
   versionQuery = injectQuery(() => this.versionQueries.version());
   readonly appVersion = computed(() => this.versionQuery.data()?.version ?? 'dev');
   readonly isSettingsOpen = signal<boolean>(false);
+  readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  readonly workspaceLink = computed(() => {
+    const workspaceId = this.selectedWorkspaceId();
+    return workspaceId ? ['/workspace', workspaceId] : ['/workspace'];
+  });
 
   constructor(public sidebar: SidebarStore) {}
 

@@ -1,32 +1,35 @@
-import { HttpClient } from "@angular/common/http";
-import { inject, Injectable } from "@angular/core";
-import { Observable } from "rxjs/internal/Observable";
-
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs/internal/Observable';
 
 export interface Workspace {
-    id: string;
-    name: string;
+  id: string;
+  name: string;
 }
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class WorkspaceService {
-    http = inject(HttpClient);
+  http = inject(HttpClient);
 
-    listWorkspaces(): Observable<Workspace[]> {
-        return this.http.get<Workspace[]>('/api/workspace');
-    }
+  listWorkspaces(): Observable<Workspace[]> {
+    return this.http.get<Workspace[]>('/api/workspace/');
+  }
 
-    createWorkspace(name: string): Observable<Workspace> {
-        return this.http.post<Workspace>('/api/workspace', { name });
-    }
+  createWorkspace(name: string): Observable<Workspace> {
+    return this.http.post<Workspace>('/api/workspace/', { name });
+  }
 
-    deleteWorkspace(id: string): Observable<void> {
-        return this.http.delete<void>(`/api/workspace/${id}`);
-    }
+  deleteWorkspace(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/workspace/${id}`);
+  }
 
-    updateWorkspace(workspace: Workspace): Observable<Workspace> {
-        return this.http.put<Workspace>(`/api/workspace/${workspace.id}`, workspace);
-    }
-} 
+  getWorkspace(id: string): Observable<Workspace> {
+    return this.http.get<Workspace>(`/api/workspace/${id}`);
+  }
+
+  updateWorkspace(workspace: Workspace): Observable<Workspace> {
+    return this.http.put<Workspace>(`/api/workspace/${workspace.id}`, workspace);
+  }
+}
