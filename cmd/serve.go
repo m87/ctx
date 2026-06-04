@@ -15,9 +15,18 @@ func NewServeCmd() *cobra.Command {
 		Use:   "serve",
 		Short: "Start the context server",
 		RunE: func(cmd *cobra.Command, args []string) error {
+<<<<<<< HEAD
 			manager := bootstrap.CreateManager()
 
 			server := server.NewServer(manager)
+=======
+			settingsManager, err := bootstrap.CreateSettingsManager()
+			if err != nil {
+				return err
+			}
+			manager := bootstrap.CreateManager()
+			server := server.NewServer(manager, settingsManager)
+>>>>>>> a0414070e4e63425ebf3579a4952d21c12073aac
 			return server.Listen(addr)
 		},
 	}

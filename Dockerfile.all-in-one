@@ -24,9 +24,12 @@ COPY --from=ui-build /ui/dist/ctx/browser ./server/spa/dist
 
 ARG TARGETOS
 ARG TARGETARCH
+ARG RELEASE=dev
+ARG COMMIT=
+ARG DATE=
 
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -tags allinone -trimpath -ldflags="-s -w" -o /out/ctx ./
+    go build -tags allinone -trimpath -ldflags="-s -w -X github.com/m87/ctx/server.Release=${RELEASE} -X github.com/m87/ctx/server.Commit=${COMMIT} -X github.com/m87/ctx/server.Date=${DATE}" -o /out/ctx ./
 
 FROM --platform=$TARGETPLATFORM alpine:3.20
 

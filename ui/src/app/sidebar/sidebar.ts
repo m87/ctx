@@ -1,12 +1,25 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideSettings } from '@ng-icons/lucide';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SidebarContextListComponent } from './sidebar-context-list.component';
+import { SidebarSettingsModalComponent } from './sidebar-settings-modal.component';
 import { SidebarStore } from './sidebar.store';
+<<<<<<< HEAD
 import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.component';
 
 @Component({
   selector: 'app-sidebar',
   imports: [SidebarContextListComponent, SidebarWorkspaceSelectComponent, RouterLink, RouterLinkActive],
+=======
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { VersionQueries } from '../../api/version.queries';
+
+@Component({
+  selector: 'app-sidebar',
+  imports: [SidebarContextListComponent, RouterLink, RouterLinkActive, NgIcon, SidebarSettingsModalComponent],
+  providers: [provideIcons({ lucideSettings })],
+>>>>>>> a0414070e4e63425ebf3579a4952d21c12073aac
   template: ` <div class="h-full w-full min-h-0 flex flex-col">
     <div class="flex-1 min-h-0 flex flex-col border-b bg-sidebar">
       <div class="flex flex-col gap-2.5 p-2.5 border-b">
@@ -37,14 +50,37 @@ import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.comp
       <div class="min-h-0 flex-1 overflow-auto">
         <app-sidebar-context-list></app-sidebar-context-list>
       </div>
-      <!-- <div
-        class="border-t mt-auto shrink-0 px-3 py-2 text-xs text-muted-foreground uppercase tracking-[0.08em] hover:text-foreground hover:bg-muted/40 cursor-pointer"
-      >
-        settings
-      </div> -->
+      <div class="border-t mt-auto shrink-0 px-3 py-2 flex items-center justify-between">
+        <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]">v{{ appVersion() }}</span>
+        <button
+          type="button"
+          class="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+          aria-label="Open settings"
+          (click)="openSettings()"
+        >
+          <ng-icon name="lucideSettings" class="text-[15px]"></ng-icon>
+        </button>
+      </div>
     </div>
+
+    <app-sidebar-settings-modal [open]="isSettingsOpen()" (openChange)="isSettingsOpen.set($event)">
+    </app-sidebar-settings-modal>
   </div>`,
 })
 export class SidebarComponent {
+<<<<<<< HEAD
   constructor(public sidebar: SidebarStore) { }
+=======
+  private versionQueries = inject(VersionQueries);
+
+  versionQuery = injectQuery(() => this.versionQueries.version());
+  readonly appVersion = computed(() => this.versionQuery.data()?.version ?? 'dev');
+  readonly isSettingsOpen = signal<boolean>(false);
+
+  constructor(public sidebar: SidebarStore) {}
+
+  openSettings(): void {
+    this.isSettingsOpen.set(true);
+  }
+>>>>>>> a0414070e4e63425ebf3579a4952d21c12073aac
 }

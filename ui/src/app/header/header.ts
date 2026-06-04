@@ -26,6 +26,9 @@ import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { DateTime } from 'luxon';
 import { catchError, filter, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { ContextService, ContextStats } from '../../api/context.service';
+import { SettingsQueries } from '../../api/settings.queries';
+
+const firstDayKey = 'client.general.firstDay';
 
 @Component({
   selector: 'app-header',
@@ -225,6 +228,7 @@ import { ContextService, ContextStats } from '../../api/context.service';
               align="end"
               class="w-auto"
               [autoCloseOnSelect]="true"
+              [weekStartsOn]="weekStartsOn()"
               (dateChange)="navigateToDate($event)"
             >
               <button
@@ -381,10 +385,12 @@ export class HeaderComponent {
   private contextQueries = inject(ContextQueries);
   private contextMutations = inject(ContextMutations);
   private contextService = inject(ContextService);
+  private settingsQueries = inject(SettingsQueries);
   private router = inject(Router);
   today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
 
   listContextsQuery = injectQuery(() => this.contextQueries.list());
+  settingsQuery = injectQuery(() => this.settingsQueries.settings());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   freeContextMutation = injectMutation(() => this.contextMutations.free());
   activeContextQuery = injectQuery(() => this.contextQueries.active());
@@ -398,6 +404,7 @@ export class HeaderComponent {
   );
   dayStatsQuery = injectQuery(() => this.contextQueries.dayStats(this.selectedDate()));
   activeContextName = computed(() => this.activeContextQuery.data()?.name ?? '');
+  weekStartsOn = computed(() => (this.settingsQuery.data()?.[firstDayKey] === 'Sunday' ? 0 : 1));
   daySectionLabel = computed(() =>
     this.selectedDate() === DateTime.local().toFormat('yyyy-MM-dd') ? 'Today' : this.selectedDate(),
   );
