@@ -5,21 +5,14 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SidebarContextListComponent } from './sidebar-context-list.component';
 import { SidebarSettingsModalComponent } from './sidebar-settings-modal.component';
 import { SidebarStore } from './sidebar.store';
-<<<<<<< HEAD
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { VersionQueries } from '../../api/version.queries';
 import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.component';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [SidebarContextListComponent, SidebarWorkspaceSelectComponent, RouterLink, RouterLinkActive],
-=======
-import { injectQuery } from '@tanstack/angular-query-experimental';
-import { VersionQueries } from '../../api/version.queries';
-
-@Component({
-  selector: 'app-sidebar',
-  imports: [SidebarContextListComponent, RouterLink, RouterLinkActive, NgIcon, SidebarSettingsModalComponent],
+  imports: [SidebarContextListComponent, SidebarWorkspaceSelectComponent, RouterLink, RouterLinkActive, NgIcon, SidebarSettingsModalComponent],
   providers: [provideIcons({ lucideSettings })],
->>>>>>> a0414070e4e63425ebf3579a4952d21c12073aac
   template: ` <div class="h-full w-full min-h-0 flex flex-col">
     <div class="flex-1 min-h-0 flex flex-col border-b bg-sidebar">
       <div class="flex flex-col gap-2.5 p-2.5 border-b">
@@ -68,9 +61,6 @@ import { VersionQueries } from '../../api/version.queries';
   </div>`,
 })
 export class SidebarComponent {
-<<<<<<< HEAD
-  constructor(public sidebar: SidebarStore) { }
-=======
   private versionQueries = inject(VersionQueries);
 
   versionQuery = injectQuery(() => this.versionQueries.version());
@@ -82,5 +72,4 @@ export class SidebarComponent {
   openSettings(): void {
     this.isSettingsOpen.set(true);
   }
->>>>>>> a0414070e4e63425ebf3579a4952d21c12073aac
 }
