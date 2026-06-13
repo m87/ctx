@@ -9,4 +9,5 @@ type IntervalRepository interface {
 	ListByContextId(contextId string) ([]*Interval, error)
 	GetActiveIntervalByContextId(contextId string) (*Interval, error)
 	ListByDay(date time.Time) ([]*Interval, error)
+	List() ([]*Interval, error)
 }

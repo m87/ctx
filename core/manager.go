@@ -250,3 +250,74 @@ type ContextStats struct {
 	TotalDuration time.Duration `json:"totalDuration"`
 	TotalSessions int           `json:"totalSessions"`
 }
+
+func (m *ContextManager) DeleteWorkspace(workspaceId string) error {
+	contexts, err := m.ContextRepository.ListByWorkspace(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if len(contexts) > 0 {
+		return &WorkspaceInUseError{WorkspaceId: workspaceId}
+	}
+
+	return m.WorkspaceRepository.Delete(workspaceId)
+}
+
+type WorkspaceInUseError struct {
+	WorkspaceId string
+}
+
+func (e *WorkspaceInUseError) Error() string {
+	return "Cannot delete workspace because it is in use by one or more contexts"
+}
+
+func (m *ContextManager) EnsureDefaultWorkspace() error {
+	workspaces, err := m.WorkspaceRepository.List()
+	if err != nil {
+		return err
+	}
+	if len(workspaces) == 0 {
+		defaultWorkspace := &Workspace{
+			Name: "Default",
+		}
+		id, err := m.WorkspaceRepository.Save(defaultWorkspace)
+		if err != nil {
+			return err
+		}
+		if err := m.setDefaultWorkspaceIfNotSet(id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) error {
+	contexts, err := m.ContextRepository.List()
+	if err != nil {
+		return err
+	}
+	for _, ctx := range contexts {
+		// if ctx.WorkspaceId == "" {
+		ctx.WorkspaceId = defaultWorkspaceId
+		if _, err := m.ContextRepository.Save(ctx); err != nil {
+			return err
+		}
+		// }
+	}
+
+	intervals, err := m.IntervalRepository.List()
+	if err != nil {
+		return err
+	}
+	for _, interval := range intervals {
+		// if interval.WorkspaceId == "" {
+		interval.WorkspaceId = defaultWorkspaceId
+		if _, err := m.IntervalRepository.Save(interval); err != nil {
+			return err
+		}
+		// }
+	}
+
+	return nil
+}

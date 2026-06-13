@@ -7,12 +7,13 @@ import (
 )
 
 type Interval struct {
-	Id        string        `json:"id"`
-	ContextId string        `json:"contextId"`
-	Start     ZonedTime     `json:"start"`
-	End       ZonedTime     `json:"end"`
-	Duration  time.Duration `json:"duration"`
-	Status    string        `json:"status"`
+	Id          string        `json:"id"`
+	ContextId   string        `json:"contextId"`
+	Start       ZonedTime     `json:"start"`
+	End         ZonedTime     `json:"end"`
+	Duration    time.Duration `json:"duration"`
+	Status      string        `json:"status"`
+	WorkspaceId string        `json:"workspaceId"`
 }
 
 type IntervalMapper struct {
@@ -28,13 +29,14 @@ func (m *IntervalMapper) ToNode(interval *Interval) (*nod.Node, error) {
 	durationNanos := interval.Duration.Nanoseconds()
 	node := &nod.Node{
 		Core: nod.NodeCore{
-			Id:        interval.Id,
-			Name:      interval.Id,
-			Kind:      IntervalType,
-			ParentId:  &interval.ContextId,
-			Status:    interval.Status,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			Id:          interval.Id,
+			Name:        interval.Id,
+			Kind:        IntervalType,
+			ParentId:    &interval.ContextId,
+			NamespaceId: &interval.WorkspaceId,
+			Status:      interval.Status,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
 		},
 		KV: map[string]*nod.KV{
 			"start":          &nod.KV{Key: "start", ValueTime: &interval.Start.Time},
@@ -48,6 +50,10 @@ func (m *IntervalMapper) ToNode(interval *Interval) (*nod.Node, error) {
 }
 
 func (m *IntervalMapper) FromNode(node *nod.Node) (*Interval, error) {
+	workspaceId := ""
+	if node.Core.NamespaceId != nil {
+		workspaceId = *node.Core.NamespaceId
+	}
 	return &Interval{
 		Id:        node.Core.Id,
 		ContextId: *node.Core.ParentId,
@@ -59,8 +65,9 @@ func (m *IntervalMapper) FromNode(node *nod.Node) (*Interval, error) {
 			Time:     nod.SafeTime(node.KV, "end"),
 			Timezone: nod.SafeString(node.KV, "end_timezone"),
 		},
-		Duration: time.Duration(nod.SafeInt64(node.KV, "duration")),
-		Status:   node.Core.Status,
+		Duration:    time.Duration(nod.SafeInt64(node.KV, "duration")),
+		Status:      node.Core.Status,
+		WorkspaceId: workspaceId,
 	}, nil
 }
 

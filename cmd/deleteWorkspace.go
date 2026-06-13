@@ -16,7 +16,7 @@ func NewDeleteWorkspaceCmd() *cobra.Command {
 				return remoteDeleteWorkspace(workspaceId)
 			}
 			manager := bootstrap.CreateManager()
-			return manager.WorkspaceRepository.Delete(workspaceId)
+			return manager.DeleteWorkspace(workspaceId)
 		},
 	}
 

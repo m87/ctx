@@ -53,10 +53,16 @@ func (h *WorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Missing workspace ID", http.StatusBadRequest)
 		return
 	}
-	if err := h.manager.WorkspaceRepository.Delete(id); err != nil {
+
+	if err := h.manager.DeleteWorkspace(id); err != nil {
+		if _, ok := err.(*core.WorkspaceInUseError); ok {
+			http.Error(w, "Cannot delete workspace because it is in use by one or more contexts", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Failed to delete workspace", http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -63,3 +63,7 @@ func (r *IntervalRepository) ListByDay(date time.Time) ([]*core.Interval, error)
 	}
 	return result, nil
 }
+
+func (r *IntervalRepository) List() ([]*core.Interval, error) {
+	return r.repository.Query().KindEquals(core.IntervalType).KV().List()
+}

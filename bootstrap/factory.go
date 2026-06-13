@@ -16,12 +16,14 @@ func CreateManager() *core.ContextManager {
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
 	repository, _ := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewMapperRegistry())
-	return core.NewContextManager(
+	manager := core.NewContextManager(
 		&core.RealTimeProvider{},
 		NewContextRepository(repository),
 		NewIntervalRepository(repository),
 		NewWorkspaceRepository(repository),
 	)
+	manager.EnsureDefaultWorkspace()
+	return manager
 }
 
 func CreateSettingsManager() (*core.SettingsManager, error) {
@@ -37,6 +39,7 @@ func CreateSettingsManager() (*core.SettingsManager, error) {
 	if err := manager.InitSettingsIfNotExists(); err != nil {
 		return nil, err
 	}
+
 	return manager, nil
 }
 
