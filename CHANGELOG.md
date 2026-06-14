@@ -1,3 +1,11 @@
+## 0.5.0
+
+- feature: workspaces — create, rename, select, and delete workspaces to organize contexts
+- enhancement: error handling — display toast notifications for failed queries and mutations
+- enhancement: API errors — return consistent error codes and descriptions from server endpoints
+
+On the first run after upgrading, a default workspace is created and all existing contexts are assigned to it.
+
 ## 0.4.0
 - feature: settings view — currently supports first day of week and light/dark theme
 - enhancement: UI — display application version number

@@ -41,7 +41,7 @@ func spaHandler(distFS fs.FS) http.Handler {
 		}
 
 		if strings.HasPrefix(assetPath, "../") || assetPath == ".." {
-			http.NotFound(w, r)
+			writeError(w, http.StatusNotFound, "ASSET_NOT_FOUND", "Asset not found")
 			return
 		}
 
@@ -57,7 +57,7 @@ func spaHandler(distFS fs.FS) http.Handler {
 func serveSpaIndex(distFS fs.FS, w http.ResponseWriter) {
 	content, err := fs.ReadFile(distFS, "index.html")
 	if err != nil {
-		http.Error(w, "Failed to load UI", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LOAD_UI", "Failed to load UI")
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -68,7 +68,7 @@ func serveSpaIndex(distFS fs.FS, w http.ResponseWriter) {
 func serveAsset(distFS fs.FS, assetPath string, w http.ResponseWriter) {
 	content, err := fs.ReadFile(distFS, assetPath)
 	if err != nil {
-		http.Error(w, "Not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "ASSET_NOT_FOUND", "Asset not found")
 		return
 	}
 	if contentType := mime.TypeByExtension(path.Ext(assetPath)); contentType != "" {

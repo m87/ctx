@@ -24,22 +24,22 @@ func (h *SettingsHandler) getClientSetting(w http.ResponseWriter, r *http.Reques
 	raw := r.PathValue("key")
 	key, err := url.QueryUnescape(raw)
 	if err != nil {
-		http.Error(w, "Invalid setting key: "+err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_SETTING_KEY", "Invalid setting key")
 		return
 	}
 	if key == "" {
-		http.Error(w, "Missing setting key", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_SETTING_KEY", "Missing setting key")
 		return
 	}
 
 	if !strings.HasPrefix(key, "client.") {
-		http.Error(w, "Invalid setting key", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_SETTING_KEY", "Invalid setting key")
 		return
 	}
 
 	value, err := h.manager.GetClientKey(key)
 	if err != nil {
-		http.Error(w, "Error retrieving setting: "+err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_SETTING", "Failed to get setting")
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *SettingsHandler) getClientSetting(w http.ResponseWriter, r *http.Reques
 func (h *SettingsHandler) getClientSettings(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.manager.GetClient()
 	if err != nil {
-		http.Error(w, "Error retrieving client settings: "+err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_SETTINGS", "Failed to get settings")
 		return
 	}
 	json.NewEncoder(w).Encode(settings)
@@ -58,12 +58,12 @@ func (h *SettingsHandler) getClientSettings(w http.ResponseWriter, r *http.Reque
 func (h *SettingsHandler) saveClientSettings(w http.ResponseWriter, r *http.Request) {
 	var settings map[string]string
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 
 	if err := h.manager.SaveClient(settings); err != nil {
-		http.Error(w, "Error saving settings: "+err.Error(), http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_SETTINGS", "Failed to save settings")
 		return
 	}
 
