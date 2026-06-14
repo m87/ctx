@@ -10,6 +10,7 @@ import (
 
 func NewListIntervalCmd() *cobra.Command {
 	var dayRaw string
+	var workspaceId string
 
 	cmd := &cobra.Command{
 		Use:   "interval",
@@ -30,7 +31,7 @@ func NewListIntervalCmd() *cobra.Command {
 					return err
 				}
 			} else {
-				intervals, err := manager.IntervalRepository.ListByDay(day)
+				intervals, err := manager.IntervalRepository.ListByDay(day, workspaceId)
 				if err != nil {
 					return err
 				}
@@ -55,6 +56,7 @@ func NewListIntervalCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&dayRaw, "day", "", "Day in YYYY-MM-DD, default today")
+	cmd.Flags().StringVar(&workspaceId, "workspace", "", "Workspace ID")
 	return cmd
 }
 

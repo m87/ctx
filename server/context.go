@@ -99,7 +99,12 @@ func (h *ContextHandler) freeContext(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ContextHandler) listContexts(w http.ResponseWriter, r *http.Request) {
-	contexts, err := h.manager.ContextRepository.List()
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
+	contexts, err := h.manager.ContextRepository.ListByWorkspace(workspaceId)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_CONTEXTS", "Failed to list contexts")
 		return

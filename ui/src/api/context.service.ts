@@ -2,21 +2,16 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of } from 'rxjs';
 import { deserializeIntervals, Interval, RawInterval } from './interval.service';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from '../app/sidebar/workspace.state';
 
 export interface Context {
   id: string;
   name: string;
   description: string;
-  workspaceId?: string;
+  workspaceId: string;
   tags?: string[];
 }
-
-export const EMPTY_CONTEXT: Context = {
-  id: '',
-  name: '',
-  description: '',
-  tags: [],
-};
 
 export interface ContextStats {
   contextId: string;
@@ -51,6 +46,7 @@ type RawDayStats = Omit<DayStats, 'intervals'> & {
 })
 export class ContextService {
   http = inject(HttpClient);
+  store = inject(Store);
 
   getIntervals(contextId: string): Observable<Interval[]> {
     return this.http
@@ -59,14 +55,17 @@ export class ContextService {
   }
 
   getActiveContext(): Observable<Context> {
-    return this.http.get<Context>('/api/context/active').pipe(catchError(() => of(EMPTY_CONTEXT)));
+    return this.http.get<Context>('/api/context/active').pipe(catchError(() => of<Context>({} as Context)));
   }
 
-  getContexts(): Observable<Context[]> {
-    return this.http.get<Context[]>('/api/context/');
+  getContexts(workspaceId: string): Observable<Context[]> {
+    return this.http.get<Context[]>(`/api/context/?workspaceId=${workspaceId}`);
   }
 
   createContext(context: Context): Observable<Context> {
+    if (context.workspaceId == null) {
+      context.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
+    }
     return this.http.post<Context>('/api/context/', context);
   }
 
@@ -83,6 +82,9 @@ export class ContextService {
   }
 
   switchContext(context: Context): Observable<void> {
+    if(context.workspaceId == null) {
+      context.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
+    }
     return this.http.post<void>(`/api/context/switch`, context);
   }
 
@@ -94,8 +96,8 @@ export class ContextService {
     return this.http.get<ContextStats>(`/api/context/${contextId}/stats/${date}`);
   }
 
-  getDayStats(date: string): Observable<DayStats> {
-    return this.http.get<RawDayStats>(`/api/interval/day/${date}/stats`).pipe(
+  getDayStats(workspaceId: string, date: string): Observable<DayStats> {
+    return this.http.get<RawDayStats>(`/api/interval/day/${date}/stats?workspaceId=${workspaceId}`).pipe(
       map((response) => ({
         ...response,
         intervals: Object.fromEntries(

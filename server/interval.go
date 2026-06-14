@@ -138,13 +138,18 @@ func (h *IntervalHandler) deleteInterval(w http.ResponseWriter, r *http.Request)
 
 func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 	dateStr := r.PathValue("date")
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
 		return
 	}
 
-	intervals, err := h.manager.IntervalRepository.ListByDay(date)
+	intervals, err := h.manager.IntervalRepository.ListByDay(date, workspaceId)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTERVALS", "Failed to list intervals")
 		return
@@ -190,8 +195,13 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
 		return
 	}
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
 
-	intervals, err := h.manager.IntervalRepository.ListByDay(date)
+	intervals, err := h.manager.IntervalRepository.ListByDay(date, workspaceId)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTERVALS", "Failed to list intervals")
 		return

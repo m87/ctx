@@ -14,10 +14,10 @@ export class IntervalQueries {
     };
   }
 
-  day(day: string) {
+  day(workspaceId: string, day: string) {
     return {
-      queryKey: [...this.key, 'day', day],
-      queryFn: () => lastValueFrom(this.intervalService.getDayIntervals(day)),
+      queryKey: [...this.key, 'day', workspaceId, day],
+      queryFn: () => lastValueFrom(this.intervalService.getDayIntervals(workspaceId, day)),
     };
   }
 }

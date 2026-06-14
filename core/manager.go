@@ -68,9 +68,10 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 	m.ContextRepository.Save(context)
 
 	newInterval := &Interval{
-		ContextId: context.Id,
-		Start:     startTime,
-		Status:    "active",
+		ContextId:   context.Id,
+		Start:       startTime,
+		Status:      "active",
+		WorkspaceId: context.WorkspaceId,
 	}
 	m.IntervalRepository.Save(newInterval)
 

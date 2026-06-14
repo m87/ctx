@@ -27,6 +27,8 @@ import { DateTime } from 'luxon';
 import { catchError, filter, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { ContextService, ContextStats } from '../../api/context.service';
 import { SettingsQueries } from '../../api/settings.queries';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from '../sidebar/workspace.state';
 
 const firstDayKey = 'client.general.firstDay';
 
@@ -386,10 +388,12 @@ export class HeaderComponent {
   private contextMutations = inject(ContextMutations);
   private contextService = inject(ContextService);
   private settingsQueries = inject(SettingsQueries);
+  private readonly store = inject(Store);
+  readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   private router = inject(Router);
   today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
 
-  listContextsQuery = injectQuery(() => this.contextQueries.list());
+  listContextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   freeContextMutation = injectMutation(() => this.contextMutations.free());
@@ -402,7 +406,9 @@ export class HeaderComponent {
     ),
     { initialValue: this.today() },
   );
-  dayStatsQuery = injectQuery(() => this.contextQueries.dayStats(this.selectedDate()));
+  dayStatsQuery = injectQuery(() =>
+    this.contextQueries.dayStats(this.activeWorkspaceId()!, this.selectedDate()),
+  );
   activeContextName = computed(() => this.activeContextQuery.data()?.name ?? '');
   weekStartsOn = computed(() => (this.settingsQuery.data()?.[firstDayKey] === 'Sunday' ? 0 : 1));
   daySectionLabel = computed(() =>

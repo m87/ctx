@@ -56,7 +56,9 @@ import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
                   {{ workspace()?.name }}
                 </h1>
                 @if (workspace()?.description) {
-                  <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground text-ellipsis overflow-hidden">
+                  <p
+                    class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground text-ellipsis overflow-hidden"
+                  >
                     {{ workspace()?.description }}
                   </p>
                 } @else {

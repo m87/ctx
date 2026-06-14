@@ -15,7 +15,7 @@ export class IntervalMutations {
       mutationFn: (interval: Interval) =>
         lastValueFrom(this.intervalService.createInterval(interval)),
       onSuccess: (data) => {
-        this.invalidateAfterIntervalChange(data.contextId ?? data.context_id ?? '');
+        this.invalidateAfterIntervalChange(data.contextId ?? '');
       },
       onError(error) {
         toastError(error);
@@ -28,7 +28,7 @@ export class IntervalMutations {
       mutationFn: ({ id, interval }: { id: string; interval: Interval }) =>
         lastValueFrom(this.intervalService.updateInterval(id, interval)),
       onSuccess: (data) => {
-        this.invalidateAfterIntervalChange(data.contextId ?? data.context_id ?? '');
+        this.invalidateAfterIntervalChange(data.contextId ?? '');
       },
       onError(error) {
         toastError(error);
@@ -54,7 +54,7 @@ export class IntervalMutations {
       mutationFn: ({ id, targetContextId }: { id: string; targetContextId: string }) =>
         lastValueFrom(this.intervalService.moveInterval(id, targetContextId)),
       onSuccess: (data, variables) => {
-        const sourceContextId = data.contextId ?? data.context_id ?? '';
+        const sourceContextId = data.contextId ?? '';
         this.invalidateAfterIntervalChange(sourceContextId);
         this.invalidateAfterIntervalChange(variables.targetContextId);
       },

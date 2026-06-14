@@ -37,13 +37,13 @@ func (r *IntervalRepository) GetActiveIntervalByContextId(contextId string) (*co
 	return r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).StatusEquals("active").KV().First()
 }
 
-func (r *IntervalRepository) ListByDay(date time.Time) ([]*core.Interval, error) {
+func (r *IntervalRepository) ListByDay(date time.Time, workspaceId string) ([]*core.Interval, error) {
 	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	dayEnd := dayStart.Add(24 * time.Hour)
 
 	key := "start"
 	all, err := r.repository.Query().
-		KindEquals(core.IntervalType).
+		KindEquals(core.IntervalType).NamespaceId(workspaceId).
 		KVFilter(&nod.KVFilter{Key: &key, TimeTo: &dayEnd}).
 		KV().
 		List()

@@ -58,17 +58,13 @@ export class SidebarContextListComponent {
   private store = inject(Store);
   private readonly newContextInput = viewChild<ElementRef<HTMLInputElement>>('newContextInput');
 
-  listContextsQuery = injectQuery(() => this.contextQueries.list());
+  readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+
+  listContextsQuery = injectQuery(() => this.contextQueries.list(this.selectedWorkspaceId()));
   createContextMutation = injectMutation(() => this.contextMutations.create());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
 
-  readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
-  readonly contexts = computed<readonly Context[]>(() => {
-    const selectedWorkspaceId = this.selectedWorkspaceId();
-    return (this.listContextsQuery.data() ?? []).filter((context) =>
-      selectedWorkspaceId ? context.workspaceId === selectedWorkspaceId : !context.workspaceId,
-    );
-  });
+  readonly contexts = computed<readonly Context[]>(() => this.listContextsQuery.data() ?? []);
   readonly isAddingContext = signal<boolean>(false);
   readonly newContextName = signal<string>('');
 

@@ -13,6 +13,7 @@ import (
 
 func NewSummaryDayCmd() *cobra.Command {
 	var dayRaw string
+	var workspaceId string
 
 	cmd := &cobra.Command{
 		Use:   "day",
@@ -73,7 +74,7 @@ func NewSummaryDayCmd() *cobra.Command {
 				return printOutput(cmd, stats, textRenderer, nil)
 			}
 
-			intervals, err := manager.IntervalRepository.ListByDay(day)
+			intervals, err := manager.IntervalRepository.ListByDay(day, workspaceId)
 			if err != nil {
 				return err
 			}
@@ -185,6 +186,7 @@ func NewSummaryDayCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&dayRaw, "day", "", "Day in YYYY-MM-DD, default today")
+	cmd.Flags().StringVar(&workspaceId, "workspace", "", "Workspace ID")
 	return cmd
 }
 

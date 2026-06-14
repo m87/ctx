@@ -8,6 +8,6 @@ type IntervalRepository interface {
 	Delete(id string) error
 	ListByContextId(contextId string) ([]*Interval, error)
 	GetActiveIntervalByContextId(contextId string) (*Interval, error)
-	ListByDay(date time.Time) ([]*Interval, error)
+	ListByDay(date time.Time, workspaceId string) ([]*Interval, error)
 	List() ([]*Interval, error)
 }
