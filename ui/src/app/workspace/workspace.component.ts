@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Store } from '@ngxs/store';
@@ -9,19 +9,32 @@ import { lucideCheck, lucidePencil, lucideTrash2, lucideX } from '@ng-icons/luci
 import { WorkspaceQueries } from '../../api/workspace.quries';
 import { WorkspaceMutations } from '../../api/workspace.mutations';
 import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
+import { WorkspaceStats } from '../../api/workspace.service';
+import { colorHash, durationAsHM } from '../utils';
+
+const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
+  workspaceId: '',
+  contexts: [],
+  contextStats: [],
+  totalDuration: 0,
+  totalSessions: 0,
+};
 
 @Component({
   selector: 'app-workspace',
-  imports: [NgIcon],
+  imports: [NgIcon, RouterLink],
   providers: [provideIcons({ lucideCheck, lucidePencil, lucideTrash2, lucideX })],
   template: `
     <div class="w-full h-full overflow-hidden flex flex-col p-4 md:p-6">
-      <div class="rounded-lg border bg-card px-3 py-2.5">
-        <div class="flex items-center justify-between gap-3">
+      <div class="mb-5">
+        <div class="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+          Workspace
+        </div>
+        <div class="mt-1 flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
             @if (workspace()) {
               @if (isEditing()) {
-                <div class="grid gap-3">
+                <div class="grid max-w-2xl gap-3">
                   <label class="flex flex-col gap-1">
                     <span
                       class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
@@ -71,7 +84,7 @@ import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
           </div>
 
           @if (workspace()) {
-            <div class="flex shrink-0 items-center gap-1">
+            <div class="flex shrink-0 items-center gap-1 pt-0.5">
               @if (isEditing()) {
                 <button
                   type="button"
@@ -116,6 +129,101 @@ import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
           }
         </div>
       </div>
+
+      @if (workspace()) {
+        <div class="mt-6 flex-1 min-h-0 overflow-auto pr-1 pb-2">
+          <div
+            class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+          >
+            Workspace summary
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
+            <div class="rounded-lg border bg-card px-3 py-2.5">
+              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                Total tracked
+              </div>
+              <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
+            </div>
+            <div class="rounded-lg border bg-card px-3 py-2.5">
+              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                Contexts
+              </div>
+              <div class="text-base font-semibold mt-1">{{ workspaceStats().contexts.length }}</div>
+            </div>
+            <div class="rounded-lg border bg-card px-3 py-2.5">
+              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                Sessions
+              </div>
+              <div class="text-base font-semibold mt-1">{{ workspaceStats().totalSessions }}</div>
+            </div>
+            <div class="rounded-lg border bg-card px-3 py-2.5">
+              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                Top context
+              </div>
+              <div class="text-sm font-medium mt-1 truncate">{{ topContext() }}</div>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <div
+              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+            >
+              Distribution
+            </div>
+            @if (summaryContexts().length > 0) {
+              <div class="flex h-2 rounded-md overflow-hidden gap-px bg-muted/40">
+                @for (context of summaryContexts(); track context.id) {
+                  <div
+                    [style.width.%]="context.percentage"
+                    [style.background-color]="context.color"
+                    [title]="context.name + ': ' + context.duration"
+                  ></div>
+                }
+              </div>
+            } @else {
+              <div class="h-2 rounded-md bg-muted/40"></div>
+              <p class="mt-2 text-xs text-muted-foreground">No tracked time in this workspace.</p>
+            }
+          </div>
+
+          @if (summaryContexts().length > 0) {
+            <div
+              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+            >
+              Contexts
+            </div>
+            <div class="flex flex-col gap-2">
+              @for (context of summaryContexts(); track context.id) {
+                <a
+                  class="rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                  [routerLink]="['/context', context.id]"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <span
+                      class="w-2 h-2 rounded-sm shrink-0"
+                      [style.background-color]="context.color"
+                    ></span>
+                    <span class="text-sm font-medium flex-1 truncate">{{ context.name }}</span>
+                    <span class="text-xs text-muted-foreground">{{ context.duration }}</span>
+                  </div>
+                  <div class="h-1.5 rounded bg-muted/40 overflow-hidden">
+                    <div
+                      class="h-full rounded"
+                      [style.width.%]="context.percentage"
+                      [style.background-color]="context.color"
+                    ></div>
+                  </div>
+                  <div class="mt-2 text-[10px] text-muted-foreground">
+                    {{ context.sessions }} {{ context.sessions === 1 ? 'session' : 'sessions' }} ·
+                    {{ context.percentage.toFixed(1) }}%
+                  </div>
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
   `,
   styles: `
@@ -152,10 +260,35 @@ export class WorkspaceComponent {
   readonly activeWorkspaceId = computed(
     () => this.routeWorkspaceId() ?? this.selectedWorkspaceId(),
   );
+  workspaceStatsQuery = injectQuery(() =>
+    this.workspaceQueries.stats(this.activeWorkspaceId() ?? ''),
+  );
   readonly workspace = computed(() => {
     const id = this.activeWorkspaceId();
     return this.listWorkspacesQuery.data()?.find((workspace) => workspace.id === id) ?? null;
   });
+  readonly workspaceStats = computed(
+    () => this.workspaceStatsQuery.data() ?? EMPTY_WORKSPACE_STATS,
+  );
+  readonly summaryContexts = computed(() => {
+    const contextsById = new Map(
+      this.workspaceStats().contexts.map((context) => [context.id, context]),
+    );
+    return this.workspaceStats()
+      .contextStats.filter((stats) => stats.duration > 0)
+      .map((stats) => ({
+        id: stats.contextId,
+        name: contextsById.get(stats.contextId)?.name ?? stats.contextId,
+        duration: durationAsHM(stats.duration).trim() || '0m',
+        sessions: stats.intervalCount,
+        percentage: stats.percentage,
+        color: colorHash(stats.contextId),
+      }));
+  });
+  readonly totalTracked = computed(
+    () => durationAsHM(this.workspaceStats().totalDuration).trim() || '0m',
+  );
+  readonly topContext = computed(() => this.summaryContexts()[0]?.name ?? '-');
 
   startEdit(): void {
     const workspace = this.workspace();

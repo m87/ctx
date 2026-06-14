@@ -17,8 +17,34 @@ func registerWorkspaceHandler(mux *http.ServeMux, manager *core.ContextManager) 
 	mux.HandleFunc("GET /", handler.listWorkspaces)
 	mux.HandleFunc("POST /", handler.createWorkspace)
 	mux.HandleFunc("DELETE /{id}", handler.deleteWorkspace)
+	mux.HandleFunc("GET /{id}/stats", handler.getWorkspaceStats)
 	mux.HandleFunc("GET /{id}", handler.getWorkspace)
 	mux.HandleFunc("PUT /{id}", handler.updateWorkspace)
+}
+
+func (h *WorkspaceHandler) getWorkspaceStats(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
+
+	workspace, err := h.manager.WorkspaceRepository.GetById(id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_WORKSPACE", "Failed to get workspace")
+		return
+	}
+	if workspace == nil {
+		writeError(w, http.StatusNotFound, "WORKSPACE_NOT_FOUND", "Workspace not found")
+		return
+	}
+
+	stats, err := h.manager.GetWorkspaceStats(id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_WORKSPACE_STATS", "Failed to get workspace stats")
+		return
+	}
+	writeJson(w, http.StatusOK, stats)
 }
 
 func (h *WorkspaceHandler) listWorkspaces(w http.ResponseWriter, r *http.Request) {

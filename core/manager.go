@@ -252,6 +252,82 @@ type ContextStats struct {
 	TotalSessions int           `json:"totalSessions"`
 }
 
+func (m *ContextManager) GetWorkspaceStats(workspaceId string) (*WorkspaceStats, error) {
+	contexts, err := m.ContextRepository.ListByWorkspace(workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	now := m.TimeProvider.Now().Time.UTC()
+	contextStats := make([]*WorkspaceContextStats, 0, len(contexts))
+	var totalDuration time.Duration
+	var totalSessions int
+
+	for _, context := range contexts {
+		if context == nil {
+			continue
+		}
+
+		intervals, err := m.IntervalRepository.ListByContextId(context.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		stats := &WorkspaceContextStats{ContextId: context.Id}
+		for _, interval := range intervals {
+			duration := intervalDurationAt(interval, now)
+			if duration <= 0 {
+				continue
+			}
+			stats.Duration += duration
+			stats.IntervalCount++
+		}
+
+		totalDuration += stats.Duration
+		totalSessions += stats.IntervalCount
+		contextStats = append(contextStats, stats)
+	}
+
+	for _, stats := range contextStats {
+		if totalDuration > 0 {
+			stats.Percentage = float64(stats.Duration) / float64(totalDuration) * 100
+		}
+	}
+	sort.Slice(contextStats, func(i, j int) bool {
+		return contextStats[i].Duration > contextStats[j].Duration
+	})
+
+	return &WorkspaceStats{
+		WorkspaceId:   workspaceId,
+		Contexts:      contexts,
+		ContextStats:  contextStats,
+		TotalDuration: totalDuration,
+		TotalSessions: totalSessions,
+	}, nil
+}
+
+func intervalDurationAt(interval *Interval, now time.Time) time.Duration {
+	if interval == nil {
+		return 0
+	}
+
+	start := interval.Start.Time.UTC()
+	end := interval.End.Time.UTC()
+	if !start.IsZero() {
+		if end.IsZero() && interval.Status == "active" {
+			end = now
+		}
+		if end.After(start) {
+			return end.Sub(start)
+		}
+	}
+
+	if interval.Duration > 0 {
+		return interval.Duration
+	}
+	return 0
+}
+
 func (m *ContextManager) DeleteWorkspace(workspaceId string) error {
 	contexts, err := m.ContextRepository.ListByWorkspace(workspaceId)
 	if err != nil {

@@ -22,4 +22,12 @@ export class WorkspaceQueries {
       queryFn: () => lastValueFrom(this.workspaceService.getWorkspace(id)),
     };
   }
+
+  stats(id: string) {
+    return {
+      queryKey: [WorkspaceQueries.key, 'stats', id],
+      queryFn: () => lastValueFrom(this.workspaceService.getWorkspaceStats(id)),
+      enabled: id.length > 0,
+    };
+  }
 }

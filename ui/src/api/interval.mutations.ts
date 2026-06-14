@@ -4,6 +4,7 @@ import { lastValueFrom } from 'rxjs';
 import { ContextQueries } from './context.quries';
 import { Interval, IntervalService } from './interval.service';
 import { toastError } from './error';
+import { WorkspaceQueries } from './workspace.quries';
 
 @Injectable({ providedIn: 'root' })
 export class IntervalMutations {
@@ -67,6 +68,7 @@ export class IntervalMutations {
   private invalidateAfterIntervalChange(contextId: string) {
     this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
     this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
+    this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
 
     if (contextId) {
       this.queryClient.invalidateQueries({

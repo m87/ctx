@@ -3,9 +3,36 @@ package core
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+type fixedTimeProvider struct {
+	now time.Time
+}
+
+func (p fixedTimeProvider) Now() ZonedTime {
+	return ZonedTime{Time: p.now, Timezone: "UTC"}
+}
+
+type statsIntervalRepository struct {
+	intervalsByContext map[string][]*Interval
+}
+
+func (r *statsIntervalRepository) GetById(string) (*Interval, error) { return nil, nil }
+func (r *statsIntervalRepository) Save(*Interval) (string, error)    { return "", nil }
+func (r *statsIntervalRepository) Delete(string) error               { return nil }
+func (r *statsIntervalRepository) ListByContextId(contextId string) ([]*Interval, error) {
+	return r.intervalsByContext[contextId], nil
+}
+func (r *statsIntervalRepository) GetActiveIntervalByContextId(string) (*Interval, error) {
+	return nil, nil
+}
+func (r *statsIntervalRepository) ListByDay(time.Time, string) ([]*Interval, error) {
+	return nil, nil
+}
+func (r *statsIntervalRepository) List() ([]*Interval, error) { return nil, nil }
 
 type mockContextRepository struct {
 	contexts             []*Context
@@ -116,4 +143,45 @@ func TestContextManagerDeleteWorkspaceReturnsWorkspaceRepositoryError(t *testing
 	require.ErrorIs(t, err, wantErr)
 	require.Equal(t, 1, workspaceRepo.deleteCalls)
 	require.Equal(t, "workspace-1", workspaceRepo.deletedWorkspaceID)
+}
+
+func TestContextManagerGetWorkspaceStatsUsesAllIntervals(t *testing.T) {
+	now := time.Date(2026, time.June, 14, 12, 0, 0, 0, time.UTC)
+	contextRepo := &mockContextRepository{contexts: []*Context{
+		{Id: "context-1", Name: "First", WorkspaceId: "workspace-1"},
+		{Id: "context-2", Name: "Second", WorkspaceId: "workspace-1"},
+	}}
+	intervalRepo := &statsIntervalRepository{intervalsByContext: map[string][]*Interval{
+		"context-1": {
+			{
+				Start:  ZonedTime{Time: now.Add(-3 * time.Hour)},
+				End:    ZonedTime{Time: now.Add(-2 * time.Hour)},
+				Status: "completed",
+			},
+			{
+				Start:  ZonedTime{Time: now.Add(-30 * time.Minute)},
+				Status: "active",
+			},
+		},
+		"context-2": {
+			{Duration: 30 * time.Minute, Status: "completed"},
+		},
+	}}
+	manager := NewContextManager(
+		fixedTimeProvider{now: now},
+		contextRepo,
+		intervalRepo,
+		&mockWorkspaceRepository{},
+	)
+
+	stats, err := manager.GetWorkspaceStats("workspace-1")
+
+	require.NoError(t, err)
+	require.Equal(t, 2*time.Hour, stats.TotalDuration)
+	require.Equal(t, 3, stats.TotalSessions)
+	require.Len(t, stats.Contexts, 2)
+	require.Len(t, stats.ContextStats, 2)
+	require.Equal(t, "context-1", stats.ContextStats[0].ContextId)
+	require.Equal(t, 90*time.Minute, stats.ContextStats[0].Duration)
+	require.InDelta(t, 75, stats.ContextStats[0].Percentage, 0.001)
 }

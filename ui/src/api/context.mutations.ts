@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
 import { ContextQueries } from './context.quries';
 import { toastError } from './error';
+import { WorkspaceQueries } from './workspace.quries';
 
 @Injectable({
   providedIn: 'root',
@@ -19,6 +20,7 @@ export class ContextMutations {
       mutationFn: (context: Context) => lastValueFrom(this.contextService.createContext(context)),
       onSuccess: (data) => {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
+        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
         this.router.navigate(['/contexts', data.id]);
       },
       onError(error) {
@@ -34,6 +36,7 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
+        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
       },
       onError(error) {
         toastError(error);
@@ -48,6 +51,7 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
+        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
       },
       onError(error) {
         toastError(error);
@@ -61,6 +65,7 @@ export class ContextMutations {
         lastValueFrom(this.contextService.updateContext(id, context)),
       onSuccess: (data) => {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
+        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'get', data.id] });
       },
@@ -75,6 +80,7 @@ export class ContextMutations {
       mutationFn: (id: string) => lastValueFrom(this.contextService.deleteContext(id)),
       onSuccess: () => {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
+        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
       },

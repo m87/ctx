@@ -25,7 +25,16 @@ export function durationAsS(duration: number) {
 export function durationAsHM(duration: number) {
   const h = durationAsH(duration);
   const m = durationAsM(duration);
-  const hStr = h > 0 ? `${h}h` : '';
-  const mStr = m > 0 ? `${m}m` : '';
-  return `${hStr} ${mStr}`;
+  const s = durationAsS(duration);
+
+  if (h > 0) {
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  if (m > 0) {
+    return `${m}m`;
+  }
+  if (s > 0) {
+    return `${s}s`;
+  }
+  return '0m';
 }

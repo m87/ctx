@@ -1,11 +1,27 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
+import { Context } from './context.service';
 
 export interface Workspace {
   id: string;
   name: string;
   description?: string;
+}
+
+export interface WorkspaceContextStats {
+  contextId: string;
+  duration: number;
+  percentage: number;
+  intervalCount: number;
+}
+
+export interface WorkspaceStats {
+  workspaceId: string;
+  contexts: Context[];
+  contextStats: WorkspaceContextStats[];
+  totalDuration: number;
+  totalSessions: number;
 }
 
 @Injectable({
@@ -28,6 +44,10 @@ export class WorkspaceService {
 
   getWorkspace(id: string): Observable<Workspace> {
     return this.http.get<Workspace>(`/api/workspace/${id}`);
+  }
+
+  getWorkspaceStats(id: string): Observable<WorkspaceStats> {
+    return this.http.get<WorkspaceStats>(`/api/workspace/${id}/stats`);
   }
 
   updateWorkspace(workspace: Workspace): Observable<Workspace> {

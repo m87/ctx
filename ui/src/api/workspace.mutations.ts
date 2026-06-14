@@ -36,6 +36,7 @@ export class WorkspaceMutations {
         lastValueFrom(this.workspaceService.updateWorkspace(workspace)),
       onSuccess: (data) => {
         this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'list'] });
+        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats', data.id] });
         this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'get', data.id] });
       },
       onError(error) {
