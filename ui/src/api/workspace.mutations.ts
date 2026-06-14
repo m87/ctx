@@ -24,6 +24,9 @@ export class WorkspaceMutations {
         this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'list'] });
         this.router.navigate(['/workspace', data.id]);
       },
+      onError(error) {
+        toastError(error);
+      },
     });
   }
 
@@ -34,6 +37,9 @@ export class WorkspaceMutations {
       onSuccess: (data) => {
         this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'list'] });
         this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'get', data.id] });
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }

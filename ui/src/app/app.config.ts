@@ -5,8 +5,13 @@ import { provideStore } from '@ngxs/store';
 
 import { routes } from './app.routes';
 import { provideHttpClient } from '@angular/common/http';
-import { provideTanStackQuery, QueryClient } from '@tanstack/angular-query-experimental';
+import {
+  provideTanStackQuery,
+  QueryCache,
+  QueryClient,
+} from '@tanstack/angular-query-experimental';
 import { WorkspaceState } from './sidebar/workspace.state';
+import { toastError } from '../api/error';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -19,6 +24,12 @@ export const appConfig: ApplicationConfig = {
         keys: ['workspace.selectedWorkspaceId'],
       }),
     ),
-    provideTanStackQuery(new QueryClient()),
+    provideTanStackQuery(
+      new QueryClient({
+        queryCache: new QueryCache({
+          onError: toastError,
+        }),
+      }),
+    ),
   ],
 };

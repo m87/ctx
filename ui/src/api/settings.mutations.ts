@@ -3,6 +3,7 @@ import { mutationOptions, QueryClient } from '@tanstack/angular-query-experiment
 import { lastValueFrom } from 'rxjs';
 import { Settings, SettingsService } from './settings.service';
 import { SettingsQueries } from './settings.queries';
+import { toastError } from './error';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsMutations {
@@ -23,6 +24,9 @@ export class SettingsMutations {
             queryKey: [...SettingsQueries.key, 'setting', key],
           });
         });
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }

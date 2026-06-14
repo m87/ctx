@@ -3,6 +3,7 @@ import { mutationOptions, QueryClient } from '@tanstack/angular-query-experiment
 import { lastValueFrom } from 'rxjs';
 import { ContextQueries } from './context.quries';
 import { Interval, IntervalService } from './interval.service';
+import { toastError } from './error';
 
 @Injectable({ providedIn: 'root' })
 export class IntervalMutations {
@@ -16,6 +17,9 @@ export class IntervalMutations {
       onSuccess: (data) => {
         this.invalidateAfterIntervalChange(data.contextId ?? data.context_id ?? '');
       },
+      onError(error) {
+        toastError(error);
+      },
     });
   }
 
@@ -26,6 +30,9 @@ export class IntervalMutations {
       onSuccess: (data) => {
         this.invalidateAfterIntervalChange(data.contextId ?? data.context_id ?? '');
       },
+      onError(error) {
+        toastError(error);
+      },
     });
   }
 
@@ -35,6 +42,9 @@ export class IntervalMutations {
         lastValueFrom(this.intervalService.deleteInterval(id)),
       onSuccess: (_, variables) => {
         this.invalidateAfterIntervalChange(variables.contextId);
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }
@@ -47,6 +57,9 @@ export class IntervalMutations {
         const sourceContextId = data.contextId ?? data.context_id ?? '';
         this.invalidateAfterIntervalChange(sourceContextId);
         this.invalidateAfterIntervalChange(variables.targetContextId);
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }

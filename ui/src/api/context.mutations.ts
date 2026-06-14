@@ -21,6 +21,9 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
         this.router.navigate(['/contexts', data.id]);
       },
+      onError(error) {
+        toastError(error);
+      },
     });
   }
 
@@ -31,6 +34,9 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }
@@ -43,6 +49,9 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
       },
+      onError(error) {
+        toastError(error);
+      },
     });
   }
 
@@ -54,6 +63,9 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'get', data.id] });
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }
@@ -68,7 +80,7 @@ export class ContextMutations {
       },
       onError(error) {
         toastError(error);
-      }
+      },
     });
   }
 }

@@ -1,5 +1,5 @@
-import { HttpErrorResponse } from "@angular/common/http";
-import { toast } from "ngx-sonner";
+import { HttpErrorResponse } from '@angular/common/http';
+import { toast } from 'ngx-sonner';
 
 export interface ErrorResponse {
   code: string;
@@ -7,13 +7,13 @@ export interface ErrorResponse {
 }
 
 export function toastError(error: unknown): void {
-  if (error instanceof Error) {
+  if (error instanceof HttpErrorResponse) {
+    const response = error.error as Partial<ErrorResponse> | null;
+    toast.error(response?.description ?? error.message);
+  } else if (error instanceof Error) {
     toast.error(error.message);
   } else if (typeof error === 'string') {
     toast.error(error);
-  } else if (error instanceof HttpErrorResponse) {
-    toast.error(`${error.error.description}`);
-    return;
   } else {
     toast.error('An unknown error occurred');
   }
