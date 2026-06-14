@@ -9,6 +9,7 @@ func NewEditWorkspaceCmd() *cobra.Command {
 	var (
 		workspaceId string
 		name        string
+		description string
 	)
 
 	cmd := &cobra.Command{
@@ -28,6 +29,9 @@ func NewEditWorkspaceCmd() *cobra.Command {
 			if name != "" {
 				workspace.Name = name
 			}
+			if cmd.Flags().Changed("description") {
+				workspace.Description = description
+			}
 
 			if resolveRemoteAddr() != "" {
 				return remoteUpdateWorkspace(workspace)
@@ -44,6 +48,7 @@ func NewEditWorkspaceCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&workspaceId, "id", "i", "", "ID of the workspace to edit")
 	cmd.Flags().StringVarP(&name, "name", "n", "", "New name of the workspace")
+	cmd.Flags().StringVar(&description, "description", "", "New description of the workspace")
 	_ = cmd.MarkFlagRequired("id")
 	return cmd
 

@@ -16,7 +16,7 @@ func NewWorkspaceRepository(repository *nod.Repository) *WorkspaceRepository {
 }
 
 func (r *WorkspaceRepository) GetById(id string) (*core.Workspace, error) {
-	return r.repository.Query().NodeId(id).First()
+	return r.repository.Query().NodeId(id).Content().First()
 }
 
 func (r *WorkspaceRepository) Save(workspace *core.Workspace) (string, error) {
@@ -28,5 +28,5 @@ func (r *WorkspaceRepository) Delete(id string) error {
 }
 
 func (r *WorkspaceRepository) List() ([]*core.Workspace, error) {
-	return r.repository.Query().KindEquals(core.WorkspaceType).List()
+	return r.repository.Query().KindEquals(core.WorkspaceType).Content().List()
 }

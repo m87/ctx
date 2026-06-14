@@ -38,15 +38,25 @@ func TestCreateWorkspaceTextOutputAndPersistence(t *testing.T) {
 		RemoteAddr = oldRemoteAddr
 	})
 
-	output, err := executeCreateWorkspaceCommand(t, "--name", "demo")
+	output, err := executeCreateWorkspaceCommand(
+		t,
+		"--name", "demo",
+		"--description", "Workspace for demo contexts",
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "Workspace created successfully", output)
 
 	workspaces, err := bootstrap.CreateManager().WorkspaceRepository.List()
 	require.NoError(t, err)
-	require.Len(t, workspaces, 1)
-	require.NotNil(t, workspaces[0])
-	assert.Equal(t, "demo", workspaces[0].Name)
+	var created *core.Workspace
+	for _, workspace := range workspaces {
+		if workspace != nil && workspace.Name == "demo" {
+			created = workspace
+			break
+		}
+	}
+	require.NotNil(t, created)
+	assert.Equal(t, "Workspace for demo contexts", created.Description)
 }
 
 func TestCreateWorkspaceJsonOutput(t *testing.T) {
@@ -61,12 +71,17 @@ func TestCreateWorkspaceJsonOutput(t *testing.T) {
 		RemoteAddr = oldRemoteAddr
 	})
 
-	output, err := executeCreateWorkspaceCommand(t, "--name", "demo")
+	output, err := executeCreateWorkspaceCommand(
+		t,
+		"--name", "demo",
+		"--description", "Workspace for demo contexts",
+	)
 	require.NoError(t, err)
 
 	var workspace core.Workspace
 	require.NoError(t, json.Unmarshal([]byte(output), &workspace), "output: %q", output)
 	assert.Equal(t, "demo", workspace.Name)
+	assert.Equal(t, "Workspace for demo contexts", workspace.Description)
 	assert.NotEmpty(t, workspace.Id)
 }
 

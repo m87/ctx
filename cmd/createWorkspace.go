@@ -8,7 +8,8 @@ import (
 
 func NewCreateWorkspaceCmd() *cobra.Command {
 	var (
-		name string
+		name        string
+		description string
 	)
 
 	cmd := &cobra.Command{
@@ -18,7 +19,8 @@ func NewCreateWorkspaceCmd() *cobra.Command {
 			manager := bootstrap.CreateManager()
 
 			workspace := &core.Workspace{
-				Name: name,
+				Name:        name,
+				Description: description,
 			}
 
 			if resolveRemoteAddr() != "" {
@@ -40,6 +42,7 @@ func NewCreateWorkspaceCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&name, "name", "n", "", "Name of the workspace")
+	cmd.Flags().StringVar(&description, "description", "", "Description of the workspace")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }

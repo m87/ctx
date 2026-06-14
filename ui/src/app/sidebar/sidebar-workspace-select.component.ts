@@ -118,7 +118,7 @@ import { Workspace } from '../../api/workspace.service';
                         ></ng-icon>
                       }
                     </div>
-                    <div class="text-[11px] text-muted-foreground mt-0.5">workspace</div>
+                    <div class="text-[11px] text-muted-foreground mt-0.5">{{ workspace.description }}</div>
                   </button>
                 </div>
               </div>

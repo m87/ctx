@@ -20,19 +20,48 @@ import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0 flex-1">
             @if (workspace()) {
-              @if (isEditingName()) {
-                <input
-                  type="text"
-                  class="h-9 w-full rounded-md border bg-background px-2.5 text-2xl font-semibold tracking-tight outline-none focus:ring-1 focus:ring-ring"
-                  [value]="workspaceName()"
-                  (input)="onWorkspaceNameInput($event)"
-                  (keydown.enter)="confirmRenameWorkspace()"
-                  (keydown.escape)="cancelRenameWorkspace()"
-                />
+              @if (isEditing()) {
+                <div class="grid gap-3">
+                  <label class="flex flex-col gap-1">
+                    <span
+                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      >Name</span
+                    >
+                    <input
+                      type="text"
+                      class="h-9 w-full rounded-md border bg-background px-2.5 text-sm outline-none focus:ring-1 focus:ring-ring"
+                      placeholder="Workspace name"
+                      [value]="editName()"
+                      (input)="editName.set(getInputValue($event))"
+                      (keydown.escape)="cancelEdit()"
+                    />
+                  </label>
+
+                  <label class="flex flex-col gap-1">
+                    <span
+                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      >Description</span
+                    >
+                    <textarea
+                      class="min-h-24 w-full rounded-md border bg-background px-2.5 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
+                      placeholder="What this workspace is for"
+                      [value]="editDescription()"
+                      (input)="editDescription.set(getInputValue($event))"
+                      (keydown.escape)="cancelEdit()"
+                    ></textarea>
+                  </label>
+                </div>
               } @else {
                 <h1 class="text-2xl font-semibold tracking-tight truncate">
                   {{ workspace()?.name }}
                 </h1>
+                @if (workspace()?.description) {
+                  <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground text-ellipsis overflow-hidden">
+                    {{ workspace()?.description }}
+                  </p>
+                } @else {
+                  <p class="mt-1 text-sm text-muted-foreground">No description</p>
+                }
               }
             } @else {
               <h1 class="text-2xl font-semibold tracking-tight">Default workspace</h1>
@@ -41,22 +70,23 @@ import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
 
           @if (workspace()) {
             <div class="flex shrink-0 items-center gap-1">
-              @if (isEditingName()) {
+              @if (isEditing()) {
                 <button
                   type="button"
                   class="h-8 w-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
-                  aria-label="Save workspace name"
-                  title="Save name"
-                  (click)="confirmRenameWorkspace()"
+                  aria-label="Save workspace"
+                  title="Save"
+                  [disabled]="updateWorkspaceMutation.isPending()"
+                  (click)="saveEdit()"
                 >
                   <ng-icon name="lucideCheck"></ng-icon>
                 </button>
                 <button
                   type="button"
                   class="h-8 w-8 rounded-md border hover:bg-muted/60 flex items-center justify-center"
-                  aria-label="Cancel workspace rename"
+                  aria-label="Cancel workspace edit"
                   title="Cancel"
-                  (click)="cancelRenameWorkspace()"
+                  (click)="cancelEdit()"
                 >
                   <ng-icon name="lucideX"></ng-icon>
                 </button>
@@ -64,9 +94,9 @@ import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
                 <button
                   type="button"
                   class="h-8 w-8 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
-                  aria-label="Edit workspace name"
-                  title="Edit name"
-                  (click)="startRenameWorkspace()"
+                  aria-label="Edit workspace"
+                  title="Edit"
+                  (click)="startEdit()"
                 >
                   <ng-icon name="lucidePencil"></ng-icon>
                 </button>
@@ -106,50 +136,63 @@ export class WorkspaceComponent {
     this.route.paramMap.pipe(map((params) => params.get('id'))),
     { initialValue: null },
   );
-  private readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  private readonly selectedWorkspaceId = this.store.selectSignal(
+    WorkspaceState.selectedWorkspaceId,
+  );
 
   listWorkspacesQuery = injectQuery(() => this.workspaceQueries.list());
   updateWorkspaceMutation = injectMutation(() => this.workspaceMutations.update());
   deleteWorkspaceMutation = injectMutation(() => this.workspaceMutations.delete());
 
-  readonly isEditingName = signal<boolean>(false);
-  readonly workspaceName = signal<string>('');
-  readonly activeWorkspaceId = computed(() => this.routeWorkspaceId() ?? this.selectedWorkspaceId());
+  readonly isEditing = signal(false);
+  readonly editName = signal('');
+  readonly editDescription = signal('');
+  readonly activeWorkspaceId = computed(
+    () => this.routeWorkspaceId() ?? this.selectedWorkspaceId(),
+  );
   readonly workspace = computed(() => {
     const id = this.activeWorkspaceId();
     return this.listWorkspacesQuery.data()?.find((workspace) => workspace.id === id) ?? null;
   });
 
-  startRenameWorkspace(): void {
+  startEdit(): void {
     const workspace = this.workspace();
     if (!workspace) {
       return;
     }
 
-    this.workspaceName.set(workspace.name);
-    this.isEditingName.set(true);
+    this.editName.set(workspace.name);
+    this.editDescription.set(workspace.description ?? '');
+    this.isEditing.set(true);
   }
 
-  cancelRenameWorkspace(): void {
-    this.isEditingName.set(false);
-    this.workspaceName.set('');
+  cancelEdit(): void {
+    this.isEditing.set(false);
+    this.editName.set('');
+    this.editDescription.set('');
   }
 
-  onWorkspaceNameInput(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.workspaceName.set(target.value);
+  getInputValue(event: Event): string {
+    return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
   }
 
-  confirmRenameWorkspace(): void {
+  saveEdit(): void {
     const workspace = this.workspace();
-    const name = this.workspaceName().trim();
+    const name = this.editName().trim();
     if (!workspace || !name) {
-      this.cancelRenameWorkspace();
       return;
     }
 
-    this.updateWorkspaceMutation.mutate({ ...workspace, name });
-    this.cancelRenameWorkspace();
+    this.updateWorkspaceMutation.mutate(
+      {
+        ...workspace,
+        name,
+        description: this.editDescription().trim(),
+      },
+      {
+        onSuccess: () => this.cancelEdit(),
+      },
+    );
   }
 
   deleteWorkspace(): void {
@@ -159,6 +202,5 @@ export class WorkspaceComponent {
     }
 
     this.deleteWorkspaceMutation.mutate(workspace.id);
-
   }
 }

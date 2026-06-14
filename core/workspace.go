@@ -3,8 +3,9 @@ package core
 import "github.com/m87/nod"
 
 type Workspace struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
 }
 
 type WorkspaceMapper struct {
@@ -22,13 +23,19 @@ func (m *WorkspaceMapper) ToNode(workspace *Workspace) (*nod.Node, error) {
 			Kind: WorkspaceType,
 		},
 	}
+
+	node.Content = nod.ConvertStringMapToContent(map[string]string{
+		"description": workspace.Description,
+	})
+
 	return node, nil
 }
 
 func (m *WorkspaceMapper) FromNode(node *nod.Node) (*Workspace, error) {
 	return &Workspace{
-		Id:   node.Core.Id,
-		Name: node.Core.Name,
+		Id:          node.Core.Id,
+		Name:        node.Core.Name,
+		Description: nod.ConvertContentToStringMap(node.Content)["description"],
 	}, nil
 }
 

@@ -5,6 +5,7 @@ import { Observable } from 'rxjs/internal/Observable';
 export interface Workspace {
   id: string;
   name: string;
+  description?: string;
 }
 
 @Injectable({
