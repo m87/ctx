@@ -24,7 +24,7 @@ func registerWorkspaceHandler(mux *http.ServeMux, manager *core.ContextManager) 
 func (h *WorkspaceHandler) listWorkspaces(w http.ResponseWriter, r *http.Request) {
 	workspaces, err := h.manager.WorkspaceRepository.List()
 	if err != nil {
-		http.Error(w, "Failed to list workspaces", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_WORKSPACES", "Failed to list workspaces")
 		return
 	}
 	writeJson(w, http.StatusOK, workspaces)
@@ -33,14 +33,14 @@ func (h *WorkspaceHandler) listWorkspaces(w http.ResponseWriter, r *http.Request
 func (h *WorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Request) {
 	var workspace core.Workspace
 	if err := json.NewDecoder(r.Body).Decode(&workspace); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 	workspace.Id = ""
 
 	id, err := h.manager.WorkspaceRepository.Save(&workspace)
 	if err != nil {
-		http.Error(w, "Failed to create workspace", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_CREATE_WORKSPACE", "Failed to create workspace")
 		return
 	}
 	workspace.Id = id
@@ -50,16 +50,16 @@ func (h *WorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Reques
 func (h *WorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing workspace ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
 		return
 	}
 
 	if err := h.manager.DeleteWorkspace(id); err != nil {
 		if _, ok := err.(*core.WorkspaceInUseError); ok {
-			http.Error(w, "Cannot delete workspace because it is in use by one or more contexts", http.StatusBadRequest)
+			writeError(w, http.StatusBadRequest, "WORKSPACE_IN_USE", "Cannot delete workspace because it is in use by one or more contexts")
 			return
 		}
-		http.Error(w, "Failed to delete workspace", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_DELETE_WORKSPACE", "Failed to delete workspace")
 		return
 	}
 
@@ -69,16 +69,16 @@ func (h *WorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Reques
 func (h *WorkspaceHandler) getWorkspace(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing workspace ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
 		return
 	}
 	workspace, err := h.manager.WorkspaceRepository.GetById(id)
 	if err != nil {
-		http.Error(w, "Failed to get workspace", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_WORKSPACE", "Failed to get workspace")
 		return
 	}
 	if workspace == nil {
-		http.Error(w, "Workspace not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "WORKSPACE_NOT_FOUND", "Workspace not found")
 		return
 	}
 	writeJson(w, http.StatusOK, workspace)
@@ -87,17 +87,17 @@ func (h *WorkspaceHandler) getWorkspace(w http.ResponseWriter, r *http.Request) 
 func (h *WorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing workspace ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
 		return
 	}
 	var workspace core.Workspace
 	if err := json.NewDecoder(r.Body).Decode(&workspace); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 	workspace.Id = id
 	if _, err := h.manager.WorkspaceRepository.Save(&workspace); err != nil {
-		http.Error(w, "Failed to update workspace", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_WORKSPACE", "Failed to update workspace")
 		return
 	}
 	writeJson(w, http.StatusOK, &workspace)

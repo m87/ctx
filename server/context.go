@@ -127,11 +127,11 @@ func (h *ContextHandler) createContext(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) deleteContext(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "missing_context_id", "Missing context ID")
 		return
 	}
 	if err := h.manager.ContextRepository.Delete(id); err != nil {
-		http.Error(w, "Failed to delete context", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "failed_to_delete_context", "Failed to delete context")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

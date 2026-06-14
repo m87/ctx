@@ -4,6 +4,9 @@ import { lastValueFrom } from 'rxjs';
 import { Workspace, WorkspaceService } from './workspace.service';
 import { WorkspaceQueries } from './workspace.quries';
 import { Router } from '@angular/router';
+import { SelectWorkspace } from '../app/sidebar/workspace.state';
+import { Store } from '@ngxs/store';
+import { toastError } from './error';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +15,7 @@ export class WorkspaceMutations {
   private workspaceService = inject(WorkspaceService);
   private queryClient = inject(QueryClient);
   private router = inject(Router);
+  private readonly store = inject(Store);
 
   create() {
     return mutationOptions({
@@ -41,6 +45,10 @@ export class WorkspaceMutations {
         this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'list'] });
         this.queryClient.removeQueries({ queryKey: [WorkspaceQueries.key, 'get', id] });
         this.router.navigate(['/day']);
+        this.store.dispatch(new SelectWorkspace(null));
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }

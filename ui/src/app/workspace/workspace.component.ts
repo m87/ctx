@@ -158,9 +158,7 @@ export class WorkspaceComponent {
       return;
     }
 
-    if (this.selectedWorkspaceId() === workspace.id) {
-      this.store.dispatch(new SelectWorkspace(null));
-    }
     this.deleteWorkspaceMutation.mutate(workspace.id);
+
   }
 }

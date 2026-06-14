@@ -4,6 +4,7 @@ import { mutationOptions, QueryClient } from '@tanstack/angular-query-experiment
 import { Router } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
 import { ContextQueries } from './context.quries';
+import { toastError } from './error';
 
 @Injectable({
   providedIn: 'root',
@@ -65,6 +66,9 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
       },
+      onError(error) {
+        toastError(error);
+      }
     });
   }
 }
