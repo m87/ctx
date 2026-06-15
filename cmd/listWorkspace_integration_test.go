@@ -71,7 +71,7 @@ func TestListWorkspaceTextOutputWithResults(t *testing.T) {
 	}
 }
 
-func TestListWorkspaceTextOutputEmpty(t *testing.T) {
+func TestListWorkspaceTextOutputIncludesDefault(t *testing.T) {
 	oldOutputFormat := OutputFormat
 	oldRemoteAddr := RemoteAddr
 	OutputFormat = "text"
@@ -86,8 +86,8 @@ func TestListWorkspaceTextOutputEmpty(t *testing.T) {
 		t.Fatalf("command execute failed: %v", err)
 	}
 
-	if output != "No workspaces found" {
-		t.Fatalf("expected empty text message, got: %q", output)
+	if !strings.Contains(output, "Name: Default") {
+		t.Fatalf("expected default workspace, got: %q", output)
 	}
 }
 
@@ -122,11 +122,18 @@ func TestListWorkspaceJsonOutput(t *testing.T) {
 		t.Fatalf("json unmarshal failed: %v, output: %q", unmarshalErr, output.String())
 	}
 
-	if len(workspaces) != 1 {
-		t.Fatalf("expected 1 workspace in json output, got: %d", len(workspaces))
+	if len(workspaces) != 2 {
+		t.Fatalf("expected default and demo workspaces, got: %d", len(workspaces))
 	}
-	if workspaces[0].Name != "demo" {
-		t.Fatalf("expected workspace name demo, got: %q", workspaces[0].Name)
+	foundDemo := false
+	for _, workspace := range workspaces {
+		if workspace.Name == "demo" {
+			foundDemo = true
+			break
+		}
+	}
+	if !foundDemo {
+		t.Fatalf("expected workspace name demo, got: %#v", workspaces)
 	}
 }
 
@@ -171,7 +178,7 @@ func TestListWorkspaceYamlAndShellOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("shell command execute failed: %v", err)
 	}
-	if !strings.Contains(shellOutput.String(), "RESULT_0_NAME=\"demo\"") {
+	if !strings.Contains(shellOutput.String(), "NAME=\"demo\"") {
 		t.Fatalf("expected shell output to include flattened workspace name, got: %q", shellOutput.String())
 	}
 }

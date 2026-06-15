@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
@@ -16,17 +19,23 @@ func NewEditWorkspaceCmd() *cobra.Command {
 		Use:   "workspace",
 		Short: "Edit a workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager, err := bootstrap.CreateManager()
-			if err != nil {
-				return err
+			var workspace *core.Workspace
+			var manager *core.ContextManager
+			var err error
+			if resolveRemoteAddr() != "" {
+				workspace, err = remoteGetWorkspace(workspaceId)
+			} else {
+				manager, err = bootstrap.CreateManager()
+				if err != nil {
+					return err
+				}
+				workspace, err = manager.WorkspaceRepository.GetById(workspaceId)
 			}
-
-			workspace, err := manager.WorkspaceRepository.GetById(workspaceId)
 			if err != nil {
 				return err
 			}
 			if workspace == nil {
-				return nil
+				return fmt.Errorf("workspace not found")
 			}
 
 			if name != "" {

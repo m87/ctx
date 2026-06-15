@@ -168,6 +168,15 @@ func remoteListWorkspaces() ([]*core.Workspace, error) {
 	return workspaces, nil
 }
 
+func remoteGetWorkspace(id string) (*core.Workspace, error) {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	var workspace core.Workspace
+	if err := client.requestJSON(http.MethodGet, "/workspace/"+url.PathEscape(strings.TrimSpace(id)), nil, &workspace); err != nil {
+		return nil, err
+	}
+	return &workspace, nil
+}
+
 func remoteDeleteWorkspace(id string) error {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	return client.requestJSON(http.MethodDelete, "/workspace/"+strings.TrimSpace(id), nil, nil)
