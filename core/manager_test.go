@@ -131,6 +131,64 @@ func TestContextManagerEnsureDefaultWorkspaceFillsOnlyMissingAssignments(t *test
 	require.Equal(t, []*Interval{unassignedInterval}, intervalRepo.savedIntervals)
 }
 
+func TestContextManagerCheckIntegrityReportsOrphansAndWorkspaceMismatch(t *testing.T) {
+	contextRepo := &mockContextRepository{contexts: []*Context{
+		{Id: "context-without-workspace"},
+		{Id: "context-1", WorkspaceId: "workspace-1"},
+	}}
+	intervalRepo := &statsIntervalRepository{intervals: []*Interval{
+		{Id: "missing-context", ContextId: "does-not-exist", WorkspaceId: "workspace-1"},
+		{Id: "workspace-mismatch", ContextId: "context-1", WorkspaceId: "workspace-2"},
+	}}
+	workspaceRepo := &mockWorkspaceRepository{workspaces: []*Workspace{
+		{Id: "workspace-1", Name: "First"},
+		{Id: "workspace-2", Name: "Second"},
+	}}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo)
+
+	report, err := manager.CheckIntegrity()
+
+	require.NoError(t, err)
+	require.False(t, report.Healthy)
+	require.Equal(t, 2, report.WorkspaceCount)
+	require.Equal(t, 2, report.ContextCount)
+	require.Equal(t, 2, report.IntervalCount)
+	require.Equal(t, []string{
+		"CONTEXT_MISSING_WORKSPACE",
+		"INTERVAL_CONTEXT_NOT_FOUND",
+		"INTERVAL_WORKSPACE_MISMATCH",
+	}, integrityIssueCodes(report.Issues))
+}
+
+func TestContextManagerRepairIntegrityRepairsWorkspaceAssignments(t *testing.T) {
+	context := &Context{Id: "context-1", WorkspaceId: "missing-workspace"}
+	matchingInterval := &Interval{Id: "interval-1", ContextId: context.Id, WorkspaceId: "other-workspace"}
+	orphanInterval := &Interval{Id: "interval-2", ContextId: "missing-context", WorkspaceId: "default-workspace"}
+	contextRepo := &mockContextRepository{contexts: []*Context{context}}
+	intervalRepo := &statsIntervalRepository{intervals: []*Interval{matchingInterval, orphanInterval}}
+	workspaceRepo := &mockWorkspaceRepository{workspaces: []*Workspace{
+		{Id: "default-workspace", Name: "Default"},
+	}}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo)
+
+	result, err := manager.RepairIntegrity()
+
+	require.NoError(t, err)
+	require.Equal(t, 2, result.RepairedCount)
+	require.Equal(t, "default-workspace", context.WorkspaceId)
+	require.Equal(t, "default-workspace", matchingInterval.WorkspaceId)
+	require.False(t, result.Report.Healthy)
+	require.Equal(t, []string{"INTERVAL_CONTEXT_NOT_FOUND"}, integrityIssueCodes(result.Report.Issues))
+}
+
+func integrityIssueCodes(issues []*IntegrityIssue) []string {
+	codes := make([]string, 0, len(issues))
+	for _, issue := range issues {
+		codes = append(codes, issue.Code)
+	}
+	return codes
+}
+
 func TestContextManagerCreateContextAssignsWorkspace(t *testing.T) {
 	contextRepo := &mockContextRepository{}
 	workspaceRepo := &mockWorkspaceRepository{workspacesByID: map[string]*Workspace{

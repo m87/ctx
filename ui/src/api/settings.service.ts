@@ -4,6 +4,26 @@ import { Observable } from 'rxjs';
 
 export type Settings = { [key: string]: string };
 
+export type IntegrityIssue = {
+  entityType: 'context' | 'interval';
+  entityId: string;
+  code: string;
+  description: string;
+};
+
+export type IntegrityReport = {
+  healthy: boolean;
+  workspaceCount: number;
+  contextCount: number;
+  intervalCount: number;
+  issues: IntegrityIssue[];
+};
+
+export type IntegrityRepairResult = {
+  repairedCount: number;
+  report: IntegrityReport;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -20,5 +40,13 @@ export class SettingsService {
 
   getSetting(key: string): Observable<string> {
     return this.http.get(`/api/settings/key/${encodeURIComponent(key)}`, { responseType: 'text' });
+  }
+
+  checkIntegrity(): Observable<IntegrityReport> {
+    return this.http.get<IntegrityReport>('/api/integrity/');
+  }
+
+  repairIntegrity(): Observable<IntegrityRepairResult> {
+    return this.http.post<IntegrityRepairResult>('/api/integrity/repair', null);
   }
 }

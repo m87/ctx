@@ -16,6 +16,7 @@ type ContextManager struct {
 	ContextRepository   ContextRepository
 	IntervalRepository  IntervalRepository
 	WorkspaceRepository WorkspaceRepository
+	RunInTransaction    func(func(*ContextManager) error) error
 }
 
 func NewContextManager(
@@ -24,12 +25,16 @@ func NewContextManager(
 	intervalRepo IntervalRepository,
 	workspaceRepo WorkspaceRepository,
 ) *ContextManager {
-	return &ContextManager{
+	manager := &ContextManager{
 		TimeProvider:        tp,
 		ContextRepository:   contextRepo,
 		IntervalRepository:  intervalRepo,
 		WorkspaceRepository: workspaceRepo,
 	}
+	manager.RunInTransaction = func(fn func(*ContextManager) error) error {
+		return fn(manager)
+	}
+	return manager
 }
 
 func (m *ContextManager) SaveInterval(interval *Interval) (string, error) {
@@ -410,10 +415,16 @@ func (e *WorkspaceInUseError) Error() string {
 }
 
 func (m *ContextManager) EnsureDefaultWorkspace() error {
+	_, err := m.EnsureDefaultWorkspaceWithResult()
+	return err
+}
+
+func (m *ContextManager) EnsureDefaultWorkspaceWithResult() (int, error) {
 	workspaces, err := m.WorkspaceRepository.List()
 	if err != nil {
-		return err
+		return 0, err
 	}
+	repaired := 0
 	var defaultWorkspaceId string
 	if len(workspaces) == 0 {
 		defaultWorkspace := &Workspace{
@@ -421,9 +432,10 @@ func (m *ContextManager) EnsureDefaultWorkspace() error {
 		}
 		id, err := m.WorkspaceRepository.Save(defaultWorkspace)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		defaultWorkspaceId = id
+		repaired++
 	} else {
 		for _, workspace := range workspaces {
 			if workspace != nil && workspace.Name == "Default" {
@@ -433,29 +445,32 @@ func (m *ContextManager) EnsureDefaultWorkspace() error {
 		}
 	}
 	if defaultWorkspaceId == "" {
-		return nil
+		return repaired, nil
 	}
-	return m.setDefaultWorkspaceIfNotSet(defaultWorkspaceId)
+	assigned, err := m.setDefaultWorkspaceIfNotSet(defaultWorkspaceId)
+	return repaired + assigned, err
 }
 
-func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) error {
+func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) (int, error) {
 	contexts, err := m.ContextRepository.List()
 	if err != nil {
-		return err
+		return 0, err
 	}
+	repaired := 0
 	for _, ctx := range contexts {
 		if ctx == nil || ctx.WorkspaceId != "" {
 			continue
 		}
 		ctx.WorkspaceId = defaultWorkspaceId
 		if _, err := m.ContextRepository.Save(ctx); err != nil {
-			return err
+			return repaired, err
 		}
+		repaired++
 	}
 
 	intervals, err := m.IntervalRepository.List()
 	if err != nil {
-		return err
+		return repaired, err
 	}
 	for _, interval := range intervals {
 		if interval == nil || interval.WorkspaceId != "" {
@@ -463,9 +478,10 @@ func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) 
 		}
 		interval.WorkspaceId = defaultWorkspaceId
 		if _, err := m.IntervalRepository.Save(interval); err != nil {
-			return err
+			return repaired, err
 		}
+		repaired++
 	}
 
-	return nil
+	return repaired, nil
 }

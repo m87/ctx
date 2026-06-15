@@ -43,6 +43,11 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 	apiMux.Handle("/settings/", stripPrefixOrRoot("/settings", settingsMux))
 	apiMux.Handle("/settings", stripPrefixOrRoot("/settings", settingsMux))
 
+	integrityMux := http.NewServeMux()
+	registerIntegrityHandler(integrityMux, manager)
+	apiMux.Handle("/integrity/", stripPrefixOrRoot("/integrity", integrityMux))
+	apiMux.Handle("/integrity", stripPrefixOrRoot("/integrity", integrityMux))
+
 	contextMux := http.NewServeMux()
 	registerContextHandler(contextMux, manager)
 	apiMux.Handle("/context/", http.StripPrefix("/context", contextMux))
@@ -72,6 +77,11 @@ func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, sett
 	registerSettingsHandler(settingsMux, settingsManager)
 	mux.Handle("/settings/", stripPrefixOrRoot("/settings", settingsMux))
 	mux.Handle("/settings", stripPrefixOrRoot("/settings", settingsMux))
+
+	integrityMux := http.NewServeMux()
+	registerIntegrityHandler(integrityMux, manager)
+	mux.Handle("/integrity/", stripPrefixOrRoot("/integrity", integrityMux))
+	mux.Handle("/integrity", stripPrefixOrRoot("/integrity", integrityMux))
 
 	contextMux := http.NewServeMux()
 	registerContextHandler(contextMux, manager)
@@ -110,7 +120,7 @@ func (s *Server) Handler() http.Handler {
 			base.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") {
 			base.ServeHTTP(w, r)
 			return
 		}
