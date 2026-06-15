@@ -17,6 +17,7 @@ func NewListIntervalCmd() *cobra.Command {
 		Short: "List intervals for a day",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			manager := bootstrap.CreateManager()
+			selectedWorkspaceID := strings.TrimSpace(workspaceId)
 
 			day, err := parseDay(dayRaw)
 			if err != nil {
@@ -26,12 +27,12 @@ func NewListIntervalCmd() *cobra.Command {
 
 			var report *DayReport
 			if resolveRemoteAddr() != "" {
-				report, err = remoteListIntervalsByDay(dayStr)
+				report, err = remoteListIntervalsByDay(dayStr, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
 			} else {
-				intervals, err := manager.IntervalRepository.ListByDay(day, workspaceId)
+				intervals, err := manager.IntervalRepository.ListByDay(day, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -56,7 +57,8 @@ func NewListIntervalCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&dayRaw, "day", "", "Day in YYYY-MM-DD, default today")
-	cmd.Flags().StringVar(&workspaceId, "workspace", "", "Workspace ID")
+	cmd.Flags().StringVarP(&workspaceId, "workspace", "w", "", "Workspace ID")
+	_ = cmd.MarkFlagRequired("workspace")
 	return cmd
 }
 

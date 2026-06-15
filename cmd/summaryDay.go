@@ -20,6 +20,7 @@ func NewSummaryDayCmd() *cobra.Command {
 		Short: "Show day summary",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			manager := bootstrap.CreateManager()
+			selectedWorkspaceID := strings.TrimSpace(workspaceId)
 
 			day, err := parseDay(dayRaw)
 			if err != nil {
@@ -29,7 +30,7 @@ func NewSummaryDayCmd() *cobra.Command {
 
 			if resolveRemoteAddr() != "" {
 				fmt.Printf("Fetching summary for %s from remote...\n", dayStr)
-				stats, err := remoteSummaryDay(dayStr)
+				stats, err := remoteSummaryDay(dayStr, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -74,7 +75,7 @@ func NewSummaryDayCmd() *cobra.Command {
 				return printOutput(cmd, stats, textRenderer, nil)
 			}
 
-			intervals, err := manager.IntervalRepository.ListByDay(day, workspaceId)
+			intervals, err := manager.IntervalRepository.ListByDay(day, selectedWorkspaceID)
 			if err != nil {
 				return err
 			}
@@ -186,7 +187,8 @@ func NewSummaryDayCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&dayRaw, "day", "", "Day in YYYY-MM-DD, default today")
-	cmd.Flags().StringVar(&workspaceId, "workspace", "", "Workspace ID")
+	cmd.Flags().StringVarP(&workspaceId, "workspace", "w", "", "Workspace ID")
+	_ = cmd.MarkFlagRequired("workspace")
 	return cmd
 }
 

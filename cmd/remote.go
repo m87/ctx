@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -189,10 +190,11 @@ func remoteCreateContext(context *core.Context) error {
 	return nil
 }
 
-func remoteListContexts() ([]*core.Context, error) {
+func remoteListContexts(workspaceID string) ([]*core.Context, error) {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var contexts []*core.Context
-	if err := client.requestJSON(http.MethodGet, "/context/", nil, &contexts); err != nil {
+	path := remoteListContextsPath(workspaceID)
+	if err := client.requestJSON(http.MethodGet, path, nil, &contexts); err != nil {
 		return nil, err
 	}
 	return contexts, nil
@@ -245,22 +247,38 @@ func remoteDeleteInterval(id string) error {
 	return client.requestJSON(http.MethodDelete, "/interval/"+strings.TrimSpace(id), nil, nil)
 }
 
-func remoteListIntervalsByDay(day string) (*DayReport, error) {
+func remoteListIntervalsByDay(day string, workspaceID string) (*DayReport, error) {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var report DayReport
-	if err := client.requestJSON(http.MethodGet, "/interval/day/"+day, nil, &report); err != nil {
+	path := remoteListIntervalsByDayPath(day, workspaceID)
+	if err := client.requestJSON(http.MethodGet, path, nil, &report); err != nil {
 		return nil, err
 	}
 	return &report, nil
 }
 
-func remoteSummaryDay(day string) (*DayStats, error) {
+func remoteSummaryDay(day string, workspaceID string) (*DayStats, error) {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var stats DayStats
-	if err := client.requestJSON(http.MethodGet, "/interval/day/"+day+"/stats", nil, &stats); err != nil {
+	path := remoteSummaryDayPath(day, workspaceID)
+	if err := client.requestJSON(http.MethodGet, path, nil, &stats); err != nil {
 		return nil, err
 	}
 	return &stats, nil
+}
+
+func remoteListContextsPath(workspaceID string) string {
+	return "/context/?workspaceId=" + url.QueryEscape(strings.TrimSpace(workspaceID))
+}
+
+func remoteListIntervalsByDayPath(day string, workspaceID string) string {
+	return "/interval/day/" + url.PathEscape(strings.TrimSpace(day)) +
+		"?workspaceId=" + url.QueryEscape(strings.TrimSpace(workspaceID))
+}
+
+func remoteSummaryDayPath(day string, workspaceID string) string {
+	return "/interval/day/" + url.PathEscape(strings.TrimSpace(day)) +
+		"/stats?workspaceId=" + url.QueryEscape(strings.TrimSpace(workspaceID))
 }
 
 func remoteListContextIntervals(contextID string) ([]*core.Interval, error) {
