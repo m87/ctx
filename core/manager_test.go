@@ -76,10 +76,11 @@ type mockWorkspaceRepository struct {
 	deleteErr          error
 	deleteCalls        int
 	deletedWorkspaceID string
+	workspacesByID     map[string]*Workspace
 }
 
-func (r *mockWorkspaceRepository) GetById(string) (*Workspace, error) {
-	return nil, nil
+func (r *mockWorkspaceRepository) GetById(id string) (*Workspace, error) {
+	return r.workspacesByID[id], nil
 }
 
 func (r *mockWorkspaceRepository) Save(*Workspace) (string, error) {
@@ -94,6 +95,34 @@ func (r *mockWorkspaceRepository) Delete(workspaceID string) error {
 
 func (r *mockWorkspaceRepository) List() ([]*Workspace, error) {
 	return nil, nil
+}
+
+func TestContextManagerCreateContextAssignsWorkspace(t *testing.T) {
+	contextRepo := &mockContextRepository{}
+	workspaceRepo := &mockWorkspaceRepository{workspacesByID: map[string]*Workspace{
+		"workspace-1": {Id: "workspace-1", Name: "First"},
+	}}
+	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo)
+	context := &Context{Name: "Context", WorkspaceId: "workspace-1"}
+
+	_, err := manager.CreateContext(context)
+
+	require.NoError(t, err)
+}
+
+func TestContextManagerCreateContextRequiresExistingWorkspace(t *testing.T) {
+	manager := NewContextManager(
+		nil,
+		&mockContextRepository{},
+		nil,
+		&mockWorkspaceRepository{},
+	)
+
+	_, err := manager.CreateContext(&Context{Name: "Context", WorkspaceId: "missing"})
+
+	var workspaceNotFoundErr *WorkspaceNotFoundError
+	require.ErrorAs(t, err, &workspaceNotFoundErr)
+	require.Equal(t, "missing", workspaceNotFoundErr.WorkspaceId)
 }
 
 func TestContextManagerSaveIntervalUsesContextWorkspace(t *testing.T) {

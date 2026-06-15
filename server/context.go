@@ -84,6 +84,10 @@ func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.manager.SwitchContext(req); err != nil {
+		if _, ok := err.(*core.WorkspaceNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "WORKSPACE_NOT_FOUND", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SWITCH_CONTEXT", "Failed to switch context")
 		return
 	}
@@ -118,10 +122,12 @@ func (h *ContextHandler) createContext(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
-	context.Id = ""
-
-	id, err := h.manager.ContextRepository.Save(&context)
+	id, err := h.manager.CreateContext(&context)
 	if err != nil {
+		if _, ok := err.(*core.WorkspaceNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "WORKSPACE_NOT_FOUND", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_CREATE_CONTEXT", "Failed to create context")
 		return
 	}

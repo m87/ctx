@@ -11,7 +11,8 @@ import (
 
 func NewCreateContextCmd() *cobra.Command {
 	var (
-		name string
+		name        string
+		workspaceID string
 	)
 	createContextCmd := &cobra.Command{
 		Use:   "context",
@@ -20,7 +21,8 @@ func NewCreateContextCmd() *cobra.Command {
 			manager := bootstrap.CreateManager()
 
 			context := &core.Context{
-				Name: strings.TrimSpace(name),
+				Name:        strings.TrimSpace(name),
+				WorkspaceId: strings.TrimSpace(workspaceID),
 			}
 
 			if context.Name == "" {
@@ -32,7 +34,7 @@ func NewCreateContextCmd() *cobra.Command {
 					return err
 				}
 			} else {
-				id, err := manager.ContextRepository.Save(context)
+				id, err := manager.CreateContext(context)
 				if err != nil {
 					return err
 				}
@@ -45,7 +47,9 @@ func NewCreateContextCmd() *cobra.Command {
 		},
 	}
 	createContextCmd.Flags().StringVarP(&name, "name", "n", "", "Name of the context")
+	createContextCmd.Flags().StringVarP(&workspaceID, "workspace", "w", "", "Workspace ID")
 	_ = createContextCmd.MarkFlagRequired("name")
+	_ = createContextCmd.MarkFlagRequired("workspace")
 	return createContextCmd
 }
 

@@ -11,8 +11,9 @@ import (
 
 func NewSwitchCmd() *cobra.Command {
 	var (
-		id   string
-		name string
+		id          string
+		name        string
+		workspaceID string
 	)
 
 	cmd := &cobra.Command{
@@ -23,12 +24,16 @@ func NewSwitchCmd() *cobra.Command {
 
 			contextID := strings.TrimSpace(id)
 			contextName := strings.TrimSpace(name)
+			selectedWorkspaceID := strings.TrimSpace(workspaceID)
 			if contextID == "" && contextName == "" {
 				return fmt.Errorf("provide --id or --name")
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteSwitchContext(contextID, contextName); err != nil {
+				if contextID == "" && selectedWorkspaceID == "" {
+					return fmt.Errorf("workspace is required when switching by name")
+				}
+				if err := remoteSwitchContext(contextID, contextName, selectedWorkspaceID); err != nil {
 					return err
 				}
 				return printOutput(cmd, map[string]string{"id": contextID, "name": contextName, "status": "switched"}, func() string {
@@ -36,9 +41,12 @@ func NewSwitchCmd() *cobra.Command {
 				}, nil)
 			}
 
-			context := &core.Context{Id: contextID, Name: contextName}
+			context := &core.Context{Id: contextID, Name: contextName, WorkspaceId: selectedWorkspaceID}
 			if contextID == "" && contextName != "" {
-				contexts, err := manager.ContextRepository.List()
+				if selectedWorkspaceID == "" {
+					return fmt.Errorf("workspace is required when switching by name")
+				}
+				contexts, err := manager.ContextRepository.ListByWorkspace(selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -62,6 +70,7 @@ func NewSwitchCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&id, "id", "", "Context ID")
 	cmd.Flags().StringVarP(&name, "name", "n", "", "Context name")
+	cmd.Flags().StringVarP(&workspaceID, "workspace", "w", "", "Workspace ID")
 	return cmd
 }
 

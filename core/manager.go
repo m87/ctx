@@ -57,6 +57,37 @@ func (e *ContextNotFoundError) Error() string {
 	return fmt.Sprintf("context %q not found", e.ContextId)
 }
 
+func (m *ContextManager) CreateContext(context *Context) (string, error) {
+	if context == nil {
+		return "", fmt.Errorf("context is required")
+	}
+	if context.WorkspaceId == "" {
+		return "", &WorkspaceNotFoundError{}
+	}
+
+	workspace, err := m.WorkspaceRepository.GetById(context.WorkspaceId)
+	if err != nil {
+		return "", err
+	}
+	if workspace == nil {
+		return "", &WorkspaceNotFoundError{WorkspaceId: context.WorkspaceId}
+	}
+
+	context.Id = ""
+	return m.ContextRepository.Save(context)
+}
+
+type WorkspaceNotFoundError struct {
+	WorkspaceId string
+}
+
+func (e *WorkspaceNotFoundError) Error() string {
+	if e.WorkspaceId == "" {
+		return "workspace is required"
+	}
+	return fmt.Sprintf("workspace %q not found", e.WorkspaceId)
+}
+
 func (m *ContextManager) SwitchContext(context *Context) error {
 	activeContext, _ := m.ContextRepository.GetActive()
 	endTime := m.TimeProvider.Now()
@@ -81,7 +112,10 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 	}
 
 	if context.Id == "" {
-		id, _ := m.ContextRepository.Save(context)
+		id, err := m.CreateContext(context)
+		if err != nil {
+			return err
+		}
 		context.Id = id
 	}
 

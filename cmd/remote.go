@@ -208,9 +208,13 @@ func remoteUpdateContext(context *core.Context) error {
 	return client.requestJSON(http.MethodPut, "/context/"+strings.TrimSpace(context.Id), context, context)
 }
 
-func remoteSwitchContext(id string, name string) error {
+func remoteSwitchContext(id string, name string, workspaceID string) error {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
-	payload := &core.Context{Id: strings.TrimSpace(id), Name: strings.TrimSpace(name)}
+	payload := &core.Context{
+		Id:          strings.TrimSpace(id),
+		Name:        strings.TrimSpace(name),
+		WorkspaceId: strings.TrimSpace(workspaceID),
+	}
 	return client.requestJSON(http.MethodPost, "/context/switch", payload, nil)
 }
 
