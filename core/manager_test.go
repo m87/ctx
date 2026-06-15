@@ -18,11 +18,15 @@ func (p fixedTimeProvider) Now() ZonedTime {
 
 type statsIntervalRepository struct {
 	intervalsByContext map[string][]*Interval
+	savedIntervals     []*Interval
 }
 
 func (r *statsIntervalRepository) GetById(string) (*Interval, error) { return nil, nil }
-func (r *statsIntervalRepository) Save(*Interval) (string, error)    { return "", nil }
-func (r *statsIntervalRepository) Delete(string) error               { return nil }
+func (r *statsIntervalRepository) Save(interval *Interval) (string, error) {
+	r.savedIntervals = append(r.savedIntervals, interval)
+	return interval.Id, nil
+}
+func (r *statsIntervalRepository) Delete(string) error { return nil }
 func (r *statsIntervalRepository) ListByContextId(contextId string) ([]*Interval, error) {
 	return r.intervalsByContext[contextId], nil
 }
@@ -36,13 +40,14 @@ func (r *statsIntervalRepository) List() ([]*Interval, error) { return nil, nil 
 
 type mockContextRepository struct {
 	contexts             []*Context
+	contextsByID         map[string]*Context
 	listByWorkspaceErr   error
 	listByWorkspaceCalls int
 	listedWorkspaceID    string
 }
 
-func (r *mockContextRepository) GetById(string) (*Context, error) {
-	return nil, nil
+func (r *mockContextRepository) GetById(id string) (*Context, error) {
+	return r.contextsByID[id], nil
 }
 
 func (r *mockContextRepository) Save(*Context) (string, error) {
@@ -89,6 +94,40 @@ func (r *mockWorkspaceRepository) Delete(workspaceID string) error {
 
 func (r *mockWorkspaceRepository) List() ([]*Workspace, error) {
 	return nil, nil
+}
+
+func TestContextManagerSaveIntervalUsesContextWorkspace(t *testing.T) {
+	contextRepo := &mockContextRepository{contextsByID: map[string]*Context{
+		"context-2": {Id: "context-2", WorkspaceId: "workspace-2"},
+	}}
+	intervalRepo := &statsIntervalRepository{}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, nil)
+	interval := &Interval{
+		Id:          "interval-1",
+		ContextId:   "context-2",
+		WorkspaceId: "workspace-1",
+	}
+
+	_, err := manager.SaveInterval(interval)
+
+	require.NoError(t, err)
+	require.Equal(t, "workspace-2", interval.WorkspaceId)
+	require.Equal(t, []*Interval{interval}, intervalRepo.savedIntervals)
+}
+
+func TestContextManagerSaveIntervalRejectsMissingContext(t *testing.T) {
+	manager := NewContextManager(
+		nil,
+		&mockContextRepository{},
+		&statsIntervalRepository{},
+		nil,
+	)
+
+	_, err := manager.SaveInterval(&Interval{ContextId: "missing"})
+
+	var contextNotFoundErr *ContextNotFoundError
+	require.ErrorAs(t, err, &contextNotFoundErr)
+	require.Equal(t, "missing", contextNotFoundErr.ContextId)
 }
 
 func TestContextManagerDeleteWorkspaceDeletesUnusedWorkspace(t *testing.T) {

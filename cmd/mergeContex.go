@@ -60,7 +60,7 @@ func NewMergeContextCmd() *cobra.Command {
 						continue
 					}
 					interval.ContextId = target
-					if _, err := manager.IntervalRepository.Save(interval); err != nil {
+					if _, err := manager.SaveInterval(interval); err != nil {
 						return err
 					}
 					moved++

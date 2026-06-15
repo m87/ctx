@@ -64,7 +64,7 @@ func (h *IntervalHandler) moveInterval(w http.ResponseWriter, r *http.Request) {
 	}
 
 	interval.ContextId = targetId
-	_, err = h.manager.IntervalRepository.Save(interval)
+	_, err = h.manager.SaveInterval(interval)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_MOVE_INTERVAL", "Failed to move interval")
 		return
@@ -83,8 +83,12 @@ func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request)
 
 	recalculateIntervalDuration(&interval)
 
-	id, err := h.manager.IntervalRepository.Save(&interval)
+	id, err := h.manager.SaveInterval(&interval)
 	if err != nil {
+		if _, ok := err.(*core.ContextNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "CONTEXT_NOT_FOUND", "Context not found")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_CREATE_INTERVAL", "Failed to create interval")
 		return
 	}
@@ -109,8 +113,12 @@ func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request)
 
 	interval.Id = id
 	recalculateIntervalDuration(&interval)
-	_, err = h.manager.IntervalRepository.Save(&interval)
+	_, err = h.manager.SaveInterval(&interval)
 	if err != nil {
+		if _, ok := err.(*core.ContextNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "CONTEXT_NOT_FOUND", "Context not found")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_INTERVAL", "Failed to update interval")
 		return
 	}

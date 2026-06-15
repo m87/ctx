@@ -77,7 +77,7 @@ func NewEditIntervalCmd() *cobra.Command {
 					return err
 				}
 			} else {
-				if _, err := manager.IntervalRepository.Save(interval); err != nil {
+				if _, err := manager.SaveInterval(interval); err != nil {
 					return err
 				}
 			}

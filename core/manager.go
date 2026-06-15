@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sort"
 	"time"
 )
@@ -31,6 +32,31 @@ func NewContextManager(
 	}
 }
 
+func (m *ContextManager) SaveInterval(interval *Interval) (string, error) {
+	if interval == nil {
+		return "", fmt.Errorf("interval is required")
+	}
+
+	context, err := m.ContextRepository.GetById(interval.ContextId)
+	if err != nil {
+		return "", err
+	}
+	if context == nil {
+		return "", &ContextNotFoundError{ContextId: interval.ContextId}
+	}
+
+	interval.WorkspaceId = context.WorkspaceId
+	return m.IntervalRepository.Save(interval)
+}
+
+type ContextNotFoundError struct {
+	ContextId string
+}
+
+func (e *ContextNotFoundError) Error() string {
+	return fmt.Sprintf("context %q not found", e.ContextId)
+}
+
 func (m *ContextManager) SwitchContext(context *Context) error {
 	activeContext, _ := m.ContextRepository.GetActive()
 	endTime := m.TimeProvider.Now()
@@ -50,7 +76,7 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 			activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
 			activeInterval.End = endTime
 			activeInterval.Status = "completed"
-			m.IntervalRepository.Save(activeInterval)
+			m.SaveInterval(activeInterval)
 		}
 	}
 
@@ -73,7 +99,7 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 		Status:      "active",
 		WorkspaceId: context.WorkspaceId,
 	}
-	m.IntervalRepository.Save(newInterval)
+	m.SaveInterval(newInterval)
 
 	return nil
 }
@@ -103,7 +129,7 @@ func (m *ContextManager) FreeActiveContext() error {
 		activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
 		activeInterval.End = endTime
 		activeInterval.Status = "completed"
-		if _, err := m.IntervalRepository.Save(activeInterval); err != nil {
+		if _, err := m.SaveInterval(activeInterval); err != nil {
 			return err
 		}
 	}
