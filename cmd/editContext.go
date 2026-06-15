@@ -21,7 +21,10 @@ func NewEditContextCmd() *cobra.Command {
 		Use:   "context",
 		Short: "Edit an existing context",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			contextID := strings.TrimSpace(id)
 			if contextID == "" {

@@ -46,7 +46,9 @@ func TestCreateWorkspaceTextOutputAndPersistence(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Workspace created successfully", output)
 
-	workspaces, err := bootstrap.CreateManager().WorkspaceRepository.List()
+	manager, err := bootstrap.CreateManager()
+	require.NoError(t, err)
+	workspaces, err := manager.WorkspaceRepository.List()
 	require.NoError(t, err)
 	var created *core.Workspace
 	for _, workspace := range workspaces {

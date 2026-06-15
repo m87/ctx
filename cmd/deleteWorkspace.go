@@ -15,7 +15,10 @@ func NewDeleteWorkspaceCmd() *cobra.Command {
 			if resolveRemoteAddr() != "" {
 				return remoteDeleteWorkspace(workspaceId)
 			}
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 			return manager.DeleteWorkspace(workspaceId)
 		},
 	}

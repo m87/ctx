@@ -10,7 +10,10 @@ func NewFreeCmd() *cobra.Command {
 		Use:   "free",
 		Short: "Free active context",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			if resolveRemoteAddr() != "" {
 				if err := remoteFreeContext(); err != nil {

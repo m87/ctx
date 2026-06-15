@@ -414,6 +414,7 @@ func (m *ContextManager) EnsureDefaultWorkspace() error {
 	if err != nil {
 		return err
 	}
+	var defaultWorkspaceId string
 	if len(workspaces) == 0 {
 		defaultWorkspace := &Workspace{
 			Name: "Default",
@@ -422,11 +423,19 @@ func (m *ContextManager) EnsureDefaultWorkspace() error {
 		if err != nil {
 			return err
 		}
-		if err := m.setDefaultWorkspaceIfNotSet(id); err != nil {
-			return err
+		defaultWorkspaceId = id
+	} else {
+		for _, workspace := range workspaces {
+			if workspace != nil && workspace.Name == "Default" {
+				defaultWorkspaceId = workspace.Id
+				break
+			}
 		}
 	}
-	return nil
+	if defaultWorkspaceId == "" {
+		return nil
+	}
+	return m.setDefaultWorkspaceIfNotSet(defaultWorkspaceId)
 }
 
 func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) error {
@@ -435,12 +444,13 @@ func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) 
 		return err
 	}
 	for _, ctx := range contexts {
-		// if ctx.WorkspaceId == "" {
+		if ctx == nil || ctx.WorkspaceId != "" {
+			continue
+		}
 		ctx.WorkspaceId = defaultWorkspaceId
 		if _, err := m.ContextRepository.Save(ctx); err != nil {
 			return err
 		}
-		// }
 	}
 
 	intervals, err := m.IntervalRepository.List()
@@ -448,12 +458,13 @@ func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) 
 		return err
 	}
 	for _, interval := range intervals {
-		// if interval.WorkspaceId == "" {
+		if interval == nil || interval.WorkspaceId != "" {
+			continue
+		}
 		interval.WorkspaceId = defaultWorkspaceId
 		if _, err := m.IntervalRepository.Save(interval); err != nil {
 			return err
 		}
-		// }
 	}
 
 	return nil

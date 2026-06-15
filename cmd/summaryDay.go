@@ -19,7 +19,10 @@ func NewSummaryDayCmd() *cobra.Command {
 		Use:   "day",
 		Short: "Show day summary",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 			selectedWorkspaceID := strings.TrimSpace(workspaceId)
 
 			day, err := parseDay(dayRaw)

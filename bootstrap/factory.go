@@ -10,20 +10,32 @@ import (
 	"github.com/spf13/viper"
 )
 
-func CreateManager() *core.ContextManager {
+func CreateManager() (*core.ContextManager, error) {
 	viper.SetDefault("database.path", "ctx.db")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
-	repository, _ := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewMapperRegistry())
-	manager := core.NewContextManager(
-		&core.RealTimeProvider{},
-		NewContextRepository(repository),
-		NewIntervalRepository(repository),
-		NewWorkspaceRepository(repository),
-	)
-	manager.EnsureDefaultWorkspace()
-	return manager
+	repository, err := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewMapperRegistry())
+	if err != nil {
+		return nil, err
+	}
+
+	newManager := func(repository *nod.Repository) *core.ContextManager {
+		return core.NewContextManager(
+			&core.RealTimeProvider{},
+			NewContextRepository(repository),
+			NewIntervalRepository(repository),
+			NewWorkspaceRepository(repository),
+		)
+	}
+
+	if err := repository.Transaction(func(txRepository *nod.Repository) error {
+		return newManager(txRepository).EnsureDefaultWorkspace()
+	}); err != nil {
+		return nil, err
+	}
+
+	return newManager(repository), nil
 }
 
 func CreateSettingsManager() (*core.SettingsManager, error) {

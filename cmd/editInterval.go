@@ -23,7 +23,10 @@ func NewEditIntervalCmd() *cobra.Command {
 		Use:   "interval",
 		Short: "Edit an existing interval",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			intervalID := strings.TrimSpace(id)
 			if intervalID == "" {

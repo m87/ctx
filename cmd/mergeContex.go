@@ -19,7 +19,10 @@ func NewMergeContextCmd() *cobra.Command {
 		Use:   "context",
 		Short: "Merge source context into target context",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			source := strings.TrimSpace(sourceID)
 			target := strings.TrimSpace(targetID)

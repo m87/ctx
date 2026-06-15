@@ -16,7 +16,10 @@ func NewCreateWorkspaceCmd() *cobra.Command {
 		Use:   "workspace",
 		Short: "Create a new workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			workspace := &core.Workspace{
 				Name:        name,

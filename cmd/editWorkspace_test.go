@@ -34,7 +34,9 @@ func TestEditWorkspaceDescription(t *testing.T) {
 	command.SetArgs([]string{"--id", id, "--description", "new description"})
 	require.NoError(t, command.Execute())
 
-	workspace, err := bootstrap.CreateManager().WorkspaceRepository.GetById(id)
+	manager, err = bootstrap.CreateManager()
+	require.NoError(t, err)
+	workspace, err := manager.WorkspaceRepository.GetById(id)
 	require.NoError(t, err)
 	require.NotNil(t, workspace)
 	assert.Equal(t, "new description", workspace.Description)
@@ -45,7 +47,9 @@ func TestEditWorkspaceDescription(t *testing.T) {
 	command.SetArgs([]string{"--id", id, "--description", ""})
 	require.NoError(t, command.Execute())
 
-	workspace, err = bootstrap.CreateManager().WorkspaceRepository.GetById(id)
+	manager, err = bootstrap.CreateManager()
+	require.NoError(t, err)
+	workspace, err = manager.WorkspaceRepository.GetById(id)
 	require.NoError(t, err)
 	require.NotNil(t, workspace)
 	assert.Empty(t, workspace.Description)

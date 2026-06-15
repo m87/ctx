@@ -9,13 +9,16 @@ import (
 
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
+	"github.com/stretchr/testify/require"
 )
 
 func newIsolatedTestManager(t *testing.T) *core.ContextManager {
 	t.Helper()
 
 	t.Setenv("DATABASE_PATH", filepath.Join(t.TempDir(), "ctx-test.db"))
-	return bootstrap.CreateManager()
+	manager, err := bootstrap.CreateManager()
+	require.NoError(t, err)
+	return manager
 }
 
 func executeWorkspaceListCommand(t *testing.T, commandArgs ...string) (string, error) {

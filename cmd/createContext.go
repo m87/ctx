@@ -18,7 +18,10 @@ func NewCreateContextCmd() *cobra.Command {
 		Use:   "context",
 		Short: "Create a new context",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			context := &core.Context{
 				Name:        strings.TrimSpace(name),

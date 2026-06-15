@@ -15,7 +15,10 @@ func NewDeleteIntervalCmd() *cobra.Command {
 		Use:   "interval",
 		Short: "Delete an interval by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			id := strings.TrimSpace(intervalID)
 			if id == "" {

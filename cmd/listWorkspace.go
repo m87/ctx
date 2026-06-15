@@ -13,10 +13,12 @@ func NewListWorkspaceCmd() *cobra.Command {
 		Use:   "workspace",
 		Short: "List workspaces",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			var workspaces []*core.Workspace
-			var err error
 
 			if resolveRemoteAddr() != "" {
 				workspaces, err = remoteListWorkspaces()

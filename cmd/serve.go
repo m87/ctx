@@ -19,7 +19,10 @@ func NewServeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 			server := server.NewServer(manager, settingsManager)
 			return server.Listen(addr)
 		},

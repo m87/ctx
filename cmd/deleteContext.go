@@ -14,7 +14,10 @@ func NewDeleteContextCmd() *cobra.Command {
 		Use:   "context",
 		Short: "Delete a context by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			id := strings.TrimSpace(contextId)
 			if id == "" {

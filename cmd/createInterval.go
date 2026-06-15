@@ -22,7 +22,10 @@ func NewCreateIntervalCmd() *cobra.Command {
 		Use:   "interval",
 		Short: "Create a new interval",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			if strings.TrimSpace(contextID) == "" {
 				return fmt.Errorf("context-id is required")

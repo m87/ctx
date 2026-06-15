@@ -20,7 +20,10 @@ func NewSwitchCmd() *cobra.Command {
 		Use:   "switch",
 		Short: "Switch active context",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			manager := bootstrap.CreateManager()
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
 
 			contextID := strings.TrimSpace(id)
 			contextName := strings.TrimSpace(name)
