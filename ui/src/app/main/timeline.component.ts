@@ -94,7 +94,9 @@ export class TimelineComponent {
     },
   );
   selectedDate = computed(() => DateTime.fromFormat(this.selectedDay(), 'yyyy-MM-dd').toJSDate());
-  dayIntervalsQuery = injectQuery(() => this.intervalQueries.day(this.activeWorkspaceId()!, this.selectedDay()));
+  dayIntervalsQuery = injectQuery(() =>
+    this.intervalQueries.day(this.activeWorkspaceId(), this.selectedDay()),
+  );
   dayIntervals = computed(() => this.dayIntervalsQuery.data() ?? EMPTY_DAY_INTERVALS);
   private selectedLegendContextId = signal<string | null>(null);
 

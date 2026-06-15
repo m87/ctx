@@ -45,10 +45,11 @@ export class ContextQueries {
     };
   }
 
-  dayStats(workspaceId: string, date: string) {
+  dayStats(workspaceId: string | null, date: string) {
     return {
       queryKey: [ContextQueries.key, 'day-stats', workspaceId, date],
-      queryFn: () => lastValueFrom(this.contextService.getDayStats(workspaceId, date)),
+      queryFn: () => lastValueFrom(this.contextService.getDayStats(workspaceId!, date)),
+      enabled: workspaceId !== null && workspaceId.length > 0,
     };
   }
 }

@@ -158,7 +158,9 @@ export class DayComponent {
     },
   );
 
-  dayStatsQuery = injectQuery(() => this.contextQueries.dayStats(this.activeWorkspaceId()!, this.selectedDate()));
+  dayStatsQuery = injectQuery(() =>
+    this.contextQueries.dayStats(this.activeWorkspaceId(), this.selectedDate()),
+  );
   dayStats = computed(() => this.dayStatsQuery.data() ?? EMPTY_DAY_STATS);
   firstContextStart = computed(() => {
     const intervals = Object.values(this.dayStats().intervals).flat();

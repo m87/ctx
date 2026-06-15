@@ -407,7 +407,7 @@ export class HeaderComponent {
     { initialValue: this.today() },
   );
   dayStatsQuery = injectQuery(() =>
-    this.contextQueries.dayStats(this.activeWorkspaceId()!, this.selectedDate()),
+    this.contextQueries.dayStats(this.activeWorkspaceId(), this.selectedDate()),
   );
   activeContextName = computed(() => this.activeContextQuery.data()?.name ?? '');
   weekStartsOn = computed(() => (this.settingsQuery.data()?.[firstDayKey] === 'Sunday' ? 0 : 1));
