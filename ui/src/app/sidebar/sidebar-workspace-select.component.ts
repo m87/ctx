@@ -6,7 +6,6 @@ import {
   effect,
   inject,
   signal,
-  untracked,
   viewChild,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -118,7 +117,9 @@ import { Workspace } from '../../api/workspace.service';
                         ></ng-icon>
                       }
                     </div>
-                    <div class="text-[11px] text-muted-foreground mt-0.5">{{ workspace.description }}</div>
+                    <div class="text-[11px] text-muted-foreground mt-0.5">
+                      {{ workspace.description }}
+                    </div>
                   </button>
                 </div>
               </div>
@@ -159,13 +160,23 @@ export class SidebarWorkspaceSelectComponent {
   });
 
   private readonly selectFirstWorkspaceEffect = effect(() => {
+    if (!this.workspaceStateInitialized() || this.listWorkspacesQuery.data() === undefined) {
+      return;
+    }
+
+    const selectedWorkspaceId = this.activeWorkspaceId();
+    const workspaces = this.workspaces();
     const firstWorkspace = this.workspaces()[0];
-    if (
-      this.workspaceStateInitialized() &&
-      firstWorkspace &&
-      untracked(this.activeWorkspaceId) === null
-    ) {
+    if (selectedWorkspaceId === null && firstWorkspace) {
       this.store.dispatch(new SelectWorkspace(firstWorkspace.id));
+      return;
+    }
+
+    const selectedWorkspaceExists = workspaces.some(
+      (workspace) => workspace.id === selectedWorkspaceId,
+    );
+    if (selectedWorkspaceId !== null && !selectedWorkspaceExists) {
+      this.store.dispatch(new SelectWorkspace(firstWorkspace?.id ?? null));
     }
   });
 

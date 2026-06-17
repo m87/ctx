@@ -62,6 +62,16 @@ func (e *ContextNotFoundError) Error() string {
 	return fmt.Sprintf("context %q not found", e.ContextId)
 }
 
+type ContextWorkspaceMoveNotAllowedError struct {
+	ContextId       string
+	FromWorkspaceId string
+	ToWorkspaceId   string
+}
+
+func (e *ContextWorkspaceMoveNotAllowedError) Error() string {
+	return fmt.Sprintf("context %q cannot be moved between workspaces", e.ContextId)
+}
+
 func (m *ContextManager) CreateContext(context *Context) (string, error) {
 	if context == nil {
 		return "", fmt.Errorf("context is required")
@@ -80,6 +90,34 @@ func (m *ContextManager) CreateContext(context *Context) (string, error) {
 
 	context.Id = ""
 	return m.ContextRepository.Save(context)
+}
+
+func (m *ContextManager) UpdateContext(context *Context) error {
+	if context == nil {
+		return fmt.Errorf("context is required")
+	}
+	if context.Id == "" {
+		return &ContextNotFoundError{}
+	}
+
+	existing, err := m.ContextRepository.GetById(context.Id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return &ContextNotFoundError{ContextId: context.Id}
+	}
+	if context.WorkspaceId != "" && context.WorkspaceId != existing.WorkspaceId {
+		return &ContextWorkspaceMoveNotAllowedError{
+			ContextId:       context.Id,
+			FromWorkspaceId: existing.WorkspaceId,
+			ToWorkspaceId:   context.WorkspaceId,
+		}
+	}
+
+	context.WorkspaceId = existing.WorkspaceId
+	_, err = m.ContextRepository.Save(context)
+	return err
 }
 
 type WorkspaceNotFoundError struct {
@@ -404,6 +442,19 @@ func (m *ContextManager) DeleteWorkspace(workspaceId string) error {
 	}
 
 	return m.WorkspaceRepository.Delete(workspaceId)
+}
+
+func (m *ContextManager) DeleteContext(contextId string) error {
+	if contextId == "" {
+		return fmt.Errorf("context id is required")
+	}
+
+	return m.RunInTransaction(func(txManager *ContextManager) error {
+		if err := txManager.IntervalRepository.DeleteByContextId(contextId); err != nil {
+			return err
+		}
+		return txManager.ContextRepository.Delete(contextId)
+	})
 }
 
 type WorkspaceInUseError struct {

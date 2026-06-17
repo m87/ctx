@@ -29,6 +29,10 @@ func (r *IntervalRepository) Delete(id string) error {
 	return r.repository.Query().NodeId(id).Delete()
 }
 
+func (r *IntervalRepository) DeleteByContextId(contextId string) error {
+	return r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).Delete()
+}
+
 func (r *IntervalRepository) ListByContextId(contextId string) ([]*core.Interval, error) {
 	return r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).KV().List()
 }

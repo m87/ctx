@@ -29,7 +29,7 @@ func NewDeleteContextCmd() *cobra.Command {
 					return err
 				}
 			} else {
-				if err := manager.ContextRepository.Delete(id); err != nil {
+				if err := manager.DeleteContext(id); err != nil {
 					return err
 				}
 			}

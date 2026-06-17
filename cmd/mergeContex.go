@@ -69,7 +69,7 @@ func NewMergeContextCmd() *cobra.Command {
 					moved++
 				}
 				if deleteSource {
-					if err := manager.ContextRepository.Delete(source); err != nil {
+					if err := manager.DeleteContext(source); err != nil {
 						return err
 					}
 				}

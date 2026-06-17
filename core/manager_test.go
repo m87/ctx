@@ -20,6 +20,8 @@ type statsIntervalRepository struct {
 	intervalsByContext map[string][]*Interval
 	intervals          []*Interval
 	savedIntervals     []*Interval
+	deletedContextID   string
+	deleteByContextErr error
 }
 
 func (r *statsIntervalRepository) GetById(string) (*Interval, error) { return nil, nil }
@@ -28,6 +30,10 @@ func (r *statsIntervalRepository) Save(interval *Interval) (string, error) {
 	return interval.Id, nil
 }
 func (r *statsIntervalRepository) Delete(string) error { return nil }
+func (r *statsIntervalRepository) DeleteByContextId(contextID string) error {
+	r.deletedContextID = contextID
+	return r.deleteByContextErr
+}
 func (r *statsIntervalRepository) ListByContextId(contextId string) ([]*Interval, error) {
 	return r.intervalsByContext[contextId], nil
 }
@@ -43,6 +49,8 @@ type mockContextRepository struct {
 	contexts             []*Context
 	contextsByID         map[string]*Context
 	savedContexts        []*Context
+	deletedContextID     string
+	deleteErr            error
 	listByWorkspaceErr   error
 	listByWorkspaceCalls int
 	listedWorkspaceID    string
@@ -57,8 +65,9 @@ func (r *mockContextRepository) Save(context *Context) (string, error) {
 	return context.Id, nil
 }
 
-func (r *mockContextRepository) Delete(string) error {
-	return nil
+func (r *mockContextRepository) Delete(contextID string) error {
+	r.deletedContextID = contextID
+	return r.deleteErr
 }
 
 func (r *mockContextRepository) List() ([]*Context, error) {
@@ -217,6 +226,35 @@ func TestContextManagerCreateContextRequiresExistingWorkspace(t *testing.T) {
 	require.Equal(t, "missing", workspaceNotFoundErr.WorkspaceId)
 }
 
+func TestContextManagerUpdateContextPreservesWorkspaceWhenPayloadOmitsIt(t *testing.T) {
+	contextRepo := &mockContextRepository{contextsByID: map[string]*Context{
+		"context-1": {Id: "context-1", Name: "Old", WorkspaceId: "workspace-1"},
+	}}
+	manager := NewContextManager(nil, contextRepo, nil, nil)
+	updated := &Context{Id: "context-1", Name: "New"}
+
+	err := manager.UpdateContext(updated)
+
+	require.NoError(t, err)
+	require.Equal(t, "workspace-1", updated.WorkspaceId)
+	require.Equal(t, []*Context{updated}, contextRepo.savedContexts)
+}
+
+func TestContextManagerUpdateContextRejectsWorkspaceMove(t *testing.T) {
+	contextRepo := &mockContextRepository{contextsByID: map[string]*Context{
+		"context-1": {Id: "context-1", WorkspaceId: "workspace-1"},
+	}}
+	manager := NewContextManager(nil, contextRepo, nil, nil)
+
+	err := manager.UpdateContext(&Context{Id: "context-1", WorkspaceId: "workspace-2"})
+
+	var moveErr *ContextWorkspaceMoveNotAllowedError
+	require.ErrorAs(t, err, &moveErr)
+	require.Equal(t, "workspace-1", moveErr.FromWorkspaceId)
+	require.Equal(t, "workspace-2", moveErr.ToWorkspaceId)
+	require.Empty(t, contextRepo.savedContexts)
+}
+
 func TestContextManagerSaveIntervalUsesContextWorkspace(t *testing.T) {
 	contextRepo := &mockContextRepository{contextsByID: map[string]*Context{
 		"context-2": {Id: "context-2", WorkspaceId: "workspace-2"},
@@ -249,6 +287,31 @@ func TestContextManagerSaveIntervalRejectsMissingContext(t *testing.T) {
 	var contextNotFoundErr *ContextNotFoundError
 	require.ErrorAs(t, err, &contextNotFoundErr)
 	require.Equal(t, "missing", contextNotFoundErr.ContextId)
+}
+
+func TestContextManagerDeleteContextDeletesIntervals(t *testing.T) {
+	contextRepo := &mockContextRepository{}
+	intervalRepo := &statsIntervalRepository{}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, nil)
+
+	err := manager.DeleteContext("context-1")
+
+	require.NoError(t, err)
+	require.Equal(t, "context-1", intervalRepo.deletedContextID)
+	require.Equal(t, "context-1", contextRepo.deletedContextID)
+}
+
+func TestContextManagerDeleteContextStopsWhenIntervalDeleteFails(t *testing.T) {
+	wantErr := errors.New("delete intervals failed")
+	contextRepo := &mockContextRepository{}
+	intervalRepo := &statsIntervalRepository{deleteByContextErr: wantErr}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, nil)
+
+	err := manager.DeleteContext("context-1")
+
+	require.ErrorIs(t, err, wantErr)
+	require.Equal(t, "context-1", intervalRepo.deletedContextID)
+	require.Empty(t, contextRepo.deletedContextID)
 }
 
 func TestContextManagerDeleteWorkspaceDeletesUnusedWorkspace(t *testing.T) {

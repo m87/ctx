@@ -141,7 +141,7 @@ func (h *ContextHandler) deleteContext(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
 		return
 	}
-	if err := h.manager.ContextRepository.Delete(id); err != nil {
+	if err := h.manager.DeleteContext(id); err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_DELETE_CONTEXT", "Failed to delete context")
 		return
 	}
@@ -178,7 +178,15 @@ func (h *ContextHandler) updateContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	context.Id = id
-	if _, err := h.manager.ContextRepository.Save(&context); err != nil {
+	if err := h.manager.UpdateContext(&context); err != nil {
+		if _, ok := err.(*core.ContextNotFoundError); ok {
+			writeError(w, http.StatusNotFound, "CONTEXT_NOT_FOUND", "Context not found")
+			return
+		}
+		if _, ok := err.(*core.ContextWorkspaceMoveNotAllowedError); ok {
+			writeError(w, http.StatusBadRequest, "CONTEXT_WORKSPACE_MOVE_NOT_ALLOWED", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_CONTEXT", "Failed to update context")
 		return
 	}
