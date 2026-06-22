@@ -24,8 +24,9 @@ func CreateManager() (*core.ContextManager, error) {
 	}
 
 	if err := repository.Transaction(func(txRepository *nod.Repository) error {
-		systemInfoRepository := NewSystemInfoRepository(txRepository)
-		systemInfo, err := systemInfoRepository.Load()
+		systemRepository := nod.NewRepository(txRepository.DB(), txRepository.Log(), NewSystemMapperRegistry())
+		settingsManager := newSettingsManager(systemRepository)
+		systemInfo, err := settingsManager.SystemInfoRepository.Load()
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
@@ -48,7 +49,7 @@ func CreateManager() (*core.ContextManager, error) {
 		if err != nil {
 			return err
 		}
-		if err := systemInfoRepository.Save(&core.SystemInfo{DatabaseVersion: core.CurrentDatabaseVersion}); err != nil {
+		if err := settingsManager.SystemInfoRepository.Save(&core.SystemInfo{DatabaseVersion: core.CurrentDatabaseVersion}); err != nil {
 			return err
 		}
 		ctxlog.Logger.Info("Database migration completed", "database_version", core.CurrentDatabaseVersion, "records_updated", migrated, "duration", time.Since(startedAt))
@@ -85,7 +86,7 @@ func CreateSettingsManager() (*core.SettingsManager, error) {
 	if err != nil {
 		return nil, err
 	}
-	manager := core.NewSettingsManager(NewSettingsRepository(repository))
+	manager := newSettingsManager(repository)
 	if err := manager.InitSettingsIfNotExists(); err != nil {
 		return nil, err
 	}
@@ -93,9 +94,17 @@ func CreateSettingsManager() (*core.SettingsManager, error) {
 	return manager, nil
 }
 
+func newSettingsManager(repository *nod.Repository) *core.SettingsManager {
+	return core.NewSettingsManager(
+		NewSettingsRepository(repository),
+		NewSystemInfoRepository(repository),
+	)
+}
+
 func NewSystemMapperRegistry() *nod.MapperRegistry {
 	registry := nod.NewMapperRegistry()
 	nod.RegisterMapper(registry, &core.SettingsMapper{})
+	nod.RegisterMapper(registry, &core.SystemInfoMapper{})
 	return registry
 }
 
@@ -104,6 +113,5 @@ func NewMapperRegistry() *nod.MapperRegistry {
 	nod.RegisterMapper(registry, &core.IntervalMapper{})
 	nod.RegisterMapper(registry, &core.ContextMapper{})
 	nod.RegisterMapper(registry, &core.WorkspaceMapper{})
-	nod.RegisterMapper(registry, &core.SystemInfoMapper{})
 	return registry
 }

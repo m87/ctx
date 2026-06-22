@@ -4,7 +4,8 @@
 - enhancement: error handling — display toast notifications for failed queries and mutations
 - enhancement: API errors — return consistent error codes and descriptions from server endpoints
 
-On the first run after upgrading, a default workspace is created and all existing contexts are assigned to it.
+On the first run after upgrading, a default workspace is created and all existing contexts are assigned to it. You can change workspace name later.
+You can verify this by going to the settings view and checking data integrity. Most of the issues may be resolved with auto-repair, but if you encounter any problems, please report them in the GitHub repository.
 
 ## 0.4.0
 - feature: settings view — currently supports first day of week and light/dark theme

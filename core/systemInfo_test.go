@@ -19,13 +19,13 @@ func TestDatabaseVersionNeedsMigration(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, err := DatabaseVersionNeedsMigration(test.current, CurrentDatabaseVersion)
+		got, err := DatabaseVersionNeedsMigration(test.current, "0.5.0")
 		require.NoError(t, err)
 		require.Equal(t, test.want, got, test.current)
 	}
 }
 
 func TestDatabaseVersionNeedsMigrationRejectsInvalidVersion(t *testing.T) {
-	_, err := DatabaseVersionNeedsMigration("invalid", CurrentDatabaseVersion)
+	_, err := DatabaseVersionNeedsMigration("invalid", "0.5.0")
 	require.Error(t, err)
 }
