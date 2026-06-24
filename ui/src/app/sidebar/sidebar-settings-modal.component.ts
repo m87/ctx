@@ -149,7 +149,7 @@ const firstDayKey = 'client.general.firstDay';
 
                     <button
                       type="button"
-                      class="h-10 px-4 rounded-md border text-foreground text-[14px] font-medium hover:bg-muted/50 disabled:opacity-50"
+                      class="h-10 px-4 mr-4 rounded-md border text-foreground text-[14px] font-medium hover:bg-muted/50 disabled:opacity-50"
                       [disabled]="checkIntegrityMutation.isPending()"
                       (click)="checkIntegrity()"
                     >

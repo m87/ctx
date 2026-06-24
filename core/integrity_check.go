@@ -14,19 +14,14 @@ func (m *ContextManager) CheckIntegrity() (*IntegrityReport, error) {
 		return nil, err
 	}
 
-	workspaceIds := make(map[string]struct{}, len(workspaces))
+	workspaceIds := map[string]struct{}{}
 	for _, workspace := range workspaces {
-		if workspace != nil && workspace.Id != "" {
-			workspaceIds[workspace.Id] = struct{}{}
-		}
+		workspaceIds[workspace.Id] = struct{}{}
 	}
 
-	contextsById := make(map[string]*Context, len(contexts))
-	issues := make([]*IntegrityIssue, 0)
+	contextsById := map[string]*Context{}
+	issues := []*IntegrityIssue{}
 	for _, context := range contexts {
-		if context == nil {
-			continue
-		}
 		contextsById[context.Id] = context
 		if context.WorkspaceId == "" {
 			issues = append(issues, integrityIssue("context", context.Id, "CONTEXT_MISSING_WORKSPACE", "Context has no workspace assigned"))
@@ -38,10 +33,6 @@ func (m *ContextManager) CheckIntegrity() (*IntegrityReport, error) {
 	}
 
 	for _, interval := range intervals {
-		if interval == nil {
-			continue
-		}
-
 		context := contextsById[interval.ContextId]
 		if interval.ContextId == "" {
 			issues = append(issues, integrityIssue("interval", interval.Id, "INTERVAL_MISSING_CONTEXT", "Interval has no context assigned"))

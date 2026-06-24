@@ -24,7 +24,7 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 		return 0, err
 	}
 
-	workspaceIds := make(map[string]struct{}, len(workspaces)+1)
+	workspaceIds := map[string]struct{}{}
 	defaultWorkspaceId := ""
 	for _, workspace := range workspaces {
 		if workspace == nil || workspace.Id == "" {
