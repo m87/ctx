@@ -25,6 +25,12 @@ import {
 const themeKey = 'client.general.theme';
 const firstDayKey = 'client.general.firstDay';
 
+type IntegrityIssueGroup = {
+  key: string;
+  issue: IntegrityIssue;
+  hiddenIssueCount: number;
+};
+
 @Component({
   selector: 'app-sidebar-settings-modal',
   imports: [NgIcon],
@@ -208,9 +214,10 @@ const firstDayKey = 'client.general.firstDay';
                         </div>
                       </div>
 
-                      @if (report.issues.length > 0) {
+                      @if (visibleIntegrityIssueGroups().length > 0) {
                         <div class="space-y-2">
-                          @for (issue of report.issues; track issue.code + issue.entityId) {
+                          @for (group of visibleIntegrityIssueGroups(); track group.key) {
+                            @let issue = group.issue;
                             <div class="rounded-md border p-3 text-[13px]">
                               <div class="flex items-start justify-between gap-3">
                                 <div class="flex flex-wrap items-center gap-2">
@@ -247,6 +254,19 @@ const firstDayKey = 'client.general.firstDay';
                                 }
                               </div>
                               <div class="mt-1">{{ issue.description }}</div>
+
+                              @if (group.hiddenIssueCount > 0) {
+                                <div
+                                  class="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[12px] text-muted-foreground"
+                                >
+                                  {{ group.hiddenIssueCount }} more integrity
+                                  {{
+                                    group.hiddenIssueCount === 1 ? 'issue was' : 'issues were'
+                                  }}
+                                  detected for this {{ issue.entityType }}. Resolve this first
+                                  step, then run the check again.
+                                </div>
+                              }
 
                               @if (issue.entityType === 'context' && issue.details?.name) {
                                 <div class="mt-2 font-medium text-foreground">
@@ -320,7 +340,7 @@ const firstDayKey = 'client.general.firstDay';
                                 </div>
                               }
 
-                              @if (issue.details?.workspaceId) {
+                              @if (issue.details?.workspaceId && !isContextAssignmentIssue(issue)) {
                                 <div class="mt-1 text-[12px]">
                                   <span class="text-muted-foreground">Workspace:</span>
                                   <span class="ml-2 font-mono break-all">
@@ -377,6 +397,9 @@ export class SidebarSettingsModalComponent {
   );
   readonly availableIntegrityContexts = computed(
     () => this.integrityContextsQuery.data() ?? [],
+  );
+  readonly visibleIntegrityIssueGroups = computed(() =>
+    this.groupIntegrityIssues(this.integrityReport()?.issues ?? []),
   );
 
   saveSettingsMutation = injectMutation(() => this.settingsMutations.save());
@@ -440,6 +463,36 @@ export class SidebarSettingsModalComponent {
       issue.entityType === 'interval' &&
       (issue.code === 'INTERVAL_MISSING_CONTEXT' || issue.code === 'INTERVAL_CONTEXT_NOT_FOUND')
     );
+  }
+
+  private groupIntegrityIssues(issues: IntegrityIssue[]): IntegrityIssueGroup[] {
+    const groupedIssues = new Map<string, IntegrityIssue[]>();
+    const keys: string[] = [];
+
+    issues.forEach((issue, index) => {
+      const key = issue.entityId
+        ? `${issue.entityType}:${issue.entityId}`
+        : `${issue.entityType}:missing-id:${index}`;
+
+      if (!groupedIssues.has(key)) {
+        groupedIssues.set(key, []);
+        keys.push(key);
+      }
+
+      groupedIssues.get(key)?.push(issue);
+    });
+
+    return keys.map((key) => {
+      const groupIssues = groupedIssues.get(key) ?? [];
+      const issue =
+        groupIssues.find((item) => this.isContextAssignmentIssue(item)) ?? groupIssues[0];
+
+      return {
+        key,
+        issue,
+        hiddenIssueCount: Math.max(0, groupIssues.length - 1),
+      };
+    });
   }
 
   selectedIntegrityContext(intervalId: string): string {
