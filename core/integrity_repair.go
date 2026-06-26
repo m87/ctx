@@ -36,8 +36,26 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 		}
 	}
 
+	contexts, err := m.ContextRepository.List()
+	if err != nil {
+		return 0, err
+	}
+
+	needsDefaultWorkspace := len(workspaceIds) == 0
+	if defaultWorkspaceId == "" && !needsDefaultWorkspace {
+		for _, context := range contexts {
+			if context == nil {
+				continue
+			}
+			if _, ok := workspaceIds[context.WorkspaceId]; !ok {
+				needsDefaultWorkspace = true
+				break
+			}
+		}
+	}
+
 	repaired := 0
-	if defaultWorkspaceId == "" {
+	if defaultWorkspaceId == "" && needsDefaultWorkspace {
 		defaultWorkspaceId, err = m.WorkspaceRepository.Save(&Workspace{Name: "Default"})
 		if err != nil {
 			return 0, err
@@ -46,10 +64,6 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 		repaired++
 	}
 
-	contexts, err := m.ContextRepository.List()
-	if err != nil {
-		return repaired, err
-	}
 	contextsById := make(map[string]*Context, len(contexts))
 	for _, context := range contexts {
 		if context == nil {

@@ -28,4 +28,12 @@ export class SettingsQueries {
       enabled: false,
     };
   }
+
+  integrityContexts(enabled: boolean) {
+    return {
+      queryKey: [...SettingsQueries.key, 'integrity-contexts'],
+      queryFn: () => lastValueFrom(this.settingsService.getIntegrityContexts()),
+      enabled,
+    };
+  }
 }

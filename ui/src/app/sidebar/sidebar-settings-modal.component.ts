@@ -10,10 +10,17 @@ import {
 } from '@angular/core';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideX } from '@ng-icons/lucide';
+import { lucideTrash2, lucideX } from '@ng-icons/lucide';
+import { ContextMutations } from '../../api/context.mutations';
+import { IntervalMutations } from '../../api/interval.mutations';
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
-import { Settings } from '../../api/settings.service';
+import {
+  IntegrityDateTime,
+  IntegrityIssue,
+  IntegrityReport,
+  Settings,
+} from '../../api/settings.service';
 
 const themeKey = 'client.general.theme';
 const firstDayKey = 'client.general.firstDay';
@@ -21,7 +28,7 @@ const firstDayKey = 'client.general.firstDay';
 @Component({
   selector: 'app-sidebar-settings-modal',
   imports: [NgIcon],
-  providers: [provideIcons({ lucideX })],
+  providers: [provideIcons({ lucideTrash2, lucideX })],
   template: `
     @if (open) {
       <div
@@ -159,7 +166,7 @@ const firstDayKey = 'client.general.firstDay';
                     </button>
 
                     @if (integrityReport(); as report) {
-                      @if (!report.healthy) {
+                      @if (hasRepairableIssues(report)) {
                         <button
                           type="button"
                           class="h-10 px-4 rounded-md bg-primary text-primary-foreground text-[14px] font-medium hover:bg-primary/90 disabled:opacity-50"
@@ -205,17 +212,127 @@ const firstDayKey = 'client.general.firstDay';
                         <div class="space-y-2">
                           @for (issue of report.issues; track issue.code + issue.entityId) {
                             <div class="rounded-md border p-3 text-[13px]">
-                              <div class="flex flex-wrap items-center gap-2">
-                                <span class="font-medium text-foreground">{{ issue.code }}</span>
-                                <span class="text-[11px] uppercase text-muted-foreground">
-                                  {{ issue.entityType }}
-                                </span>
+                              <div class="flex items-start justify-between gap-3">
+                                <div class="flex flex-wrap items-center gap-2">
+                                  <span class="font-medium text-foreground">{{ issue.code }}</span>
+                                  <span class="text-[11px] uppercase text-muted-foreground">
+                                    {{ issue.entityType }}
+                                  </span>
+                                  <span
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                    [class.bg-emerald-500/10]="issue.repairable"
+                                    [class.text-emerald-600]="issue.repairable"
+                                    [class.bg-amber-500/10]="!issue.repairable"
+                                    [class.text-amber-700]="!issue.repairable"
+                                  >
+                                    {{
+                                      issue.repairable
+                                        ? 'Auto-repairable'
+                                        : 'Manual action required'
+                                    }}
+                                  </span>
+                                </div>
+
+                                @if (!issue.repairable && issue.entityId) {
+                                  <button
+                                    type="button"
+                                    class="h-8 w-8 shrink-0 rounded-md text-destructive hover:bg-destructive/10 disabled:opacity-50 flex items-center justify-center"
+                                    [disabled]="isDeletingIntegrityEntity()"
+                                    [attr.aria-label]="'Delete problematic ' + issue.entityType"
+                                    [title]="'Delete ' + issue.entityType"
+                                    (click)="deleteIntegrityIssue(issue)"
+                                  >
+                                    <ng-icon name="lucideTrash2" class="text-[15px]"></ng-icon>
+                                  </button>
+                                }
                               </div>
                               <div class="mt-1">{{ issue.description }}</div>
+
+                              @if (issue.entityType === 'context' && issue.details?.name) {
+                                <div class="mt-2 font-medium text-foreground">
+                                  {{ issue.details?.name }}
+                                </div>
+                              }
+
+                              @if (issue.entityType === 'interval') {
+                                <div
+                                  class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]"
+                                >
+                                  <span class="text-muted-foreground">Interval</span>
+                                  <span class="text-foreground">
+                                    {{ formatIntegrityTime(issue.details?.start) }} –
+                                    {{ formatIntegrityTime(issue.details?.end) }}
+                                  </span>
+                                  <span class="text-muted-foreground">Context</span>
+                                  <span class="font-mono break-all">
+                                    {{ issue.details?.contextId || '(missing)' }}
+                                  </span>
+                                </div>
+                              }
+
+                              @if (isContextAssignmentIssue(issue)) {
+                                <div class="mt-3 flex flex-col sm:flex-row gap-2">
+                                  <select
+                                    class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-[12px]"
+                                    [value]="selectedIntegrityContext(issue.entityId)"
+                                    [disabled]="
+                                      availableIntegrityContexts().length === 0 ||
+                                      moveIntegrityIntervalMutation.isPending()
+                                    "
+                                    (change)="
+                                      selectIntegrityContext(
+                                        issue.entityId,
+                                        getSelectValue($event)
+                                      )
+                                    "
+                                  >
+                                    <option value="">
+                                      {{
+                                        integrityContextsQuery.isPending()
+                                          ? 'Loading contexts...'
+                                          : availableIntegrityContexts().length === 0
+                                            ? 'No contexts available'
+                                            : 'Select context...'
+                                      }}
+                                    </option>
+                                    @for (context of availableIntegrityContexts(); track context.id) {
+                                      <option [value]="context.id">
+                                        {{ context.name || '(unnamed context)' }} ·
+                                        {{ context.workspaceName || context.workspaceId }}
+                                      </option>
+                                    }
+                                  </select>
+                                  <button
+                                    type="button"
+                                    class="h-9 px-3 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 disabled:opacity-50"
+                                    [disabled]="
+                                      !selectedIntegrityContext(issue.entityId) ||
+                                      moveIntegrityIntervalMutation.isPending()
+                                    "
+                                    (click)="assignIntegrityContext(issue)"
+                                  >
+                                    {{
+                                      moveIntegrityIntervalMutation.isPending()
+                                        ? 'Assigning...'
+                                        : 'Assign'
+                                    }}
+                                  </button>
+                                </div>
+                              }
+
+                              @if (issue.details?.workspaceId) {
+                                <div class="mt-1 text-[12px]">
+                                  <span class="text-muted-foreground">Workspace:</span>
+                                  <span class="ml-2 font-mono break-all">
+                                    {{ issue.details?.workspaceId }}
+                                  </span>
+                                </div>
+                              }
+
                               <div
-                                class="mt-1 font-mono text-[11px] break-all text-muted-foreground"
+                                class="mt-2 font-mono text-[11px] break-all text-muted-foreground"
                               >
-                                {{ issue.entityId || '(missing id)' }}
+                                ID: {{ issue.entityId || '(missing id)' }}
                               </div>
                             </div>
                           }
@@ -235,6 +352,8 @@ const firstDayKey = 'client.general.firstDay';
 export class SidebarSettingsModalComponent {
   private settingsQueries = inject(SettingsQueries);
   private settingsMutations = inject(SettingsMutations);
+  private contextMutations = inject(ContextMutations);
+  private intervalMutations = inject(IntervalMutations);
 
   @Input() open = false;
   @Output() openChange = new EventEmitter<boolean>();
@@ -246,16 +365,28 @@ export class SidebarSettingsModalComponent {
 
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   integrityQuery = injectQuery(() => this.settingsQueries.integrity());
+
+  private readonly latestIntegrityReport = signal<IntegrityReport | undefined>(undefined);
+  readonly integrityReport = computed(
+    () => this.latestIntegrityReport() ?? this.integrityQuery.data(),
+  );
+  integrityContextsQuery = injectQuery(() =>
+    this.settingsQueries.integrityContexts(
+      this.integrityReport()?.issues.some((issue) => this.isContextAssignmentIssue(issue)) ?? false,
+    ),
+  );
+  readonly availableIntegrityContexts = computed(
+    () => this.integrityContextsQuery.data() ?? [],
+  );
+
   saveSettingsMutation = injectMutation(() => this.settingsMutations.save());
   checkIntegrityMutation = injectMutation(() => this.settingsMutations.checkIntegrity());
   repairIntegrityMutation = injectMutation(() => this.settingsMutations.repairIntegrity());
+  deleteIntegrityContextMutation = injectMutation(() => this.contextMutations.delete());
+  deleteIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.delete());
+  moveIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.move());
 
-  readonly integrityReport = computed(
-    () =>
-      this.repairIntegrityMutation.data()?.report ??
-      this.checkIntegrityMutation.data() ??
-      this.integrityQuery.data(),
-  );
+  private readonly integrityContextSelections = signal<Record<string, string>>({});
 
   private readonly settings = computed<Settings>(() => this.settingsQuery.data() ?? {});
 
@@ -282,11 +413,96 @@ export class SidebarSettingsModalComponent {
   }
 
   checkIntegrity(): void {
-    this.checkIntegrityMutation.mutate();
+    this.checkIntegrityMutation.mutate(undefined, {
+      onSuccess: (report) => this.updateIntegrityReport(report),
+    });
   }
 
   repairIntegrity(): void {
-    this.repairIntegrityMutation.mutate();
+    this.repairIntegrityMutation.mutate(undefined, {
+      onSuccess: (result) => this.updateIntegrityReport(result.report),
+    });
+  }
+
+  hasRepairableIssues(report: IntegrityReport): boolean {
+    return report.issues.some((issue) => issue.repairable);
+  }
+
+  isDeletingIntegrityEntity(): boolean {
+    return (
+      this.deleteIntegrityContextMutation.isPending() ||
+      this.deleteIntegrityIntervalMutation.isPending()
+    );
+  }
+
+  isContextAssignmentIssue(issue: IntegrityIssue): boolean {
+    return (
+      issue.entityType === 'interval' &&
+      (issue.code === 'INTERVAL_MISSING_CONTEXT' || issue.code === 'INTERVAL_CONTEXT_NOT_FOUND')
+    );
+  }
+
+  selectedIntegrityContext(intervalId: string): string {
+    return this.integrityContextSelections()[intervalId] ?? '';
+  }
+
+  selectIntegrityContext(intervalId: string, contextId: string): void {
+    this.integrityContextSelections.update((selections) => ({
+      ...selections,
+      [intervalId]: contextId,
+    }));
+  }
+
+  assignIntegrityContext(issue: IntegrityIssue): void {
+    const targetContextId = this.selectedIntegrityContext(issue.entityId);
+    if (!this.isContextAssignmentIssue(issue) || !issue.entityId || !targetContextId) {
+      return;
+    }
+
+    this.moveIntegrityIntervalMutation.mutate(
+      { id: issue.entityId, targetContextId },
+      { onSuccess: () => this.refreshIntegrityReport() },
+    );
+  }
+
+  getSelectValue(event: Event): string {
+    return (event.target as HTMLSelectElement).value;
+  }
+
+  deleteIntegrityIssue(issue: IntegrityIssue): void {
+    if (issue.repairable || !issue.entityId) {
+      return;
+    }
+
+    const entityLabel = issue.details?.name
+      ? `${issue.entityType} "${issue.details.name}"`
+      : `${issue.entityType} "${issue.entityId}"`;
+    if (!window.confirm(`Delete ${entityLabel}? This action cannot be undone.`)) {
+      return;
+    }
+
+    if (issue.entityType === 'context') {
+      this.deleteIntegrityContextMutation.mutate(issue.entityId, {
+        onSuccess: () => this.refreshIntegrityReport(),
+      });
+      return;
+    }
+
+    this.deleteIntegrityIntervalMutation.mutate(
+      {
+        id: issue.entityId,
+        contextId: issue.details?.contextId ?? '',
+      },
+      { onSuccess: () => this.refreshIntegrityReport() },
+    );
+  }
+
+  formatIntegrityTime(value: IntegrityDateTime | undefined): string {
+    if (!value?.time || value.isZero) {
+      return 'Not set';
+    }
+
+    return new Date(value.time).toLocaleString();
   }
 
   setColorMode(mode: 'light' | 'dark'): void {
@@ -305,5 +521,20 @@ export class SidebarSettingsModalComponent {
       [themeKey]: this.colorMode(),
       [firstDayKey]: this.weekStart() === 'monday' ? 'Monday' : 'Sunday',
     });
+  }
+
+  private refreshIntegrityReport(): void {
+    void this.integrityQuery.refetch().then(({ data: report }) => {
+      if (report) {
+        this.updateIntegrityReport(report);
+      }
+    });
+  }
+
+  private updateIntegrityReport(report: IntegrityReport): void {
+    this.latestIntegrityReport.set(report);
+    if (report.issues.some((issue) => this.isContextAssignmentIssue(issue))) {
+      void this.integrityContextsQuery.refetch();
+    }
   }
 }

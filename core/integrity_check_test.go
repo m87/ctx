@@ -58,8 +58,8 @@ func setupManagerCorrectData() *ContextManager {
 	}
 	contextRepo := &ContextRepositoryMock{
 		contexts: []*Context{
-			{Id: "context1", WorkspaceId: "workspace1"},
-			{Id: "context2", WorkspaceId: "workspace2"},
+			{Id: "context1", Name: "Context 1", WorkspaceId: "workspace1"},
+			{Id: "context2", Name: "Context 2", WorkspaceId: "workspace2"},
 		},
 	}
 	intervalRepo := &IntervalRepositoryMock{
@@ -119,6 +119,8 @@ func TestFailIntegrityCheckWithContextWithoutWorkspace(t *testing.T) {
 	require.Equal(t, "context", issue.EntityType)
 	require.Equal(t, "context1", issue.EntityId)
 	require.Equal(t, "CONTEXT_MISSING_WORKSPACE", issue.Code)
+	require.True(t, issue.Repairable)
+	require.Equal(t, "Context 1", issue.Details.Name)
 }
 
 func TestFailIntegrityCheckWithContextWithNonexistentWorkspace(t *testing.T) {
@@ -162,6 +164,11 @@ func TestFailIntegrityCheckWithIntervalWithNonexistentContext(t *testing.T) {
 	require.Equal(t, "interval", issue.EntityType)
 	require.Equal(t, "interval1", issue.EntityId)
 	require.Equal(t, "INTERVAL_CONTEXT_NOT_FOUND", issue.Code)
+	require.False(t, issue.Repairable)
+	require.Equal(t, "nonexistent", issue.Details.ContextId)
+	require.Equal(t, "workspace1", issue.Details.WorkspaceId)
+	require.NotNil(t, issue.Details.Start)
+	require.NotNil(t, issue.Details.End)
 }
 
 func TestFailIntegrityCheckWithIntervalWithoutWorkspace(t *testing.T) {
@@ -176,6 +183,7 @@ func TestFailIntegrityCheckWithIntervalWithoutWorkspace(t *testing.T) {
 	require.Equal(t, "interval", issue.EntityType)
 	require.Equal(t, "interval1", issue.EntityId)
 	require.Equal(t, "INTERVAL_MISSING_WORKSPACE", issue.Code)
+	require.True(t, issue.Repairable)
 }
 
 func TestFailIntegrityCheckWithIntervalWithNonexistentWorkspace(t *testing.T) {
@@ -204,6 +212,7 @@ func TestFailIntegrityCheckWithIntervalWorkspaceMismatch(t *testing.T) {
 	require.Equal(t, "interval", issue.EntityType)
 	require.Equal(t, "interval1", issue.EntityId)
 	require.Equal(t, "INTERVAL_WORKSPACE_MISMATCH", issue.Code)
+	require.True(t, issue.Repairable)
 }
 
 func TestFailIntegrityCheckWithMultipleIssues(t *testing.T) {

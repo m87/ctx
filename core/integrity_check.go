@@ -24,30 +24,29 @@ func (m *ContextManager) CheckIntegrity() (*IntegrityReport, error) {
 	for _, context := range contexts {
 		contextsById[context.Id] = context
 		if context.WorkspaceId == "" {
-			issues = append(issues, integrityIssue("context", context.Id, "CONTEXT_MISSING_WORKSPACE", "Context has no workspace assigned"))
+			issues = append(issues, contextIntegrityIssue(context, "CONTEXT_MISSING_WORKSPACE", "Context has no workspace assigned"))
 			continue
 		}
 		if _, ok := workspaceIds[context.WorkspaceId]; !ok {
-			issues = append(issues, integrityIssue("context", context.Id, "CONTEXT_WORKSPACE_NOT_FOUND", "Context references a workspace that does not exist"))
+			issues = append(issues, contextIntegrityIssue(context, "CONTEXT_WORKSPACE_NOT_FOUND", "Context references a workspace that does not exist"))
 		}
 	}
 
 	for _, interval := range intervals {
 		context := contextsById[interval.ContextId]
+		contextIsValid := interval.ContextId != "" && context != nil
 		if interval.ContextId == "" {
-			issues = append(issues, integrityIssue("interval", interval.Id, "INTERVAL_MISSING_CONTEXT", "Interval has no context assigned"))
+			issues = append(issues, intervalIntegrityIssue(interval, "INTERVAL_MISSING_CONTEXT", "Interval has no context assigned", false))
 		} else if context == nil {
-			issues = append(issues, integrityIssue("interval", interval.Id, "INTERVAL_CONTEXT_NOT_FOUND", "Interval references a context that does not exist"))
+			issues = append(issues, intervalIntegrityIssue(interval, "INTERVAL_CONTEXT_NOT_FOUND", "Interval references a context that does not exist", false))
 		}
 
 		if interval.WorkspaceId == "" {
-			issues = append(issues, integrityIssue("interval", interval.Id, "INTERVAL_MISSING_WORKSPACE", "Interval has no workspace assigned"))
+			issues = append(issues, intervalIntegrityIssue(interval, "INTERVAL_MISSING_WORKSPACE", "Interval has no workspace assigned", contextIsValid))
 		} else if _, ok := workspaceIds[interval.WorkspaceId]; !ok {
-			issues = append(issues, integrityIssue("interval", interval.Id, "INTERVAL_WORKSPACE_NOT_FOUND", "Interval references a workspace that does not exist"))
-		}
-
-		if context != nil && interval.WorkspaceId != "" && interval.WorkspaceId != context.WorkspaceId {
-			issues = append(issues, integrityIssue("interval", interval.Id, "INTERVAL_WORKSPACE_MISMATCH", "Interval workspace differs from its context workspace"))
+			issues = append(issues, intervalIntegrityIssue(interval, "INTERVAL_WORKSPACE_NOT_FOUND", "Interval references a workspace that does not exist", contextIsValid))
+		} else if contextIsValid && interval.WorkspaceId != context.WorkspaceId {
+			issues = append(issues, intervalIntegrityIssue(interval, "INTERVAL_WORKSPACE_MISMATCH", "Interval workspace differs from its context workspace", true))
 		}
 	}
 
