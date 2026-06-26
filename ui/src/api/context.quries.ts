@@ -16,10 +16,11 @@ export class ContextQueries {
     };
   }
 
-  list() {
+  list(workspaceId: string | null) {
     return {
-      queryKey: [ContextQueries.key, 'list'],
-      queryFn: () => lastValueFrom(this.contextService.getContexts()),
+      queryKey: [ContextQueries.key, 'list', workspaceId],
+      queryFn: () => lastValueFrom(this.contextService.getContexts(workspaceId!)),
+      enabled: workspaceId !== null && workspaceId.length > 0,
     };
   }
 
@@ -44,10 +45,11 @@ export class ContextQueries {
     };
   }
 
-  dayStats(date: string) {
+  dayStats(workspaceId: string | null, date: string) {
     return {
-      queryKey: [ContextQueries.key, 'day-stats', date],
-      queryFn: () => lastValueFrom(this.contextService.getDayStats(date)),
+      queryKey: [ContextQueries.key, 'day-stats', workspaceId, date],
+      queryFn: () => lastValueFrom(this.contextService.getDayStats(workspaceId!, date)),
+      enabled: workspaceId !== null && workspaceId.length > 0,
     };
   }
 }

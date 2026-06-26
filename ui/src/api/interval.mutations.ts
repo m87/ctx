@@ -3,6 +3,8 @@ import { mutationOptions, QueryClient } from '@tanstack/angular-query-experiment
 import { lastValueFrom } from 'rxjs';
 import { ContextQueries } from './context.quries';
 import { Interval, IntervalService } from './interval.service';
+import { toastError } from './error';
+import { WorkspaceQueries } from './workspace.quries';
 
 @Injectable({ providedIn: 'root' })
 export class IntervalMutations {
@@ -14,7 +16,10 @@ export class IntervalMutations {
       mutationFn: (interval: Interval) =>
         lastValueFrom(this.intervalService.createInterval(interval)),
       onSuccess: (data) => {
-        this.invalidateAfterIntervalChange(data.contextId ?? data.context_id ?? '');
+        this.invalidateAfterIntervalChange(data.contextId ?? '');
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }
@@ -24,7 +29,10 @@ export class IntervalMutations {
       mutationFn: ({ id, interval }: { id: string; interval: Interval }) =>
         lastValueFrom(this.intervalService.updateInterval(id, interval)),
       onSuccess: (data) => {
-        this.invalidateAfterIntervalChange(data.contextId ?? data.context_id ?? '');
+        this.invalidateAfterIntervalChange(data.contextId ?? '');
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }
@@ -36,6 +44,9 @@ export class IntervalMutations {
       onSuccess: (_, variables) => {
         this.invalidateAfterIntervalChange(variables.contextId);
       },
+      onError(error) {
+        toastError(error);
+      },
     });
   }
 
@@ -44,9 +55,12 @@ export class IntervalMutations {
       mutationFn: ({ id, targetContextId }: { id: string; targetContextId: string }) =>
         lastValueFrom(this.intervalService.moveInterval(id, targetContextId)),
       onSuccess: (data, variables) => {
-        const sourceContextId = data.contextId ?? data.context_id ?? '';
+        const sourceContextId = data.contextId ?? '';
         this.invalidateAfterIntervalChange(sourceContextId);
         this.invalidateAfterIntervalChange(variables.targetContextId);
+      },
+      onError(error) {
+        toastError(error);
       },
     });
   }
@@ -54,6 +68,7 @@ export class IntervalMutations {
   private invalidateAfterIntervalChange(contextId: string) {
     this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
     this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
+    this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
 
     if (contextId) {
       this.queryClient.invalidateQueries({

@@ -3,14 +3,16 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 import { DateTime } from 'luxon';
 import type { Context } from './context.service';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from '../app/sidebar/workspace.state';
 
 export interface Interval {
   id: string;
-  contextId?: string;
-  context_id?: string;
+  contextId: string;
   start: ZonedDateTime;
   end: ZonedDateTime;
   duration: number;
+  workspaceId: string;
 }
 
 type RawZonedDateTime = {
@@ -112,8 +114,12 @@ export function parseDuration(duration: number): string {
 @Injectable({ providedIn: 'root' })
 export class IntervalService {
   http = inject(HttpClient);
+  store = inject(Store);
 
   createInterval(interval: Interval): Observable<Interval> {
+    if (interval.workspaceId == null) {
+      interval.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
+    }
     return this.http
       .post<RawInterval>('/api/interval/', interval)
       .pipe(map((response) => deserializeInterval(response)));
@@ -141,8 +147,8 @@ export class IntervalService {
       .pipe(map((response) => deserializeInterval(response)));
   }
 
-  getDayIntervals(day: string): Observable<DayIntervalsResponse> {
-    return this.http.get<RawDayIntervalsResponse>(`/api/interval/day/${day}`).pipe(
+  getDayIntervals(workspaceId: string, day: string): Observable<DayIntervalsResponse> {
+    return this.http.get<RawDayIntervalsResponse>(`/api/interval/day/${day}?workspaceId=${workspaceId}`).pipe(
       map((response) => ({
         contexts: response.contexts,
         intervals: deserializeIntervals(response.intervals),

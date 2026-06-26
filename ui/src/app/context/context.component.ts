@@ -16,11 +16,12 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ContextQueries } from '../../api/context.quries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { ContextMutations } from '../../api/context.mutations';
-import { Context, EMPTY_CONTEXT } from '../../api/context.service';
 import { Interval, ZonedDateTime } from '../../api/interval.service';
 import { durationAsH, durationAsM } from '../utils';
 import { DateTime } from 'luxon';
 import { IntervalMutations } from '../../api/interval.mutations';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from '../sidebar/workspace.state';
 
 @Component({
   imports: [NgIcon, HlmButtonImports, HlmCardImports],
@@ -404,6 +405,8 @@ export class ContextComponent {
   private contextMutations = inject(ContextMutations);
   private intervalMutations = inject(IntervalMutations);
   private router = inject(Router);
+  private store = inject(Store);
+  readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
 
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   updateContextMutation = injectMutation(() => this.contextMutations.update());
@@ -414,8 +417,8 @@ export class ContextComponent {
   moveIntervalMutation = injectMutation(() => this.intervalMutations.move());
   contextQuery = injectQuery(() => this.contextQueries.get(this.contextId()));
   contextIntervalsQuery = injectQuery(() => this.contextQueries.intervals(this.contextId()));
-  contextsQuery = injectQuery(() => this.contextQueries.list());
-  context = computed(() => this.contextQuery.data() ?? EMPTY_CONTEXT);
+  contextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
+  context = computed(() => this.contextQuery.data()!);
   contextStatsQuery = injectQuery(() => this.contextQueries.stats(this.contextId(), this.today()));
   contextStats = computed(() => this.contextStatsQuery.data());
   today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
@@ -540,6 +543,7 @@ export class ContextComponent {
         start: parsed.start,
         end: parsed.end,
         duration: 0,
+        workspaceId: this.activeWorkspaceId()!,
       },
       {
         onSuccess: () => {

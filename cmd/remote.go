@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -146,6 +147,46 @@ func (c *HttpClient) requestJSON(method, path string, request any, response any)
 	return nil
 }
 
+func remoteCreateWorkspace(workspace *core.Workspace) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	var created core.Workspace
+	if err := client.requestJSON(http.MethodPost, "/workspace/", workspace, &created); err != nil {
+		return err
+	}
+	if created.Id != "" {
+		workspace.Id = created.Id
+	}
+	return nil
+}
+
+func remoteListWorkspaces() ([]*core.Workspace, error) {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	var workspaces []*core.Workspace
+	if err := client.requestJSON(http.MethodGet, "/workspace/", nil, &workspaces); err != nil {
+		return nil, err
+	}
+	return workspaces, nil
+}
+
+func remoteGetWorkspace(id string) (*core.Workspace, error) {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	var workspace core.Workspace
+	if err := client.requestJSON(http.MethodGet, "/workspace/"+url.PathEscape(strings.TrimSpace(id)), nil, &workspace); err != nil {
+		return nil, err
+	}
+	return &workspace, nil
+}
+
+func remoteDeleteWorkspace(id string) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	return client.requestJSON(http.MethodDelete, "/workspace/"+strings.TrimSpace(id), nil, nil)
+}
+
+func remoteUpdateWorkspace(workspace *core.Workspace) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	return client.requestJSON(http.MethodPut, "/workspace/"+strings.TrimSpace(workspace.Id), workspace, workspace)
+}
+
 func remoteCreateContext(context *core.Context) error {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var created core.Context
@@ -158,10 +199,11 @@ func remoteCreateContext(context *core.Context) error {
 	return nil
 }
 
-func remoteListContexts() ([]*core.Context, error) {
+func remoteListContexts(workspaceID string) ([]*core.Context, error) {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var contexts []*core.Context
-	if err := client.requestJSON(http.MethodGet, "/context/", nil, &contexts); err != nil {
+	path := remoteListContextsPath(workspaceID)
+	if err := client.requestJSON(http.MethodGet, path, nil, &contexts); err != nil {
 		return nil, err
 	}
 	return contexts, nil
@@ -177,9 +219,13 @@ func remoteUpdateContext(context *core.Context) error {
 	return client.requestJSON(http.MethodPut, "/context/"+strings.TrimSpace(context.Id), context, context)
 }
 
-func remoteSwitchContext(id string, name string) error {
+func remoteSwitchContext(id string, name string, workspaceID string) error {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
-	payload := &core.Context{Id: strings.TrimSpace(id), Name: strings.TrimSpace(name)}
+	payload := &core.Context{
+		Id:          strings.TrimSpace(id),
+		Name:        strings.TrimSpace(name),
+		WorkspaceId: strings.TrimSpace(workspaceID),
+	}
 	return client.requestJSON(http.MethodPost, "/context/switch", payload, nil)
 }
 
@@ -210,22 +256,38 @@ func remoteDeleteInterval(id string) error {
 	return client.requestJSON(http.MethodDelete, "/interval/"+strings.TrimSpace(id), nil, nil)
 }
 
-func remoteListIntervalsByDay(day string) (*DayReport, error) {
+func remoteListIntervalsByDay(day string, workspaceID string) (*DayReport, error) {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var report DayReport
-	if err := client.requestJSON(http.MethodGet, "/interval/day/"+day, nil, &report); err != nil {
+	path := remoteListIntervalsByDayPath(day, workspaceID)
+	if err := client.requestJSON(http.MethodGet, path, nil, &report); err != nil {
 		return nil, err
 	}
 	return &report, nil
 }
 
-func remoteSummaryDay(day string) (*DayStats, error) {
+func remoteSummaryDay(day string, workspaceID string) (*DayStats, error) {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var stats DayStats
-	if err := client.requestJSON(http.MethodGet, "/interval/day/"+day+"/stats", nil, &stats); err != nil {
+	path := remoteSummaryDayPath(day, workspaceID)
+	if err := client.requestJSON(http.MethodGet, path, nil, &stats); err != nil {
 		return nil, err
 	}
 	return &stats, nil
+}
+
+func remoteListContextsPath(workspaceID string) string {
+	return "/context/?workspaceId=" + url.QueryEscape(strings.TrimSpace(workspaceID))
+}
+
+func remoteListIntervalsByDayPath(day string, workspaceID string) string {
+	return "/interval/day/" + url.PathEscape(strings.TrimSpace(day)) +
+		"?workspaceId=" + url.QueryEscape(strings.TrimSpace(workspaceID))
+}
+
+func remoteSummaryDayPath(day string, workspaceID string) string {
+	return "/interval/day/" + url.PathEscape(strings.TrimSpace(day)) +
+		"/stats?workspaceId=" + url.QueryEscape(strings.TrimSpace(workspaceID))
 }
 
 func remoteListContextIntervals(contextID string) ([]*core.Interval, error) {

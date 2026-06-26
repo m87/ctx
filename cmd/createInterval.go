@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCreateIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func NewCreateIntervalCmd() *cobra.Command {
 	var (
 		contextID string
 		startRaw  string
@@ -22,6 +22,11 @@ func NewCreateIntervalCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "interval",
 		Short: "Create a new interval",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+
 			if strings.TrimSpace(contextID) == "" {
 				return fmt.Errorf("context-id is required")
 			}
@@ -70,7 +75,7 @@ func NewCreateIntervalCmd(manager *core.ContextManager) *cobra.Command {
 					return err
 				}
 			} else {
-				id, err := manager.IntervalRepository.Save(interval)
+				id, err := manager.SaveInterval(interval)
 				if err != nil {
 					return err
 				}
@@ -93,5 +98,5 @@ func NewCreateIntervalCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	createCmd.AddCommand(NewCreateIntervalCmd(bootstrap.CreateManager()))
+	createCmd.AddCommand(NewCreateIntervalCmd())
 }

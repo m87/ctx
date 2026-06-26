@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewEditContextCmd(manager *core.ContextManager) *cobra.Command {
+func NewEditContextCmd() *cobra.Command {
 	var (
 		id          string
 		name        string
@@ -21,6 +21,11 @@ func NewEditContextCmd(manager *core.ContextManager) *cobra.Command {
 		Use:   "context",
 		Short: "Edit an existing context",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+
 			contextID := strings.TrimSpace(id)
 			if contextID == "" {
 				return fmt.Errorf("id is required")
@@ -73,5 +78,5 @@ func NewEditContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	editCmd.AddCommand(NewEditContextCmd(bootstrap.CreateManager()))
+	editCmd.AddCommand(NewEditContextCmd())
 }

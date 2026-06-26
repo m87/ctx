@@ -10,17 +10,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewListContextCmd(manager *core.ContextManager) *cobra.Command {
+func NewListContextCmd() *cobra.Command {
+	var workspaceID string
+
 	cmd := &cobra.Command{
 		Use:   "context",
 		Short: "List all contexts",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+			selectedWorkspaceID := strings.TrimSpace(workspaceID)
+
 			var contexts []*core.Context
-			var err error
 			if resolveRemoteAddr() != "" {
-				contexts, err = remoteListContexts()
+				contexts, err = remoteListContexts(selectedWorkspaceID)
 			} else {
-				contexts, err = manager.ContextRepository.List()
+				contexts, err = manager.ContextRepository.ListByWorkspace(selectedWorkspaceID)
 			}
 			if err != nil {
 				return err
@@ -108,9 +115,11 @@ func NewListContextCmd(manager *core.ContextManager) *cobra.Command {
 			return printOutput(cmd, verboseList, textRenderer, nil)
 		},
 	}
+	cmd.Flags().StringVarP(&workspaceID, "workspace", "w", "", "Workspace ID")
+	_ = cmd.MarkFlagRequired("workspace")
 	return cmd
 }
 
 func init() {
-	listCmd.AddCommand(NewListContextCmd(bootstrap.CreateManager()))
+	listCmd.AddCommand(NewListContextCmd())
 }

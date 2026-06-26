@@ -30,18 +30,18 @@ func registerContextHandler(mux *http.ServeMux, manager *core.ContextManager) {
 func (h *ContextHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
 		return
 	}
 	dateStr := r.PathValue("date")
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		http.Error(w, "Invalid date format, expected YYYY-MM-DD", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
 		return
 	}
 	stats, err := h.manager.GetStats(id, date)
 	if err != nil {
-		http.Error(w, "Failed to get stats", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_CONTEXT_STATS", "Failed to get context stats")
 		return
 	}
 
@@ -51,12 +51,12 @@ func (h *ContextHandler) getStats(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
 		return
 	}
 	intervals, err := h.manager.IntervalRepository.ListByContextId(id)
 	if err != nil {
-		http.Error(w, "Failed to list intervals", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTERVALS", "Failed to list intervals")
 		return
 	}
 
@@ -66,11 +66,11 @@ func (h *ContextHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) getActiveContext(w http.ResponseWriter, r *http.Request) {
 	activeContext, err := h.manager.ContextRepository.GetActive()
 	if err != nil {
-		http.Error(w, "Failed to get active context", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_ACTIVE_CONTEXT", "Failed to get active context")
 		return
 	}
 	if activeContext == nil {
-		http.Error(w, "No active context found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "ACTIVE_CONTEXT_NOT_FOUND", "No active context found")
 		return
 	}
 	writeJson(w, http.StatusOK, activeContext)
@@ -80,11 +80,15 @@ func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
 
 	var req *core.Context
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 	if err := h.manager.SwitchContext(req); err != nil {
-		http.Error(w, "Failed to switch context", http.StatusInternalServerError)
+		if _, ok := err.(*core.WorkspaceNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "WORKSPACE_NOT_FOUND", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_SWITCH_CONTEXT", "Failed to switch context")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -92,16 +96,21 @@ func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
 
 func (h *ContextHandler) freeContext(w http.ResponseWriter, r *http.Request) {
 	if err := h.manager.FreeActiveContext(); err != nil {
-		http.Error(w, "Failed to free active context", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_FREE_ACTIVE_CONTEXT", "Failed to free active context")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ContextHandler) listContexts(w http.ResponseWriter, r *http.Request) {
-	contexts, err := h.manager.ContextRepository.List()
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
+	contexts, err := h.manager.ContextRepository.ListByWorkspace(workspaceId)
 	if err != nil {
-		http.Error(w, "Failed to list contexts", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_CONTEXTS", "Failed to list contexts")
 		return
 	}
 	writeJson(w, http.StatusOK, contexts)
@@ -110,14 +119,16 @@ func (h *ContextHandler) listContexts(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) createContext(w http.ResponseWriter, r *http.Request) {
 	var context core.Context
 	if err := json.NewDecoder(r.Body).Decode(&context); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
-	context.Id = ""
-
-	id, err := h.manager.ContextRepository.Save(&context)
+	id, err := h.manager.CreateContext(&context)
 	if err != nil {
-		http.Error(w, "Failed to create context", http.StatusInternalServerError)
+		if _, ok := err.(*core.WorkspaceNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "WORKSPACE_NOT_FOUND", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_CREATE_CONTEXT", "Failed to create context")
 		return
 	}
 	context.Id = id
@@ -127,11 +138,11 @@ func (h *ContextHandler) createContext(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) deleteContext(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
 		return
 	}
-	if err := h.manager.ContextRepository.Delete(id); err != nil {
-		http.Error(w, "Failed to delete context", http.StatusInternalServerError)
+	if err := h.manager.DeleteContext(id); err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_DELETE_CONTEXT", "Failed to delete context")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -140,16 +151,16 @@ func (h *ContextHandler) deleteContext(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) getContext(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
 		return
 	}
 	context, err := h.manager.ContextRepository.GetById(id)
 	if err != nil {
-		http.Error(w, "Failed to get context", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_CONTEXT", "Failed to get context")
 		return
 	}
 	if context == nil {
-		http.Error(w, "Context not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "CONTEXT_NOT_FOUND", "Context not found")
 		return
 	}
 	writeJson(w, http.StatusOK, context)
@@ -158,17 +169,25 @@ func (h *ContextHandler) getContext(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) updateContext(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" {
-		http.Error(w, "Missing context ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
 		return
 	}
 	var context core.Context
 	if err := json.NewDecoder(r.Body).Decode(&context); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 	context.Id = id
-	if _, err := h.manager.ContextRepository.Save(&context); err != nil {
-		http.Error(w, "Failed to update context", http.StatusInternalServerError)
+	if err := h.manager.UpdateContext(&context); err != nil {
+		if _, ok := err.(*core.ContextNotFoundError); ok {
+			writeError(w, http.StatusNotFound, "CONTEXT_NOT_FOUND", "Context not found")
+			return
+		}
+		if _, ok := err.(*core.ContextWorkspaceMoveNotAllowedError); ok {
+			writeError(w, http.StatusBadRequest, "CONTEXT_WORKSPACE_MOVE_NOT_ALLOWED", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_CONTEXT", "Failed to update context")
 		return
 	}
 	writeJson(w, http.StatusOK, &context)

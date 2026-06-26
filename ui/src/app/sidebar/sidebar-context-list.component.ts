@@ -6,6 +6,8 @@ import { ContextQueries } from '../../api/context.quries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { Context } from '../../api/context.service';
 import { RouterLink } from '@angular/router';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from './workspace.state';
 
 @Component({
   selector: 'app-sidebar-context-list',
@@ -53,9 +55,12 @@ import { RouterLink } from '@angular/router';
 export class SidebarContextListComponent {
   private contextQueries = inject(ContextQueries);
   private contextMutations = inject(ContextMutations);
+  private store = inject(Store);
   private readonly newContextInput = viewChild<ElementRef<HTMLInputElement>>('newContextInput');
 
-  listContextsQuery = injectQuery(() => this.contextQueries.list());
+  readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+
+  listContextsQuery = injectQuery(() => this.contextQueries.list(this.selectedWorkspaceId()));
   createContextMutation = injectMutation(() => this.contextMutations.create());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
 
@@ -91,7 +96,10 @@ export class SidebarContextListComponent {
       return;
     }
 
-    this.createContextMutation.mutate({ name } as Context);
+    this.createContextMutation.mutate({
+      name,
+      workspaceId: this.selectedWorkspaceId() ?? '',
+    } as Context);
     this.cancelAddContext();
   }
 }

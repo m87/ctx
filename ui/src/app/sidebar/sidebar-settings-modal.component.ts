@@ -10,10 +10,17 @@ import {
 } from '@angular/core';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideX } from '@ng-icons/lucide';
+import { lucideTrash2, lucideX } from '@ng-icons/lucide';
+import { ContextMutations } from '../../api/context.mutations';
+import { IntervalMutations } from '../../api/interval.mutations';
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
-import { Settings } from '../../api/settings.service';
+import {
+  IntegrityDateTime,
+  IntegrityIssue,
+  IntegrityReport,
+  Settings,
+} from '../../api/settings.service';
 
 const themeKey = 'client.general.theme';
 const firstDayKey = 'client.general.firstDay';
@@ -21,7 +28,7 @@ const firstDayKey = 'client.general.firstDay';
 @Component({
   selector: 'app-sidebar-settings-modal',
   imports: [NgIcon],
-  providers: [provideIcons({ lucideX })],
+  providers: [provideIcons({ lucideTrash2, lucideX })],
   template: `
     @if (open) {
       <div
@@ -79,60 +86,261 @@ const firstDayKey = 'client.general.firstDay';
               </button>
             </div>
             <div class="p-5 sm:p-7 overflow-auto text-[14px] text-muted-foreground">
-              <div class="space-y-7 max-w-[760px] pb-5">
-                <div class="space-y-2">
-                  <div class="text-foreground font-medium text-[15px]">Theme mode</div>
-                  <div class="text-[13px] sm:text-[14px]">Choose your preferred app theme.</div>
-                  <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
-                    <button
-                      type="button"
-                      class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
-                      [class.bg-muted]="colorMode() === 'light'"
-                      [class.text-foreground]="colorMode() === 'light'"
-                      [disabled]="saveSettingsMutation.isPending()"
-                      (click)="setColorMode('light')"
-                    >
-                      Light
-                    </button>
-                    <button
-                      type="button"
-                      class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
-                      [class.bg-muted]="colorMode() === 'dark'"
-                      [class.text-foreground]="colorMode() === 'dark'"
-                      [disabled]="saveSettingsMutation.isPending()"
-                      (click)="setColorMode('dark')"
-                    >
-                      Dark
-                    </button>
-                  </div>
-                </div>
+              <div class="max-w-[760px] pb-5">
+                @if (activeSettingsSection() === 'General') {
+                  <div class="space-y-7">
+                    <div class="space-y-2">
+                      <div class="text-foreground font-medium text-[15px]">Theme mode</div>
+                      <div class="text-[13px] sm:text-[14px]">Choose your preferred app theme.</div>
+                      <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
+                        <button
+                          type="button"
+                          class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+                          [class.bg-muted]="colorMode() === 'light'"
+                          [class.text-foreground]="colorMode() === 'light'"
+                          [disabled]="saveSettingsMutation.isPending()"
+                          (click)="setColorMode('light')"
+                        >
+                          Light
+                        </button>
+                        <button
+                          type="button"
+                          class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+                          [class.bg-muted]="colorMode() === 'dark'"
+                          [class.text-foreground]="colorMode() === 'dark'"
+                          [disabled]="saveSettingsMutation.isPending()"
+                          (click)="setColorMode('dark')"
+                        >
+                          Dark
+                        </button>
+                      </div>
+                    </div>
 
-                <div class="space-y-2">
-                  <div class="text-foreground font-medium text-[15px]">First day of week</div>
-                  <div class="text-[13px] sm:text-[14px]">Choose which day starts the week.</div>
-                  <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
-                    <button
-                      type="button"
-                      class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
-                      [class.bg-muted]="weekStart() === 'monday'"
-                      [class.text-foreground]="weekStart() === 'monday'"
-                      [disabled]="saveSettingsMutation.isPending()"
-                      (click)="setWeekStart('monday')"
-                    >
-                      Monday
-                    </button>
-                    <button
-                      type="button"
-                      class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
-                      [class.bg-muted]="weekStart() === 'sunday'"
-                      [class.text-foreground]="weekStart() === 'sunday'"
-                      [disabled]="saveSettingsMutation.isPending()"
-                      (click)="setWeekStart('sunday')"
-                    >
-                      Sunday
-                    </button>
+                    <div class="space-y-2">
+                      <div class="text-foreground font-medium text-[15px]">First day of week</div>
+                      <div class="text-[13px] sm:text-[14px]">
+                        Choose which day starts the week.
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
+                        <button
+                          type="button"
+                          class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+                          [class.bg-muted]="weekStart() === 'monday'"
+                          [class.text-foreground]="weekStart() === 'monday'"
+                          [disabled]="saveSettingsMutation.isPending()"
+                          (click)="setWeekStart('monday')"
+                        >
+                          Monday
+                        </button>
+                        <button
+                          type="button"
+                          class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+                          [class.bg-muted]="weekStart() === 'sunday'"
+                          [class.text-foreground]="weekStart() === 'sunday'"
+                          [disabled]="saveSettingsMutation.isPending()"
+                          (click)="setWeekStart('sunday')"
+                        >
+                          Sunday
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                } @else {
+                  <div class="space-y-5">
+                    <div class="space-y-1.5">
+                      <div class="text-foreground font-medium text-[15px]">Data integrity</div>
+                      <div class="text-[13px] sm:text-[14px]">
+                        Check workspace assignments and references after migration.
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="h-10 px-4 mr-4 rounded-md border text-foreground text-[14px] font-medium hover:bg-muted/50 disabled:opacity-50"
+                      [disabled]="checkIntegrityMutation.isPending()"
+                      (click)="checkIntegrity()"
+                    >
+                      {{
+                        checkIntegrityMutation.isPending() ? 'Checking...' : 'Run integrity check'
+                      }}
+                    </button>
+
+                    @if (integrityReport(); as report) {
+                      @if (hasRepairableIssues(report)) {
+                        <button
+                          type="button"
+                          class="h-10 px-4 rounded-md bg-primary text-primary-foreground text-[14px] font-medium hover:bg-primary/90 disabled:opacity-50"
+                          [disabled]="repairIntegrityMutation.isPending()"
+                          (click)="repairIntegrity()"
+                        >
+                          {{
+                            repairIntegrityMutation.isPending()
+                              ? 'Repairing...'
+                              : 'Repair automatically'
+                          }}
+                        </button>
+                      }
+                    }
+
+                    @if (repairIntegrityMutation.data(); as repairResult) {
+                      <div class="rounded-md border bg-muted/30 p-3 text-[13px]">
+                        Repaired {{ repairResult.repairedCount }} records. Issues that cannot be
+                        repaired safely remain listed below.
+                      </div>
+                    }
+
+                    @if (integrityReport(); as report) {
+                      <div
+                        class="rounded-lg border p-4"
+                        [class.border-emerald-500]="report.healthy"
+                        [class.border-destructive]="!report.healthy"
+                      >
+                        <div
+                          class="font-medium"
+                          [class.text-emerald-600]="report.healthy"
+                          [class.text-destructive]="!report.healthy"
+                        >
+                          {{ report.healthy ? 'Integrity check passed' : 'Integrity issues found' }}
+                        </div>
+                        <div class="mt-2 text-[12px] text-muted-foreground">
+                          {{ report.workspaceCount }} workspaces,
+                          {{ report.contextCount }} contexts, {{ report.intervalCount }} intervals
+                        </div>
+                      </div>
+
+                      @if (report.issues.length > 0) {
+                        <div class="space-y-2">
+                          @for (issue of report.issues; track issue.code + issue.entityId) {
+                            <div class="rounded-md border p-3 text-[13px]">
+                              <div class="flex items-start justify-between gap-3">
+                                <div class="flex flex-wrap items-center gap-2">
+                                  <span class="font-medium text-foreground">{{ issue.code }}</span>
+                                  <span class="text-[11px] uppercase text-muted-foreground">
+                                    {{ issue.entityType }}
+                                  </span>
+                                  <span
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                                    [class.bg-emerald-500/10]="issue.repairable"
+                                    [class.text-emerald-600]="issue.repairable"
+                                    [class.bg-amber-500/10]="!issue.repairable"
+                                    [class.text-amber-700]="!issue.repairable"
+                                  >
+                                    {{
+                                      issue.repairable
+                                        ? 'Auto-repairable'
+                                        : 'Manual action required'
+                                    }}
+                                  </span>
+                                </div>
+
+                                @if (!issue.repairable && issue.entityId) {
+                                  <button
+                                    type="button"
+                                    class="h-8 w-8 shrink-0 rounded-md text-destructive hover:bg-destructive/10 disabled:opacity-50 flex items-center justify-center"
+                                    [disabled]="isDeletingIntegrityEntity()"
+                                    [attr.aria-label]="'Delete problematic ' + issue.entityType"
+                                    [title]="'Delete ' + issue.entityType"
+                                    (click)="deleteIntegrityIssue(issue)"
+                                  >
+                                    <ng-icon name="lucideTrash2" class="text-[15px]"></ng-icon>
+                                  </button>
+                                }
+                              </div>
+                              <div class="mt-1">{{ issue.description }}</div>
+
+                              @if (issue.entityType === 'context' && issue.details?.name) {
+                                <div class="mt-2 font-medium text-foreground">
+                                  {{ issue.details?.name }}
+                                </div>
+                              }
+
+                              @if (issue.entityType === 'interval') {
+                                <div
+                                  class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]"
+                                >
+                                  <span class="text-muted-foreground">Interval</span>
+                                  <span class="text-foreground">
+                                    {{ formatIntegrityTime(issue.details?.start) }} –
+                                    {{ formatIntegrityTime(issue.details?.end) }}
+                                  </span>
+                                  <span class="text-muted-foreground">Context</span>
+                                  <span class="font-mono break-all">
+                                    {{ issue.details?.contextId || '(missing)' }}
+                                  </span>
+                                </div>
+                              }
+
+                              @if (isContextAssignmentIssue(issue)) {
+                                <div class="mt-3 flex flex-col sm:flex-row gap-2">
+                                  <select
+                                    class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-[12px]"
+                                    [value]="selectedIntegrityContext(issue.entityId)"
+                                    [disabled]="
+                                      availableIntegrityContexts().length === 0 ||
+                                      moveIntegrityIntervalMutation.isPending()
+                                    "
+                                    (change)="
+                                      selectIntegrityContext(
+                                        issue.entityId,
+                                        getSelectValue($event)
+                                      )
+                                    "
+                                  >
+                                    <option value="">
+                                      {{
+                                        integrityContextsQuery.isPending()
+                                          ? 'Loading contexts...'
+                                          : availableIntegrityContexts().length === 0
+                                            ? 'No contexts available'
+                                            : 'Select context...'
+                                      }}
+                                    </option>
+                                    @for (context of availableIntegrityContexts(); track context.id) {
+                                      <option [value]="context.id">
+                                        {{ context.name || '(unnamed context)' }} ·
+                                        {{ context.workspaceName || context.workspaceId }}
+                                      </option>
+                                    }
+                                  </select>
+                                  <button
+                                    type="button"
+                                    class="h-9 px-3 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 disabled:opacity-50"
+                                    [disabled]="
+                                      !selectedIntegrityContext(issue.entityId) ||
+                                      moveIntegrityIntervalMutation.isPending()
+                                    "
+                                    (click)="assignIntegrityContext(issue)"
+                                  >
+                                    {{
+                                      moveIntegrityIntervalMutation.isPending()
+                                        ? 'Assigning...'
+                                        : 'Assign'
+                                    }}
+                                  </button>
+                                </div>
+                              }
+
+                              @if (issue.details?.workspaceId) {
+                                <div class="mt-1 text-[12px]">
+                                  <span class="text-muted-foreground">Workspace:</span>
+                                  <span class="ml-2 font-mono break-all">
+                                    {{ issue.details?.workspaceId }}
+                                  </span>
+                                </div>
+                              }
+
+                              <div
+                                class="mt-2 font-mono text-[11px] break-all text-muted-foreground"
+                              >
+                                ID: {{ issue.entityId || '(missing id)' }}
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -144,17 +352,41 @@ const firstDayKey = 'client.general.firstDay';
 export class SidebarSettingsModalComponent {
   private settingsQueries = inject(SettingsQueries);
   private settingsMutations = inject(SettingsMutations);
+  private contextMutations = inject(ContextMutations);
+  private intervalMutations = inject(IntervalMutations);
 
   @Input() open = false;
   @Output() openChange = new EventEmitter<boolean>();
 
-  readonly settingsSections = ['General'] as const;
+  readonly settingsSections = ['General', 'Data integrity'] as const;
   readonly activeSettingsSection = signal<(typeof this.settingsSections)[number]>('General');
   readonly colorMode = signal<'light' | 'dark'>('light');
   readonly weekStart = signal<'monday' | 'sunday'>('monday');
 
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
+  integrityQuery = injectQuery(() => this.settingsQueries.integrity());
+
+  private readonly latestIntegrityReport = signal<IntegrityReport | undefined>(undefined);
+  readonly integrityReport = computed(
+    () => this.latestIntegrityReport() ?? this.integrityQuery.data(),
+  );
+  integrityContextsQuery = injectQuery(() =>
+    this.settingsQueries.integrityContexts(
+      this.integrityReport()?.issues.some((issue) => this.isContextAssignmentIssue(issue)) ?? false,
+    ),
+  );
+  readonly availableIntegrityContexts = computed(
+    () => this.integrityContextsQuery.data() ?? [],
+  );
+
   saveSettingsMutation = injectMutation(() => this.settingsMutations.save());
+  checkIntegrityMutation = injectMutation(() => this.settingsMutations.checkIntegrity());
+  repairIntegrityMutation = injectMutation(() => this.settingsMutations.repairIntegrity());
+  deleteIntegrityContextMutation = injectMutation(() => this.contextMutations.delete());
+  deleteIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.delete());
+  moveIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.move());
+
+  private readonly integrityContextSelections = signal<Record<string, string>>({});
 
   private readonly settings = computed<Settings>(() => this.settingsQuery.data() ?? {});
 
@@ -180,6 +412,99 @@ export class SidebarSettingsModalComponent {
     this.openChange.emit(false);
   }
 
+  checkIntegrity(): void {
+    this.checkIntegrityMutation.mutate(undefined, {
+      onSuccess: (report) => this.updateIntegrityReport(report),
+    });
+  }
+
+  repairIntegrity(): void {
+    this.repairIntegrityMutation.mutate(undefined, {
+      onSuccess: (result) => this.updateIntegrityReport(result.report),
+    });
+  }
+
+  hasRepairableIssues(report: IntegrityReport): boolean {
+    return report.issues.some((issue) => issue.repairable);
+  }
+
+  isDeletingIntegrityEntity(): boolean {
+    return (
+      this.deleteIntegrityContextMutation.isPending() ||
+      this.deleteIntegrityIntervalMutation.isPending()
+    );
+  }
+
+  isContextAssignmentIssue(issue: IntegrityIssue): boolean {
+    return (
+      issue.entityType === 'interval' &&
+      (issue.code === 'INTERVAL_MISSING_CONTEXT' || issue.code === 'INTERVAL_CONTEXT_NOT_FOUND')
+    );
+  }
+
+  selectedIntegrityContext(intervalId: string): string {
+    return this.integrityContextSelections()[intervalId] ?? '';
+  }
+
+  selectIntegrityContext(intervalId: string, contextId: string): void {
+    this.integrityContextSelections.update((selections) => ({
+      ...selections,
+      [intervalId]: contextId,
+    }));
+  }
+
+  assignIntegrityContext(issue: IntegrityIssue): void {
+    const targetContextId = this.selectedIntegrityContext(issue.entityId);
+    if (!this.isContextAssignmentIssue(issue) || !issue.entityId || !targetContextId) {
+      return;
+    }
+
+    this.moveIntegrityIntervalMutation.mutate(
+      { id: issue.entityId, targetContextId },
+      { onSuccess: () => this.refreshIntegrityReport() },
+    );
+  }
+
+  getSelectValue(event: Event): string {
+    return (event.target as HTMLSelectElement).value;
+  }
+
+  deleteIntegrityIssue(issue: IntegrityIssue): void {
+    if (issue.repairable || !issue.entityId) {
+      return;
+    }
+
+    const entityLabel = issue.details?.name
+      ? `${issue.entityType} "${issue.details.name}"`
+      : `${issue.entityType} "${issue.entityId}"`;
+    if (!window.confirm(`Delete ${entityLabel}? This action cannot be undone.`)) {
+      return;
+    }
+
+    if (issue.entityType === 'context') {
+      this.deleteIntegrityContextMutation.mutate(issue.entityId, {
+        onSuccess: () => this.refreshIntegrityReport(),
+      });
+      return;
+    }
+
+    this.deleteIntegrityIntervalMutation.mutate(
+      {
+        id: issue.entityId,
+        contextId: issue.details?.contextId ?? '',
+      },
+      { onSuccess: () => this.refreshIntegrityReport() },
+    );
+  }
+
+  formatIntegrityTime(value: IntegrityDateTime | undefined): string {
+    if (!value?.time || value.isZero) {
+      return 'Not set';
+    }
+
+    return new Date(value.time).toLocaleString();
+  }
+
   setColorMode(mode: 'light' | 'dark'): void {
     this.colorMode.set(mode);
     this.saveSettings();
@@ -196,5 +521,20 @@ export class SidebarSettingsModalComponent {
       [themeKey]: this.colorMode(),
       [firstDayKey]: this.weekStart() === 'monday' ? 'Monday' : 'Sunday',
     });
+  }
+
+  private refreshIntegrityReport(): void {
+    void this.integrityQuery.refetch().then(({ data: report }) => {
+      if (report) {
+        this.updateIntegrityReport(report);
+      }
+    });
+  }
+
+  private updateIntegrityReport(report: IntegrityReport): void {
+    this.latestIntegrityReport.set(report);
+    if (report.issues.some((issue) => this.isContextAssignmentIssue(issue))) {
+      void this.integrityContextsQuery.refetch();
+    }
   }
 }

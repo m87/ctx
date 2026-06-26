@@ -20,4 +20,20 @@ export class SettingsQueries {
       queryFn: () => lastValueFrom(this.settingsService.getSetting(key)),
     };
   }
+
+  integrity() {
+    return {
+      queryKey: [...SettingsQueries.key, 'integrity'],
+      queryFn: () => lastValueFrom(this.settingsService.checkIntegrity()),
+      enabled: false,
+    };
+  }
+
+  integrityContexts(enabled: boolean) {
+    return {
+      queryKey: [...SettingsQueries.key, 'integrity-contexts'],
+      queryFn: () => lastValueFrom(this.settingsService.getIntegrityContexts()),
+      enabled,
+    };
+  }
 }

@@ -7,6 +7,8 @@ import { DayIntervalsResponse } from '../../api/interval.service';
 import { colorHash } from '../utils';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map, startWith } from 'rxjs/operators';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from '../sidebar/workspace.state';
 
 const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
   contexts: [],
@@ -77,7 +79,9 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
 export class TimelineComponent {
   private intervalQueries = inject(IntervalQueries);
   private router = inject(Router);
+  private store = inject(Store);
   private today = DateTime.local().toFormat('yyyy-MM-dd');
+  private activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
 
   selectedDay = toSignal(
     this.router.events.pipe(
@@ -90,7 +94,9 @@ export class TimelineComponent {
     },
   );
   selectedDate = computed(() => DateTime.fromFormat(this.selectedDay(), 'yyyy-MM-dd').toJSDate());
-  dayIntervalsQuery = injectQuery(() => this.intervalQueries.day(this.selectedDay()));
+  dayIntervalsQuery = injectQuery(() =>
+    this.intervalQueries.day(this.activeWorkspaceId(), this.selectedDay()),
+  );
   dayIntervals = computed(() => this.dayIntervalsQuery.data() ?? EMPTY_DAY_INTERVALS);
   private selectedLegendContextId = signal<string | null>(null);
 
@@ -101,7 +107,7 @@ export class TimelineComponent {
 
     return this.dayIntervals()
       .intervals.map((interval) => {
-        const contextId = interval.contextId ?? interval.context_id ?? '';
+        const contextId = interval.contextId ?? '';
         const context = contextsById.get(contextId);
         const colorKey = context?.id || contextId || interval.id;
         const durationMinutes = Math.max(

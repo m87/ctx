@@ -9,24 +9,34 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
+func NewSwitchCmd() *cobra.Command {
 	var (
-		id   string
-		name string
+		id          string
+		name        string
+		workspaceID string
 	)
 
 	cmd := &cobra.Command{
 		Use:   "switch",
 		Short: "Switch active context",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+
 			contextID := strings.TrimSpace(id)
 			contextName := strings.TrimSpace(name)
+			selectedWorkspaceID := strings.TrimSpace(workspaceID)
 			if contextID == "" && contextName == "" {
 				return fmt.Errorf("provide --id or --name")
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteSwitchContext(contextID, contextName); err != nil {
+				if contextID == "" && selectedWorkspaceID == "" {
+					return fmt.Errorf("workspace is required when switching by name")
+				}
+				if err := remoteSwitchContext(contextID, contextName, selectedWorkspaceID); err != nil {
 					return err
 				}
 				return printOutput(cmd, map[string]string{"id": contextID, "name": contextName, "status": "switched"}, func() string {
@@ -34,9 +44,12 @@ func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
 				}, nil)
 			}
 
-			context := &core.Context{Id: contextID, Name: contextName}
+			context := &core.Context{Id: contextID, Name: contextName, WorkspaceId: selectedWorkspaceID}
 			if contextID == "" && contextName != "" {
-				contexts, err := manager.ContextRepository.List()
+				if selectedWorkspaceID == "" {
+					return fmt.Errorf("workspace is required when switching by name")
+				}
+				contexts, err := manager.ContextRepository.ListByWorkspace(selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -60,9 +73,10 @@ func NewSwitchCmd(manager *core.ContextManager) *cobra.Command {
 
 	cmd.Flags().StringVar(&id, "id", "", "Context ID")
 	cmd.Flags().StringVarP(&name, "name", "n", "", "Context name")
+	cmd.Flags().StringVarP(&workspaceID, "workspace", "w", "", "Workspace ID")
 	return cmd
 }
 
 func init() {
-	rootCmd.AddCommand(NewSwitchCmd(bootstrap.CreateManager()))
+	rootCmd.AddCommand(NewSwitchCmd())
 }

@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, effect, inject } from '@angular/core';
 import { injectQuery } from '@tanstack/angular-query-experimental';
+import { toast } from 'ngx-sonner';
 import { SettingsQueries } from '../api/settings.queries';
 import { HeaderComponent } from './header/header';
 import { MainComponent } from './main/main';
@@ -54,6 +55,17 @@ export class App {
   private settingsQueries = inject(SettingsQueries);
 
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
+  integrityQuery = injectQuery(() => this.settingsQueries.integrity());
+
+  constructor() {
+    void this.integrityQuery.refetch().then(({ data: report }) => {
+      if (report && !report.healthy) {
+        toast.warning(
+          'Data integrity issues were found. Open Settings and review the Data integrity section.',
+        );
+      }
+    });
+  }
 
   private readonly syncThemeEffect = effect(() => {
     const theme = this.settingsQuery.data()?.[themeKey];

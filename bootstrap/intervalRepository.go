@@ -29,6 +29,10 @@ func (r *IntervalRepository) Delete(id string) error {
 	return r.repository.Query().NodeId(id).Delete()
 }
 
+func (r *IntervalRepository) DeleteByContextId(contextId string) error {
+	return r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).Delete()
+}
+
 func (r *IntervalRepository) ListByContextId(contextId string) ([]*core.Interval, error) {
 	return r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).KV().List()
 }
@@ -37,13 +41,13 @@ func (r *IntervalRepository) GetActiveIntervalByContextId(contextId string) (*co
 	return r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).StatusEquals("active").KV().First()
 }
 
-func (r *IntervalRepository) ListByDay(date time.Time) ([]*core.Interval, error) {
+func (r *IntervalRepository) ListByDay(date time.Time, workspaceId string) ([]*core.Interval, error) {
 	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	dayEnd := dayStart.Add(24 * time.Hour)
 
 	key := "start"
 	all, err := r.repository.Query().
-		KindEquals(core.IntervalType).
+		KindEquals(core.IntervalType).NamespaceId(workspaceId).
 		KVFilter(&nod.KVFilter{Key: &key, TimeTo: &dayEnd}).
 		KV().
 		List()
@@ -62,4 +66,8 @@ func (r *IntervalRepository) ListByDay(date time.Time) ([]*core.Interval, error)
 		}
 	}
 	return result, nil
+}
+
+func (r *IntervalRepository) List() ([]*core.Interval, error) {
+	return r.repository.Query().KindEquals(core.IntervalType).KV().List()
 }

@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TimelineComponent } from './timeline.component';
+import { HlmToaster } from '@spartan-ng/helm/sonner';
 
 @Component({
   selector: 'app-main',
-  imports: [RouterOutlet, TimelineComponent],
+  imports: [RouterOutlet, TimelineComponent, HlmToaster],
   template: `
     <div class="w-full h-full min-h-0 flex flex-col overflow-hidden">
       <div
@@ -18,6 +19,7 @@ import { TimelineComponent } from './timeline.component';
         <app-timeline class="block w-full"></app-timeline>
       </div>
     </div>
+    <hlm-toaster />
   `,
   styles: `
     :host {

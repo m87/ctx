@@ -25,8 +25,9 @@ type SettingsMapper struct{}
 const SettingsType = "settings"
 
 type SettingsManager struct {
-	SettingsRepository SettingsRepository
-	cache              *Settings
+	SettingsRepository   SettingsRepository
+	SystemInfoRepository SystemInfoRepository
+	cache                *Settings
 }
 
 var defaultClientSettings = map[string]string{
@@ -34,9 +35,10 @@ var defaultClientSettings = map[string]string{
 	"client.general.firstDay": "Monday",
 }
 
-func NewSettingsManager(settingsRepo SettingsRepository) *SettingsManager {
+func NewSettingsManager(settingsRepo SettingsRepository, systemInfoRepo SystemInfoRepository) *SettingsManager {
 	return &SettingsManager{
-		SettingsRepository: settingsRepo,
+		SettingsRepository:   settingsRepo,
+		SystemInfoRepository: systemInfoRepo,
 	}
 }
 

@@ -6,6 +6,7 @@ type Context struct {
 	Id          string   `json:"id"`
 	Name        string   `json:"name"`
 	ParentId    string   `json:"parentId"`
+	WorkspaceId string   `json:"workspaceId"`
 	Status      string   `json:"status"`
 	Description string   `json:"description,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
@@ -23,11 +24,12 @@ func NewContextMapper() *ContextMapper {
 func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 	node := &nod.Node{
 		Core: nod.NodeCore{
-			Id:       context.Id,
-			Name:     context.Name,
-			ParentId: &context.ParentId,
-			Kind:     ContextType,
-			Status:   context.Status,
+			Id:          context.Id,
+			Name:        context.Name,
+			ParentId:    &context.ParentId,
+			NamespaceId: &context.WorkspaceId,
+			Kind:        ContextType,
+			Status:      context.Status,
 		},
 	}
 
@@ -41,10 +43,21 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 }
 
 func (m *ContextMapper) FromNode(node *nod.Node) (*Context, error) {
+	parentId := ""
+	if node.Core.ParentId != nil {
+		parentId = *node.Core.ParentId
+	}
+
+	workspaceId := ""
+	if node.Core.NamespaceId != nil {
+		workspaceId = *node.Core.NamespaceId
+	}
+
 	return &Context{
 		Id:          node.Core.Id,
 		Name:        node.Core.Name,
-		ParentId:    *node.Core.ParentId,
+		ParentId:    parentId,
+		WorkspaceId: workspaceId,
 		Status:      node.Core.Status,
 		Description: nod.ConvertContentToStringMap(node.Content)["description"],
 		Tags:        nod.ConvertTagsToStringSlice(node.Tags),

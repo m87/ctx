@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sort"
 	"time"
 )
@@ -11,17 +12,123 @@ type TimeRange struct {
 }
 
 type ContextManager struct {
-	TimeProvider       TimeProvider
-	ContextRepository  ContextRepository
-	IntervalRepository IntervalRepository
+	TimeProvider        TimeProvider
+	ContextRepository   ContextRepository
+	IntervalRepository  IntervalRepository
+	WorkspaceRepository WorkspaceRepository
+	RunInTransaction    func(func(*ContextManager) error) error
 }
 
-func NewContextManager(tp TimeProvider, contextRepo ContextRepository, intervalRepo IntervalRepository) *ContextManager {
-	return &ContextManager{
-		TimeProvider:       tp,
-		ContextRepository:  contextRepo,
-		IntervalRepository: intervalRepo,
+func NewContextManager(
+	tp TimeProvider,
+	contextRepo ContextRepository,
+	intervalRepo IntervalRepository,
+	workspaceRepo WorkspaceRepository,
+) *ContextManager {
+	manager := &ContextManager{
+		TimeProvider:        tp,
+		ContextRepository:   contextRepo,
+		IntervalRepository:  intervalRepo,
+		WorkspaceRepository: workspaceRepo,
 	}
+	manager.RunInTransaction = func(fn func(*ContextManager) error) error {
+		return fn(manager)
+	}
+	return manager
+}
+
+func (m *ContextManager) SaveInterval(interval *Interval) (string, error) {
+	if interval == nil {
+		return "", fmt.Errorf("interval is required")
+	}
+
+	context, err := m.ContextRepository.GetById(interval.ContextId)
+	if err != nil {
+		return "", err
+	}
+	if context == nil {
+		return "", &ContextNotFoundError{ContextId: interval.ContextId}
+	}
+
+	interval.WorkspaceId = context.WorkspaceId
+	return m.IntervalRepository.Save(interval)
+}
+
+type ContextNotFoundError struct {
+	ContextId string
+}
+
+func (e *ContextNotFoundError) Error() string {
+	return fmt.Sprintf("context %q not found", e.ContextId)
+}
+
+type ContextWorkspaceMoveNotAllowedError struct {
+	ContextId       string
+	FromWorkspaceId string
+	ToWorkspaceId   string
+}
+
+func (e *ContextWorkspaceMoveNotAllowedError) Error() string {
+	return fmt.Sprintf("context %q cannot be moved between workspaces", e.ContextId)
+}
+
+func (m *ContextManager) CreateContext(context *Context) (string, error) {
+	if context == nil {
+		return "", fmt.Errorf("context is required")
+	}
+	if context.WorkspaceId == "" {
+		return "", &WorkspaceNotFoundError{}
+	}
+
+	workspace, err := m.WorkspaceRepository.GetById(context.WorkspaceId)
+	if err != nil {
+		return "", err
+	}
+	if workspace == nil {
+		return "", &WorkspaceNotFoundError{WorkspaceId: context.WorkspaceId}
+	}
+
+	context.Id = ""
+	return m.ContextRepository.Save(context)
+}
+
+func (m *ContextManager) UpdateContext(context *Context) error {
+	if context == nil {
+		return fmt.Errorf("context is required")
+	}
+	if context.Id == "" {
+		return &ContextNotFoundError{}
+	}
+
+	existing, err := m.ContextRepository.GetById(context.Id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return &ContextNotFoundError{ContextId: context.Id}
+	}
+	if context.WorkspaceId != "" && context.WorkspaceId != existing.WorkspaceId {
+		return &ContextWorkspaceMoveNotAllowedError{
+			ContextId:       context.Id,
+			FromWorkspaceId: existing.WorkspaceId,
+			ToWorkspaceId:   context.WorkspaceId,
+		}
+	}
+
+	context.WorkspaceId = existing.WorkspaceId
+	_, err = m.ContextRepository.Save(context)
+	return err
+}
+
+type WorkspaceNotFoundError struct {
+	WorkspaceId string
+}
+
+func (e *WorkspaceNotFoundError) Error() string {
+	if e.WorkspaceId == "" {
+		return "workspace is required"
+	}
+	return fmt.Sprintf("workspace %q not found", e.WorkspaceId)
 }
 
 func (m *ContextManager) SwitchContext(context *Context) error {
@@ -43,12 +150,15 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 			activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
 			activeInterval.End = endTime
 			activeInterval.Status = "completed"
-			m.IntervalRepository.Save(activeInterval)
+			m.SaveInterval(activeInterval)
 		}
 	}
 
 	if context.Id == "" {
-		id, _ := m.ContextRepository.Save(context)
+		id, err := m.CreateContext(context)
+		if err != nil {
+			return err
+		}
 		context.Id = id
 	}
 
@@ -61,11 +171,12 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 	m.ContextRepository.Save(context)
 
 	newInterval := &Interval{
-		ContextId: context.Id,
-		Start:     startTime,
-		Status:    "active",
+		ContextId:   context.Id,
+		Start:       startTime,
+		Status:      "active",
+		WorkspaceId: context.WorkspaceId,
 	}
-	m.IntervalRepository.Save(newInterval)
+	m.SaveInterval(newInterval)
 
 	return nil
 }
@@ -95,7 +206,7 @@ func (m *ContextManager) FreeActiveContext() error {
 		activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
 		activeInterval.End = endTime
 		activeInterval.Status = "completed"
-		if _, err := m.IntervalRepository.Save(activeInterval); err != nil {
+		if _, err := m.SaveInterval(activeInterval); err != nil {
 			return err
 		}
 	}
@@ -242,4 +353,186 @@ type ContextStats struct {
 	Sessions      int           `json:"sessions"`
 	TotalDuration time.Duration `json:"totalDuration"`
 	TotalSessions int           `json:"totalSessions"`
+}
+
+func (m *ContextManager) GetWorkspaceStats(workspaceId string) (*WorkspaceStats, error) {
+	contexts, err := m.ContextRepository.ListByWorkspace(workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	now := m.TimeProvider.Now().Time.UTC()
+	contextStats := make([]*WorkspaceContextStats, 0, len(contexts))
+	var totalDuration time.Duration
+	var totalSessions int
+
+	for _, context := range contexts {
+		if context == nil {
+			continue
+		}
+
+		intervals, err := m.IntervalRepository.ListByContextId(context.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		stats := &WorkspaceContextStats{ContextId: context.Id}
+		for _, interval := range intervals {
+			duration := intervalDurationAt(interval, now)
+			if duration <= 0 {
+				continue
+			}
+			stats.Duration += duration
+			stats.IntervalCount++
+		}
+
+		totalDuration += stats.Duration
+		totalSessions += stats.IntervalCount
+		contextStats = append(contextStats, stats)
+	}
+
+	for _, stats := range contextStats {
+		if totalDuration > 0 {
+			stats.Percentage = float64(stats.Duration) / float64(totalDuration) * 100
+		}
+	}
+	sort.Slice(contextStats, func(i, j int) bool {
+		return contextStats[i].Duration > contextStats[j].Duration
+	})
+
+	return &WorkspaceStats{
+		WorkspaceId:   workspaceId,
+		Contexts:      contexts,
+		ContextStats:  contextStats,
+		TotalDuration: totalDuration,
+		TotalSessions: totalSessions,
+	}, nil
+}
+
+func intervalDurationAt(interval *Interval, now time.Time) time.Duration {
+	if interval == nil {
+		return 0
+	}
+
+	start := interval.Start.Time.UTC()
+	end := interval.End.Time.UTC()
+	if !start.IsZero() {
+		if end.IsZero() && interval.Status == "active" {
+			end = now
+		}
+		if end.After(start) {
+			return end.Sub(start)
+		}
+	}
+
+	if interval.Duration > 0 {
+		return interval.Duration
+	}
+	return 0
+}
+
+func (m *ContextManager) DeleteWorkspace(workspaceId string) error {
+	contexts, err := m.ContextRepository.ListByWorkspace(workspaceId)
+	if err != nil {
+		return err
+	}
+
+	if len(contexts) > 0 {
+		return &WorkspaceInUseError{WorkspaceId: workspaceId}
+	}
+
+	return m.WorkspaceRepository.Delete(workspaceId)
+}
+
+func (m *ContextManager) DeleteContext(contextId string) error {
+	if contextId == "" {
+		return fmt.Errorf("context id is required")
+	}
+
+	return m.RunInTransaction(func(txManager *ContextManager) error {
+		if err := txManager.IntervalRepository.DeleteByContextId(contextId); err != nil {
+			return err
+		}
+		return txManager.ContextRepository.Delete(contextId)
+	})
+}
+
+type WorkspaceInUseError struct {
+	WorkspaceId string
+}
+
+func (e *WorkspaceInUseError) Error() string {
+	return "Cannot delete workspace because it is in use by one or more contexts"
+}
+
+func (m *ContextManager) EnsureDefaultWorkspace() error {
+	_, err := m.EnsureDefaultWorkspaceWithResult()
+	return err
+}
+
+func (m *ContextManager) EnsureDefaultWorkspaceWithResult() (int, error) {
+	workspaces, err := m.WorkspaceRepository.List()
+	if err != nil {
+		return 0, err
+	}
+	repaired := 0
+	var defaultWorkspaceId string
+	if len(workspaces) == 0 {
+		defaultWorkspace := &Workspace{
+			Name: "Default",
+		}
+		id, err := m.WorkspaceRepository.Save(defaultWorkspace)
+		if err != nil {
+			return 0, err
+		}
+		defaultWorkspaceId = id
+		repaired++
+	} else {
+		for _, workspace := range workspaces {
+			if workspace != nil && workspace.Name == "Default" {
+				defaultWorkspaceId = workspace.Id
+				break
+			}
+		}
+	}
+	if defaultWorkspaceId == "" {
+		return repaired, nil
+	}
+	assigned, err := m.setDefaultWorkspaceIfNotSet(defaultWorkspaceId)
+	return repaired + assigned, err
+}
+
+func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) (int, error) {
+	contexts, err := m.ContextRepository.List()
+	if err != nil {
+		return 0, err
+	}
+	repaired := 0
+	for _, ctx := range contexts {
+		if ctx == nil || ctx.WorkspaceId != "" {
+			continue
+		}
+		ctx.WorkspaceId = defaultWorkspaceId
+		if _, err := m.ContextRepository.Save(ctx); err != nil {
+			return repaired, err
+		}
+		repaired++
+	}
+
+	intervals, err := m.IntervalRepository.List()
+	if err != nil {
+		return repaired, err
+	}
+	for _, interval := range intervals {
+		if interval == nil || interval.WorkspaceId != "" {
+			continue
+		}
+		interval.WorkspaceId = defaultWorkspaceId
+		if _, err := m.IntervalRepository.Save(interval); err != nil {
+			return repaired, err
+		}
+		repaired++
+	}
+
+	return repaired, nil
 }

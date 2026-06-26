@@ -5,16 +5,20 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
+func NewDeleteContextCmd() *cobra.Command {
 	var contextId string
 	deleteContextCmd := &cobra.Command{
 		Use:   "context",
 		Short: "Delete a context by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+
 			id := strings.TrimSpace(contextId)
 			if id == "" {
 				return fmt.Errorf("id is required")
@@ -25,7 +29,7 @@ func NewDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 					return err
 				}
 			} else {
-				if err := manager.ContextRepository.Delete(id); err != nil {
+				if err := manager.DeleteContext(id); err != nil {
 					return err
 				}
 			}
@@ -41,5 +45,5 @@ func NewDeleteContextCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	deleteCmd.AddCommand(NewDeleteContextCmd(bootstrap.CreateManager()))
+	deleteCmd.AddCommand(NewDeleteContextCmd())
 }

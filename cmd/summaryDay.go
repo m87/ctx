@@ -11,13 +11,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
+func NewSummaryDayCmd() *cobra.Command {
 	var dayRaw string
+	var workspaceId string
 
 	cmd := &cobra.Command{
 		Use:   "day",
 		Short: "Show day summary",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+			selectedWorkspaceID := strings.TrimSpace(workspaceId)
+
 			day, err := parseDay(dayRaw)
 			if err != nil {
 				return err
@@ -26,7 +33,7 @@ func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
 
 			if resolveRemoteAddr() != "" {
 				fmt.Printf("Fetching summary for %s from remote...\n", dayStr)
-				stats, err := remoteSummaryDay(dayStr)
+				stats, err := remoteSummaryDay(dayStr, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -71,7 +78,7 @@ func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
 				return printOutput(cmd, stats, textRenderer, nil)
 			}
 
-			intervals, err := manager.IntervalRepository.ListByDay(day)
+			intervals, err := manager.IntervalRepository.ListByDay(day, selectedWorkspaceID)
 			if err != nil {
 				return err
 			}
@@ -183,9 +190,11 @@ func NewSummaryDayCmd(manager *core.ContextManager) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&dayRaw, "day", "", "Day in YYYY-MM-DD, default today")
+	cmd.Flags().StringVarP(&workspaceId, "workspace", "w", "", "Workspace ID")
+	_ = cmd.MarkFlagRequired("workspace")
 	return cmd
 }
 
 func init() {
-	summaryCmd.AddCommand(NewSummaryDayCmd(bootstrap.CreateManager()))
+	summaryCmd.AddCommand(NewSummaryDayCmd())
 }

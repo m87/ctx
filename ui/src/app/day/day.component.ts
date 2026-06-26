@@ -9,6 +9,8 @@ import { lucideFlag, lucidePlay } from '@ng-icons/lucide';
 import { ContextQueries } from '../../api/context.quries';
 import { DayStats } from '../../api/context.service';
 import { colorHash, durationAsHM } from '../utils';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from '../sidebar/workspace.state';
 
 const EMPTY_DAY_STATS: DayStats = {
   date: '',
@@ -145,6 +147,8 @@ const EMPTY_DAY_STATS: DayStats = {
 })
 export class DayComponent {
   private contextQueries = inject(ContextQueries);
+  private store = inject(Store);
+  private activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   route = inject(ActivatedRoute);
   today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
   readonly selectedDate = toSignal(
@@ -154,7 +158,9 @@ export class DayComponent {
     },
   );
 
-  dayStatsQuery = injectQuery(() => this.contextQueries.dayStats(this.selectedDate()));
+  dayStatsQuery = injectQuery(() =>
+    this.contextQueries.dayStats(this.activeWorkspaceId(), this.selectedDate()),
+  );
   dayStats = computed(() => this.dayStatsQuery.data() ?? EMPTY_DAY_STATS);
   firstContextStart = computed(() => {
     const intervals = Object.values(this.dayStats().intervals).flat();

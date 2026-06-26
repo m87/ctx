@@ -47,26 +47,26 @@ func (h *IntervalHandler) moveInterval(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	targetId := r.PathValue("targetId")
 	if id == "" || targetId == "" {
-		http.Error(w, "Missing interval ID or target ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_INTERVAL_OR_TARGET_ID", "Missing interval ID or target ID")
 		return
 	}
 
 	interval, err := h.manager.IntervalRepository.GetById(id)
 	if err != nil || interval == nil {
-		http.Error(w, "Interval not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "INTERVAL_NOT_FOUND", "Interval not found")
 		return
 	}
 
 	context, err := h.manager.ContextRepository.GetById(targetId)
 	if err != nil || context == nil {
-		http.Error(w, "Target context not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "TARGET_CONTEXT_NOT_FOUND", "Target context not found")
 		return
 	}
 
 	interval.ContextId = targetId
-	_, err = h.manager.IntervalRepository.Save(interval)
+	_, err = h.manager.SaveInterval(interval)
 	if err != nil {
-		http.Error(w, "Failed to move interval", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_MOVE_INTERVAL", "Failed to move interval")
 		return
 	}
 
@@ -77,15 +77,19 @@ func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request)
 	var interval core.Interval
 	err := json.NewDecoder(r.Body).Decode(&interval)
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 
 	recalculateIntervalDuration(&interval)
 
-	id, err := h.manager.IntervalRepository.Save(&interval)
+	id, err := h.manager.SaveInterval(&interval)
 	if err != nil {
-		http.Error(w, "Failed to save interval", http.StatusInternalServerError)
+		if _, ok := err.(*core.ContextNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "CONTEXT_NOT_FOUND", "Context not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_CREATE_INTERVAL", "Failed to create interval")
 		return
 	}
 	interval.Id = id
@@ -96,22 +100,26 @@ func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request)
 func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
-		http.Error(w, "Missing interval ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_INTERVAL_ID", "Missing interval ID")
 		return
 	}
 
 	var interval core.Interval
 	err := json.NewDecoder(r.Body).Decode(&interval)
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 
 	interval.Id = id
 	recalculateIntervalDuration(&interval)
-	_, err = h.manager.IntervalRepository.Save(&interval)
+	_, err = h.manager.SaveInterval(&interval)
 	if err != nil {
-		http.Error(w, "Failed to save interval", http.StatusInternalServerError)
+		if _, ok := err.(*core.ContextNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "CONTEXT_NOT_FOUND", "Context not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_INTERVAL", "Failed to update interval")
 		return
 	}
 
@@ -125,12 +133,12 @@ func recalculateIntervalDuration(interval *core.Interval) {
 func (h *IntervalHandler) deleteInterval(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
-		http.Error(w, "Missing interval ID", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "MISSING_INTERVAL_ID", "Missing interval ID")
 		return
 	}
 	err := h.manager.IntervalRepository.Delete(id)
 	if err != nil {
-		http.Error(w, "Failed to delete interval", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_DELETE_INTERVAL", "Failed to delete interval")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -138,15 +146,20 @@ func (h *IntervalHandler) deleteInterval(w http.ResponseWriter, r *http.Request)
 
 func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 	dateStr := r.PathValue("date")
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		http.Error(w, "Invalid date format, expected YYYY-MM-DD", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
 		return
 	}
 
-	intervals, err := h.manager.IntervalRepository.ListByDay(date)
+	intervals, err := h.manager.IntervalRepository.ListByDay(date, workspaceId)
 	if err != nil {
-		http.Error(w, "Failed to list intervals", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTERVALS", "Failed to list intervals")
 		return
 	}
 	now := h.manager.TimeProvider.Now().Time.UTC()
@@ -187,13 +200,18 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 	dateStr := r.PathValue("date")
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		http.Error(w, "Invalid date format, expected YYYY-MM-DD", http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
+		return
+	}
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
 		return
 	}
 
-	intervals, err := h.manager.IntervalRepository.ListByDay(date)
+	intervals, err := h.manager.IntervalRepository.ListByDay(date, workspaceId)
 	if err != nil {
-		http.Error(w, "Failed to list intervals", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTERVALS", "Failed to list intervals")
 		return
 	}
 

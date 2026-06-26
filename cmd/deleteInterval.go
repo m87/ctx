@@ -5,17 +5,21 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func NewDeleteIntervalCmd() *cobra.Command {
 	var intervalID string
 
 	cmd := &cobra.Command{
 		Use:   "interval",
 		Short: "Delete an interval by ID",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+
 			id := strings.TrimSpace(intervalID)
 			if id == "" {
 				return fmt.Errorf("id is required")
@@ -43,5 +47,5 @@ func NewDeleteIntervalCmd(manager *core.ContextManager) *cobra.Command {
 }
 
 func init() {
-	deleteCmd.AddCommand(NewDeleteIntervalCmd(bootstrap.CreateManager()))
+	deleteCmd.AddCommand(NewDeleteIntervalCmd())
 }

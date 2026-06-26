@@ -7,20 +7,20 @@ import { SidebarSettingsModalComponent } from './sidebar-settings-modal.componen
 import { SidebarStore } from './sidebar.store';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { VersionQueries } from '../../api/version.queries';
+import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.component';
+import { Store } from '@ngxs/store';
+import { WorkspaceState } from './workspace.state';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [SidebarContextListComponent, RouterLink, RouterLinkActive, NgIcon, SidebarSettingsModalComponent],
+  imports: [SidebarContextListComponent, SidebarWorkspaceSelectComponent, RouterLink, RouterLinkActive, NgIcon, SidebarSettingsModalComponent],
   providers: [provideIcons({ lucideSettings })],
   template: ` <div class="h-full w-full min-h-0 flex flex-col">
-    <div class="flex-1 min-h-0 flex flex-col border-b">
-      <div class="flex flex-col gap-2 p-2.5 border-b">
-        <!-- <div class="uppercase flex justify-between items-center text-sm text-muted-foreground">
-          <span>Workspace</span><ng-icon name="lucidePlus" class="cursor-pointer"></ng-icon>
-        </div>
-        <div class="font-bold text-blue-500 bg-blue-50 rounded-sm p-1">personal</div>
-        <div class="p-1">work</div>
-      </div> -->
+    <div class="flex-1 min-h-0 flex flex-col border-b bg-sidebar">
+      <div class="flex flex-col gap-2.5 p-2.5 border-b">
+        <app-sidebar-workspace-select></app-sidebar-workspace-select>
+      </div>
+      <div class="flex flex-col gap-2.5 p-2.5 border-b">
         <div class="flex-1 min-h-0 flex flex-col gap-1.5 p-1">
           <a
             routerLink="/day"
@@ -28,7 +28,15 @@ import { VersionQueries } from '../../api/version.queries';
             class="uppercase flex justify-between items-center text-[11px] tracking-[0.08em] text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
             (click)="sidebar.closeMobile()"
           >
-            day
+            daily summary
+          </a>
+          <a
+            [routerLink]="workspaceLink()"
+            routerLinkActive="bg-muted text-foreground"
+            class="uppercase flex justify-between items-center text-[11px] tracking-[0.08em] text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
+            (click)="sidebar.closeMobile()"
+          >
+            workspace
           </a>
           <!-- <div
             class="uppercase flex justify-between items-center text-sm text-muted-foreground p-1 font-semibold"
@@ -64,10 +72,16 @@ import { VersionQueries } from '../../api/version.queries';
 })
 export class SidebarComponent {
   private versionQueries = inject(VersionQueries);
+  private store = inject(Store);
 
   versionQuery = injectQuery(() => this.versionQueries.version());
   readonly appVersion = computed(() => this.versionQuery.data()?.version ?? 'dev');
   readonly isSettingsOpen = signal<boolean>(false);
+  readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  readonly workspaceLink = computed(() => {
+    const workspaceId = this.selectedWorkspaceId();
+    return workspaceId ? ['/workspace', workspaceId] : ['/workspace'];
+  });
 
   constructor(public sidebar: SidebarStore) {}
 

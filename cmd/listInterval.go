@@ -5,17 +5,23 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/bootstrap"
-	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
-func NewListIntervalCmd(manager *core.ContextManager) *cobra.Command {
+func NewListIntervalCmd() *cobra.Command {
 	var dayRaw string
+	var workspaceId string
 
 	cmd := &cobra.Command{
 		Use:   "interval",
 		Short: "List intervals for a day",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			manager, err := bootstrap.CreateManager()
+			if err != nil {
+				return err
+			}
+			selectedWorkspaceID := strings.TrimSpace(workspaceId)
+
 			day, err := parseDay(dayRaw)
 			if err != nil {
 				return err
@@ -24,12 +30,12 @@ func NewListIntervalCmd(manager *core.ContextManager) *cobra.Command {
 
 			var report *DayReport
 			if resolveRemoteAddr() != "" {
-				report, err = remoteListIntervalsByDay(dayStr)
+				report, err = remoteListIntervalsByDay(dayStr, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
 			} else {
-				intervals, err := manager.IntervalRepository.ListByDay(day)
+				intervals, err := manager.IntervalRepository.ListByDay(day, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -54,9 +60,11 @@ func NewListIntervalCmd(manager *core.ContextManager) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&dayRaw, "day", "", "Day in YYYY-MM-DD, default today")
+	cmd.Flags().StringVarP(&workspaceId, "workspace", "w", "", "Workspace ID")
+	_ = cmd.MarkFlagRequired("workspace")
 	return cmd
 }
 
 func init() {
-	listCmd.AddCommand(NewListIntervalCmd(bootstrap.CreateManager()))
+	listCmd.AddCommand(NewListIntervalCmd())
 }
