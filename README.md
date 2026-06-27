@@ -2,8 +2,10 @@
 
 A lightweight time tracker: CLI + Go server + optional Angular web UI. It works in local mode (SQLite), remote mode (remote API), and all-in-one mode with embedded SPA assets.
 
-![Desktop](.img/desktop.png)
-![Mobile](.img/mobile.png)
+<p align="center">
+  <img src=".img/desktop.png" alt="Desktop" width="66%">
+  <img src=".img/mobile.png" alt="Mobile" width="30%">
+</p>
 
 ## 1) CLI usage examples
 
