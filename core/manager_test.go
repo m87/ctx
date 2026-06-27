@@ -141,13 +141,14 @@ func TestContextManagerEnsureDefaultWorkspaceFillsOnlyMissingAssignments(t *test
 }
 
 func TestContextManagerCheckIntegrityReportsOrphansAndWorkspaceMismatch(t *testing.T) {
+	now := time.Date(2026, 1, 2, 10, 0, 0, 0, time.UTC)
 	contextRepo := &mockContextRepository{contexts: []*Context{
 		{Id: "context-without-workspace"},
 		{Id: "context-1", WorkspaceId: "workspace-1"},
 	}}
 	intervalRepo := &statsIntervalRepository{intervals: []*Interval{
-		{Id: "missing-context", ContextId: "does-not-exist", WorkspaceId: "workspace-1"},
-		{Id: "workspace-mismatch", ContextId: "context-1", WorkspaceId: "workspace-2"},
+		{Id: "missing-context", ContextId: "does-not-exist", WorkspaceId: "workspace-1", Status: "completed", Start: ZonedTime{Time: now, Timezone: "UTC"}, End: ZonedTime{Time: now.Add(time.Hour), Timezone: "UTC"}},
+		{Id: "workspace-mismatch", ContextId: "context-1", WorkspaceId: "workspace-2", Status: "completed", Start: ZonedTime{Time: now.Add(2 * time.Hour), Timezone: "UTC"}, End: ZonedTime{Time: now.Add(3 * time.Hour), Timezone: "UTC"}},
 	}}
 	workspaceRepo := &mockWorkspaceRepository{workspaces: []*Workspace{
 		{Id: "workspace-1", Name: "First"},
@@ -170,9 +171,10 @@ func TestContextManagerCheckIntegrityReportsOrphansAndWorkspaceMismatch(t *testi
 }
 
 func TestContextManagerRepairIntegrityRepairsWorkspaceAssignments(t *testing.T) {
+	now := time.Date(2026, 1, 2, 10, 0, 0, 0, time.UTC)
 	context := &Context{Id: "context-1", WorkspaceId: "missing-workspace"}
-	matchingInterval := &Interval{Id: "interval-1", ContextId: context.Id, WorkspaceId: "other-workspace"}
-	orphanInterval := &Interval{Id: "interval-2", ContextId: "missing-context", WorkspaceId: "default-workspace"}
+	matchingInterval := &Interval{Id: "interval-1", ContextId: context.Id, WorkspaceId: "other-workspace", Status: "completed", Start: ZonedTime{Time: now, Timezone: "UTC"}, End: ZonedTime{Time: now.Add(time.Hour), Timezone: "UTC"}}
+	orphanInterval := &Interval{Id: "interval-2", ContextId: "missing-context", WorkspaceId: "default-workspace", Status: "completed", Start: ZonedTime{Time: now.Add(2 * time.Hour), Timezone: "UTC"}, End: ZonedTime{Time: now.Add(3 * time.Hour), Timezone: "UTC"}}
 	contextRepo := &mockContextRepository{contexts: []*Context{context}}
 	intervalRepo := &statsIntervalRepository{intervals: []*Interval{matchingInterval, orphanInterval}}
 	workspaceRepo := &mockWorkspaceRepository{workspaces: []*Workspace{

@@ -3,9 +3,16 @@ package core
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+var integrityTestBaseTime = time.Date(2026, 1, 2, 10, 0, 0, 0, time.UTC)
+
+func integrityTestTime(offset time.Duration) ZonedTime {
+	return ZonedTime{Time: integrityTestBaseTime.Add(offset), Timezone: "UTC"}
+}
 
 type WorkspaceRepositoryMock struct {
 	WorkspaceRepository
@@ -64,8 +71,8 @@ func setupManagerCorrectData() *ContextManager {
 	}
 	intervalRepo := &IntervalRepositoryMock{
 		intervals: []*Interval{
-			{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1"},
-			{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2"},
+			{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1", Status: "completed", Start: integrityTestTime(0), End: integrityTestTime(time.Hour)},
+			{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2", Status: "completed", Start: integrityTestTime(2 * time.Hour), End: integrityTestTime(3 * time.Hour)},
 		},
 	}
 
@@ -212,6 +219,84 @@ func TestFailIntegrityCheckWithIntervalWorkspaceMismatch(t *testing.T) {
 	require.Equal(t, "interval", issue.EntityType)
 	require.Equal(t, "interval1", issue.EntityId)
 	require.Equal(t, "INTERVAL_WORKSPACE_MISMATCH", issue.Code)
+	require.True(t, issue.Repairable)
+}
+
+func TestFailIntegrityCheckWithInactiveIntervalMissingTime(t *testing.T) {
+	manager := setupManagerCorrectData()
+	interval := manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0]
+	interval.Status = "completed"
+	interval.Start = ZonedTime{}
+
+	report, err := manager.CheckIntegrity()
+	require.NoError(t, err)
+	require.False(t, report.Healthy)
+	require.Len(t, report.Issues, 1)
+	issue := report.Issues[0]
+	require.Equal(t, "interval", issue.EntityType)
+	require.Equal(t, "interval1", issue.EntityId)
+	require.Equal(t, "INACTIVE_INTERVAL_MISSING_TIME", issue.Code)
+	require.False(t, issue.Repairable)
+}
+
+func TestFailIntegrityCheckWithActiveIntervalWithEnd(t *testing.T) {
+	manager := setupManagerCorrectData()
+	interval := manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0]
+	interval.Status = "active"
+	interval.Start = integrityTestTime(0)
+	interval.End = integrityTestTime(time.Hour)
+
+	report, err := manager.CheckIntegrity()
+	require.NoError(t, err)
+	require.False(t, report.Healthy)
+	require.Len(t, report.Issues, 1)
+	issue := report.Issues[0]
+	require.Equal(t, "interval", issue.EntityType)
+	require.Equal(t, "interval1", issue.EntityId)
+	require.Equal(t, "ACTIVE_INTERVAL_HAS_END", issue.Code)
+	require.True(t, issue.Repairable)
+}
+
+func TestFailIntegrityCheckWithMultipleActiveContexts(t *testing.T) {
+	manager := setupManagerCorrectData()
+	contexts := manager.ContextRepository.(*ContextRepositoryMock).contexts
+	intervals := manager.IntervalRepository.(*IntervalRepositoryMock).intervals
+	contexts[0].Status = "active"
+	contexts[1].Status = "active"
+	intervals[0].Status = "active"
+	intervals[0].Start = integrityTestTime(0)
+	intervals[0].End = ZonedTime{}
+	intervals[1].Status = "active"
+	intervals[1].Start = integrityTestTime(time.Hour)
+	intervals[1].End = ZonedTime{}
+
+	report, err := manager.CheckIntegrity()
+	require.NoError(t, err)
+	require.False(t, report.Healthy)
+	require.Len(t, report.Issues, 2)
+	require.Equal(t, "MULTIPLE_ACTIVE_CONTEXTS", report.Issues[0].Code)
+	require.Equal(t, "MULTIPLE_ACTIVE_CONTEXTS", report.Issues[1].Code)
+	require.True(t, report.Issues[0].Repairable)
+	require.True(t, report.Issues[1].Repairable)
+}
+
+func TestFailIntegrityCheckWithActiveContextWithoutOpenInterval(t *testing.T) {
+	manager := setupManagerCorrectData()
+	context := manager.ContextRepository.(*ContextRepositoryMock).contexts[0]
+	interval := manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0]
+	context.Status = "active"
+	interval.Status = "completed"
+	interval.Start = integrityTestTime(0)
+	interval.End = integrityTestTime(time.Hour)
+
+	report, err := manager.CheckIntegrity()
+	require.NoError(t, err)
+	require.False(t, report.Healthy)
+	require.Len(t, report.Issues, 1)
+	issue := report.Issues[0]
+	require.Equal(t, "context", issue.EntityType)
+	require.Equal(t, "context1", issue.EntityId)
+	require.Equal(t, "ACTIVE_CONTEXT_WITHOUT_OPEN_INTERVAL", issue.Code)
 	require.True(t, issue.Repairable)
 }
 

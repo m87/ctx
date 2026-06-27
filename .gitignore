@@ -1,4 +1,6 @@
 ctx.db
+ctx.test.db
+__pycache__/
 ctx
 ui/dist
 server/spa/dist/*

@@ -67,3 +67,15 @@ func intervalIntegrityIssue(interval *Interval, code, description string, repair
 	}
 	return issue
 }
+
+func zonedTimeIsSet(value ZonedTime) bool {
+	return !value.Time.IsZero() && !value.IsZero
+}
+
+func intervalIsInactive(interval *Interval) bool {
+	return interval != nil && interval.Status != "active"
+}
+
+func intervalIsOpenActive(interval *Interval) bool {
+	return interval != nil && interval.Status == "active" && !zonedTimeIsSet(interval.End)
+}

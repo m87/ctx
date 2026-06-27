@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -12,6 +13,9 @@ import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
 import { WorkspaceStats } from '../../api/workspace.service';
 import { colorHash, durationAsHM } from '../utils';
 
+const GROUPED_CONTEXT_ID = '__contexts_below_1_percent__';
+const GROUPED_CONTEXT_THRESHOLD = 1;
+
 const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
   workspaceId: '',
   contexts: [],
@@ -20,9 +24,22 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
   totalSessions: 0,
 };
 
+type SummaryContext = {
+  id: string;
+  name: string;
+  duration: string;
+  durationValue: number;
+  sessions: number;
+  percentage: number;
+  color: string;
+  grouped?: boolean;
+  groupedChild?: boolean;
+  groupedCount?: number;
+};
+
 @Component({
   selector: 'app-workspace',
-  imports: [NgIcon, RouterLink],
+  imports: [NgIcon, NgTemplateOutlet, RouterLink],
   providers: [provideIcons({ lucideCheck, lucidePencil, lucideTrash2, lucideX })],
   template: `
     <div class="w-full h-full overflow-hidden flex flex-col p-4 md:p-6">
@@ -171,9 +188,9 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
             >
               Distribution
             </div>
-            @if (summaryContexts().length > 0) {
+            @if (distributionContexts().length > 0) {
               <div class="flex h-2 rounded-md overflow-hidden gap-px bg-muted/40">
-                @for (context of summaryContexts(); track context.id) {
+                @for (context of distributionContexts(); track context.id) {
                   <div
                     [style.width.%]="context.percentage"
                     [style.background-color]="context.color"
@@ -195,35 +212,69 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
             </div>
             <div class="flex flex-col gap-2">
               @for (context of summaryContexts(); track context.id) {
-                <a
-                  class="rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
-                  [routerLink]="['/context', context.id]"
-                >
-                  <div class="flex items-center gap-2 mb-2">
-                    <span
-                      class="w-2 h-2 rounded-sm shrink-0"
-                      [style.background-color]="context.color"
-                    ></span>
-                    <span class="text-sm font-medium flex-1 truncate">{{ context.name }}</span>
-                    <span class="text-xs text-muted-foreground">{{ context.duration }}</span>
+                @if (context.grouped) {
+                  <div
+                    class="rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                    role="button"
+                    tabindex="0"
+                    [attr.aria-expanded]="showGroupedContexts()"
+                    (click)="toggleGroupedContexts()"
+                    (keydown.enter)="toggleGroupedContexts()"
+                    (keydown.space)="$event.preventDefault(); toggleGroupedContexts()"
+                  >
+                    <ng-container
+                      *ngTemplateOutlet="summaryContextItem; context: { $implicit: context }"
+                    ></ng-container>
+                    <div class="mt-2 text-[10px] text-muted-foreground">
+                      {{
+                        showGroupedContexts()
+                          ? 'Hide smaller contexts'
+                          : 'Show ' +
+                            context.groupedCount +
+                            ' smaller ' +
+                            (context.groupedCount === 1 ? 'context' : 'contexts')
+                      }}
+                    </div>
                   </div>
-                  <div class="h-1.5 rounded bg-muted/40 overflow-hidden">
-                    <div
-                      class="h-full rounded"
-                      [style.width.%]="context.percentage"
-                      [style.background-color]="context.color"
-                    ></div>
-                  </div>
-                  <div class="mt-2 text-[10px] text-muted-foreground">
-                    {{ context.sessions }} {{ context.sessions === 1 ? 'session' : 'sessions' }} ·
-                    {{ context.percentage.toFixed(1) }}%
-                  </div>
-                </a>
+                } @else {
+                  <a
+                    class="rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                    [class.ml-4]="context.groupedChild"
+                    [class.border-dashed]="context.groupedChild"
+                    [routerLink]="['/context', context.id]"
+                  >
+                    <ng-container
+                      *ngTemplateOutlet="summaryContextItem; context: { $implicit: context }"
+                    ></ng-container>
+                  </a>
+                }
               }
             </div>
           }
         </div>
       }
+
+      <ng-template #summaryContextItem let-context>
+        <div class="flex items-center gap-2 mb-2">
+          <span
+            class="w-2 h-2 rounded-sm shrink-0"
+            [style.background-color]="context.color"
+          ></span>
+          <span class="text-sm font-medium flex-1 truncate">{{ context.name }}</span>
+          <span class="text-xs text-muted-foreground">{{ context.duration }}</span>
+        </div>
+        <div class="h-1.5 rounded bg-muted/40 overflow-hidden">
+          <div
+            class="h-full rounded"
+            [style.width.%]="context.percentage"
+            [style.background-color]="context.color"
+          ></div>
+        </div>
+        <div class="mt-2 text-[10px] text-muted-foreground">
+          {{ context.sessions }} {{ context.sessions === 1 ? 'session' : 'sessions' }} ·
+          {{ context.percentage.toFixed(1) }}%
+        </div>
+      </ng-template>
     </div>
   `,
   styles: `
@@ -257,6 +308,7 @@ export class WorkspaceComponent {
   readonly isEditing = signal(false);
   readonly editName = signal('');
   readonly editDescription = signal('');
+  readonly showGroupedContexts = signal(false);
   readonly activeWorkspaceId = computed(
     () => this.routeWorkspaceId() ?? this.selectedWorkspaceId(),
   );
@@ -270,25 +322,92 @@ export class WorkspaceComponent {
   readonly workspaceStats = computed(
     () => this.workspaceStatsQuery.data() ?? EMPTY_WORKSPACE_STATS,
   );
-  readonly summaryContexts = computed(() => {
+  readonly allSummaryContexts = computed<SummaryContext[]>(() => {
     const contextsById = new Map(
       this.workspaceStats().contexts.map((context) => [context.id, context]),
     );
-    return this.workspaceStats()
+
+    const contexts = this.workspaceStats()
       .contextStats.filter((stats) => stats.duration > 0)
       .map((stats) => ({
         id: stats.contextId,
         name: contextsById.get(stats.contextId)?.name ?? stats.contextId,
         duration: durationAsHM(stats.duration).trim() || '0m',
+        durationValue: stats.duration,
         sessions: stats.intervalCount,
         percentage: stats.percentage,
         color: colorHash(stats.contextId),
       }));
+
+    return contexts;
+  });
+
+  readonly smallSummaryContexts = computed(() =>
+    this.allSummaryContexts().filter(
+      (context) => context.percentage < GROUPED_CONTEXT_THRESHOLD,
+    ),
+  );
+  readonly largeSummaryContexts = computed(() =>
+    this.allSummaryContexts().filter(
+      (context) => context.percentage >= GROUPED_CONTEXT_THRESHOLD,
+    ),
+  );
+  readonly groupedSummaryContext = computed<SummaryContext | null>(() => {
+    const groupedContexts = this.smallSummaryContexts();
+    if (groupedContexts.length === 0) {
+      return null;
+    }
+
+    const durationValue = groupedContexts.reduce(
+      (duration, context) => duration + context.durationValue,
+      0,
+    );
+
+    return {
+      id: GROUPED_CONTEXT_ID,
+      name: 'Other contexts (<1% each)',
+      duration: durationAsHM(durationValue).trim() || '0m',
+      durationValue,
+      sessions: groupedContexts.reduce((sessions, context) => sessions + context.sessions, 0),
+      percentage: groupedContexts.reduce(
+        (percentage, context) => percentage + context.percentage,
+        0,
+      ),
+      color: '#94a3b8',
+      grouped: true,
+      groupedCount: groupedContexts.length,
+    };
+  });
+  readonly distributionContexts = computed(() => {
+    const groupedContext = this.groupedSummaryContext();
+    return groupedContext
+      ? [...this.largeSummaryContexts(), groupedContext]
+      : this.allSummaryContexts();
+  });
+  readonly summaryContexts = computed(() => {
+    const groupedContext = this.groupedSummaryContext();
+    if (!groupedContext) {
+      return this.allSummaryContexts();
+    }
+
+    if (!this.showGroupedContexts()) {
+      return [...this.largeSummaryContexts(), groupedContext];
+    }
+
+    return [
+      ...this.largeSummaryContexts(),
+      groupedContext,
+      ...this.smallSummaryContexts().map((context) => ({ ...context, groupedChild: true })),
+    ];
   });
   readonly totalTracked = computed(
     () => durationAsHM(this.workspaceStats().totalDuration).trim() || '0m',
   );
-  readonly topContext = computed(() => this.summaryContexts()[0]?.name ?? '-');
+  readonly topContext = computed(() => this.allSummaryContexts()[0]?.name ?? '-');
+
+  toggleGroupedContexts(): void {
+    this.showGroupedContexts.update((expanded) => !expanded);
+  }
 
   startEdit(): void {
     const workspace = this.workspace();

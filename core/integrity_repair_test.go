@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -92,8 +93,8 @@ func setupManagerCorrectDataForRepair() *ContextManager {
 	}
 	intervalRepo := &IntervalRepositoryRepairMock{
 		intervals: []*Interval{
-			{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1"},
-			{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2"},
+			{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1", Status: "completed", Start: integrityTestTime(0), End: integrityTestTime(time.Hour)},
+			{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2", Status: "completed", Start: integrityTestTime(2 * time.Hour), End: integrityTestTime(3 * time.Hour)},
 		},
 	}
 
@@ -250,6 +251,76 @@ func TestIntegrityRepairIntervalWorkspaceMismatch(t *testing.T) {
 	require.Len(t, intervalRepo.saved, 1)
 	require.Equal(t, "interval1", intervalRepo.saved[0].Id)
 	require.Equal(t, "workspace1", intervalRepo.saved[0].WorkspaceId)
+}
+
+func TestIntegrityRepairCompletesActiveIntervalWithEndAndStopsContext(t *testing.T) {
+	manager := setupManagerCorrectDataForRepair()
+	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
+	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
+	contextRepo.contexts[0].Status = "active"
+	intervalRepo.intervals[0].Status = "active"
+	intervalRepo.intervals[0].Start = integrityTestTime(0)
+	intervalRepo.intervals[0].End = integrityTestTime(time.Hour)
+
+	result, err := manager.RepairIntegrity()
+	require.NoError(t, err)
+	require.Equal(t, 2, result.RepairedCount)
+	require.True(t, result.Report.Healthy)
+	require.Len(t, intervalRepo.saved, 1)
+	require.Equal(t, "completed", intervalRepo.intervals[0].Status)
+	require.Equal(t, time.Hour, intervalRepo.intervals[0].Duration)
+	require.Len(t, contextRepo.saved, 1)
+	require.Equal(t, "inactive", contextRepo.contexts[0].Status)
+}
+
+func TestIntegrityRepairStopsActiveContextWithCompletedIntervalsOnly(t *testing.T) {
+	manager := setupManagerCorrectDataForRepair()
+	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
+	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
+	contextRepo.contexts[0].Status = "active"
+	intervalRepo.intervals[0].Status = "completed"
+	intervalRepo.intervals[0].Start = integrityTestTime(0)
+	intervalRepo.intervals[0].End = integrityTestTime(time.Hour)
+
+	result, err := manager.RepairIntegrity()
+	require.NoError(t, err)
+	require.Equal(t, 1, result.RepairedCount)
+	require.True(t, result.Report.Healthy)
+	require.Len(t, contextRepo.saved, 1)
+	require.Equal(t, "inactive", contextRepo.contexts[0].Status)
+	require.Empty(t, intervalRepo.saved)
+}
+
+func TestIntegrityRepairLeavesOnlyNewestActiveContextRunning(t *testing.T) {
+	manager := setupManagerCorrectDataForRepair()
+	repairTime := integrityTestBaseTime.Add(3 * time.Hour)
+	manager.TimeProvider = fixedTimeProvider{now: repairTime}
+	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
+	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
+	contextRepo.contexts[0].Status = "active"
+	contextRepo.contexts[1].Status = "active"
+	intervalRepo.intervals[0].Status = "active"
+	intervalRepo.intervals[0].Start = integrityTestTime(time.Hour)
+	intervalRepo.intervals[0].End = ZonedTime{}
+	intervalRepo.intervals[1].Status = "active"
+	intervalRepo.intervals[1].Start = integrityTestTime(2 * time.Hour)
+	intervalRepo.intervals[1].End = ZonedTime{}
+
+	result, err := manager.RepairIntegrity()
+	require.NoError(t, err)
+	require.Equal(t, 2, result.RepairedCount)
+	require.True(t, result.Report.Healthy)
+	require.Equal(t, "inactive", contextRepo.contexts[0].Status)
+	require.Equal(t, "active", contextRepo.contexts[1].Status)
+	require.Len(t, contextRepo.saved, 1)
+	require.Equal(t, "context1", contextRepo.saved[0].Id)
+	require.Len(t, intervalRepo.saved, 1)
+	require.Equal(t, "interval1", intervalRepo.saved[0].Id)
+	require.Equal(t, "completed", intervalRepo.intervals[0].Status)
+	require.Equal(t, repairTime, intervalRepo.intervals[0].End.Time)
+	require.Equal(t, 2*time.Hour, intervalRepo.intervals[0].Duration)
+	require.Equal(t, "active", intervalRepo.intervals[1].Status)
+	require.False(t, zonedTimeIsSet(intervalRepo.intervals[1].End))
 }
 
 func TestIntegrityRepairLeavesIntervalWithNonexistentContext(t *testing.T) {

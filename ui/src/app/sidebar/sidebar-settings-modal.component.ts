@@ -11,8 +11,10 @@ import {
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTrash2, lucideX } from '@ng-icons/lucide';
+import { DateTime } from 'luxon';
 import { ContextMutations } from '../../api/context.mutations';
 import { IntervalMutations } from '../../api/interval.mutations';
+import { Interval, ZonedDateTime } from '../../api/interval.service';
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
 import {
@@ -29,6 +31,13 @@ type IntegrityIssueGroup = {
   key: string;
   issue: IntegrityIssue;
   hiddenIssueCount: number;
+};
+
+type IntegrityIntervalTimeField = 'start' | 'end';
+
+type IntegrityIntervalTimeInputs = {
+  start?: string;
+  end?: string;
 };
 
 @Component({
@@ -260,11 +269,9 @@ type IntegrityIssueGroup = {
                                   class="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[12px] text-muted-foreground"
                                 >
                                   {{ group.hiddenIssueCount }} more integrity
-                                  {{
-                                    group.hiddenIssueCount === 1 ? 'issue was' : 'issues were'
-                                  }}
-                                  detected for this {{ issue.entityType }}. Resolve this first
-                                  step, then run the check again.
+                                  {{ group.hiddenIssueCount === 1 ? 'issue was' : 'issues were' }}
+                                  detected for this {{ issue.entityType }}. Resolve this first step,
+                                  then run the check again.
                                 </div>
                               }
 
@@ -300,10 +307,7 @@ type IntegrityIssueGroup = {
                                       moveIntegrityIntervalMutation.isPending()
                                     "
                                     (change)="
-                                      selectIntegrityContext(
-                                        issue.entityId,
-                                        getSelectValue($event)
-                                      )
+                                      selectIntegrityContext(issue.entityId, getSelectValue($event))
                                     "
                                   >
                                     <option value="">
@@ -315,7 +319,10 @@ type IntegrityIssueGroup = {
                                             : 'Select context...'
                                       }}
                                     </option>
-                                    @for (context of availableIntegrityContexts(); track context.id) {
+                                    @for (
+                                      context of availableIntegrityContexts();
+                                      track context.id
+                                    ) {
                                       <option [value]="context.id">
                                         {{ context.name || '(unnamed context)' }} ·
                                         {{ context.workspaceName || context.workspaceId }}
@@ -337,6 +344,73 @@ type IntegrityIssueGroup = {
                                         : 'Assign'
                                     }}
                                   </button>
+                                </div>
+                              }
+
+                              @if (isIntervalTimeEditIssue(issue)) {
+                                <div class="mt-3 rounded-md border bg-muted/20 p-3">
+                                  <div
+                                    class="mb-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                                  >
+                                    Set interval time
+                                  </div>
+                                  <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
+                                    <label class="flex-1 text-[12px] text-muted-foreground">
+                                      Start
+                                      <input
+                                        type="datetime-local"
+                                        class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-[12px] text-foreground"
+                                        [value]="integrityIntervalTimeInput(issue, 'start')"
+                                        (input)="
+                                          setIntegrityIntervalTimeInput(
+                                            issue.entityId,
+                                            'start',
+                                            getInputValue($event)
+                                          )
+                                        "
+                                      />
+                                    </label>
+                                    <label class="flex-1 text-[12px] text-muted-foreground">
+                                      End
+                                      <input
+                                        type="datetime-local"
+                                        class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-[12px] text-foreground"
+                                        [value]="integrityIntervalTimeInput(issue, 'end')"
+                                        (input)="
+                                          setIntegrityIntervalTimeInput(
+                                            issue.entityId,
+                                            'end',
+                                            getInputValue($event)
+                                          )
+                                        "
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      class="h-9 px-3 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 disabled:opacity-50"
+                                      [disabled]="
+                                        updateIntegrityIntervalMutation.isPending() ||
+                                        !issue.details?.contextId
+                                      "
+                                      (click)="saveIntegrityIntervalTime(issue)"
+                                    >
+                                      {{
+                                        updateIntegrityIntervalMutation.isPending()
+                                          ? 'Saving...'
+                                          : 'Save time'
+                                      }}
+                                    </button>
+                                  </div>
+                                  @if (integrityIntervalTimeError(issue.entityId)) {
+                                    <div class="mt-2 text-[12px] text-destructive">
+                                      {{ integrityIntervalTimeError(issue.entityId) }}
+                                    </div>
+                                  }
+                                  @if (!issue.details?.contextId) {
+                                    <div class="mt-2 text-[12px] text-muted-foreground">
+                                      Assign a context first, then set the interval time.
+                                    </div>
+                                  }
                                 </div>
                               }
 
@@ -395,9 +469,7 @@ export class SidebarSettingsModalComponent {
       this.integrityReport()?.issues.some((issue) => this.isContextAssignmentIssue(issue)) ?? false,
     ),
   );
-  readonly availableIntegrityContexts = computed(
-    () => this.integrityContextsQuery.data() ?? [],
-  );
+  readonly availableIntegrityContexts = computed(() => this.integrityContextsQuery.data() ?? []);
   readonly visibleIntegrityIssueGroups = computed(() =>
     this.groupIntegrityIssues(this.integrityReport()?.issues ?? []),
   );
@@ -408,8 +480,13 @@ export class SidebarSettingsModalComponent {
   deleteIntegrityContextMutation = injectMutation(() => this.contextMutations.delete());
   deleteIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.delete());
   moveIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.move());
+  updateIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.update());
 
   private readonly integrityContextSelections = signal<Record<string, string>>({});
+  private readonly integrityIntervalTimeInputs = signal<
+    Record<string, IntegrityIntervalTimeInputs>
+  >({});
+  private readonly integrityIntervalTimeErrors = signal<Record<string, string>>({});
 
   private readonly settings = computed<Settings>(() => this.settingsQuery.data() ?? {});
 
@@ -465,6 +542,10 @@ export class SidebarSettingsModalComponent {
     );
   }
 
+  isIntervalTimeEditIssue(issue: IntegrityIssue): boolean {
+    return issue.entityType === 'interval' && issue.code === 'INACTIVE_INTERVAL_MISSING_TIME';
+  }
+
   private groupIntegrityIssues(issues: IntegrityIssue[]): IntegrityIssueGroup[] {
     const groupedIssues = new Map<string, IntegrityIssue[]>();
     const keys: string[] = [];
@@ -518,8 +599,80 @@ export class SidebarSettingsModalComponent {
     );
   }
 
+  integrityIntervalTimeInput(issue: IntegrityIssue, field: IntegrityIntervalTimeField): string {
+    const savedValue = this.integrityIntervalTimeInputs()[issue.entityId]?.[field];
+    if (savedValue !== undefined) {
+      return savedValue;
+    }
+
+    return this.integrityDateTimeToInputValue(issue.details?.[field]);
+  }
+
+  setIntegrityIntervalTimeInput(
+    intervalId: string,
+    field: IntegrityIntervalTimeField,
+    value: string,
+  ): void {
+    this.integrityIntervalTimeInputs.update((inputs) => ({
+      ...inputs,
+      [intervalId]: {
+        ...(inputs[intervalId] ?? {}),
+        [field]: value,
+      },
+    }));
+    this.setIntegrityIntervalTimeError(intervalId, '');
+  }
+
+  integrityIntervalTimeError(intervalId: string): string {
+    return this.integrityIntervalTimeErrors()[intervalId] ?? '';
+  }
+
+  saveIntegrityIntervalTime(issue: IntegrityIssue): void {
+    if (!this.isIntervalTimeEditIssue(issue) || !issue.entityId) {
+      return;
+    }
+
+    const contextId = issue.details?.contextId ?? '';
+    if (!contextId) {
+      this.setIntegrityIntervalTimeError(issue.entityId, 'Assign a context first.');
+      return;
+    }
+
+    const parsed = this.parseIntegrityIntervalTimeInputs(
+      issue.entityId,
+      this.integrityIntervalTimeInput(issue, 'start'),
+      this.integrityIntervalTimeInput(issue, 'end'),
+    );
+    if (!parsed) {
+      return;
+    }
+
+    const interval: Interval = {
+      id: issue.entityId,
+      contextId,
+      start: parsed.start,
+      end: parsed.end,
+      duration: 0,
+      workspaceId: issue.details?.workspaceId ?? '',
+    };
+
+    this.updateIntegrityIntervalMutation.mutate(
+      { id: issue.entityId, interval },
+      {
+        onSuccess: () => {
+          this.clearIntegrityIntervalTimeState(issue.entityId);
+          this.refreshIntegrityReport();
+        },
+      },
+    );
+  }
+
   getSelectValue(event: Event): string {
     return (event.target as HTMLSelectElement).value;
+  }
+
+  getInputValue(event: Event): string {
+    return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
   }
 
   deleteIntegrityIssue(issue: IntegrityIssue): void {
@@ -556,6 +709,65 @@ export class SidebarSettingsModalComponent {
     }
 
     return new Date(value.time).toLocaleString();
+  }
+
+  private integrityDateTimeToInputValue(value: IntegrityDateTime | undefined): string {
+    if (!value?.time || value.isZero) {
+      return '';
+    }
+
+    const dateTime = value.timezone
+      ? DateTime.fromISO(value.time, { zone: value.timezone })
+      : DateTime.fromISO(value.time);
+    if (!dateTime.isValid) {
+      return '';
+    }
+
+    return dateTime.toFormat("yyyy-MM-dd'T'HH:mm");
+  }
+
+  private parseIntegrityIntervalTimeInputs(
+    intervalId: string,
+    startInput: string,
+    endInput: string,
+  ): { start: ZonedDateTime; end: ZonedDateTime } | null {
+    const startDateTime = DateTime.fromFormat(startInput, "yyyy-MM-dd'T'HH:mm");
+    const endDateTime = DateTime.fromFormat(endInput, "yyyy-MM-dd'T'HH:mm");
+
+    if (!startDateTime.isValid || !endDateTime.isValid) {
+      this.setIntegrityIntervalTimeError(intervalId, 'Set both start and end date/time.');
+      return null;
+    }
+
+    if (endDateTime <= startDateTime) {
+      this.setIntegrityIntervalTimeError(intervalId, 'End must be later than start.');
+      return null;
+    }
+
+    return {
+      start: ZonedDateTime.fromDateTime(startDateTime),
+      end: ZonedDateTime.fromDateTime(endDateTime),
+    };
+  }
+
+  private setIntegrityIntervalTimeError(intervalId: string, message: string): void {
+    this.integrityIntervalTimeErrors.update((errors) => ({
+      ...errors,
+      [intervalId]: message,
+    }));
+  }
+
+  private clearIntegrityIntervalTimeState(intervalId: string): void {
+    this.integrityIntervalTimeInputs.update((inputs) => {
+      const next = { ...inputs };
+      delete next[intervalId];
+      return next;
+    });
+    this.integrityIntervalTimeErrors.update((errors) => {
+      const next = { ...errors };
+      delete next[intervalId];
+      return next;
+    });
   }
 
   setColorMode(mode: 'light' | 'dark'): void {

@@ -1,5 +1,7 @@
 package core
 
+import "time"
+
 func (m *ContextManager) RepairIntegrity() (*IntegrityRepairResult, error) {
 	repairedCount := 0
 	err := m.RunInTransaction(func(txManager *ContextManager) error {
@@ -65,6 +67,7 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 	}
 
 	contextsById := make(map[string]*Context, len(contexts))
+	activeContexts := make([]*Context, 0)
 	for _, context := range contexts {
 		if context == nil {
 			continue
@@ -76,6 +79,9 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 			}
 			repaired++
 		}
+		if context.Status == "active" {
+			activeContexts = append(activeContexts, context)
+		}
 		contextsById[context.Id] = context
 	}
 
@@ -83,20 +89,119 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 	if err != nil {
 		return repaired, err
 	}
+	repairTime := m.integrityRepairTime()
 	for _, interval := range intervals {
 		if interval == nil {
 			continue
 		}
 		context := contextsById[interval.ContextId]
-		if context == nil || interval.WorkspaceId == context.WorkspaceId {
+		if context != nil && interval.WorkspaceId != context.WorkspaceId {
+			interval.WorkspaceId = context.WorkspaceId
+			if _, err := m.IntervalRepository.Save(interval); err != nil {
+				return repaired, err
+			}
+			repaired++
+		}
+
+		if interval.Status == "active" && zonedTimeIsSet(interval.End) {
+			completeIntervalAtEnd(interval)
+			if _, err := m.IntervalRepository.Save(interval); err != nil {
+				return repaired, err
+			}
+			repaired++
+		}
+	}
+
+	repairedContexts, err := m.repairActiveContexts(activeContexts, intervals, repairTime)
+	if err != nil {
+		return repaired, err
+	}
+	repaired += repairedContexts
+
+	return repaired, nil
+}
+
+func (m *ContextManager) integrityRepairTime() ZonedTime {
+	if m.TimeProvider != nil {
+		return m.TimeProvider.Now()
+	}
+	now := time.Now().UTC()
+	return ZonedTime{Time: now, Timezone: "UTC"}
+}
+
+func completeIntervalAtEnd(interval *Interval) {
+	if zonedTimeIsSet(interval.Start) && zonedTimeIsSet(interval.End) && interval.End.Time.After(interval.Start.Time) {
+		interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+	}
+	interval.Status = "completed"
+}
+
+func (m *ContextManager) repairActiveContexts(activeContexts []*Context, intervals []*Interval, endTime ZonedTime) (int, error) {
+	if len(activeContexts) == 0 {
+		return 0, nil
+	}
+
+	openIntervalsByContext := map[string][]*Interval{}
+	for _, interval := range intervals {
+		if intervalIsOpenActive(interval) {
+			openIntervalsByContext[interval.ContextId] = append(openIntervalsByContext[interval.ContextId], interval)
+		}
+	}
+
+	contextToKeep := ""
+	if len(activeContexts) > 1 {
+		contextToKeep = newestOpenActiveContextId(activeContexts, openIntervalsByContext)
+	}
+
+	repaired := 0
+	for _, context := range activeContexts {
+		if context == nil {
 			continue
 		}
-		interval.WorkspaceId = context.WorkspaceId
-		if _, err := m.IntervalRepository.Save(interval); err != nil {
+
+		openIntervals := openIntervalsByContext[context.Id]
+		shouldStop := len(openIntervals) == 0 || (contextToKeep != "" && context.Id != contextToKeep)
+		if !shouldStop {
+			continue
+		}
+
+		context.Status = "inactive"
+		if _, err := m.ContextRepository.Save(context); err != nil {
 			return repaired, err
 		}
 		repaired++
+
+		for _, interval := range openIntervals {
+			interval.End = endTime
+			completeIntervalAtEnd(interval)
+			if _, err := m.IntervalRepository.Save(interval); err != nil {
+				return repaired, err
+			}
+			repaired++
+		}
 	}
 
 	return repaired, nil
+}
+
+func newestOpenActiveContextId(activeContexts []*Context, openIntervalsByContext map[string][]*Interval) string {
+	newestContextId := ""
+	var newestStart time.Time
+
+	for _, context := range activeContexts {
+		if context == nil {
+			continue
+		}
+		for _, interval := range openIntervalsByContext[context.Id] {
+			if !zonedTimeIsSet(interval.Start) {
+				continue
+			}
+			if newestContextId == "" || interval.Start.Time.After(newestStart) {
+				newestContextId = context.Id
+				newestStart = interval.Start.Time
+			}
+		}
+	}
+
+	return newestContextId
 }
