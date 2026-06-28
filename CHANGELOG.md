@@ -1,3 +1,6 @@
+## 0.5.1
+- dev: nod library update
+
 ## 0.5.0
 
 - feature: workspaces — create, rename, select, and delete workspaces to organize contexts
