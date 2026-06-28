@@ -26,8 +26,8 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 		Core: nod.NodeCore{
 			Id:          context.Id,
 			Name:        context.Name,
-			ParentId:    &context.ParentId,
-			NamespaceId: &context.WorkspaceId,
+			ParentId:    stringPointerIfNotEmpty(context.ParentId),
+			NamespaceId: stringPointerIfNotEmpty(context.WorkspaceId),
 			Kind:        ContextType,
 			Status:      context.Status,
 		},

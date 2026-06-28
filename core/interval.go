@@ -32,8 +32,8 @@ func (m *IntervalMapper) ToNode(interval *Interval) (*nod.Node, error) {
 			Id:          interval.Id,
 			Name:        interval.Id,
 			Kind:        IntervalType,
-			ParentId:    &interval.ContextId,
-			NamespaceId: &interval.WorkspaceId,
+			ParentId:    stringPointerIfNotEmpty(interval.ContextId),
+			NamespaceId: stringPointerIfNotEmpty(interval.WorkspaceId),
 			Status:      interval.Status,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -50,13 +50,18 @@ func (m *IntervalMapper) ToNode(interval *Interval) (*nod.Node, error) {
 }
 
 func (m *IntervalMapper) FromNode(node *nod.Node) (*Interval, error) {
+	contextId := ""
+	if node.Core.ParentId != nil {
+		contextId = *node.Core.ParentId
+	}
+
 	workspaceId := ""
 	if node.Core.NamespaceId != nil {
 		workspaceId = *node.Core.NamespaceId
 	}
 	return &Interval{
 		Id:        node.Core.Id,
-		ContextId: *node.Core.ParentId,
+		ContextId: contextId,
 		Start: ZonedTime{
 			Time:     nod.SafeTime(node.KV, "start"),
 			Timezone: nod.SafeString(node.KV, "start_timezone"),

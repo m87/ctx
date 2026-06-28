@@ -35,6 +35,14 @@ github.com/m87/nod v0.0.2-0.20260524171539-a38e838dc79e h1:h6X4gJiowIjIKPgpmUBsi
 github.com/m87/nod v0.0.2-0.20260524171539-a38e838dc79e/go.mod h1:T0sLGG9NynhN8zqWIs3UPJPJ0Mr87DFpsfwD/kbZaw0=
 github.com/m87/nod v0.0.2-0.20260524172204-c71ebe428b5d h1:F9nor5ovFjuBRpjaW3D4O14McS/8CzoQ8eOy96RBCX4=
 github.com/m87/nod v0.0.2-0.20260524172204-c71ebe428b5d/go.mod h1:T0sLGG9NynhN8zqWIs3UPJPJ0Mr87DFpsfwD/kbZaw0=
+github.com/m87/nod v0.0.2-0.20260628074641-7469872c1e04 h1:xdfIOJBvmpI9/QYVpe4dzQz0UzU0gz8ymLOLYECkQ8I=
+github.com/m87/nod v0.0.2-0.20260628074641-7469872c1e04/go.mod h1:T0sLGG9NynhN8zqWIs3UPJPJ0Mr87DFpsfwD/kbZaw0=
+github.com/m87/nod v0.0.2-0.20260628075348-1f8dc3cfebd2 h1:44wstyAywx/dsN94ydR7IedTuPIWIvE6wXoc1Le02Ks=
+github.com/m87/nod v0.0.2-0.20260628075348-1f8dc3cfebd2/go.mod h1:T0sLGG9NynhN8zqWIs3UPJPJ0Mr87DFpsfwD/kbZaw0=
+github.com/m87/nod v0.0.2-0.20260628081001-c76fa3e03631 h1:PzCAVS31ck6eyxzReIXiJl/x3/NMiZJ0TJu7mQfgtEc=
+github.com/m87/nod v0.0.2-0.20260628081001-c76fa3e03631/go.mod h1:T0sLGG9NynhN8zqWIs3UPJPJ0Mr87DFpsfwD/kbZaw0=
+github.com/m87/nod v0.0.2-0.20260628110226-a6b6cfbc8c54 h1:rsAEDDbZ+8uUKAniIDywTXdRW1wrGSWQCaWOuT8JKdw=
+github.com/m87/nod v0.0.2-0.20260628110226-a6b6cfbc8c54/go.mod h1:T0sLGG9NynhN8zqWIs3UPJPJ0Mr87DFpsfwD/kbZaw0=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
