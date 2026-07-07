@@ -33,10 +33,7 @@ export class ContextMutations {
     return mutationOptions({
       mutationFn: (context: Context) => lastValueFrom(this.contextService.switchContext(context)),
       onSuccess: () => {
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
-        this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
-        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
+        this.invalidateAfterActiveIntervalChange();
       },
       onError(error) {
         toastError(error);
@@ -48,10 +45,7 @@ export class ContextMutations {
     return mutationOptions({
       mutationFn: () => lastValueFrom(this.contextService.freeContext()),
       onSuccess: () => {
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
-        this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
-        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
+        this.invalidateAfterActiveIntervalChange();
       },
       onError(error) {
         toastError(error);
@@ -88,5 +82,15 @@ export class ContextMutations {
         toastError(error);
       },
     });
+  }
+
+  private invalidateAfterActiveIntervalChange() {
+    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
+    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
+    this.queryClient.invalidateQueries({ queryKey: [...ContextQueries.key, 'intervals'] });
+    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'stats'] });
+    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
+    this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
+    this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
   }
 }

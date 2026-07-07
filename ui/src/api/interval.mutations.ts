@@ -72,7 +72,7 @@ export class IntervalMutations {
 
     if (contextId) {
       this.queryClient.invalidateQueries({
-        queryKey: [ContextQueries.key, 'intervals', contextId],
+        queryKey: [...ContextQueries.key, 'intervals', contextId],
       });
       this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'stats', contextId] });
       this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'get', contextId] });

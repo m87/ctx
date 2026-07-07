@@ -50,7 +50,11 @@ def create_schema(conn: sqlite3.Connection) -> None:
           name text NOT NULL,
           created_at datetime NOT NULL,
           updated_at datetime NOT NULL,
-          PRIMARY KEY (id)
+          PRIMARY KEY (id),
+          CONSTRAINT fk_node_cores_parent FOREIGN KEY (parent_id)
+            REFERENCES node_cores(id)
+            ON UPDATE CASCADE
+            ON DELETE SET NULL
         );
         CREATE INDEX idx_node_cores_name ON node_cores(name);
         CREATE INDEX idx_node_cores_status ON node_cores(status);
@@ -73,7 +77,15 @@ def create_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE node_tags (
           node_id char(36),
           tag_id char(36),
-          PRIMARY KEY (node_id, tag_id)
+          PRIMARY KEY (node_id, tag_id),
+          CONSTRAINT fk_node_tags_node FOREIGN KEY (node_id)
+            REFERENCES node_cores(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE,
+          CONSTRAINT fk_node_tags_tag FOREIGN KEY (tag_id)
+            REFERENCES tags(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
         CREATE INDEX idx_node_tag ON node_tags(node_id, tag_id);
 
@@ -86,7 +98,11 @@ def create_schema(conn: sqlite3.Connection) -> None:
           value_int64 bigint,
           value_bool boolean,
           value_time datetime,
-          PRIMARY KEY (node_id, key)
+          PRIMARY KEY (node_id, key),
+          CONSTRAINT fk_kvs_node FOREIGN KEY (node_id)
+            REFERENCES node_cores(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
         CREATE INDEX idx_kv_key ON kvs(key);
         CREATE INDEX idx_kv_node_id ON kvs(node_id);
@@ -97,7 +113,11 @@ def create_schema(conn: sqlite3.Connection) -> None:
           value text,
           created_at datetime NOT NULL,
           updated_at datetime NOT NULL,
-          PRIMARY KEY (node_id, key)
+          PRIMARY KEY (node_id, key),
+          CONSTRAINT fk_contents_node FOREIGN KEY (node_id)
+            REFERENCES node_cores(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
         );
         CREATE INDEX idx_content_key ON contents(key);
         CREATE INDEX idx_content_node_id ON contents(node_id);
@@ -222,7 +242,7 @@ def create_context(
         conn,
         node_id=context_id,
         namespace_id=workspace_id,
-        parent_id="",
+        parent_id=None,
         kind="context",
         status=status,
         name=name,
@@ -255,7 +275,7 @@ def create_interval(
         conn,
         node_id=interval_id,
         namespace_id=workspace_id,
-        parent_id=context_id,
+        parent_id=context_id or None,
         kind="interval",
         status=status,
         name=interval_id,
@@ -285,7 +305,7 @@ def create_interval_record(
         conn,
         node_id=interval_id,
         namespace_id=workspace_id,
-        parent_id=context_id,
+        parent_id=context_id or None,
         kind="interval",
         status=status,
         name=interval_id,
@@ -482,8 +502,8 @@ def seed_integrity_error_workspace(
     )
     create_interval(
         conn,
-        slug="broken-interval-context-not-found",
-        context_id="missing-context-for-interval",
+        slug="broken-interval-missing-context-second",
+        context_id="",
         workspace_id=workspace_id,
         start=start + timedelta(hours=2),
         duration=timedelta(minutes=20),
@@ -509,8 +529,8 @@ def seed_integrity_error_workspace(
     )
     create_interval(
         conn,
-        slug="broken-interval-context-and-workspace-not-found",
-        context_id="missing-context-and-workspace-for-interval",
+        slug="broken-interval-missing-context-and-workspace-not-found",
+        context_id="",
         workspace_id="missing-workspace-for-interval",
         start=start + timedelta(hours=5),
         duration=timedelta(minutes=18),
@@ -653,7 +673,7 @@ def generate_database(
 
     now = datetime.now(local_zone()).replace(microsecond=0)
     with sqlite3.connect(output) as conn:
-        conn.execute("PRAGMA foreign_keys = OFF")
+        conn.execute("PRAGMA foreign_keys = ON")
         create_schema(conn)
         create_system_records(conn, now)
         seed_large_distribution_workspace(conn, micro_contexts=micro_contexts, now=now)
@@ -665,6 +685,9 @@ def generate_database(
                 now=now,
             )
         validate_no_overlapping_intervals(conn)
+        foreign_key_errors = conn.execute("PRAGMA foreign_key_check").fetchall()
+        if foreign_key_errors:
+            raise RuntimeError(f"Generated database has foreign key errors: {foreign_key_errors}")
         conn.commit()
 
 

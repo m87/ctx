@@ -56,7 +56,19 @@ export class ZonedDateTime {
   }
 
   public toDateTime(): DateTime {
-    return DateTime.fromISO(this.time ?? '', { zone: this.timezone ?? 'utc' });
+    const time = this.time ?? '';
+    const parsed = DateTime.fromISO(time);
+    if (!parsed.isValid) {
+      return parsed;
+    }
+
+    const zone = this.normalizedZone();
+    if (!zone) {
+      return parsed;
+    }
+
+    const zoned = parsed.setZone(zone);
+    return zoned.isValid ? zoned : parsed;
   }
 
   public toInputValue(): string {
@@ -82,6 +94,13 @@ export class ZonedDateTime {
       return '...';
     }
     return this.toDateTime().toFormat('yyyy-MM-dd');
+  }
+
+  private normalizedZone(): string | null {
+    if (!this.timezone || this.timezone === 'Local') {
+      return DateTime.local().zoneName;
+    }
+    return this.timezone;
   }
 }
 
@@ -148,11 +167,13 @@ export class IntervalService {
   }
 
   getDayIntervals(workspaceId: string, day: string): Observable<DayIntervalsResponse> {
-    return this.http.get<RawDayIntervalsResponse>(`/api/interval/day/${day}?workspaceId=${workspaceId}`).pipe(
-      map((response) => ({
-        contexts: response.contexts,
-        intervals: deserializeIntervals(response.intervals),
-      })),
-    );
+    return this.http
+      .get<RawDayIntervalsResponse>(`/api/interval/day/${day}?workspaceId=${workspaceId}`)
+      .pipe(
+        map((response) => ({
+          contexts: response.contexts,
+          intervals: deserializeIntervals(response.intervals),
+        })),
+      );
   }
 }

@@ -13,6 +13,7 @@ export class ContextQueries {
     return {
       queryKey: [...ContextQueries.key, 'intervals', contextId],
       queryFn: () => lastValueFrom(this.contextService.getIntervals(contextId)),
+      enabled: contextId.length > 0,
     };
   }
 

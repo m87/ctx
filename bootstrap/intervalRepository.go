@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"sort"
 	"time"
 
 	"github.com/m87/ctx/core"
@@ -34,7 +35,19 @@ func (r *IntervalRepository) DeleteByContextId(contextId string) error {
 }
 
 func (r *IntervalRepository) ListByContextId(contextId string) ([]*core.Interval, error) {
-	return r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).KV().List()
+	intervals, err := r.repository.Query().KindEquals(core.IntervalType).ParentId(contextId).KV().List()
+	if err != nil {
+		return nil, err
+	}
+
+	sort.SliceStable(intervals, func(i, j int) bool {
+		if intervals[i].Start.Time.Equal(intervals[j].Start.Time) {
+			return intervals[i].End.Time.After(intervals[j].End.Time)
+		}
+		return intervals[i].Start.Time.After(intervals[j].Start.Time)
+	})
+
+	return intervals, nil
 }
 
 func (r *IntervalRepository) GetActiveIntervalByContextId(contextId string) (*core.Interval, error) {
