@@ -1,9 +1,8 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowRightLeft,
-  lucideDot,
   lucidePencil,
   lucidePlay,
   lucidePlus,
@@ -22,112 +21,41 @@ import { DateTime } from 'luxon';
 import { IntervalMutations } from '../../api/interval.mutations';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
+import { NameComponent, NameSaveValue } from '../shared/name.component';
 
 @Component({
-  imports: [NgIcon, HlmButtonImports, HlmCardImports],
+  imports: [NameComponent, NgIcon, HlmButtonImports, HlmCardImports],
   providers: [
     provideIcons({
       lucidePlay,
-      lucideDot,
       lucidePlus,
       lucideTrash2,
       lucidePencil,
       lucideArrowRightLeft,
     }),
   ],
-  selector: 'app-context',
+  selector: 'ctx-context',
   template: `
     <div
       class="w-full h-full overflow-hidden flex flex-col items-start justify-start p-4 md:p-6 gap-5 relative"
     >
-      <div
-        class="w-full flex flex-col justify-between items-start gap-4"
-        [class.md:flex-row]="!isEditing()"
-        [class.md:items-center]="!isEditing()"
-      >
-        <div class="flex flex-col gap-1 w-full min-w-0">
-          <div
-            class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
-          >
-            <span class="bg-amber-600 w-2 h-2 rounded-full"></span><span>CONTEXT</span>
-          </div>
-          @if (!isEditing()) {
-            <div class="text-2xl font-semibold tracking-tight">{{ context().name }}</div>
-            <div class="text-sm text-muted-foreground/90">{{ context().description }}</div>
-            <div class="flex flex-wrap items-center gap-1.5 md:gap-2 mt-2">
-              @for (tag of contextTags(); track tag) {
-                <span
-                  class="text-[10px] md:text-[11px] font-medium text-blue-600 bg-blue-50/80 px-2 py-1 rounded-md"
-                >
-                  #{{ tag }}
-                </span>
-              }
-            </div>
-          } @else {
-            <div class="w-full mt-2 rounded-lg border bg-card p-3 md:p-4">
-              <div class="grid gap-3">
-                <label class="flex flex-col gap-1">
-                  <span
-                    class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                    >Name</span
-                  >
-                  <input
-                    class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                    [value]="editName()"
-                    (input)="editName.set(getInputValue($event))"
-                    placeholder="Context name"
-                  />
-                </label>
+      <div class="w-full flex flex-col md:flex-row justify-between items-start gap-4">
+        <ctx-name
+          class="w-full min-w-0"
+          label="Context"
+          accentColor="#d97706"
+          [name]="context().name"
+          [description]="context().description"
+          [tags]="context().tags ?? []"
+          [showTags]="true"
+          namePlaceholder="Context name"
+          descriptionPlaceholder="What this context is for"
+          tagsPlaceholder="Comma separated"
+          [savePending]="updateContextMutation.isPending()"
+          (save)="saveContextName($event)"
+        ></ctx-name>
 
-                <label class="flex flex-col gap-1">
-                  <span
-                    class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                    >Description</span
-                  >
-                  <textarea
-                    class="w-full min-h-24 rounded-md border border-border bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                    [value]="editDescription()"
-                    (input)="editDescription.set(getInputValue($event))"
-                    placeholder="What this context is for"
-                  ></textarea>
-                </label>
-
-                <label class="flex flex-col gap-1">
-                  <span
-                    class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                    >Tags</span
-                  >
-                  <input
-                    class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                    [value]="editTagsInput()"
-                    (input)="editTagsInput.set(getInputValue($event))"
-                    placeholder="Comma separated"
-                  />
-                </label>
-
-                <div class="flex flex-wrap items-center gap-1.5 min-h-5">
-                  @if (editTagsPreview().length > 0) {
-                    @for (tag of editTagsPreview(); track tag) {
-                      <span
-                        class="text-[10px] md:text-[11px] font-medium text-primary bg-primary/10 px-2 py-1 rounded-md"
-                      >
-                        #{{ tag }}
-                      </span>
-                    }
-                  } @else {
-                    <span class="text-xs text-muted-foreground">No tags yet</span>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-        <div
-          class="flex items-center gap-2 w-full"
-          [class.md:w-auto]="!isEditing()"
-          [class.flex-wrap]="isEditing()"
-          [class.flex-nowrap]="!isEditing()"
-        >
+        <div class="flex items-center gap-2 w-full md:w-auto flex-nowrap md:pt-5">
           <button
             hlmBtn
             variant="outline"
@@ -136,26 +64,7 @@ import { WorkspaceState } from '../sidebar/workspace.state';
             (click)="deleteContext()"
           >
             <ng-icon name="lucideTrash2"></ng-icon>
-            <span>Delete</span>
           </button>
-          @if (!isEditing()) {
-            <button hlmBtn variant="outline" class="h-9 px-3 text-xs" (click)="startEdit()">
-              Edit
-            </button>
-          } @else {
-            <button hlmBtn variant="outline" class="h-9 px-3 text-xs" (click)="cancelEdit()">
-              Cancel
-            </button>
-            <button
-              hlmBtn
-              variant="outline"
-              class="h-9 px-3 text-xs bg-primary/10 text-primary border-primary/25"
-              [disabled]="updateContextMutation.isPending()"
-              (click)="saveEdit()"
-            >
-              Save
-            </button>
-          }
           <button
             hlmBtn
             variant="outline"
@@ -422,22 +331,11 @@ export class ContextComponent {
   contextStatsQuery = injectQuery(() => this.contextQueries.stats(this.contextId(), this.today()));
   contextStats = computed(() => this.contextStatsQuery.data());
   today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
-  contextTags = computed(() => this.context().tags ?? []);
-  editTagsPreview = computed(() =>
-    this.editTagsInput()
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0),
-  );
   intervals = computed(() => this.contextIntervalsQuery.data() ?? []);
   contexts = computed(() => this.contextsQuery.data() ?? []);
   movableContexts = computed(() =>
     this.contexts().filter((context) => context.id && context.id !== this.contextId()),
   );
-  isEditing = signal(false);
-  editName = signal('');
-  editDescription = signal('');
-  editTagsInput = signal('');
   newIntervalStartInput = signal('');
   newIntervalEndInput = signal('');
   editingIntervalId = signal<string | null>(null);
@@ -454,16 +352,6 @@ export class ContextComponent {
 
   constructor() {
     this.resetNewIntervalForm();
-
-    effect(() => {
-      const context = this.context();
-
-      if (!this.isEditing()) {
-        this.editName.set(context.name);
-        this.editDescription.set(context.description);
-        this.editTagsInput.set((context.tags ?? []).join(', '));
-      }
-    });
   }
 
   startContext() {
@@ -488,41 +376,17 @@ export class ContextComponent {
     });
   }
 
-  startEdit() {
+  saveContextName(value: NameSaveValue): void {
     const context = this.context();
-    this.editName.set(context.name);
-    this.editDescription.set(context.description);
-    this.editTagsInput.set((context.tags ?? []).join(', '));
-    this.isEditing.set(true);
-  }
-
-  cancelEdit() {
-    this.isEditing.set(false);
-  }
-
-  saveEdit() {
-    const context = this.context();
-    const tags = this.editTagsInput()
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
-
-    this.updateContextMutation.mutate(
-      {
-        id: context.id,
-        context: {
-          ...context,
-          name: this.editName(),
-          description: this.editDescription(),
-          tags,
-        },
+    this.updateContextMutation.mutate({
+      id: context.id,
+      context: {
+        ...context,
+        name: value.name,
+        description: value.description,
+        tags: value.tags ?? [],
       },
-      {
-        onSuccess: () => {
-          this.isEditing.set(false);
-        },
-      },
-    );
+    });
   }
 
   addInterval() {

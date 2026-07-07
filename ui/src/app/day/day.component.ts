@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs/operators';
 import { DateTime } from 'luxon';
 import { injectQuery } from '@tanstack/angular-query-experimental';
@@ -8,6 +8,9 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFlag, lucidePlay } from '@ng-icons/lucide';
 import { ContextQueries } from '../../api/context.quries';
 import { DayStats } from '../../api/context.service';
+import { ContextListComponent } from '../context/context-list.component';
+import { ContextListItem } from '../context/context-list-item.component';
+import { DistributionComponent, DistributionItem } from '../shared/distribution.component';
 import { colorHash, durationAsHM } from '../utils';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
@@ -21,8 +24,8 @@ const EMPTY_DAY_STATS: DayStats = {
 };
 
 @Component({
-  selector: 'app-day',
-  imports: [RouterLink, NgIcon],
+  selector: 'ctx-day',
+  imports: [ContextListComponent, DistributionComponent, NgIcon],
   providers: [
     provideIcons({
       lucidePlay,
@@ -81,21 +84,11 @@ const EMPTY_DAY_STATS: DayStats = {
         </div>
       </div>
 
-      <div class="mb-6">
-        <div
-          class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
-        >
-          Distribution
-        </div>
-        <div class="flex h-2 rounded-md overflow-hidden gap-px bg-muted/40">
-          @for (context of contexts(); track context.id) {
-            <div
-              [style.width.%]="context.distributionPercent"
-              [style.background-color]="context.color"
-            ></div>
-          }
-        </div>
-      </div>
+      <ctx-distribution
+        class="block mb-6"
+        [items]="distributionContexts()"
+        emptyMessage="No tracked time for this day."
+      ></ctx-distribution>
 
       <div
         class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2 shrink-0"
@@ -103,35 +96,10 @@ const EMPTY_DAY_STATS: DayStats = {
         Contexts
       </div>
       <div class="flex-1 min-h-0 overflow-auto pr-1 pb-2">
-        <div class="flex flex-col gap-2">
-          @for (context of contexts(); track context.id) {
-            <div
-              class="rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors cursor-pointer"
-              [routerLink]="['/context', context.id]"
-            >
-              <div class="flex items-center gap-2 mb-2">
-                <span
-                  class="w-2 h-2 rounded-sm shrink-0"
-                  [style.background-color]="context.color"
-                ></span>
-                <span class="text-sm font-medium flex-1 truncate">{{ context.name }}</span>
-                <span class="text-xs text-muted-foreground">{{ context.duration }}</span>
-              </div>
-              <div class="h-1.5 rounded bg-muted/40 overflow-hidden">
-                <div
-                  class="h-full rounded"
-                  [style.width.%]="context.percent"
-                  [style.background-color]="context.color"
-                ></div>
-              </div>
-              <div class="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
-                @for (session of context.sessions; track session) {
-                  <span>{{ session }}</span>
-                }
-              </div>
-            </div>
-          }
-        </div>
+        <ctx-context-list
+          [items]="contexts()"
+          emptyMessage="No contexts tracked for this day."
+        ></ctx-context-list>
       </div>
     </div>
   `,
@@ -191,31 +159,42 @@ export class DayComponent {
     return this.formatTime(lastEnd);
   });
 
-  contexts = computed(() => {
+  contexts = computed<ContextListItem[]>(() => {
     const contextsById = new Map(this.dayStats().contexts.map((context) => [context.id, context]));
 
     const mappedContexts = this.dayStats()
       .contextStats.map((contextStats) => {
         const context = contextsById.get(contextStats.contextId);
         const distributionValue = this.dayStats().distribution[contextStats.contextId];
-        const distributionPercent = distributionValue ?? 0;
+        const distributionPercent = distributionValue ?? contextStats.percentage;
 
         return {
           id: contextStats.contextId,
           name: context?.name ?? contextStats.contextId,
           duration: durationAsHM(contextStats.duration),
-          percent: distributionPercent ?? contextStats.percentage,
-          distributionPercent: distributionPercent ?? 0,
+          percentage: distributionPercent,
+          distributionPercentage: distributionPercent,
           color: colorHash(context?.id ?? contextStats.contextId),
-          sessions: (this.dayStats().intervals[contextStats.contextId] ?? []).map(
+          sessions: contextStats.intervalCount,
+          sessionRanges: (this.dayStats().intervals[contextStats.contextId] ?? []).map(
             (interval) => `${interval.start.toTimeString()}–${interval.end.toTimeString()}`,
           ),
         };
       })
-      .sort((left, right) => right.percent - left.percent);
+      .sort((left, right) => right.percentage - left.percentage);
 
     return mappedContexts;
   });
+
+  distributionContexts = computed<DistributionItem[]>(() =>
+    this.contexts().map((context) => ({
+      id: context.id,
+      name: context.name,
+      duration: context.duration,
+      percentage: context.distributionPercentage ?? context.percentage,
+      color: context.color,
+    })),
+  );
 
   totalTracked = computed(() => {
     const duration = this.dayStats().contextStats.reduce(

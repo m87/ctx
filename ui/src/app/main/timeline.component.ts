@@ -17,7 +17,7 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
 
 @Component({
   imports: [RouterLink],
-  selector: 'app-timeline',
+  selector: 'ctx-timeline',
   template: `
     <div class="w-full border-t bg-background px-4 py-2">
       <div class="text-[10px] text-muted-foreground mb-1.5 tracking-[0.08em] uppercase">

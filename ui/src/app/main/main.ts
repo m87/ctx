@@ -4,7 +4,7 @@ import { TimelineComponent } from './timeline.component';
 import { HlmToaster } from '@spartan-ng/helm/sonner';
 
 @Component({
-  selector: 'app-main',
+  selector: 'ctx-main',
   imports: [RouterOutlet, TimelineComponent, HlmToaster],
   template: `
     <div class="w-full h-full min-h-0 flex flex-col overflow-hidden">
@@ -16,7 +16,7 @@ import { HlmToaster } from '@spartan-ng/helm/sonner';
       <div
         class="w-full mt-auto shrink-0 z-20 bg-background pb-[env(safe-area-inset-bottom)] fixed bottom-0 left-0 right-0 md:static"
       >
-        <app-timeline class="block w-full"></app-timeline>
+        <ctx-timeline class="block w-full"></ctx-timeline>
       </div>
     </div>
     <hlm-toaster />

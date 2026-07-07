@@ -33,7 +33,7 @@ import { WorkspaceState } from '../sidebar/workspace.state';
 const firstDayKey = 'client.general.firstDay';
 
 @Component({
-  selector: 'app-header',
+  selector: 'ctx-header',
   imports: [
     HlmBreadCrumbImports,
     NgIcon,

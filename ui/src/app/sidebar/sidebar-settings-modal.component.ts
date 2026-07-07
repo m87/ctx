@@ -41,7 +41,7 @@ type IntegrityIntervalTimeInputs = {
 };
 
 @Component({
-  selector: 'app-sidebar-settings-modal',
+  selector: 'ctx-sidebar-settings-modal',
   imports: [NgIcon],
   providers: [provideIcons({ lucideTrash2, lucideX })],
   template: `

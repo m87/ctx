@@ -24,7 +24,7 @@ import { WorkspaceMutations } from '../../api/workspace.mutations';
 import { Workspace } from '../../api/workspace.service';
 
 @Component({
-  selector: 'app-sidebar-workspace-select',
+  selector: 'ctx-sidebar-workspace-select',
   imports: [NgIcon],
   providers: [
     provideIcons({ lucideCheck, lucideChevronDown, lucideChevronUp, lucidePlus, lucideX }),

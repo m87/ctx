@@ -11,12 +11,12 @@ import { SidebarStore } from './sidebar/sidebar.store';
 const themeKey = 'client.general.theme';
 
 @Component({
-  selector: 'app-root',
+  selector: 'ctx-root',
   imports: [HeaderComponent, SidebarComponent, MainComponent],
   template: `
     <div class="flex justify-center w-full h-dvh bg-background text-foreground">
       <div class="w-full h-full flex flex-col">
-        <app-header></app-header>
+        <ctx-header></ctx-header>
         <div class="relative flex flex-1 min-h-0" [class.sidebar-collapsed]="sidebar.collapsed()">
           <div
             class="md:hidden absolute inset-0 bg-black/40 z-30 transition-opacity"
@@ -31,17 +31,17 @@ const themeKey = 'client.general.theme';
             [class.translate-x-0]="sidebar.mobileOpen()"
             [class.-translate-x-full]="!sidebar.mobileOpen()"
           >
-            <app-sidebar></app-sidebar>
+            <ctx-sidebar></ctx-sidebar>
           </div>
 
           <div
             class="hidden md:block w-60 h-full border-r bg-card/40 sidebar-collapsed:w-16 transition-all duration-200"
           >
-            <app-sidebar></app-sidebar>
+            <ctx-sidebar></ctx-sidebar>
           </div>
           <div class="flex-1 flex flex-col h-full min-h-0">
             <main class="w-full flex-1 min-h-0">
-              <app-main class="w-full"></app-main>
+              <ctx-main class="w-full"></ctx-main>
             </main>
           </div>
         </div>

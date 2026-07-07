@@ -12,13 +12,20 @@ import { Store } from '@ngxs/store';
 import { WorkspaceState } from './workspace.state';
 
 @Component({
-  selector: 'app-sidebar',
-  imports: [SidebarContextListComponent, SidebarWorkspaceSelectComponent, RouterLink, RouterLinkActive, NgIcon, SidebarSettingsModalComponent],
+  selector: 'ctx-sidebar',
+  imports: [
+    SidebarContextListComponent,
+    SidebarWorkspaceSelectComponent,
+    RouterLink,
+    RouterLinkActive,
+    NgIcon,
+    SidebarSettingsModalComponent,
+  ],
   providers: [provideIcons({ lucideSettings })],
   template: ` <div class="h-full w-full min-h-0 flex flex-col">
     <div class="flex-1 min-h-0 flex flex-col border-b bg-sidebar">
       <div class="flex flex-col gap-2.5 p-2.5 border-b">
-        <app-sidebar-workspace-select></app-sidebar-workspace-select>
+        <ctx-sidebar-workspace-select></ctx-sidebar-workspace-select>
       </div>
       <div class="flex flex-col gap-2.5 p-2.5 border-b">
         <div class="flex-1 min-h-0 flex flex-col gap-1.5 p-1">
@@ -51,10 +58,12 @@ import { WorkspaceState } from './workspace.state';
         </div>
       </div>
       <div class="min-h-0 flex-1 overflow-auto">
-        <app-sidebar-context-list></app-sidebar-context-list>
+        <ctx-sidebar-context-list></ctx-sidebar-context-list>
       </div>
       <div class="border-t mt-auto shrink-0 px-3 py-2 flex items-center justify-between">
-        <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]">v{{ appVersion() }}</span>
+        <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]"
+          >v{{ appVersion() }}</span
+        >
         <button
           type="button"
           class="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
@@ -66,8 +75,8 @@ import { WorkspaceState } from './workspace.state';
       </div>
     </div>
 
-    <app-sidebar-settings-modal [open]="isSettingsOpen()" (openChange)="isSettingsOpen.set($event)">
-    </app-sidebar-settings-modal>
+    <ctx-sidebar-settings-modal [open]="isSettingsOpen()" (openChange)="isSettingsOpen.set($event)">
+    </ctx-sidebar-settings-modal>
   </div>`,
 })
 export class SidebarComponent {

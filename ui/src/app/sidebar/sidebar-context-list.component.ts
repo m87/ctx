@@ -10,7 +10,7 @@ import { Store } from '@ngxs/store';
 import { WorkspaceState } from './workspace.state';
 
 @Component({
-  selector: 'app-sidebar-context-list',
+  selector: 'ctx-sidebar-context-list',
   imports: [NgIcon, RouterLink],
   providers: [provideIcons({ lucidePlay, lucidePlus })],
   template: ` <div class="group/list flex flex-col gap-1 p-2">
