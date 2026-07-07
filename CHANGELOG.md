@@ -1,3 +1,7 @@
+## 0.5.2
+- fix: invalidate cache on context switch
+- fix: change intervals sorting to descending order
+
 ## 0.5.1
 - dev: nod library update
 
