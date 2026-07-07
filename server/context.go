@@ -88,6 +88,10 @@ func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "WORKSPACE_NOT_FOUND", err.Error())
 			return
 		}
+		if _, ok := err.(*core.ContextArchivedError); ok {
+			writeError(w, http.StatusBadRequest, "CONTEXT_ARCHIVED", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SWITCH_CONTEXT", "Failed to switch context")
 		return
 	}

@@ -8,6 +8,7 @@ type Context struct {
 	ParentId    string   `json:"parentId"`
 	WorkspaceId string   `json:"workspaceId"`
 	Status      string   `json:"status"`
+	Archived    bool     `json:"archived"`
 	Description string   `json:"description,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
 }
@@ -36,6 +37,9 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 	node.Content = nod.ConvertStringMapToContent(map[string]string{
 		"description": context.Description,
 	})
+	node.KV = map[string]*nod.KV{
+		"archived": {Key: "archived", ValueBool: &context.Archived},
+	}
 
 	node.Tags = nod.ConvertStringSliceToTags(context.Tags)
 
@@ -59,6 +63,7 @@ func (m *ContextMapper) FromNode(node *nod.Node) (*Context, error) {
 		ParentId:    parentId,
 		WorkspaceId: workspaceId,
 		Status:      node.Core.Status,
+		Archived:    nod.SafeBool(node.KV, "archived"),
 		Description: nod.ConvertContentToStringMap(node.Content)["description"],
 		Tags:        nod.ConvertTagsToStringSlice(node.Tags),
 	}, nil

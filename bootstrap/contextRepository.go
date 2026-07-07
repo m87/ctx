@@ -28,7 +28,7 @@ func (r *ContextRepository) Delete(id string) error {
 }
 
 func (r *ContextRepository) List() ([]*core.Context, error) {
-	return r.repository.Query().KindEquals(core.ContextType).List()
+	return r.repository.Query().KindEquals(core.ContextType).KV().List()
 }
 
 func (r *ContextRepository) GetActive() (*core.Context, error) {
@@ -36,5 +36,21 @@ func (r *ContextRepository) GetActive() (*core.Context, error) {
 }
 
 func (r *ContextRepository) ListByWorkspace(workspaceId string) ([]*core.Context, error) {
-	return r.repository.Query().KindEquals(core.ContextType).NamespaceId(workspaceId).List()
+	contexts, err := r.ListByWorkspaceIncludingArchived(workspaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	activeContexts := make([]*core.Context, 0, len(contexts))
+	for _, context := range contexts {
+		if context != nil && !context.Archived {
+			activeContexts = append(activeContexts, context)
+		}
+	}
+
+	return activeContexts, nil
+}
+
+func (r *ContextRepository) ListByWorkspaceIncludingArchived(workspaceId string) ([]*core.Context, error) {
+	return r.repository.Query().KindEquals(core.ContextType).NamespaceId(workspaceId).KV().Content().Tags().List()
 }

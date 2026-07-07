@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucidePlay, lucideTrash2 } from '@ng-icons/lucide';
+import { lucideArchive, lucideArchiveRestore, lucidePlay, lucideTrash2 } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { map } from 'rxjs';
@@ -20,6 +20,8 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
   imports: [NameComponent, ContextIntervalListComponent, NgIcon, HlmButtonImports, HlmCardImports],
   providers: [
     provideIcons({
+      lucideArchive,
+      lucideArchiveRestore,
       lucidePlay,
       lucideTrash2,
     }),
@@ -38,6 +40,7 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
           [description]="context().description"
           [tags]="context().tags ?? []"
           [showTags]="true"
+          [readonly]="context().archived ?? false"
           namePlaceholder="Context name"
           descriptionPlaceholder="What this context is for"
           tagsPlaceholder="Comma separated"
@@ -46,6 +49,36 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
         ></ctx-name>
 
         <div class="flex items-center gap-2 w-full md:w-auto flex-nowrap md:pt-5">
+          @if (context().archived) {
+            <span
+              class="h-9 inline-flex items-center rounded-md border px-3 text-xs text-muted-foreground"
+            >
+              Archived
+            </span>
+          }
+          @if (context().archived) {
+            <button
+              hlmBtn
+              variant="outline"
+              class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+              [disabled]="updateContextMutation.isPending()"
+              (click)="restoreContext()"
+            >
+              <ng-icon name="lucideArchiveRestore"></ng-icon>
+              <span>Restore</span>
+            </button>
+          } @else {
+            <button
+              hlmBtn
+              variant="outline"
+              class="h-9 px-3 text-xs"
+              [disabled]="updateContextMutation.isPending()"
+              (click)="archiveContext()"
+            >
+              <ng-icon name="lucideArchive"></ng-icon>
+              <span>Archive</span>
+            </button>
+          }
           <button
             hlmBtn
             variant="outline"
@@ -59,6 +92,7 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
             hlmBtn
             variant="outline"
             class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+            [disabled]="context().archived"
             (click)="startContext()"
           >
             <ng-icon name="lucidePlay"></ng-icon>
@@ -117,6 +151,7 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
         [contextId]="contextId()"
         [activeWorkspaceId]="activeWorkspaceId()"
         [contexts]="contexts()"
+        [readonly]="context().archived ?? false"
       ></ctx-context-interval-list>
     </div>
   `,
@@ -154,6 +189,9 @@ export class ContextComponent {
   });
 
   startContext() {
+    if (this.context().archived) {
+      return;
+    }
     this.switchContextMutation.mutate(this.context()!);
   }
 
@@ -177,6 +215,10 @@ export class ContextComponent {
 
   saveContextName(value: NameSaveValue): void {
     const context = this.context();
+    if (context.archived) {
+      return;
+    }
+
     this.updateContextMutation.mutate({
       id: context.id,
       context: {
@@ -184,6 +226,39 @@ export class ContextComponent {
         name: value.name,
         description: value.description,
         tags: value.tags ?? [],
+      },
+    });
+  }
+
+  archiveContext(): void {
+    const context = this.context();
+    if (context.archived) {
+      return;
+    }
+    if (!window.confirm(`Archive context "${context.name}"?`)) {
+      return;
+    }
+
+    this.updateContextMutation.mutate({
+      id: context.id,
+      context: {
+        ...context,
+        archived: true,
+      },
+    });
+  }
+
+  restoreContext(): void {
+    const context = this.context();
+    if (!context.archived) {
+      return;
+    }
+
+    this.updateContextMutation.mutate({
+      id: context.id,
+      context: {
+        ...context,
+        archived: false,
       },
     });
   }

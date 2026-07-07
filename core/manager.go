@@ -72,6 +72,17 @@ func (e *ContextWorkspaceMoveNotAllowedError) Error() string {
 	return fmt.Sprintf("context %q cannot be moved between workspaces", e.ContextId)
 }
 
+type ContextArchivedError struct {
+	ContextId string
+}
+
+func (e *ContextArchivedError) Error() string {
+	if e.ContextId == "" {
+		return "archived context cannot be started"
+	}
+	return fmt.Sprintf("context %q is archived and cannot be started", e.ContextId)
+}
+
 func (m *ContextManager) CreateContext(context *Context) (string, error) {
 	if context == nil {
 		return "", fmt.Errorf("context is required")
@@ -116,8 +127,30 @@ func (m *ContextManager) UpdateContext(context *Context) error {
 	}
 
 	context.WorkspaceId = existing.WorkspaceId
-	_, err = m.ContextRepository.Save(context)
-	return err
+	if context.Archived {
+		context.Status = "inactive"
+	}
+	if _, err = m.ContextRepository.Save(context); err != nil {
+		return err
+	}
+
+	if context.Archived && existing.Status == "active" {
+		activeInterval, err := m.IntervalRepository.GetActiveIntervalByContextId(context.Id)
+		if err != nil {
+			return err
+		}
+		if activeInterval != nil {
+			endTime := m.TimeProvider.Now()
+			activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
+			activeInterval.End = endTime
+			activeInterval.Status = "completed"
+			if _, err := m.SaveInterval(activeInterval); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 type WorkspaceNotFoundError struct {
@@ -165,6 +198,12 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 	context, err := m.ContextRepository.GetById(context.Id)
 	if err != nil {
 		return err
+	}
+	if context == nil {
+		return &ContextNotFoundError{}
+	}
+	if context.Archived {
+		return &ContextArchivedError{ContextId: context.Id}
 	}
 
 	context.Status = "active"
@@ -356,7 +395,7 @@ type ContextStats struct {
 }
 
 func (m *ContextManager) GetWorkspaceStats(workspaceId string) (*WorkspaceStats, error) {
-	contexts, err := m.ContextRepository.ListByWorkspace(workspaceId)
+	contexts, err := m.ContextRepository.ListByWorkspaceIncludingArchived(workspaceId)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +471,7 @@ func intervalDurationAt(interval *Interval, now time.Time) time.Duration {
 }
 
 func (m *ContextManager) DeleteWorkspace(workspaceId string) error {
-	contexts, err := m.ContextRepository.ListByWorkspace(workspaceId)
+	contexts, err := m.ContextRepository.ListByWorkspaceIncludingArchived(workspaceId)
 	if err != nil {
 		return err
 	}

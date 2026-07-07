@@ -130,15 +130,17 @@ export interface NameSaveValue {
             }
           </div>
 
-          <button
-            type="button"
-            class="h-8 w-8 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center shrink-0"
-            aria-label="Edit"
-            title="Edit"
-            (click)="startEdit()"
-          >
-            <ng-icon name="lucidePencil"></ng-icon>
-          </button>
+          @if (!readonly()) {
+            <button
+              type="button"
+              class="h-8 w-8 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center shrink-0"
+              aria-label="Edit"
+              title="Edit"
+              (click)="startEdit()"
+            >
+              <ng-icon name="lucidePencil"></ng-icon>
+            </button>
+          }
         </div>
       }
     </div>
@@ -151,6 +153,7 @@ export class NameComponent {
   readonly tags = input<readonly string[]>([]);
   readonly showTags = input(false);
   readonly savePending = input(false);
+  readonly readonly = input(false);
   readonly accentColor = input<string | null>(null);
   readonly emptyDescription = input('No description');
   readonly namePlaceholder = input('Name');
@@ -178,6 +181,10 @@ export class NameComponent {
   }
 
   startEdit(): void {
+    if (this.readonly()) {
+      return;
+    }
+
     this.editName.set(this.name());
     this.editDescription.set(this.description());
     this.editTagsInput.set(this.tags().join(', '));
@@ -189,6 +196,10 @@ export class NameComponent {
   }
 
   saveEdit(): void {
+    if (this.readonly()) {
+      return;
+    }
+
     const name = this.editName().trim();
     if (!name) {
       return;

@@ -1,6 +1,11 @@
 ## 0.5.2
 - fix: invalidate cache on context switch
 - fix: change intervals sorting to descending order
+- enhancement: add context archiving feature
+  - archived contexts are hidden from the search and context list, but can be accessed via daily summary or workspace view
+  - archived contexts can be restored or permanently deleted
+  - archived contexts are read-only and cannot be modified
+  - archived contexts are not included in the summary and time distribution calculations
 
 ## 0.5.1
 - dev: nod library update

@@ -13,6 +13,11 @@ import { ContextListItem } from './context-list-item.component';
       <div class="flex items-center gap-2 mb-2">
         <span class="w-2 h-2 rounded-sm shrink-0" [style.background-color]="item().color"></span>
         <span class="text-sm font-medium flex-1 truncate">{{ item().name }}</span>
+        @if (item().archived) {
+          <span class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground">
+            Archived
+          </span>
+        }
         <span class="text-xs text-muted-foreground">{{ item().duration }}</span>
       </div>
       <div class="h-1.5 rounded bg-muted/40 overflow-hidden">

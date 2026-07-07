@@ -70,32 +70,34 @@ import { durationAsH, durationAsM } from '../utils';
             {{ parseDuration(interval().duration) }}
           </div>
           <div class="flex items-center gap-1.5">
-            <button
-              hlmBtn
-              variant="outline"
-              class="h-7 px-2 text-xs"
-              (click)="edit.emit(interval())"
-            >
-              <ng-icon name="lucidePencil"></ng-icon>
-            </button>
-            <button
-              hlmBtn
-              variant="outline"
-              class="h-7 px-2 text-xs"
-              [disabled]="!canMove()"
-              (click)="move.emit(interval())"
-            >
-              <ng-icon name="lucideArrowRightLeft"></ng-icon>
-            </button>
-            <button
-              hlmBtn
-              variant="outline"
-              class="h-7 px-2 text-xs text-red-700 bg-red-100/60"
-              [disabled]="deletePending()"
-              (click)="delete.emit(interval())"
-            >
-              <ng-icon name="lucideTrash2"></ng-icon>
-            </button>
+            @if (!readonly()) {
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-7 px-2 text-xs"
+                (click)="edit.emit(interval())"
+              >
+                <ng-icon name="lucidePencil"></ng-icon>
+              </button>
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-7 px-2 text-xs"
+                [disabled]="!canMove()"
+                (click)="move.emit(interval())"
+              >
+                <ng-icon name="lucideArrowRightLeft"></ng-icon>
+              </button>
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-7 px-2 text-xs text-red-700 bg-red-100/60"
+                [disabled]="deletePending()"
+                (click)="delete.emit(interval())"
+              >
+                <ng-icon name="lucideTrash2"></ng-icon>
+              </button>
+            }
           </div>
         </div>
       }
@@ -110,6 +112,7 @@ export class ContextIntervalItemComponent {
   readonly updatePending = input(false);
   readonly deletePending = input(false);
   readonly canMove = input(false);
+  readonly readonly = input(false);
 
   readonly editStartInputChange = output<string>();
   readonly editEndInputChange = output<string>();

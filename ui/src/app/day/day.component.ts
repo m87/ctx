@@ -176,6 +176,7 @@ export class DayComponent {
           distributionPercentage: distributionPercent,
           color: colorHash(context?.id ?? contextStats.contextId),
           sessions: contextStats.intervalCount,
+          archived: context?.archived ?? false,
           sessionRanges: (this.dayStats().intervals[contextStats.contextId] ?? []).map(
             (interval) => `${interval.start.toTimeString()}–${interval.end.toTimeString()}`,
           ),

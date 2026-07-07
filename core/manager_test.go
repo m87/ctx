@@ -80,6 +80,10 @@ func (r *mockContextRepository) ListByWorkspace(workspaceID string) ([]*Context,
 	return r.contexts, r.listByWorkspaceErr
 }
 
+func (r *mockContextRepository) ListByWorkspaceIncludingArchived(workspaceID string) ([]*Context, error) {
+	return r.ListByWorkspace(workspaceID)
+}
+
 func (r *mockContextRepository) GetActive() (*Context, error) {
 	return nil, nil
 }

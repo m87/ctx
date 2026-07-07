@@ -170,15 +170,20 @@ export class WorkspaceComponent {
 
     const contexts = this.workspaceStats()
       .contextStats.filter((stats) => stats.duration > 0)
-      .map((stats) => ({
-        id: stats.contextId,
-        name: contextsById.get(stats.contextId)?.name ?? stats.contextId,
-        duration: durationAsHM(stats.duration).trim() || '0m',
-        durationValue: stats.duration,
-        sessions: stats.intervalCount,
-        percentage: stats.percentage,
-        color: colorHash(stats.contextId),
-      }));
+      .map((stats) => {
+        const context = contextsById.get(stats.contextId);
+
+        return {
+          id: stats.contextId,
+          name: context?.name ?? stats.contextId,
+          duration: durationAsHM(stats.duration).trim() || '0m',
+          durationValue: stats.duration,
+          sessions: stats.intervalCount,
+          percentage: stats.percentage,
+          color: colorHash(stats.contextId),
+          archived: context?.archived ?? false,
+        };
+      });
 
     return contexts;
   });

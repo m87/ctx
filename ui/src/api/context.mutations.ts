@@ -62,6 +62,9 @@ export class ContextMutations {
         this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
         this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'get', data.id] });
+        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'stats', data.id] });
+        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
+        this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
       },
       onError(error) {
         toastError(error);

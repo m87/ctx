@@ -26,44 +26,46 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
         <span>Intervals</span>
       </div>
 
-      <div class="w-full rounded-lg border bg-card p-3 flex flex-col gap-2">
-        <div class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold">
-          Add interval
+      @if (!readonly()) {
+        <div class="w-full rounded-lg border bg-card p-3 flex flex-col gap-2">
+          <div class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold">
+            Add interval
+          </div>
+          <div class="w-full flex flex-col md:flex-row items-stretch md:items-end gap-2">
+            <label class="flex-1 text-xs text-muted-foreground">
+              Start
+              <input
+                type="datetime-local"
+                class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
+                [value]="newIntervalStartInput()"
+                (input)="newIntervalStartInput.set(getInputValue($event))"
+              />
+            </label>
+            <label class="flex-1 text-xs text-muted-foreground">
+              End
+              <input
+                type="datetime-local"
+                class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
+                [value]="newIntervalEndInput()"
+                (input)="newIntervalEndInput.set(getInputValue($event))"
+              />
+            </label>
+            <button
+              hlmBtn
+              variant="outline"
+              class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+              [disabled]="createIntervalMutation.isPending()"
+              (click)="addInterval()"
+            >
+              <ng-icon name="lucidePlus"></ng-icon>
+              <span>Add</span>
+            </button>
+          </div>
+          @if (intervalFormError()) {
+            <div class="text-xs text-red-600">{{ intervalFormError() }}</div>
+          }
         </div>
-        <div class="w-full flex flex-col md:flex-row items-stretch md:items-end gap-2">
-          <label class="flex-1 text-xs text-muted-foreground">
-            Start
-            <input
-              type="datetime-local"
-              class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
-              [value]="newIntervalStartInput()"
-              (input)="newIntervalStartInput.set(getInputValue($event))"
-            />
-          </label>
-          <label class="flex-1 text-xs text-muted-foreground">
-            End
-            <input
-              type="datetime-local"
-              class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
-              [value]="newIntervalEndInput()"
-              (input)="newIntervalEndInput.set(getInputValue($event))"
-            />
-          </label>
-          <button
-            hlmBtn
-            variant="outline"
-            class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-            [disabled]="createIntervalMutation.isPending()"
-            (click)="addInterval()"
-          >
-            <ng-icon name="lucidePlus"></ng-icon>
-            <span>Add</span>
-          </button>
-        </div>
-        @if (intervalFormError()) {
-          <div class="text-xs text-red-600">{{ intervalFormError() }}</div>
-        }
-      </div>
+      }
 
       <div class="w-full flex flex-col gap-2 flex-1 min-h-0 overflow-auto pr-1 pb-2">
         @for (interval of intervals(); track interval.id) {
@@ -74,7 +76,8 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
             [editEndInput]="editIntervalEndInput()"
             [updatePending]="updateIntervalMutation.isPending()"
             [deletePending]="deleteIntervalMutation.isPending()"
-            [canMove]="movableContexts().length > 0"
+            [readonly]="readonly()"
+            [canMove]="!readonly() && movableContexts().length > 0"
             (editStartInputChange)="editIntervalStartInput.set($event)"
             (editEndInputChange)="editIntervalEndInput.set($event)"
             (edit)="startIntervalEdit($event)"
@@ -135,6 +138,7 @@ export class ContextIntervalListComponent {
   readonly contextId = input.required<string>();
   readonly activeWorkspaceId = input<string | null>(null);
   readonly contexts = input<readonly Context[]>([]);
+  readonly readonly = input(false);
 
   createIntervalMutation = injectMutation(() => this.intervalMutations.create());
   updateIntervalMutation = injectMutation(() => this.intervalMutations.update());
@@ -161,6 +165,10 @@ export class ContextIntervalListComponent {
   }
 
   addInterval() {
+    if (this.readonly()) {
+      return;
+    }
+
     this.intervalFormError.set('');
     const parsed = this.parseIntervalInput(
       this.newIntervalStartInput(),
@@ -189,6 +197,10 @@ export class ContextIntervalListComponent {
   }
 
   startIntervalEdit(interval: Interval) {
+    if (this.readonly()) {
+      return;
+    }
+
     this.intervalFormError.set('');
     this.editingIntervalId.set(interval.id);
     this.editIntervalStartInput.set(interval.start.toInputValue());
@@ -203,6 +215,10 @@ export class ContextIntervalListComponent {
   }
 
   saveIntervalEdit(interval: Interval) {
+    if (this.readonly()) {
+      return;
+    }
+
     this.intervalFormError.set('');
     const parsed = this.parseIntervalInput(
       this.editIntervalStartInput(),
@@ -232,6 +248,10 @@ export class ContextIntervalListComponent {
   }
 
   deleteInterval(interval: Interval) {
+    if (this.readonly()) {
+      return;
+    }
+
     if (!window.confirm('Delete this interval?')) {
       return;
     }
@@ -240,6 +260,10 @@ export class ContextIntervalListComponent {
   }
 
   openMoveDialog(interval: Interval) {
+    if (this.readonly()) {
+      return;
+    }
+
     const contexts = this.movableContexts();
     if (contexts.length === 0) {
       return;
@@ -255,6 +279,10 @@ export class ContextIntervalListComponent {
   }
 
   confirmMoveInterval() {
+    if (this.readonly()) {
+      return;
+    }
+
     const intervalId = this.moveDialogIntervalId();
     const targetContextId = this.moveTargetContextId();
 
