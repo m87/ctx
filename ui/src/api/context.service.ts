@@ -62,8 +62,12 @@ export class ContextService {
       .pipe(catchError(() => of<Context>({} as Context)));
   }
 
-  getContexts(workspaceId: string): Observable<Context[]> {
-    return this.http.get<Context[]>(`/api/context/?workspaceId=${workspaceId}`);
+  getContexts(workspaceId: string, includeArchived = false): Observable<Context[]> {
+    const params = new URLSearchParams({ workspaceId });
+    if (includeArchived) {
+      params.set('includeArchived', 'true');
+    }
+    return this.http.get<Context[]>(`/api/context/?${params.toString()}`);
   }
 
   createContext(context: Context): Observable<Context> {

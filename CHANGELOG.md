@@ -1,3 +1,6 @@
+## 0.5.3
+- enhancement: include archived contexts in the search results
+
 ## 0.5.2
 - fix: invalidate cache on context switch
 - fix: change intervals sorting to descending order

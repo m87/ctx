@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -112,7 +113,17 @@ func (h *ContextHandler) listContexts(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
 		return
 	}
-	contexts, err := h.manager.ContextRepository.ListByWorkspace(workspaceId)
+	includeArchived, err := strconv.ParseBool(r.URL.Query().Get("includeArchived"))
+	if err != nil {
+		includeArchived = false
+	}
+
+	var contexts []*core.Context
+	if includeArchived {
+		contexts, err = h.manager.ContextRepository.ListByWorkspaceIncludingArchived(workspaceId)
+	} else {
+		contexts, err = h.manager.ContextRepository.ListByWorkspace(workspaceId)
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_CONTEXTS", "Failed to list contexts")
 		return

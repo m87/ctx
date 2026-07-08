@@ -17,10 +17,10 @@ export class ContextQueries {
     };
   }
 
-  list(workspaceId: string | null) {
+  list(workspaceId: string | null, includeArchived = false) {
     return {
-      queryKey: [ContextQueries.key, 'list', workspaceId],
-      queryFn: () => lastValueFrom(this.contextService.getContexts(workspaceId!)),
+      queryKey: [ContextQueries.key, 'list', workspaceId, includeArchived],
+      queryFn: () => lastValueFrom(this.contextService.getContexts(workspaceId!, includeArchived)),
       enabled: workspaceId !== null && workspaceId.length > 0,
     };
   }

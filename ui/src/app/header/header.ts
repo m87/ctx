@@ -180,6 +180,43 @@ const firstDayKey = 'client.general.firstDay';
                     </span>
                   </button>
                 }
+
+                @if (archivedMatchedContexts().length > 0) {
+                  <div class="my-1 border-t border-border/70"></div>
+                  <div
+                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                  >
+                    Archived
+                  </div>
+                }
+                @for (context of archivedMatchedContexts(); track context.id) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="activeSuggestionIndex() === suggestionIndex(context.id)"
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === suggestionIndex(context.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== suggestionIndex(context.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(suggestionIndex(context.id))"
+                    (mousedown)="openContext(context)"
+                  >
+                    <span class="truncate">{{ context.name }}</span>
+                    <span
+                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                    >
+                      <span class="rounded-sm border px-1 py-0.5 leading-none">Archived</span>
+                      @if (contextTotalDuration(context.id); as totalDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          {{ totalDuration }}
+                        </span>
+                      }
+                    </span>
+                  </button>
+                }
               </div>
             }
           </div>
@@ -372,6 +409,43 @@ const firstDayKey = 'client.general.firstDay';
                     </span>
                   </button>
                 }
+
+                @if (archivedMatchedContexts().length > 0) {
+                  <div class="my-1 border-t border-border/70"></div>
+                  <div
+                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                  >
+                    Archived
+                  </div>
+                }
+                @for (context of archivedMatchedContexts(); track context.id) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="activeSuggestionIndex() === suggestionIndex(context.id)"
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === suggestionIndex(context.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== suggestionIndex(context.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(suggestionIndex(context.id))"
+                    (mousedown)="openContext(context)"
+                  >
+                    <span class="truncate">{{ context.name }}</span>
+                    <span
+                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                    >
+                      <span class="rounded-sm border px-1 py-0.5 leading-none">Archived</span>
+                      @if (contextTotalDuration(context.id); as totalDuration) {
+                        <span class="inline-flex items-center gap-1">
+                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          {{ totalDuration }}
+                        </span>
+                      }
+                    </span>
+                  </button>
+                }
               </div>
             }
           </div>
@@ -393,7 +467,7 @@ export class HeaderComponent {
   private router = inject(Router);
   today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
 
-  listContextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
+  listContextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId(), true));
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   freeContextMutation = injectMutation(() => this.contextMutations.free());
@@ -427,18 +501,25 @@ export class HeaderComponent {
     }
     return this.contexts().filter((context) => context.name.toLowerCase().includes(term));
   });
+  readonly activeFilteredContexts = computed<readonly Context[]>(() =>
+    this.filteredContexts().filter((context) => !context.archived),
+  );
+  readonly archivedMatchedContexts = computed<readonly Context[]>(() =>
+    this.filteredContexts().filter((context) => context.archived),
+  );
   readonly usedContextIdsForDay = computed(
     () => new Set(this.dayStatsQuery.data()?.contextStats.map((stats) => stats.contextId) ?? []),
   );
   readonly dayMatchedContexts = computed<readonly Context[]>(() =>
-    this.filteredContexts().filter((context) => this.usedContextIdsForDay().has(context.id)),
+    this.activeFilteredContexts().filter((context) => this.usedContextIdsForDay().has(context.id)),
   );
   readonly otherMatchedContexts = computed<readonly Context[]>(() =>
-    this.filteredContexts().filter((context) => !this.usedContextIdsForDay().has(context.id)),
+    this.activeFilteredContexts().filter((context) => !this.usedContextIdsForDay().has(context.id)),
   );
   readonly suggestionContexts = computed<readonly Context[]>(() => [
     ...this.dayMatchedContexts(),
     ...this.otherMatchedContexts(),
+    ...this.archivedMatchedContexts(),
   ]);
   readonly suggestionCount = computed<number>(() =>
     this.searchTerm().trim().length > 0 ? this.suggestionContexts().length + 1 : 0,
@@ -525,9 +606,19 @@ export class HeaderComponent {
   }
 
   selectContext(context: Context): void {
+    if (context.archived) {
+      this.openContext(context);
+      return;
+    }
     this.searchTerm.set(context.name);
     this.resetSearchUi();
     this.switchContextMutation.mutate(context);
+  }
+
+  openContext(context: Context): void {
+    this.searchTerm.set(context.name);
+    this.resetSearchUi();
+    this.router.navigate(['/context', context.id]);
   }
 
   createContextFromTerm(term: string): void {
