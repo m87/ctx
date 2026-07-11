@@ -61,7 +61,7 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
               hlmBtn
               variant="outline"
               class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-              [disabled]="updateContextMutation.isPending()"
+              [disabled]="restoreContextMutation.isPending()"
               (click)="restoreContext()"
             >
               <ng-icon name="lucideArchiveRestore"></ng-icon>
@@ -72,7 +72,7 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
               hlmBtn
               variant="outline"
               class="h-9 px-3 text-xs"
-              [disabled]="updateContextMutation.isPending()"
+              [disabled]="archiveContextMutation.isPending()"
               (click)="archiveContext()"
             >
               <ng-icon name="lucideArchive"></ng-icon>
@@ -175,6 +175,8 @@ export class ContextComponent {
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   updateContextMutation = injectMutation(() => this.contextMutations.update());
   deleteContextMutation = injectMutation(() => this.contextMutations.delete());
+  archiveContextMutation = injectMutation(() => this.contextMutations.archive());
+  restoreContextMutation = injectMutation(() => this.contextMutations.restore());
   contextQuery = injectQuery(() => this.contextQueries.get(this.contextId()));
   contextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
   context = computed(() => this.contextQuery.data()!);
@@ -239,13 +241,7 @@ export class ContextComponent {
       return;
     }
 
-    this.updateContextMutation.mutate({
-      id: context.id,
-      context: {
-        ...context,
-        archived: true,
-      },
-    });
+    this.archiveContextMutation.mutate(context.id);
   }
 
   restoreContext(): void {
@@ -254,13 +250,7 @@ export class ContextComponent {
       return;
     }
 
-    this.updateContextMutation.mutate({
-      id: context.id,
-      context: {
-        ...context,
-        archived: false,
-      },
-    });
+    this.restoreContextMutation.mutate(context.id);
   }
 
   parseDuration(duration: number | undefined): string {

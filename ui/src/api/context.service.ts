@@ -119,4 +119,12 @@ export class ContextService {
         })),
       );
   }
+
+  archiveContext(contextId: string): Observable<void> {
+    return this.http.post<void>(`/api/context/${contextId}/archive`, {});
+  }
+
+  restoreContext(contextId: string): Observable<void> {
+    return this.http.post<void>(`/api/context/${contextId}/restore`, {});
+  }
 }

@@ -26,6 +26,38 @@ func registerContextHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("GET /active", handler.getActiveContext)
 	mux.HandleFunc("GET /{id}/intervals", handler.listIntervals)
 	mux.HandleFunc("GET /{id}/stats/{date}", handler.getStats)
+	mux.HandleFunc("POST /{id}/archive", handler.archiveContext)
+	mux.HandleFunc("POST /{id}/restore", handler.restoreContext)
+}
+
+func (h *ContextHandler) archiveContext(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
+		return
+	}
+	if err := h.manager.ArchiveContext(id); err != nil {
+		if _, ok := err.(*core.ArchiveContextActiveError); ok {
+			writeError(w, http.StatusBadRequest, "CANNOT_ARCHIVE_ACTIVE_CONTEXT", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_ARCHIVE_CONTEXT", "Failed to archive context")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ContextHandler) restoreContext(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
+		return
+	}
+	if err := h.manager.RestoreContext(id); err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_RESTORE_CONTEXT", "Failed to restore context")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ContextHandler) getStats(w http.ResponseWriter, r *http.Request) {

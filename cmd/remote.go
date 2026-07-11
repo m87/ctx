@@ -147,6 +147,16 @@ func (c *HttpClient) requestJSON(method, path string, request any, response any)
 	return nil
 }
 
+func remoteArchiveContext(contextID string) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	return client.requestJSON(http.MethodPost, "/context/"+url.PathEscape(strings.TrimSpace(contextID))+"/archive", nil, nil)
+}
+
+func remoteRestoreContext(contextID string) error {
+	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
+	return client.requestJSON(http.MethodPost, "/context/"+url.PathEscape(strings.TrimSpace(contextID))+"/restore", nil, nil)
+}
+
 func remoteCreateWorkspace(workspace *core.Workspace) error {
 	client := newHTTPClient(resolveRemoteAddr(), 15*time.Second)
 	var created core.Workspace

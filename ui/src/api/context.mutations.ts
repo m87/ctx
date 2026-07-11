@@ -87,7 +87,31 @@ export class ContextMutations {
     });
   }
 
-  private invalidateAfterActiveIntervalChange() {
+  archive() {
+    return mutationOptions({
+      mutationFn: (contextId: string) => lastValueFrom(this.contextService.archiveContext(contextId)),
+      onSuccess: (_data, contextId) => {
+        this.invalidateAfterActiveIntervalChange(contextId);
+      },
+      onError(error) {
+        toastError(error);
+      },
+    });
+  }
+
+  restore() {
+    return mutationOptions({
+      mutationFn: (contextId: string) => lastValueFrom(this.contextService.restoreContext(contextId)),
+      onSuccess: (_data, contextId) => {
+        this.invalidateAfterActiveIntervalChange(contextId);
+      },
+      onError(error) {
+        toastError(error);
+      },
+    });
+  }
+
+  private invalidateAfterActiveIntervalChange(contextId?: string) {
     this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
     this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
     this.queryClient.invalidateQueries({ queryKey: [...ContextQueries.key, 'intervals'] });
@@ -95,5 +119,11 @@ export class ContextMutations {
     this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
     this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
     this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
+
+    if (contextId) {
+      this.queryClient.invalidateQueries({
+        queryKey: [ContextQueries.key, 'get', contextId],
+      });
+    }
   }
 }
