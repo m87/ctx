@@ -6,11 +6,11 @@ import (
 )
 
 type SystemInfoRepository struct {
-	repository nod.TypedRepository[core.SystemInfo]
+	repository *nod.TypedRepository[core.SystemInfo]
 }
 
 func NewSystemInfoRepository(repository *nod.Repository) *SystemInfoRepository {
-	return &SystemInfoRepository{repository: nod.As[core.SystemInfo](repository)}
+	return &SystemInfoRepository{repository: nod.NewTypedRepository[core.SystemInfo](repository)}
 }
 
 func (r *SystemInfoRepository) Load() (*core.SystemInfo, error) {

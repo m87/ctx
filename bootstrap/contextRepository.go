@@ -6,12 +6,12 @@ import (
 )
 
 type ContextRepository struct {
-	repository nod.TypedRepository[core.Context]
+	repository *nod.TypedRepository[core.Context]
 }
 
 func NewContextRepository(repository *nod.Repository) *ContextRepository {
 	return &ContextRepository{
-		repository: nod.As[core.Context](repository),
+		repository: nod.NewTypedRepository[core.Context](repository),
 	}
 }
 

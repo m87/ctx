@@ -15,7 +15,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/m87/nod v0.0.2-0.20260628110226-a6b6cfbc8c54 // indirect
+	github.com/m87/nod v0.0.2-0.20260711154148-f9fbeabdf77c // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect

@@ -9,12 +9,12 @@ import (
 )
 
 type IntervalRepository struct {
-	repository nod.TypedRepository[core.Interval]
+	repository *nod.TypedRepository[core.Interval]
 }
 
 func NewIntervalRepository(repository *nod.Repository) *IntervalRepository {
 	return &IntervalRepository{
-		repository: nod.As[core.Interval](repository),
+		repository: nod.NewTypedRepository[core.Interval](repository),
 	}
 }
 
@@ -58,10 +58,9 @@ func (r *IntervalRepository) ListByDay(date time.Time, workspaceId string) ([]*c
 	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
 	dayEnd := dayStart.Add(24 * time.Hour)
 
-	key := "start"
 	all, err := r.repository.Query().
 		KindEquals(core.IntervalType).NamespaceId(workspaceId).
-		KVFilter(&nod.KVFilter{Key: &key, TimeTo: &dayEnd}).
+		KVFilter(&nod.KVFilter{Key: "start", TimeTo: &dayEnd}).
 		KV().
 		List()
 	if err != nil {

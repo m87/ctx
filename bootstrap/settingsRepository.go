@@ -6,12 +6,12 @@ import (
 )
 
 type SettingsRepository struct {
-	repository nod.TypedRepository[core.Settings]
+	repository *nod.TypedRepository[core.Settings]
 }
 
 func NewSettingsRepository(repository *nod.Repository) *SettingsRepository {
 	return &SettingsRepository{
-		repository: nod.As[core.Settings](repository),
+		repository: nod.NewTypedRepository[core.Settings](repository),
 	}
 }
 

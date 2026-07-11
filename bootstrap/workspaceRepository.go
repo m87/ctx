@@ -6,12 +6,12 @@ import (
 )
 
 type WorkspaceRepository struct {
-	repository nod.TypedRepository[core.Workspace]
+	repository *nod.TypedRepository[core.Workspace]
 }
 
 func NewWorkspaceRepository(repository *nod.Repository) *WorkspaceRepository {
 	return &WorkspaceRepository{
-		repository: nod.As[core.Workspace](repository),
+		repository: nod.NewTypedRepository[core.Workspace](repository),
 	}
 }
 
