@@ -1,3 +1,6 @@
+## 0.5.4
+- dev: nod library update
+
 ## 0.5.3
 - enhancement: include archived contexts in the search results
 
