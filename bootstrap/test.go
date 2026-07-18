@@ -9,7 +9,7 @@ import (
 )
 
 func NewTextContextManager(current core.ZonedTime) *core.ContextManager {
-	repository, _ := sqlite.NewRepository(":memory:", ctxlog.Logger, NewMapperRegistry())
+	repository, _ := sqlite.NewRepository(":memory:", ctxlog.Logger, NewAdapterRegistry())
 	return core.NewContextManager(
 		NewTestTimeProvider(current),
 		NewContextRepository(repository),

@@ -6,33 +6,45 @@ import (
 )
 
 type ContextRepository struct {
-	repository *nod.TypedRepository[core.Context]
+	scope *nod.NodeScope[core.Context]
 }
 
 func NewContextRepository(repository *nod.Repository) *ContextRepository {
-	return &ContextRepository{
-		repository: nod.NewTypedRepository[core.Context](repository),
-	}
+	return &ContextRepository{scope: nod.Nodes[core.Context](repository)}
 }
 
 func (r *ContextRepository) GetById(id string) (*core.Context, error) {
-	return r.repository.Query().NodeId(id).KV().Tags().Content().First()
+	return r.scope.Query().
+		Where(nod.NodeFields.Id.Equals(id)).
+		WithKV().
+		WithTags().
+		WithContent().
+		FindFirst()
 }
 
 func (r *ContextRepository) Save(context *core.Context) (string, error) {
-	return r.repository.Save(context)
+	return r.scope.SaveNode(context)
 }
 
 func (r *ContextRepository) Delete(id string) error {
-	return r.repository.Query().NodeId(id).Delete()
+	return r.scope.Query().
+		Where(nod.NodeFields.Id.Equals(id)).
+		DeleteAll()
 }
 
 func (r *ContextRepository) List() ([]*core.Context, error) {
-	return r.repository.Query().KindEquals(core.ContextType).KV().List()
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.ContextType)).
+		WithKV().
+		FindAll()
 }
 
 func (r *ContextRepository) GetActive() (*core.Context, error) {
-	return r.repository.Query().KindEquals(core.ContextType).StatusEquals("active").KV().First()
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.ContextType)).
+		Where(nod.NodeFields.Status.Equals("active")).
+		WithKV().
+		FindFirst()
 }
 
 func (r *ContextRepository) ListByWorkspace(workspaceId string) ([]*core.Context, error) {
@@ -52,5 +64,11 @@ func (r *ContextRepository) ListByWorkspace(workspaceId string) ([]*core.Context
 }
 
 func (r *ContextRepository) ListByWorkspaceIncludingArchived(workspaceId string) ([]*core.Context, error) {
-	return r.repository.Query().KindEquals(core.ContextType).NamespaceId(workspaceId).KV().Content().Tags().List()
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.ContextType)).
+		Where(nod.NodeFields.NamespaceId.Equals(workspaceId)).
+		WithKV().
+		WithContent().
+		WithTags().
+		FindAll()
 }

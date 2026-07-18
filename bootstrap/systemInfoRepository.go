@@ -6,18 +6,21 @@ import (
 )
 
 type SystemInfoRepository struct {
-	repository *nod.TypedRepository[core.SystemInfo]
+	scope *nod.NodeScope[core.SystemInfo]
 }
 
 func NewSystemInfoRepository(repository *nod.Repository) *SystemInfoRepository {
-	return &SystemInfoRepository{repository: nod.NewTypedRepository[core.SystemInfo](repository)}
+	return &SystemInfoRepository{scope: nod.Nodes[core.SystemInfo](repository)}
 }
 
 func (r *SystemInfoRepository) Load() (*core.SystemInfo, error) {
-	return r.repository.Query().KindEquals(core.SystemInfoType).KV().First()
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.SystemInfoType)).
+		WithKV().
+		FindFirst()
 }
 
 func (r *SystemInfoRepository) Save(info *core.SystemInfo) error {
-	_, err := r.repository.Save(info)
+	_, err := r.scope.SaveNode(info)
 	return err
 }

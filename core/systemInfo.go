@@ -35,14 +35,14 @@ func (m *SystemInfoMapper) ToNode(info *SystemInfo) (*nod.Node, error) {
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
-		KV: map[string]*nod.KV{
+		KV: map[string]*nod.NodeKV{
 			"database_version": {Key: "database_version", ValueText: &databaseVersion},
 		},
 	}, nil
 }
 
 func (m *SystemInfoMapper) FromNode(node *nod.Node) (*SystemInfo, error) {
-	return &SystemInfo{DatabaseVersion: nod.SafeString(node.KV, "database_version")}, nil
+	return &SystemInfo{DatabaseVersion: nodString(node.KV, "database_version")}, nil
 }
 
 func (m *SystemInfoMapper) IsApplicable(node *nod.Node) bool {

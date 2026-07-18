@@ -34,14 +34,14 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 		},
 	}
 
-	node.Content = nod.ConvertStringMapToContent(map[string]string{
+	node.Content = ConvertToNodContent(map[string]string{
 		"description": context.Description,
 	})
-	node.KV = map[string]*nod.KV{
+	node.KV = map[string]*nod.NodeKV{
 		"archived": {Key: "archived", ValueBool: &context.Archived},
 	}
 
-	node.Tags = nod.ConvertStringSliceToTags(context.Tags)
+	node.Tags = ConvertToNodTags(context.Tags)
 
 	return node, nil
 }
@@ -63,9 +63,9 @@ func (m *ContextMapper) FromNode(node *nod.Node) (*Context, error) {
 		ParentId:    parentId,
 		WorkspaceId: workspaceId,
 		Status:      node.Core.Status,
-		Archived:    nod.SafeBool(node.KV, "archived"),
-		Description: nod.ConvertContentToStringMap(node.Content)["description"],
-		Tags:        nod.ConvertTagsToStringSlice(node.Tags),
+		Archived:    nodBool(node.KV, "archived"),
+		Description: ConvertFromNodContent(node.Content)["description"],
+		Tags:        ConvertFromNodTags(node.Tags),
 	}, nil
 }
 

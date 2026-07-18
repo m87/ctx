@@ -47,7 +47,7 @@ func TestIntervalMapperFromNodeHandlesMissingParent(t *testing.T) {
 			Kind:   IntervalType,
 			Status: "completed",
 		},
-		KV: map[string]*nod.KV{},
+		KV: map[string]*nod.NodeKV{},
 	})
 
 	require.NoError(t, err)

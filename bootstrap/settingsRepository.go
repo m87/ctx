@@ -6,20 +6,21 @@ import (
 )
 
 type SettingsRepository struct {
-	repository *nod.TypedRepository[core.Settings]
+	scope *nod.NodeScope[core.Settings]
 }
 
 func NewSettingsRepository(repository *nod.Repository) *SettingsRepository {
-	return &SettingsRepository{
-		repository: nod.NewTypedRepository[core.Settings](repository),
-	}
+	return &SettingsRepository{scope: nod.Nodes[core.Settings](repository)}
 }
 
 func (r *SettingsRepository) Save(settings *core.Settings) error {
-	_, err := r.repository.Save(settings)
+	_, err := r.scope.SaveNode(settings)
 	return err
 }
 
 func (r *SettingsRepository) Load() (*core.Settings, error) {
-	return r.repository.Query().KindEquals(core.SettingsType).KV().First()
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.SettingsType)).
+		WithKV().
+		FindFirst()
 }

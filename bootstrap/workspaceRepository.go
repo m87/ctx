@@ -6,27 +6,33 @@ import (
 )
 
 type WorkspaceRepository struct {
-	repository *nod.TypedRepository[core.Workspace]
+	scope *nod.NodeScope[core.Workspace]
 }
 
 func NewWorkspaceRepository(repository *nod.Repository) *WorkspaceRepository {
-	return &WorkspaceRepository{
-		repository: nod.NewTypedRepository[core.Workspace](repository),
-	}
+	return &WorkspaceRepository{scope: nod.Nodes[core.Workspace](repository)}
 }
 
 func (r *WorkspaceRepository) GetById(id string) (*core.Workspace, error) {
-	return r.repository.Query().NodeId(id).Content().First()
+	return r.scope.Query().
+		Where(nod.NodeFields.Id.Equals(id)).
+		WithContent().
+		FindFirst()
 }
 
 func (r *WorkspaceRepository) Save(workspace *core.Workspace) (string, error) {
-	return r.repository.Save(workspace)
+	return r.scope.SaveNode(workspace)
 }
 
 func (r *WorkspaceRepository) Delete(id string) error {
-	return r.repository.Query().NodeId(id).Delete()
+	return r.scope.Query().
+		Where(nod.NodeFields.Id.Equals(id)).
+		DeleteAll()
 }
 
 func (r *WorkspaceRepository) List() ([]*core.Workspace, error) {
-	return r.repository.Query().KindEquals(core.WorkspaceType).Content().List()
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.WorkspaceType)).
+		WithContent().
+		FindAll()
 }

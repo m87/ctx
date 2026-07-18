@@ -18,13 +18,13 @@ func CreateManager() (*core.ContextManager, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
-	repository, err := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewMapperRegistry())
+	repository, err := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewAdapterRegistry())
 	if err != nil {
 		return nil, err
 	}
 
 	if err := repository.Transaction(func(txRepository *nod.Repository) error {
-		systemRepository := nod.NewRepository(txRepository.DB(), txRepository.Log(), NewSystemMapperRegistry())
+		systemRepository := nod.NewRepositoryWithAdapters(txRepository.DB(), txRepository.Log(), NewSystemAdapterRegistry())
 		settingsManager := newSettingsManager(systemRepository)
 		systemInfo, err := settingsManager.SystemInfoRepository.Load()
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -82,7 +82,7 @@ func CreateSettingsManager() (*core.SettingsManager, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
-	repository, err := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewSystemMapperRegistry())
+	repository, err := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewSystemAdapterRegistry())
 	if err != nil {
 		return nil, err
 	}
@@ -101,17 +101,23 @@ func newSettingsManager(repository *nod.Repository) *core.SettingsManager {
 	)
 }
 
-func NewSystemMapperRegistry() *nod.MapperRegistry {
-	registry := nod.NewMapperRegistry()
-	nod.RegisterMapper(registry, &core.SettingsMapper{})
-	nod.RegisterMapper(registry, &core.SystemInfoMapper{})
+func NewSystemAdapterRegistry() *nod.AdapterRegistry {
+	registry := nod.NewAdapterRegistry()
+	mustRegisterNodeAdapter(registry, &core.SettingsMapper{})
+	mustRegisterNodeAdapter(registry, &core.SystemInfoMapper{})
 	return registry
 }
 
-func NewMapperRegistry() *nod.MapperRegistry {
-	registry := nod.NewMapperRegistry()
-	nod.RegisterMapper(registry, &core.IntervalMapper{})
-	nod.RegisterMapper(registry, &core.ContextMapper{})
-	nod.RegisterMapper(registry, &core.WorkspaceMapper{})
+func NewAdapterRegistry() *nod.AdapterRegistry {
+	registry := nod.NewAdapterRegistry()
+	mustRegisterNodeAdapter(registry, &core.IntervalMapper{})
+	mustRegisterNodeAdapter(registry, &core.ContextMapper{})
+	mustRegisterNodeAdapter(registry, &core.WorkspaceMapper{})
 	return registry
+}
+
+func mustRegisterNodeAdapter[T any](registry *nod.AdapterRegistry, adapter nod.NodeAdapter[T]) {
+	if err := nod.RegisterNodeAdapter(registry, adapter); err != nil {
+		panic(err)
+	}
 }

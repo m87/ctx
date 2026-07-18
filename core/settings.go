@@ -191,10 +191,10 @@ func (m *SettingsMapper) ToNode(settings *Settings) (*nod.Node, error) {
 		raw["client.general.firstDay"] = settings.general.firstDay
 	}
 
-	kv := make(map[string]*nod.KV, len(raw))
+	kv := make(map[string]*nod.NodeKV, len(raw))
 	for key, value := range raw {
 		valueText := value
-		kv[key] = &nod.KV{Key: key, ValueText: &valueText}
+		kv[key] = &nod.NodeKV{Key: key, ValueText: &valueText}
 	}
 
 	node := &nod.Node{
@@ -214,14 +214,14 @@ func (m *SettingsMapper) FromNode(node *nod.Node) (*Settings, error) {
 	raw := make(map[string]string, len(node.KV))
 	for key, value := range node.KV {
 		if value.ValueText != nil {
-			raw[key] = nod.SafeString(node.KV, key)
+			raw[key] = nodString(node.KV, key)
 		}
 	}
 	return &Settings{
 		raw: raw,
 		general: GeneralSettings{
-			theme:    nod.SafeString(node.KV, "client.general.theme"),
-			firstDay: nod.SafeString(node.KV, "client.general.firstDay"),
+			theme:    nodString(node.KV, "client.general.theme"),
+			firstDay: nodString(node.KV, "client.general.firstDay"),
 		},
 	}, nil
 }

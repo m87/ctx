@@ -259,7 +259,7 @@ func TestSettingsMapperFromNodeHandlesMissingAndNilKV(t *testing.T) {
 	theme := "dark"
 	mapper := NewSettingsMapper()
 	node := &nod.Node{
-		KV: map[string]*nod.KV{
+		KV: map[string]*nod.NodeKV{
 			"client.general.theme":    {Key: "client.general.theme", ValueText: &theme},
 			"client.general.firstDay": {Key: "client.general.firstDay"},
 		},

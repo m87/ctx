@@ -43,7 +43,7 @@ func (m *WorkspaceMapper) ToNode(workspace *Workspace) (*nod.Node, error) {
 		},
 	}
 
-	node.Content = nod.ConvertStringMapToContent(map[string]string{
+	node.Content = ConvertToNodContent(map[string]string{
 		"description": workspace.Description,
 	})
 
@@ -54,7 +54,7 @@ func (m *WorkspaceMapper) FromNode(node *nod.Node) (*Workspace, error) {
 	return &Workspace{
 		Id:          node.Core.Id,
 		Name:        node.Core.Name,
-		Description: nod.ConvertContentToStringMap(node.Content)["description"],
+		Description: ConvertFromNodContent(node.Content)["description"],
 	}, nil
 }
 

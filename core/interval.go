@@ -38,12 +38,12 @@ func (m *IntervalMapper) ToNode(interval *Interval) (*nod.Node, error) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		},
-		KV: map[string]*nod.KV{
-			"start":          &nod.KV{Key: "start", ValueTime: &interval.Start.Time},
-			"start_timezone": &nod.KV{Key: "start_timezone", ValueText: &interval.Start.Timezone},
-			"end":            &nod.KV{Key: "end", ValueTime: &interval.End.Time},
-			"end_timezone":   &nod.KV{Key: "end_timezone", ValueText: &interval.End.Timezone},
-			"duration":       &nod.KV{Key: "duration", ValueInt64: &durationNanos},
+		KV: map[string]*nod.NodeKV{
+			"start":          {Key: "start", ValueTime: &interval.Start.Time},
+			"start_timezone": {Key: "start_timezone", ValueText: &interval.Start.Timezone},
+			"end":            {Key: "end", ValueTime: &interval.End.Time},
+			"end_timezone":   {Key: "end_timezone", ValueText: &interval.End.Timezone},
+			"duration":       {Key: "duration", ValueInt64: &durationNanos},
 		},
 	}
 	return node, nil
@@ -63,14 +63,14 @@ func (m *IntervalMapper) FromNode(node *nod.Node) (*Interval, error) {
 		Id:        node.Core.Id,
 		ContextId: contextId,
 		Start: ZonedTime{
-			Time:     nod.SafeTime(node.KV, "start"),
-			Timezone: nod.SafeString(node.KV, "start_timezone"),
+			Time:     nodTime(node.KV, "start"),
+			Timezone: nodString(node.KV, "start_timezone"),
 		},
 		End: ZonedTime{
-			Time:     nod.SafeTime(node.KV, "end"),
-			Timezone: nod.SafeString(node.KV, "end_timezone"),
+			Time:     nodTime(node.KV, "end"),
+			Timezone: nodString(node.KV, "end_timezone"),
 		},
-		Duration:    time.Duration(nod.SafeInt64(node.KV, "duration")),
+		Duration:    time.Duration(nodInt64(node.KV, "duration")),
 		Status:      node.Core.Status,
 		WorkspaceId: workspaceId,
 	}, nil
