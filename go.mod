@@ -3,7 +3,7 @@ module github.com/m87/ctx
 go 1.26.3
 
 require (
-	github.com/m87/nod v0.0.2-0.20260718193958-78b0ff9cf81d
+	github.com/m87/nod v0.0.2-0.20260719134319-4eb78d2055d5
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
