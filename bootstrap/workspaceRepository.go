@@ -36,3 +36,20 @@ func (r *WorkspaceRepository) List() ([]*core.Workspace, error) {
 		WithContent().
 		FindAll()
 }
+
+func (r *WorkspaceRepository) GetProperties(workspaceId string) (core.WorkspaceSettings, error) {
+	workspace, err := r.scope.Query().
+		Where(nod.NodeFields.Id.Equals(workspaceId)).
+		WithKV().
+		FindFirst()
+
+	if err != nil {
+		return core.WorkspaceSettings{}, err
+	}
+
+	if workspace == nil {
+		return core.WorkspaceSettings{}, nil
+	}
+
+	return *workspace.Properties, nil
+}

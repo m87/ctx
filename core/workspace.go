@@ -7,9 +7,10 @@ import (
 )
 
 type Workspace struct {
-	Id          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	Id          string             `json:"id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description,omitempty"`
+	Properties  *WorkspaceSettings `json:"properties,omitempty"`
 }
 
 type WorkspaceContextStats struct {
@@ -47,6 +48,8 @@ func (m *WorkspaceMapper) ToNode(workspace *Workspace) (*nod.Node, error) {
 		"description": workspace.Description,
 	})
 
+	node.KV = ToKV(workspace.Properties)
+
 	return node, nil
 }
 
@@ -55,6 +58,7 @@ func (m *WorkspaceMapper) FromNode(node *nod.Node) (*Workspace, error) {
 		Id:          node.Core.Id,
 		Name:        node.Core.Name,
 		Description: ConvertFromNodContent(node.Content)["description"],
+		Properties:  FromKV(node.KV),
 	}, nil
 }
 
