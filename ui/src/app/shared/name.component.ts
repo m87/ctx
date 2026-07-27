@@ -1,6 +1,7 @@
 import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucidePencil, lucideX } from '@ng-icons/lucide';
+import { LinkifiedTextComponent } from './linkified-text.component';
 
 export interface NameSaveValue {
   name: string;
@@ -10,7 +11,7 @@ export interface NameSaveValue {
 
 @Component({
   selector: 'ctx-name',
-  imports: [NgIcon],
+  imports: [NgIcon, LinkifiedTextComponent],
   providers: [provideIcons({ lucideCheck, lucidePencil, lucideX })],
   template: `
     <div class="w-full min-w-0">
@@ -108,10 +109,12 @@ export interface NameSaveValue {
       } @else {
         <div class="mt-1 flex items-start gap-3">
           <div class="min-w-0 flex-1">
-            <h1 class="text-2xl font-semibold tracking-tight truncate">{{ name() }}</h1>
+            <h1 class="text-2xl font-semibold tracking-tight truncate">
+              <ctx-linkified-text [text]="name()" />
+            </h1>
             @if (description()) {
               <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground/90">
-                {{ description() }}
+                <ctx-linkified-text [text]="description()" />
               </p>
             } @else {
               <p class="mt-1 text-sm text-muted-foreground">{{ emptyDescription() }}</p>

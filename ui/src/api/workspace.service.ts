@@ -7,6 +7,16 @@ export interface Workspace {
   id: string;
   name: string;
   description?: string;
+  properties: WorkspaceProperties;
+}
+
+export interface WorkspaceProperties {
+  linkRules?: LinkRule[];
+}
+
+export interface LinkRule {
+  regexp: string;
+  link: string;
 }
 
 export interface WorkspaceContextStats {

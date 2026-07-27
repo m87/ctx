@@ -1,4 +1,5 @@
 import { Component, input, signal } from '@angular/core';
+import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { ContextListGroupItemComponent } from './context-list-group-item.component';
 import { ContextListItem } from './context-list-item.component';
 
@@ -15,7 +16,7 @@ export interface ContextListGroup {
 
 @Component({
   selector: 'ctx-context-list-group',
-  imports: [ContextListGroupItemComponent],
+  imports: [ContextListGroupItemComponent, LinkifiedTextComponent],
   template: `
     <div class="flex flex-col gap-2">
       <div
@@ -29,7 +30,9 @@ export interface ContextListGroup {
       >
         <div class="flex items-center gap-2 mb-2">
           <span class="w-2 h-2 rounded-sm shrink-0" [style.background-color]="group().color"></span>
-          <span class="text-sm font-medium flex-1 truncate">{{ group().name }}</span>
+          <span class="text-sm font-medium flex-1 truncate">
+            <ctx-linkified-text [text]="group().name" />
+          </span>
           <span class="text-xs text-muted-foreground">{{ group().duration }}</span>
         </div>
         <div class="h-1.5 rounded bg-muted/40 overflow-hidden">

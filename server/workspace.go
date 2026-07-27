@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/core"
+	ctxlog "github.com/m87/ctx/log"
 )
 
 type WorkspaceHandler struct {
@@ -118,11 +119,13 @@ func (h *WorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Reques
 	}
 	var workspace core.Workspace
 	if err := json.NewDecoder(r.Body).Decode(&workspace); err != nil {
+		ctxlog.Logger.Error("Failed to update workspace", "error", err)
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
 	workspace.Id = id
 	if _, err := h.manager.WorkspaceRepository.Save(&workspace); err != nil {
+		ctxlog.Logger.Error("Failed to update workspace", "error", err)
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_WORKSPACE", "Failed to update workspace")
 		return
 	}

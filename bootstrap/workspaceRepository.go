@@ -17,6 +17,7 @@ func (r *WorkspaceRepository) GetById(id string) (*core.Workspace, error) {
 	return r.scope.Query().
 		Where(nod.NodeFields.Id.Equals(id)).
 		WithContent().
+		WithKV().
 		FindFirst()
 }
 

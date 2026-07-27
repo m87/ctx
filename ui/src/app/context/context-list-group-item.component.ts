@@ -1,18 +1,23 @@
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { ContextListItem } from './context-list-item.component';
 
 @Component({
   selector: 'ctx-context-list-group-item',
-  imports: [RouterLink],
+  imports: [RouterLink, LinkifiedTextComponent],
   template: `
-    <a
-      class="block ml-4 rounded-lg border border-dashed bg-card p-3 hover:bg-muted/30 transition-colors"
+    <div
+      class="block ml-4 cursor-pointer rounded-lg border border-dashed bg-card p-3 hover:bg-muted/30 transition-colors"
       [routerLink]="['/context', item().id]"
+      role="link"
+      tabindex="0"
     >
       <div class="flex items-center gap-2 mb-2">
         <span class="w-2 h-2 rounded-sm shrink-0" [style.background-color]="item().color"></span>
-        <span class="text-sm font-medium flex-1 truncate">{{ item().name }}</span>
+        <span class="text-sm font-medium flex-1 truncate">
+          <ctx-linkified-text [text]="item().name" />
+        </span>
         @if (item().archived) {
           <span class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground">
             Archived
@@ -31,7 +36,7 @@ import { ContextListItem } from './context-list-item.component';
         {{ item().sessions ?? 0 }} {{ item().sessions === 1 ? 'session' : 'sessions' }} ·
         {{ boundedPercentage(item().percentage).toFixed(1) }}%
       </div>
-    </a>
+    </div>
   `,
 })
 export class ContextListGroupItemComponent {

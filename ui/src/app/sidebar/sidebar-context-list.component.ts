@@ -7,11 +7,12 @@ import { injectMutation, injectQuery } from '@tanstack/angular-query-experimenta
 import { Context } from '../../api/context.service';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngxs/store';
+import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { WorkspaceState } from './workspace.state';
 
 @Component({
   selector: 'ctx-sidebar-context-list',
-  imports: [NgIcon, RouterLink],
+  imports: [NgIcon, RouterLink, LinkifiedTextComponent],
   providers: [provideIcons({ lucidePlay, lucidePlus })],
   template: ` <div class="group/list flex flex-col gap-1 p-2">
     @if (isAddingContext()) {
@@ -40,7 +41,9 @@ import { WorkspaceState } from './workspace.state';
       <div
         class="group flex justify-between items-center text-[13px] px-2 py-1.5 font-medium hover:bg-muted/60 rounded-md cursor-pointer"
       >
-        <span [routerLink]="['/context', context.id]" class="truncate">{{ context.name }}</span>
+        <span [routerLink]="['/context', context.id]" class="truncate">
+          <ctx-linkified-text [text]="context.name" />
+        </span>
         <span class="relative h-4 text-muted-foreground text-[13px] flex items-center justify-end">
           <ng-icon
             name="lucidePlay"

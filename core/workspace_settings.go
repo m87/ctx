@@ -1,14 +1,18 @@
 package core
 
-import "github.com/m87/nod"
+import (
+	"strconv"
+
+	"github.com/m87/nod"
+)
 
 type WorkspaceSettings struct {
-	LinkRules []LinkRule
+	LinkRules []LinkRule `json:"linkRules,omitempty"`
 }
 
 type LinkRule struct {
-	Regexp string
-	Link   string
+	Regexp string `json:"regexp"`
+	Link   string `json:"link"`
 }
 
 func FromKV(kv map[string]*nod.NodeKV) *WorkspaceSettings {
@@ -21,8 +25,9 @@ func FromKV(kv map[string]*nod.NodeKV) *WorkspaceSettings {
 	}
 
 	for i := 0; ; i++ {
-		regexpKey := "linkRule." + string(i) + ".regexp"
-		linkKey := "linkRule." + string(i) + ".link"
+		prefix := "linkRule." + strconv.Itoa(i)
+		regexpKey := prefix + ".regexp"
+		linkKey := prefix + ".link"
 
 		regexpKV, regexpExists := kv[regexpKey]
 		linkKV, linkExists := kv[linkKey]
@@ -59,8 +64,12 @@ func ToKV(settings *WorkspaceSettings) map[string]*nod.NodeKV {
 	}
 
 	for i, rule := range settings.LinkRules {
-		kv["linkRule."+string(i)+".regexp"] = &nod.NodeKV{ValueText: nod.Ptr(rule.Regexp)}
-		kv["linkRule."+string(i)+".link"] = &nod.NodeKV{ValueText: nod.Ptr(rule.Link)}
+		prefix := "linkRule." + strconv.Itoa(i)
+		regexpKey := prefix + ".regexp"
+		linkKey := prefix + ".link"
+
+		kv[regexpKey] = &nod.NodeKV{Key: regexpKey, ValueText: nod.Ptr(rule.Regexp)}
+		kv[linkKey] = &nod.NodeKV{Key: linkKey, ValueText: nod.Ptr(rule.Link)}
 	}
 
 	return kv
