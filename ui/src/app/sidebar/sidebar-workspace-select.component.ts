@@ -19,7 +19,7 @@ import {
 import { Store } from '@ngxs/store';
 import { SelectWorkspace, WorkspaceState } from './workspace.state';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { WorkspaceQueries } from '../../api/workspace.quries';
+import { WorkspaceQueries } from '../../api/workspace.queries';
 import { WorkspaceMutations } from '../../api/workspace.mutations';
 import { Workspace } from '../../api/workspace.service';
 

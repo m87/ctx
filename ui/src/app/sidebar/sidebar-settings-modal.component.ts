@@ -64,16 +64,7 @@ type SettingsSection = (typeof settingsSections)[number];
             <div
               class="h-14 sm:h-14 border-b px-5 sm:px-7 flex items-center justify-between hidden sm:flex"
             >
-              <div class="flex items-center gap-2">
-                <div class="font-semibold text-[15px]">{{ activeSettingsSection() }}</div>
-                @if (activeSettingsSection() === 'Link rules') {
-                  <span
-                    class="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground"
-                  >
-                    Per workspace
-                  </span>
-                }
-              </div>
+              <div class="font-semibold text-[15px]">{{ activeSettingsSection() }}</div>
               <button
                 type="button"
                 class="h-9 w-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"

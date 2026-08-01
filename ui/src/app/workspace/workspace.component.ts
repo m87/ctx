@@ -6,7 +6,7 @@ import { Store } from '@ngxs/store';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTrash2 } from '@ng-icons/lucide';
-import { WorkspaceQueries } from '../../api/workspace.quries';
+import { WorkspaceQueries } from '../../api/workspace.queries';
 import { WorkspaceMutations } from '../../api/workspace.mutations';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { WorkspaceStats } from '../../api/workspace.service';
@@ -15,6 +15,7 @@ import { ContextListGroup } from '../context/context-list-group.component';
 import { ContextListItem } from '../context/context-list-item.component';
 import { DistributionComponent, DistributionItem } from '../shared/distribution.component';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
+import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { colorHash, durationAsHM } from '../utils';
 
 const GROUPED_CONTEXT_ID = '__contexts_below_1_percent__';
@@ -30,95 +31,116 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
 
 @Component({
   selector: 'ctx-workspace',
-  imports: [ContextListComponent, DistributionComponent, NameComponent, NgIcon],
+  imports: [
+    ContextListComponent,
+    DistributionComponent,
+    NameComponent,
+    NgIcon,
+    QueryErrorStateComponent,
+  ],
   providers: [provideIcons({ lucideTrash2 })],
   template: `
     <div class="w-full h-full overflow-hidden flex flex-col p-4 md:p-6">
-      <div class="mb-5">
+      @if (showWorkspaceError()) {
+        <ctx-query-error-state
+          class="flex-1 min-h-0"
+          [error]="workspaceError()"
+          [paused]="workspaceErrorPaused()"
+          [resourceName]="workspaceErrorResourceName()"
+          [retrying]="workspaceErrorRetrying()"
+          (retry)="retryWorkspaceData()"
+        ></ctx-query-error-state>
+      } @else {
+        <div class="mb-5">
+          @if (workspace()) {
+            <div class="flex items-start justify-between gap-4">
+              <ctx-name
+                class="min-w-0 flex-1"
+                label="Workspace"
+                [name]="workspace()?.name ?? ''"
+                [description]="workspace()?.description ?? ''"
+                namePlaceholder="Workspace name"
+                descriptionPlaceholder="What this workspace is for"
+                [savePending]="updateWorkspaceMutation.isPending()"
+                (save)="saveWorkspaceName($event)"
+              ></ctx-name>
+
+              <button
+                type="button"
+                class="h-8 w-8 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 flex items-center justify-center shrink-0 mt-5"
+                aria-label="Delete workspace"
+                title="Delete"
+                (click)="deleteWorkspace()"
+              >
+                <ng-icon name="lucideTrash2"></ng-icon>
+              </button>
+            </div>
+          } @else {
+            <div class="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+              Workspace
+            </div>
+            <h1 class="text-2xl font-semibold tracking-tight mt-1">Default workspace</h1>
+          }
+        </div>
+
         @if (workspace()) {
-          <div class="flex items-start justify-between gap-4">
-            <ctx-name
-              class="min-w-0 flex-1"
-              label="Workspace"
-              [name]="workspace()?.name ?? ''"
-              [description]="workspace()?.description ?? ''"
-              namePlaceholder="Workspace name"
-              descriptionPlaceholder="What this workspace is for"
-              [savePending]="updateWorkspaceMutation.isPending()"
-              (save)="saveWorkspaceName($event)"
-            ></ctx-name>
-
-            <button
-              type="button"
-              class="h-8 w-8 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 flex items-center justify-center shrink-0 mt-5"
-              aria-label="Delete workspace"
-              title="Delete"
-              (click)="deleteWorkspace()"
-            >
-              <ng-icon name="lucideTrash2"></ng-icon>
-            </button>
-          </div>
-        } @else {
-          <div class="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
-            Workspace
-          </div>
-          <h1 class="text-2xl font-semibold tracking-tight mt-1">Default workspace</h1>
-        }
-      </div>
-
-      @if (workspace()) {
-        <div class="mt-6 flex-1 min-h-0 overflow-auto pr-1 pb-2">
-          <div
-            class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
-          >
-            Workspace summary
-          </div>
-
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
-            <div class="rounded-lg border bg-card px-3 py-2.5">
-              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-                Total tracked
-              </div>
-              <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
-            </div>
-            <div class="rounded-lg border bg-card px-3 py-2.5">
-              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-                Contexts
-              </div>
-              <div class="text-base font-semibold mt-1">{{ workspaceStats().contexts.length }}</div>
-            </div>
-            <div class="rounded-lg border bg-card px-3 py-2.5">
-              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-                Sessions
-              </div>
-              <div class="text-base font-semibold mt-1">{{ workspaceStats().totalSessions }}</div>
-            </div>
-            <div class="rounded-lg border bg-card px-3 py-2.5">
-              <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-                Top context
-              </div>
-              <div class="text-sm font-medium mt-1 truncate">{{ topContext() }}</div>
-            </div>
-          </div>
-
-          <ctx-distribution
-            class="block mb-6"
-            [items]="distributionContexts()"
-            emptyMessage="No tracked time in this workspace."
-          ></ctx-distribution>
-
-          @if (largeSummaryContexts().length > 0 || groupedSummaryContext()) {
+          <div class="mt-6 flex-1 min-h-0 overflow-auto pr-1 pb-2">
             <div
               class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
             >
-              Contexts
+              Workspace summary
             </div>
-            <ctx-context-list
-              [items]="largeSummaryContexts()"
-              [group]="groupedSummaryContext()"
-            ></ctx-context-list>
-          }
-        </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
+              <div class="rounded-lg border bg-card px-3 py-2.5">
+                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                  Total tracked
+                </div>
+                <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
+              </div>
+              <div class="rounded-lg border bg-card px-3 py-2.5">
+                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                  Contexts
+                </div>
+                <div class="text-base font-semibold mt-1">
+                  {{ workspaceStats().contexts.length }}
+                </div>
+              </div>
+              <div class="rounded-lg border bg-card px-3 py-2.5">
+                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                  Sessions
+                </div>
+                <div class="text-base font-semibold mt-1">
+                  {{ workspaceStats().totalSessions }}
+                </div>
+              </div>
+              <div class="rounded-lg border bg-card px-3 py-2.5">
+                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                  Top context
+                </div>
+                <div class="text-sm font-medium mt-1 truncate">{{ topContext() }}</div>
+              </div>
+            </div>
+
+            <ctx-distribution
+              class="block mb-6"
+              [items]="distributionContexts()"
+              emptyMessage="No tracked time in this workspace."
+            ></ctx-distribution>
+
+            @if (largeSummaryContexts().length > 0 || groupedSummaryContext()) {
+              <div
+                class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+              >
+                Contexts
+              </div>
+              <ctx-context-list
+                [items]="largeSummaryContexts()"
+                [group]="groupedSummaryContext()"
+              ></ctx-context-list>
+            }
+          </div>
+        }
       }
     </div>
   `,
@@ -155,6 +177,38 @@ export class WorkspaceComponent {
   );
   workspaceStatsQuery = injectQuery(() =>
     this.workspaceQueries.stats(this.activeWorkspaceId() ?? ''),
+  );
+  readonly showWorkspaceListError = computed(
+    () =>
+      this.listWorkspacesQuery.data() === undefined &&
+      (this.listWorkspacesQuery.isError() || this.listWorkspacesQuery.isPaused()),
+  );
+  readonly showWorkspaceStatsError = computed(
+    () =>
+      this.activeWorkspaceId() !== null &&
+      this.workspaceStatsQuery.data() === undefined &&
+      (this.workspaceStatsQuery.isError() || this.workspaceStatsQuery.isPaused()),
+  );
+  readonly showWorkspaceError = computed(
+    () => this.showWorkspaceListError() || this.showWorkspaceStatsError(),
+  );
+  readonly workspaceError = computed(() =>
+    this.showWorkspaceListError()
+      ? this.listWorkspacesQuery.error()
+      : this.workspaceStatsQuery.error(),
+  );
+  readonly workspaceErrorPaused = computed(() =>
+    this.showWorkspaceListError()
+      ? this.listWorkspacesQuery.isPaused()
+      : this.workspaceStatsQuery.isPaused(),
+  );
+  readonly workspaceErrorResourceName = computed(() =>
+    this.showWorkspaceListError() ? 'workspaces' : 'workspace summary',
+  );
+  readonly workspaceErrorRetrying = computed(() =>
+    this.showWorkspaceListError()
+      ? this.listWorkspacesQuery.isFetching()
+      : this.workspaceStatsQuery.isFetching(),
   );
   readonly workspace = computed(() => {
     const id = this.activeWorkspaceId();
@@ -254,5 +308,14 @@ export class WorkspaceComponent {
     }
 
     this.deleteWorkspaceMutation.mutate(workspace.id);
+  }
+
+  retryWorkspaceData(): void {
+    if (this.showWorkspaceListError()) {
+      void this.listWorkspacesQuery.refetch();
+      return;
+    }
+
+    void this.workspaceStatsQuery.refetch();
   }
 }

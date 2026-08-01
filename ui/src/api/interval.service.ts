@@ -36,6 +36,25 @@ type RawDayIntervalsResponse = {
   intervals: RawInterval[];
 };
 
+type RawDayStats = Omit<DayStats, 'intervals'> & {
+  intervals: { [key: string]: RawInterval[] };
+};
+
+export interface DayContextStats {
+  contextId: string;
+  duration: number;
+  percentage: number;
+  intervalCount: number;
+}
+
+export interface DayStats {
+  date: string;
+  contextStats: DayContextStats[];
+  contexts: Context[];
+  intervals: { [key: string]: Interval[] };
+  distribution: { [contextId: string]: number };
+}
+
 export class ZonedDateTime {
   constructor(
     public time: string | null,
@@ -134,46 +153,85 @@ export function parseDuration(duration: number): string {
 export class IntervalService {
   http = inject(HttpClient);
   store = inject(Store);
+  private readonly baseUrl = '/api/interval';
 
   createInterval(interval: Interval): Observable<Interval> {
     if (interval.workspaceId == null) {
       interval.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
     }
     return this.http
-      .post<RawInterval>('/api/interval/', interval)
+      .post<RawInterval>(this.url('/'), interval)
       .pipe(map((response) => deserializeInterval(response)));
   }
 
   deleteInterval(id: string): Observable<void> {
-    return this.http.delete<void>(`/api/interval/${id}`);
+    return this.http.delete<void>(this.url(id));
   }
 
   updateInterval(id: string, interval: Interval): Observable<Interval> {
     return this.http
-      .put<RawInterval>(`/api/interval/${id}`, interval)
+      .put<RawInterval>(this.url(id), interval)
       .pipe(map((response) => deserializeInterval(response)));
   }
 
   moveInterval(id: string, targetContextId: string): Observable<Interval> {
     return this.http
-      .patch<RawInterval>(`/api/interval/${id}/move/${targetContextId}`, {})
+      .patch<RawInterval>(this.url(id, 'move', targetContextId), {})
       .pipe(map((response) => deserializeInterval(response)));
   }
 
   getInterval(id: string): Observable<Interval> {
     return this.http
-      .get<RawInterval>(`/api/interval/${id}`)
+      .get<RawInterval>(this.url(id))
       .pipe(map((response) => deserializeInterval(response)));
   }
 
   getDayIntervals(workspaceId: string, day: string): Observable<DayIntervalsResponse> {
     return this.http
-      .get<RawDayIntervalsResponse>(`/api/interval/day/${day}?workspaceId=${workspaceId}`)
+      .get<RawDayIntervalsResponse>(this.urlWithParams({workspaceId: workspaceId}, 'day', day))
       .pipe(
         map((response) => ({
           contexts: response.contexts,
           intervals: deserializeIntervals(response.intervals),
         })),
       );
+  }
+
+  getDayStats(workspaceId: string, date: string): Observable<DayStats> {
+    return this.http
+      .get<RawDayStats>(this.urlWithParams({workspaceId: workspaceId}, 'day', date, 'stats'))
+      .pipe(
+        map((response) => ({
+          ...response,
+          intervals: Object.fromEntries(
+            Object.entries(response.intervals).map(([contextId, intervals]) => [
+              contextId,
+              deserializeIntervals(intervals),
+            ]),
+          ),
+        })),
+      );
+  }
+
+
+
+  private url(...segments: string[]): string {
+    let url = [this.baseUrl, ...segments].join('/');
+    if (!url.endsWith('/')) {
+      url += '/';
+    }
+
+    return url;
+  }
+
+  private urlWithParams(params: {[key: string]: string}, ...segments: string[]): string {
+    let url = [this.baseUrl, ...segments].join('/');
+
+    if (params && Object.keys(params).length > 0) {
+      const queryParams = new URLSearchParams(params).toString();
+      url += `?${queryParams}`;
+    }
+
+    return url;
   }
 }

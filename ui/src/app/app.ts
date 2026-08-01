@@ -1,18 +1,20 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, effect, inject } from '@angular/core';
 import { injectQuery } from '@tanstack/angular-query-experimental';
+import { HlmToaster } from '@spartan-ng/helm/sonner';
 import { toast } from 'ngx-sonner';
 import { SettingsQueries } from '../api/settings.queries';
 import { HeaderComponent } from './header/header';
 import { MainComponent } from './main/main';
 import { SidebarComponent } from './sidebar/sidebar';
 import { SidebarStore } from './sidebar/sidebar.store';
+import { IntegrityQueries } from '../api/integrity.queries';
 
 const themeKey = 'client.general.theme';
 
 @Component({
   selector: 'ctx-root',
-  imports: [HeaderComponent, SidebarComponent, MainComponent],
+  imports: [HeaderComponent, SidebarComponent, MainComponent, HlmToaster],
   template: `
     <div class="flex justify-center w-full h-dvh bg-background text-foreground">
       <div class="w-full h-full flex flex-col">
@@ -47,15 +49,17 @@ const themeKey = 'client.general.theme';
         </div>
       </div>
     </div>
+    <hlm-toaster />
   `,
 })
 export class App {
   sidebar = inject(SidebarStore);
   private document = inject(DOCUMENT);
   private settingsQueries = inject(SettingsQueries);
+  private integrityQueries = inject(IntegrityQueries);
 
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
-  integrityQuery = injectQuery(() => this.settingsQueries.integrity());
+  integrityQuery = injectQuery(() => this.integrityQueries.integrity());
 
   constructor() {
     void this.integrityQuery.refetch().then(({ data: report }) => {

@@ -39,28 +39,37 @@ export interface WorkspaceStats {
 })
 export class WorkspaceService {
   http = inject(HttpClient);
+  private readonly baseUrl = '/api/workspace';
 
   listWorkspaces(): Observable<Workspace[]> {
-    return this.http.get<Workspace[]>('/api/workspace/');
+    return this.http.get<Workspace[]>(this.url());
   }
 
   createWorkspace(name: string): Observable<Workspace> {
-    return this.http.post<Workspace>('/api/workspace/', { name });
+    return this.http.post<Workspace>(this.url(), { name });
   }
 
   deleteWorkspace(id: string): Observable<void> {
-    return this.http.delete<void>(`/api/workspace/${id}`);
+    return this.http.delete<void>(this.url(id));
   }
 
   getWorkspace(id: string): Observable<Workspace> {
-    return this.http.get<Workspace>(`/api/workspace/${id}`);
+    return this.http.get<Workspace>(this.url(id));
   }
 
   getWorkspaceStats(id: string): Observable<WorkspaceStats> {
-    return this.http.get<WorkspaceStats>(`/api/workspace/${id}/stats`);
+    return this.http.get<WorkspaceStats>(this.url(id, 'stats'));
   }
 
   updateWorkspace(workspace: Workspace): Observable<Workspace> {
-    return this.http.put<Workspace>(`/api/workspace/${workspace.id}`, workspace);
+    return this.http.put<Workspace>(this.url(workspace.id), workspace);
+  }
+
+  private url(...segments: string[]): string {
+    let url = [this.baseUrl, ...segments].join('/');
+    if(segments.length === 0 && !url.endsWith('/')) {
+      url += '/';
+    }
+    return url;
   }
 }

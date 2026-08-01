@@ -6,12 +6,13 @@ import { provideStore } from '@ngxs/store';
 import { routes } from './app.routes';
 import { provideHttpClient } from '@angular/common/http';
 import {
+  MutationCache,
   provideTanStackQuery,
   QueryCache,
   QueryClient,
 } from '@tanstack/angular-query-experimental';
 import { WorkspaceState } from './sidebar/workspace.state';
-import { toastError } from '../api/error';
+import { shouldRetryQuery, toastError } from '../api/error';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -29,6 +30,18 @@ export const appConfig: ApplicationConfig = {
         queryCache: new QueryCache({
           onError: toastError,
         }),
+        mutationCache: new MutationCache({
+          onError: toastError,
+        }),
+        defaultOptions: {
+          queries: {
+            networkMode: 'always',
+            retry: shouldRetryQuery,
+          },
+          mutations: {
+            networkMode: 'always',
+          },
+        },
       }),
     ),
   ],

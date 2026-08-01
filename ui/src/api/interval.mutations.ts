@@ -1,26 +1,19 @@
 import { inject, Injectable } from '@angular/core';
-import { mutationOptions, QueryClient } from '@tanstack/angular-query-experimental';
+import { mutationOptions } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
-import { ContextQueries } from './context.quries';
+import { CacheService } from './cache.service';
 import { Interval, IntervalService } from './interval.service';
-import { toastError } from './error';
-import { WorkspaceQueries } from './workspace.quries';
 
 @Injectable({ providedIn: 'root' })
 export class IntervalMutations {
-  private intervalService = inject(IntervalService);
-  private queryClient = inject(QueryClient);
+  private readonly intervalService = inject(IntervalService);
+  private readonly cache = inject(CacheService);
 
   create() {
     return mutationOptions({
       mutationFn: (interval: Interval) =>
         lastValueFrom(this.intervalService.createInterval(interval)),
-      onSuccess: (data) => {
-        this.invalidateAfterIntervalChange(data.contextId ?? '');
-      },
-      onError(error) {
-        toastError(error);
-      },
+      onSuccess: (data) => this.cache.afterIntervalChange(data.contextId ?? ''),
     });
   }
 
@@ -28,12 +21,7 @@ export class IntervalMutations {
     return mutationOptions({
       mutationFn: ({ id, interval }: { id: string; interval: Interval }) =>
         lastValueFrom(this.intervalService.updateInterval(id, interval)),
-      onSuccess: (data) => {
-        this.invalidateAfterIntervalChange(data.contextId ?? '');
-      },
-      onError(error) {
-        toastError(error);
-      },
+      onSuccess: (data) => this.cache.afterIntervalChange(data.contextId ?? ''),
     });
   }
 
@@ -41,12 +29,8 @@ export class IntervalMutations {
     return mutationOptions({
       mutationFn: ({ id, contextId }: { id: string; contextId: string }) =>
         lastValueFrom(this.intervalService.deleteInterval(id)),
-      onSuccess: (_, variables) => {
-        this.invalidateAfterIntervalChange(variables.contextId);
-      },
-      onError(error) {
-        toastError(error);
-      },
+      onSuccess: (_, variables) =>
+        this.cache.afterIntervalDelete(variables.id, variables.contextId),
     });
   }
 
@@ -54,28 +38,8 @@ export class IntervalMutations {
     return mutationOptions({
       mutationFn: ({ id, targetContextId }: { id: string; targetContextId: string }) =>
         lastValueFrom(this.intervalService.moveInterval(id, targetContextId)),
-      onSuccess: (data, variables) => {
-        const sourceContextId = data.contextId ?? '';
-        this.invalidateAfterIntervalChange(sourceContextId);
-        this.invalidateAfterIntervalChange(variables.targetContextId);
-      },
-      onError(error) {
-        toastError(error);
-      },
+      onSuccess: (data, variables) =>
+        this.cache.afterIntervalChange(data.contextId ?? '', variables.targetContextId),
     });
-  }
-
-  private invalidateAfterIntervalChange(contextId: string) {
-    this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
-    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
-    this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
-
-    if (contextId) {
-      this.queryClient.invalidateQueries({
-        queryKey: [...ContextQueries.key, 'intervals', contextId],
-      });
-      this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'stats', contextId] });
-      this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'get', contextId] });
-    }
   }
 }

@@ -2,38 +2,29 @@ import { inject, Injectable } from '@angular/core';
 import { lastValueFrom } from 'rxjs';
 import { SettingsService } from './settings.service';
 
+export const settingsQueryKeys = {
+  all: ['settings'] as const,
+  settings: () => [...settingsQueryKeys.all, 'settings'] as const,
+  settingValues: () => [...settingsQueryKeys.all, 'setting'] as const,
+  setting: (key: string) => [...settingsQueryKeys.settingValues(), key] as const,
+};
+
 @Injectable({ providedIn: 'root' })
 export class SettingsQueries {
-  static readonly key = ['settings'];
-  private settingsService = inject(SettingsService);
+  private readonly settingsService = inject(SettingsService);
 
   settings() {
     return {
-      queryKey: [...SettingsQueries.key, 'settings'],
+      queryKey: settingsQueryKeys.settings(),
       queryFn: () => lastValueFrom(this.settingsService.getSettings()),
     };
   }
 
   getSetting(key: string) {
     return {
-      queryKey: [...SettingsQueries.key, 'setting', key],
+      queryKey: settingsQueryKeys.setting(key),
       queryFn: () => lastValueFrom(this.settingsService.getSetting(key)),
     };
   }
 
-  integrity() {
-    return {
-      queryKey: [...SettingsQueries.key, 'integrity'],
-      queryFn: () => lastValueFrom(this.settingsService.checkIntegrity()),
-      enabled: false,
-    };
-  }
-
-  integrityContexts(enabled: boolean) {
-    return {
-      queryKey: [...SettingsQueries.key, 'integrity-contexts'],
-      queryFn: () => lastValueFrom(this.settingsService.getIntegrityContexts()),
-      enabled,
-    };
-  }
 }

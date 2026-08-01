@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TimelineComponent } from './timeline.component';
-import { HlmToaster } from '@spartan-ng/helm/sonner';
 
 @Component({
   selector: 'ctx-main',
-  imports: [RouterOutlet, TimelineComponent, HlmToaster],
+  imports: [RouterOutlet, TimelineComponent],
   template: `
     <div class="w-full h-full min-h-0 flex flex-col overflow-hidden">
       <div
@@ -19,7 +18,6 @@ import { HlmToaster } from '@spartan-ng/helm/sonner';
         <ctx-timeline class="block w-full"></ctx-timeline>
       </div>
     </div>
-    <hlm-toaster />
   `,
   styles: `
     :host {

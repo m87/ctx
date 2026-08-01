@@ -2,7 +2,7 @@ import { Component, ElementRef, computed, effect, inject, signal, viewChild } fr
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePlay, lucidePlus } from '@ng-icons/lucide';
 import { ContextMutations } from '../../api/context.mutations';
-import { ContextQueries } from '../../api/context.quries';
+import { ContextQueries } from '../../api/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { Context } from '../../api/context.service';
 import { RouterLink } from '@angular/router';
@@ -102,7 +102,7 @@ export class SidebarContextListComponent {
     this.createContextMutation.mutate({
       name,
       workspaceId: this.selectedWorkspaceId() ?? '',
-    } as Context);
+    });
     this.cancelAddContext();
   }
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/m87/ctx/core"
+	ctxlog "github.com/m87/ctx/log"
 )
 
 type ContextHandler struct {
@@ -99,6 +100,7 @@ func (h *ContextHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
 func (h *ContextHandler) getActiveContext(w http.ResponseWriter, r *http.Request) {
 	activeContext, err := h.manager.ContextRepository.GetActive()
 	if err != nil {
+		ctxlog.Logger.Error("Failed to get active context", "error", err)
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_ACTIVE_CONTEXT", "Failed to get active context")
 		return
 	}

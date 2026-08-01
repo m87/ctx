@@ -6,7 +6,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { map } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ContextQueries } from '../../api/context.quries';
+import { ContextQueries } from '../../api/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { ContextMutations } from '../../api/context.mutations';
 import { durationAsH, durationAsM } from '../utils';
@@ -14,10 +14,18 @@ import { DateTime } from 'luxon';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
+import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { ContextIntervalListComponent } from './context-interval-list.component';
 
 @Component({
-  imports: [NameComponent, ContextIntervalListComponent, NgIcon, HlmButtonImports, HlmCardImports],
+  imports: [
+    NameComponent,
+    ContextIntervalListComponent,
+    NgIcon,
+    HlmButtonImports,
+    HlmCardImports,
+    QueryErrorStateComponent,
+  ],
   providers: [
     provideIcons({
       lucideArchive,
@@ -31,128 +39,152 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
     <div
       class="w-full h-full overflow-hidden flex flex-col items-start justify-start p-4 md:p-6 gap-5 relative"
     >
-      <div class="w-full flex flex-col md:flex-row justify-between items-start gap-4">
-        <ctx-name
-          class="w-full min-w-0"
-          label="Context"
-          accentColor="#d97706"
-          [name]="context().name"
-          [description]="context().description"
-          [tags]="context().tags ?? []"
-          [showTags]="true"
-          [readonly]="context().archived ?? false"
-          namePlaceholder="Context name"
-          descriptionPlaceholder="What this context is for"
-          tagsPlaceholder="Comma separated"
-          [savePending]="updateContextMutation.isPending()"
-          (save)="saveContextName($event)"
-        ></ctx-name>
+      @if (showContextError()) {
+        <ctx-query-error-state
+          class="flex-1 min-h-0"
+          [error]="contextQuery.error()"
+          [paused]="contextQuery.isPaused()"
+          resourceName="context"
+          [retrying]="contextQuery.isFetching()"
+          (retry)="retryContext()"
+        ></ctx-query-error-state>
+      } @else if (context(); as currentContext) {
+        <div class="w-full flex flex-col md:flex-row justify-between items-start gap-4">
+          <ctx-name
+            class="w-full min-w-0"
+            label="Context"
+            accentColor="#d97706"
+            [name]="currentContext.name"
+            [description]="currentContext.description"
+            [tags]="currentContext.tags ?? []"
+            [showTags]="true"
+            [readonly]="currentContext.archived ?? false"
+            namePlaceholder="Context name"
+            descriptionPlaceholder="What this context is for"
+            tagsPlaceholder="Comma separated"
+            [savePending]="updateContextMutation.isPending()"
+            (save)="saveContextName($event)"
+          ></ctx-name>
 
-        <div class="flex items-center gap-2 w-full md:w-auto flex-nowrap md:pt-5">
-          @if (context().archived) {
-            <span
-              class="h-9 inline-flex items-center rounded-md border px-3 text-xs text-muted-foreground"
+          <div class="flex items-center gap-2 w-full md:w-auto flex-nowrap md:pt-5">
+            @if (currentContext.archived) {
+              <span
+                class="h-9 inline-flex items-center rounded-md border px-3 text-xs text-muted-foreground"
+              >
+                Archived
+              </span>
+            }
+            @if (currentContext.archived) {
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+                [disabled]="restoreContextMutation.isPending()"
+                (click)="restoreContext()"
+              >
+                <ng-icon name="lucideArchiveRestore"></ng-icon>
+                <span>Restore</span>
+              </button>
+            } @else {
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-9 px-3 text-xs"
+                [disabled]="archiveContextMutation.isPending()"
+                (click)="archiveContext()"
+              >
+                <ng-icon name="lucideArchive"></ng-icon>
+                <span>Archive</span>
+              </button>
+            }
+            <button
+              hlmBtn
+              variant="outline"
+              class="h-9 px-3 text-xs bg-red-100/70 text-red-700"
+              [disabled]="deleteContextMutation.isPending()"
+              (click)="deleteContext()"
             >
-              Archived
-            </span>
-          }
-          @if (context().archived) {
+              <ng-icon name="lucideTrash2"></ng-icon>
+            </button>
             <button
               hlmBtn
               variant="outline"
               class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-              [disabled]="restoreContextMutation.isPending()"
-              (click)="restoreContext()"
+              [disabled]="currentContext.archived"
+              (click)="startContext()"
             >
-              <ng-icon name="lucideArchiveRestore"></ng-icon>
-              <span>Restore</span>
+              <ng-icon name="lucidePlay"></ng-icon>
+              <span class="font-semibold text-blue-600">Start</span>
             </button>
-          } @else {
-            <button
-              hlmBtn
-              variant="outline"
-              class="h-9 px-3 text-xs"
-              [disabled]="archiveContextMutation.isPending()"
-              (click)="archiveContext()"
-            >
-              <ng-icon name="lucideArchive"></ng-icon>
-              <span>Archive</span>
-            </button>
-          }
-          <button
-            hlmBtn
-            variant="outline"
-            class="h-9 px-3 text-xs bg-red-100/70 text-red-700"
-            [disabled]="deleteContextMutation.isPending()"
-            (click)="deleteContext()"
-          >
-            <ng-icon name="lucideTrash2"></ng-icon>
-          </button>
-          <button
-            hlmBtn
-            variant="outline"
-            class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-            [disabled]="context().archived"
-            (click)="startContext()"
-          >
-            <ng-icon name="lucidePlay"></ng-icon>
-            <span class="font-semibold text-blue-600">Start</span>
-          </button>
+          </div>
         </div>
-      </div>
 
-      <div class="flex w-full">
-        <div class="w-full flex items-center justify-center gap-4">
-          <div hlmCard class="w-full p-3 rounded-lg border">
-            <h3
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-              hlmCardTitle
-            >
-              Total time
-            </h3>
-            <div class="text-lg font-semibold" hlmCardContet>
-              {{ parseDuration(contextStats()?.totalDuration) }}
+        @if (showContextStatsError()) {
+          <ctx-query-error-state
+            class="w-full min-h-40"
+            [error]="contextStatsQuery.error()"
+            [paused]="contextStatsQuery.isPaused()"
+            resourceName="context statistics"
+            [retrying]="contextStatsQuery.isFetching()"
+            (retry)="retryContextStats()"
+          ></ctx-query-error-state>
+        } @else {
+          <div class="flex w-full">
+            <div class="w-full flex items-center justify-center gap-4">
+              <div hlmCard class="w-full p-3 rounded-lg border">
+                <h3
+                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                  hlmCardTitle
+                >
+                  Total time
+                </h3>
+                <div class="text-lg font-semibold" hlmCardContet>
+                  {{ parseDuration(contextStats()?.totalDuration) }}
+                </div>
+              </div>
+              <div hlmCard class="w-full p-3 rounded-lg border">
+                <h3
+                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                  hlmCardTitle
+                >
+                  Today
+                </h3>
+                <div class="text-lg font-semibold" hlmCardContet>
+                  {{ parseDuration(contextStats()?.duration) }}
+                </div>
+              </div>
+              <div hlmCard class="w-full p-3 rounded-lg border">
+                <h3
+                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                  hlmCardTitle
+                >
+                  Sessions
+                </h3>
+                <div class="text-lg font-semibold" hlmCardContet>
+                  {{ contextStats()?.totalSessions }}
+                </div>
+              </div>
+              <div hlmCard class="w-full p-3 rounded-lg border">
+                <h3
+                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                  hlmCardTitle
+                >
+                  Today sessions
+                </h3>
+                <div class="text-lg font-semibold" hlmCardContet>
+                  {{ contextStats()?.sessions }}
+                </div>
+              </div>
             </div>
           </div>
-          <div hlmCard class="w-full p-3 rounded-lg border">
-            <h3
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-              hlmCardTitle
-            >
-              Today
-            </h3>
-            <div class="text-lg font-semibold" hlmCardContet>
-              {{ parseDuration(contextStats()?.duration) }}
-            </div>
-          </div>
-          <div hlmCard class="w-full p-3 rounded-lg border">
-            <h3
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-              hlmCardTitle
-            >
-              Sessions
-            </h3>
-            <div class="text-lg font-semibold" hlmCardContet>
-              {{ contextStats()?.totalSessions }}
-            </div>
-          </div>
-          <div hlmCard class="w-full p-3 rounded-lg border">
-            <h3
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-              hlmCardTitle
-            >
-              Today sessions
-            </h3>
-            <div class="text-lg font-semibold" hlmCardContet>{{ contextStats()?.sessions }}</div>
-          </div>
-        </div>
-      </div>
-      <ctx-context-interval-list
-        [contextId]="contextId()"
-        [activeWorkspaceId]="activeWorkspaceId()"
-        [contexts]="contexts()"
-        [readonly]="context().archived ?? false"
-      ></ctx-context-interval-list>
+        }
+        <ctx-context-interval-list
+          [contextId]="contextId()"
+          [activeWorkspaceId]="activeWorkspaceId()"
+          [contexts]="contexts()"
+          [readonly]="currentContext.archived ?? false"
+        ></ctx-context-interval-list>
+      }
     </div>
   `,
   styles: `
@@ -170,7 +202,12 @@ export class ContextComponent {
   private contextMutations = inject(ContextMutations);
   private router = inject(Router);
   private store = inject(Store);
+  private route = inject(ActivatedRoute);
   readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  readonly today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
+  readonly contextId = toSignal(this.route.paramMap.pipe(map((pm) => pm.get('id') ?? '')), {
+    initialValue: '',
+  });
 
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   updateContextMutation = injectMutation(() => this.contextMutations.update());
@@ -179,28 +216,33 @@ export class ContextComponent {
   restoreContextMutation = injectMutation(() => this.contextMutations.restore());
   contextQuery = injectQuery(() => this.contextQueries.get(this.contextId()));
   contextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
-  context = computed(() => this.contextQuery.data()!);
+  context = computed(() => this.contextQuery.data() ?? null);
   contextStatsQuery = injectQuery(() => this.contextQueries.stats(this.contextId(), this.today()));
   contextStats = computed(() => this.contextStatsQuery.data());
-  today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
+  readonly showContextError = computed(
+    () =>
+      this.contextQuery.data() === undefined &&
+      (this.contextQuery.isError() || this.contextQuery.isPaused()),
+  );
+  readonly showContextStatsError = computed(
+    () =>
+      this.contextStatsQuery.data() === undefined &&
+      (this.contextStatsQuery.isError() || this.contextStatsQuery.isPaused()),
+  );
   contexts = computed(() => this.contextsQuery.data() ?? []);
 
-  route = inject(ActivatedRoute);
-  readonly contextId = toSignal(this.route.paramMap.pipe(map((pm) => pm.get('id') ?? '')), {
-    initialValue: '',
-  });
-
   startContext() {
-    if (this.context().archived) {
+    const context = this.context();
+    if (!context || context.archived) {
       return;
     }
-    this.switchContextMutation.mutate(this.context()!);
+    this.switchContextMutation.mutate(context);
   }
 
   deleteContext() {
     const context = this.context();
 
-    if (!context.id) {
+    if (!context?.id) {
       return;
     }
 
@@ -217,7 +259,7 @@ export class ContextComponent {
 
   saveContextName(value: NameSaveValue): void {
     const context = this.context();
-    if (context.archived) {
+    if (!context || context.archived) {
       return;
     }
 
@@ -234,7 +276,7 @@ export class ContextComponent {
 
   archiveContext(): void {
     const context = this.context();
-    if (context.archived) {
+    if (!context || context.archived) {
       return;
     }
     if (!window.confirm(`Archive context "${context.name}"?`)) {
@@ -246,7 +288,7 @@ export class ContextComponent {
 
   restoreContext(): void {
     const context = this.context();
-    if (!context.archived) {
+    if (!context || !context.archived) {
       return;
     }
 
@@ -258,5 +300,13 @@ export class ContextComponent {
       return '0h 0m';
     }
     return `${durationAsH(duration)}h ${durationAsM(duration)}m`;
+  }
+
+  retryContext(): void {
+    void this.contextQuery.refetch();
+  }
+
+  retryContextStats(): void {
+    void this.contextStatsQuery.refetch();
   }
 }

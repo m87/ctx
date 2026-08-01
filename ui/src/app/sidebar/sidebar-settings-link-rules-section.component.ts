@@ -3,7 +3,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucidePencil, lucideTrash2, lucideX } from '@ng-icons/lucide';
 import { Store } from '@ngxs/store';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { WorkspaceQueries } from '../../api/workspace.quries';
+import { WorkspaceQueries } from '../../api/workspace.queries';
 import { WorkspaceState } from './workspace.state';
 import { WorkspaceMutations } from '../../api/workspace.mutations';
 import { LinkRule } from '../../api/workspace.service';
@@ -23,7 +23,14 @@ type LinkRuleEdit = {
   template: `
     <div class="space-y-6">
       <div class="space-y-1.5">
-        <div class="text-foreground font-medium text-[15px]">Link rules</div>
+        <div class="flex items-center gap-2">
+          <div class="text-foreground font-medium text-[15px]">Link rules</div>
+          <span
+            class="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground"
+          >
+            Per workspace
+          </span>
+        </div>
         <div class="text-[13px] sm:text-[14px]">
           Turn matching text into links by pairing a regular expression with a link template.
         </div>

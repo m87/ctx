@@ -1,7 +1,7 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { injectQuery } from '@tanstack/angular-query-experimental';
-import { WorkspaceQueries } from '../../api/workspace.quries';
+import { WorkspaceQueries } from '../../api/workspace.queries';
 import { LinkRule } from '../../api/workspace.service';
 import { WorkspaceState } from '../sidebar/workspace.state';
 

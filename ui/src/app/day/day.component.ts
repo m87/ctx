@@ -6,14 +6,16 @@ import { DateTime } from 'luxon';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFlag, lucidePlay } from '@ng-icons/lucide';
-import { ContextQueries } from '../../api/context.quries';
-import { DayStats } from '../../api/context.service';
 import { ContextListComponent } from '../context/context-list.component';
 import { ContextListItem } from '../context/context-list-item.component';
 import { DistributionComponent, DistributionItem } from '../shared/distribution.component';
+import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { colorHash, durationAsHM } from '../utils';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
+import { WorkspaceQueries } from '../../api/workspace.queries';
+import { IntervalQueries } from '../../api/interval.queries';
+import { DayStats } from '../../api/interval.service';
 
 const EMPTY_DAY_STATS: DayStats = {
   date: '',
@@ -25,7 +27,7 @@ const EMPTY_DAY_STATS: DayStats = {
 
 @Component({
   selector: 'ctx-day',
-  imports: [ContextListComponent, DistributionComponent, NgIcon],
+  imports: [ContextListComponent, DistributionComponent, NgIcon, QueryErrorStateComponent],
   providers: [
     provideIcons({
       lucidePlay,
@@ -61,46 +63,61 @@ const EMPTY_DAY_STATS: DayStats = {
         </div>
       </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 mb-6">
-        <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-            Total tracked
+      @if (showDayError()) {
+        <ctx-query-error-state
+          class="flex-1 min-h-0"
+          [error]="dayError()"
+          [paused]="dayErrorPaused()"
+          [resourceName]="dayErrorResourceName()"
+          [retrying]="dayErrorRetrying()"
+          (retry)="retryDayData()"
+        ></ctx-query-error-state>
+      } @else {
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 mb-6">
+          <div class="rounded-lg border bg-card px-3 py-2.5">
+            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+              Total tracked
+            </div>
+            <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
           </div>
-          <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
-        </div>
-        <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Contexts</div>
-          <div class="text-base font-semibold mt-1">{{ contexts().length }}</div>
-        </div>
-        <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Sessions</div>
-          <div class="text-base font-semibold mt-1">{{ totalSessions() }}</div>
-        </div>
-        <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-            Top context
+          <div class="rounded-lg border bg-card px-3 py-2.5">
+            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+              Contexts
+            </div>
+            <div class="text-base font-semibold mt-1">{{ contexts().length }}</div>
           </div>
-          <div class="text-sm font-medium mt-1 truncate">{{ topContext() }}</div>
+          <div class="rounded-lg border bg-card px-3 py-2.5">
+            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+              Sessions
+            </div>
+            <div class="text-base font-semibold mt-1">{{ totalSessions() }}</div>
+          </div>
+          <div class="rounded-lg border bg-card px-3 py-2.5">
+            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+              Top context
+            </div>
+            <div class="text-sm font-medium mt-1 truncate">{{ topContext() }}</div>
+          </div>
         </div>
-      </div>
 
-      <ctx-distribution
-        class="block mb-6"
-        [items]="distributionContexts()"
-        emptyMessage="No tracked time for this day."
-      ></ctx-distribution>
+        <ctx-distribution
+          class="block mb-6"
+          [items]="distributionContexts()"
+          emptyMessage="No tracked time for this day."
+        ></ctx-distribution>
 
-      <div
-        class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2 shrink-0"
-      >
-        Contexts
-      </div>
-      <div class="flex-1 min-h-0 overflow-auto pr-1 pb-2">
-        <ctx-context-list
-          [items]="contexts()"
-          emptyMessage="No contexts tracked for this day."
-        ></ctx-context-list>
-      </div>
+        <div
+          class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2 shrink-0"
+        >
+          Contexts
+        </div>
+        <div class="flex-1 min-h-0 overflow-auto pr-1 pb-2">
+          <ctx-context-list
+            [items]="contexts()"
+            emptyMessage="No contexts tracked for this day."
+          ></ctx-context-list>
+        </div>
+      }
     </div>
   `,
   styles: `
@@ -114,7 +131,8 @@ const EMPTY_DAY_STATS: DayStats = {
   `,
 })
 export class DayComponent {
-  private contextQueries = inject(ContextQueries);
+  private intervalQueriess = inject(IntervalQueries);
+  private workspaceQueries = inject(WorkspaceQueries);
   private store = inject(Store);
   private activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   route = inject(ActivatedRoute);
@@ -127,7 +145,35 @@ export class DayComponent {
   );
 
   dayStatsQuery = injectQuery(() =>
-    this.contextQueries.dayStats(this.activeWorkspaceId(), this.selectedDate()),
+    this.intervalQueriess.dayStats(this.activeWorkspaceId(), this.selectedDate()),
+  );
+  workspaceListQuery = injectQuery(() => this.workspaceQueries.list());
+  readonly showWorkspaceListError = computed(
+    () =>
+      this.workspaceListQuery.data() === undefined &&
+      (this.workspaceListQuery.isError() || this.workspaceListQuery.isPaused()),
+  );
+  readonly showDayStatsError = computed(
+    () =>
+      this.dayStatsQuery.data() === undefined &&
+      (this.dayStatsQuery.isError() || this.dayStatsQuery.isPaused()),
+  );
+  readonly showDayError = computed(() => this.showWorkspaceListError() || this.showDayStatsError());
+  readonly dayError = computed(() =>
+    this.showWorkspaceListError() ? this.workspaceListQuery.error() : this.dayStatsQuery.error(),
+  );
+  readonly dayErrorPaused = computed(() =>
+    this.showWorkspaceListError()
+      ? this.workspaceListQuery.isPaused()
+      : this.dayStatsQuery.isPaused(),
+  );
+  readonly dayErrorResourceName = computed(() =>
+    this.showWorkspaceListError() ? 'workspaces' : 'daily summary',
+  );
+  readonly dayErrorRetrying = computed(() =>
+    this.showWorkspaceListError()
+      ? this.workspaceListQuery.isFetching()
+      : this.dayStatsQuery.isFetching(),
   );
   dayStats = computed(() => this.dayStatsQuery.data() ?? EMPTY_DAY_STATS);
   firstContextStart = computed(() => {
@@ -217,5 +263,14 @@ export class DayComponent {
 
   formatTime(date: { toTimeString: () => string }): string {
     return date.toTimeString().slice(0, 5);
+  }
+
+  retryDayData(): void {
+    if (this.showWorkspaceListError()) {
+      void this.workspaceListQuery.refetch();
+      return;
+    }
+
+    void this.dayStatsQuery.refetch();
   }
 }

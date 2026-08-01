@@ -8,7 +8,9 @@ import { IntervalMutations } from '../../api/interval.mutations';
 import { Interval, ZonedDateTime } from '../../api/interval.service';
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
-import { IntegrityDateTime, IntegrityIssue, IntegrityReport } from '../../api/settings.service';
+import { IntegrityDateTime, IntegrityIssue, IntegrityReport } from '../../api/integrity.service';
+import { IntegrityQueries } from '../../api/integrity.queries';
+import { IntegrityMutations } from '../../api/integrity.mutations';
 
 type IntegrityIssueGroup = {
   key: string;
@@ -277,19 +279,19 @@ type IntegrityIntervalTimeInputs = {
   `,
 })
 export class SidebarSettingsDataIntegritySectionComponent {
-  private settingsQueries = inject(SettingsQueries);
-  private settingsMutations = inject(SettingsMutations);
+  private integrityQueries = inject(IntegrityQueries);
+  private integrityMutations = inject(IntegrityMutations);
   private contextMutations = inject(ContextMutations);
   private intervalMutations = inject(IntervalMutations);
 
-  integrityQuery = injectQuery(() => this.settingsQueries.integrity());
+  integrityQuery = injectQuery(() => this.integrityQueries.integrity());
 
   private readonly latestIntegrityReport = signal<IntegrityReport | undefined>(undefined);
   readonly integrityReport = computed(
     () => this.latestIntegrityReport() ?? this.integrityQuery.data(),
   );
   integrityContextsQuery = injectQuery(() =>
-    this.settingsQueries.integrityContexts(
+    this.integrityQueries.integrityContexts(
       this.integrityReport()?.issues.some((issue) => this.isContextAssignmentIssue(issue)) ?? false,
     ),
   );
@@ -298,8 +300,8 @@ export class SidebarSettingsDataIntegritySectionComponent {
     this.groupIntegrityIssues(this.integrityReport()?.issues ?? []),
   );
 
-  checkIntegrityMutation = injectMutation(() => this.settingsMutations.checkIntegrity());
-  repairIntegrityMutation = injectMutation(() => this.settingsMutations.repairIntegrity());
+  checkIntegrityMutation = injectMutation(() => this.integrityMutations.checkIntegrity());
+  repairIntegrityMutation = injectMutation(() => this.integrityMutations.repairIntegrity());
   deleteIntegrityContextMutation = injectMutation(() => this.contextMutations.delete());
   deleteIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.delete());
   moveIntegrityIntervalMutation = injectMutation(() => this.intervalMutations.move());

@@ -1,55 +1,41 @@
-import { inject, Injectable } from '@angular/core';
-import { Context, ContextService } from './context.service';
-import { mutationOptions, QueryClient } from '@tanstack/angular-query-experimental';
 import { Router } from '@angular/router';
+import { inject, Injectable } from '@angular/core';
+import { mutationOptions } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
-import { ContextQueries } from './context.quries';
-import { toastError } from './error';
-import { WorkspaceQueries } from './workspace.quries';
+import { CacheService } from './cache.service';
+import { Context, ContextService, CreateContextInput, SwitchContextInput } from './context.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ContextMutations {
-  private contextService = inject(ContextService);
-  private queryClient = inject(QueryClient);
-  private router = inject(Router);
+  private readonly contextService = inject(ContextService);
+  private readonly cache = inject(CacheService);
+  private readonly router = inject(Router);
 
   create() {
     return mutationOptions({
-      mutationFn: (context: Context) => lastValueFrom(this.contextService.createContext(context)),
-      onSuccess: (data) => {
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
-        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
-        this.router.navigate(['/contexts', data.id]);
-      },
-      onError(error) {
-        toastError(error);
+      mutationFn: (context: CreateContextInput) =>
+        lastValueFrom(this.contextService.createContext(context)),
+      onSuccess: async (data) => {
+        await this.cache.afterContextCreate();
+        await this.router.navigate(['/context', data.id]);
       },
     });
   }
 
   switch() {
     return mutationOptions({
-      mutationFn: (context: Context) => lastValueFrom(this.contextService.switchContext(context)),
-      onSuccess: () => {
-        this.invalidateAfterActiveIntervalChange();
-      },
-      onError(error) {
-        toastError(error);
-      },
+      mutationFn: (context: SwitchContextInput) =>
+        lastValueFrom(this.contextService.switchContext(context)),
+      onSuccess: () => this.cache.afterActiveIntervalChange(),
     });
   }
 
   free() {
     return mutationOptions({
       mutationFn: () => lastValueFrom(this.contextService.freeContext()),
-      onSuccess: () => {
-        this.invalidateAfterActiveIntervalChange();
-      },
-      onError(error) {
-        toastError(error);
-      },
+      onSuccess: () => this.cache.afterActiveIntervalChange(),
     });
   }
 
@@ -57,73 +43,30 @@ export class ContextMutations {
     return mutationOptions({
       mutationFn: ({ id, context }: { id: string; context: Context }) =>
         lastValueFrom(this.contextService.updateContext(id, context)),
-      onSuccess: (data) => {
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
-        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'get', data.id] });
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'stats', data.id] });
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
-        this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
-      },
-      onError(error) {
-        toastError(error);
-      },
+      onSuccess: (data) => this.cache.afterContextMetadataChange(data.id, true),
     });
   }
 
   delete() {
     return mutationOptions({
       mutationFn: (id: string) => lastValueFrom(this.contextService.deleteContext(id)),
-      onSuccess: () => {
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
-        this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
-        this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
-        this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
-      },
-      onError(error) {
-        toastError(error);
-      },
+      onSuccess: (_data, contextId) => this.cache.afterContextDelete(contextId),
     });
   }
 
   archive() {
     return mutationOptions({
-      mutationFn: (contextId: string) => lastValueFrom(this.contextService.archiveContext(contextId)),
-      onSuccess: (_data, contextId) => {
-        this.invalidateAfterActiveIntervalChange(contextId);
-      },
-      onError(error) {
-        toastError(error);
-      },
+      mutationFn: (contextId: string) =>
+        lastValueFrom(this.contextService.archiveContext(contextId)),
+      onSuccess: (_data, contextId) => this.cache.afterContextMetadataChange(contextId),
     });
   }
 
   restore() {
     return mutationOptions({
-      mutationFn: (contextId: string) => lastValueFrom(this.contextService.restoreContext(contextId)),
-      onSuccess: (_data, contextId) => {
-        this.invalidateAfterActiveIntervalChange(contextId);
-      },
-      onError(error) {
-        toastError(error);
-      },
+      mutationFn: (contextId: string) =>
+        lastValueFrom(this.contextService.restoreContext(contextId)),
+      onSuccess: (_data, contextId) => this.cache.afterContextMetadataChange(contextId),
     });
-  }
-
-  private invalidateAfterActiveIntervalChange(contextId?: string) {
-    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'list'] });
-    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'active'] });
-    this.queryClient.invalidateQueries({ queryKey: [...ContextQueries.key, 'intervals'] });
-    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'stats'] });
-    this.queryClient.invalidateQueries({ queryKey: [ContextQueries.key, 'day-stats'] });
-    this.queryClient.invalidateQueries({ queryKey: ['interval', 'day'] });
-    this.queryClient.invalidateQueries({ queryKey: [WorkspaceQueries.key, 'stats'] });
-
-    if (contextId) {
-      this.queryClient.invalidateQueries({
-        queryKey: [ContextQueries.key, 'get', contextId],
-      });
-    }
   }
 }

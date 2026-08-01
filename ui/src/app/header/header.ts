@@ -19,7 +19,7 @@ import { SidebarStore } from '../sidebar/sidebar.store';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { Context } from '../../api/context.service';
-import { ContextQueries } from '../../api/context.quries';
+import { ContextQueries } from '../../api/context.queries';
 import { ContextMutations } from '../../api/context.mutations';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
@@ -29,6 +29,7 @@ import { ContextService, ContextStats } from '../../api/context.service';
 import { SettingsQueries } from '../../api/settings.queries';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
+import { IntervalQueries } from '../../api/interval.queries';
 
 const firstDayKey = 'client.general.firstDay';
 
@@ -459,6 +460,7 @@ export class HeaderComponent {
   breadcrumbService = inject(BreadcrumbService);
   sidebar = inject(SidebarStore);
   private contextQueries = inject(ContextQueries);
+  private inteverlaQueries = inject(IntervalQueries);
   private contextMutations = inject(ContextMutations);
   private contextService = inject(ContextService);
   private settingsQueries = inject(SettingsQueries);
@@ -481,7 +483,7 @@ export class HeaderComponent {
     { initialValue: this.today() },
   );
   dayStatsQuery = injectQuery(() =>
-    this.contextQueries.dayStats(this.activeWorkspaceId(), this.selectedDate()),
+    this.inteverlaQueries.dayStats(this.activeWorkspaceId(), this.selectedDate()),
   );
   activeContextName = computed(() => this.activeContextQuery.data()?.name ?? '');
   weekStartsOn = computed(() => (this.settingsQuery.data()?.[firstDayKey] === 'Sunday' ? 0 : 1));
@@ -628,7 +630,7 @@ export class HeaderComponent {
     }
     this.searchTerm.set(normalizedTerm);
     this.resetSearchUi();
-    this.switchContextMutation.mutate({ id: '', name: normalizedTerm } as Context);
+    this.switchContextMutation.mutate({ id: '', name: normalizedTerm });
   }
 
   onSearchKeydown(event: KeyboardEvent): void {

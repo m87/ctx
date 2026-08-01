@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, map, Observable, of } from 'rxjs';
+import { catchError, map, Observable, of, throwError } from 'rxjs';
+import { hasApiErrorCode } from './error';
 import { deserializeIntervals, Interval, RawInterval } from './interval.service';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../app/sidebar/workspace.state';
@@ -15,6 +16,11 @@ export interface Context {
   tags?: string[];
 }
 
+export type CreateContextInput = Pick<Context, 'name'> &
+  Partial<Pick<Context, 'description' | 'workspaceId' | 'tags'>>;
+
+export type SwitchContextInput = CreateContextInput & Partial<Pick<Context, 'id'>>;
+
 export interface ContextStats {
   contextId: string;
   date: string;
@@ -24,42 +30,28 @@ export interface ContextStats {
   duration: number;
 }
 
-export interface DayContextStats {
-  contextId: string;
-  duration: number;
-  percentage: number;
-  intervalCount: number;
-}
-
-export interface DayStats {
-  date: string;
-  contextStats: DayContextStats[];
-  contexts: Context[];
-  intervals: { [key: string]: Interval[] };
-  distribution: { [contextId: string]: number };
-}
-
-type RawDayStats = Omit<DayStats, 'intervals'> & {
-  intervals: { [key: string]: RawInterval[] };
-};
-
 @Injectable({
   providedIn: 'root',
 })
 export class ContextService {
-  http = inject(HttpClient);
-  store = inject(Store);
+  private readonly http = inject(HttpClient);
+  private readonly store = inject(Store);
+  private readonly baseUrl = '/api/context';
 
   getIntervals(contextId: string): Observable<Interval[]> {
     return this.http
-      .get<RawInterval[]>(`/api/context/${contextId}/intervals`)
+      .get<RawInterval[]>(this.url(contextId, 'intervals'))
       .pipe(map((intervals) => deserializeIntervals(intervals)));
   }
 
-  getActiveContext(): Observable<Context> {
+  getActiveContext(): Observable<Context | null> {
     return this.http
-      .get<Context>('/api/context/active')
-      .pipe(catchError(() => of<Context>({} as Context)));
+      .get<Context>(this.url('active'))
+      .pipe(
+        catchError((error: unknown) =>
+          hasApiErrorCode(error, 'ACTIVE_CONTEXT_NOT_FOUND') ? of(null) : throwError(() => error),
+        ),
+      );
   }
 
   getContexts(workspaceId: string, includeArchived = false): Observable<Context[]> {
@@ -67,64 +59,60 @@ export class ContextService {
     if (includeArchived) {
       params.set('includeArchived', 'true');
     }
-    return this.http.get<Context[]>(`/api/context/?${params.toString()}`);
+    return this.http.get<Context[]>(this.url(`?${params.toString()}`));
   }
 
-  createContext(context: Context): Observable<Context> {
-    if (context.workspaceId == null) {
-      context.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
-    }
-    return this.http.post<Context>('/api/context/', context);
+  createContext(context: CreateContextInput): Observable<Context> {
+    return this.http.post<Context>(this.url(), this.withWorkspace(context));
   }
 
   deleteContext(id: string): Observable<void> {
-    return this.http.delete<void>(`/api/context/${id}`);
+    return this.http.delete<void>(this.url(id));
   }
 
   updateContext(id: string, context: Context): Observable<Context> {
-    return this.http.put<Context>(`/api/context/${id}`, context);
+    return this.http.put<Context>(this.url(id), context);
   }
 
   getContext(id: string): Observable<Context> {
-    return this.http.get<Context>(`/api/context/${id}`);
+    return this.http.get<Context>(this.url(id));
   }
 
-  switchContext(context: Context): Observable<void> {
-    if (context.workspaceId == null) {
-      context.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
-    }
-    return this.http.post<void>(`/api/context/switch`, context);
+  switchContext(context: SwitchContextInput): Observable<void> {
+    return this.http.post<void>(this.url('switch'), this.withWorkspace(context));
   }
 
   freeContext(): Observable<void> {
-    return this.http.post<void>('/api/context/free', {});
+    return this.http.post<void>(this.url('free'), {});
   }
 
   getStats(contextId: string, date: string): Observable<ContextStats> {
-    return this.http.get<ContextStats>(`/api/context/${contextId}/stats/${date}`);
-  }
-
-  getDayStats(workspaceId: string, date: string): Observable<DayStats> {
-    return this.http
-      .get<RawDayStats>(`/api/interval/day/${date}/stats?workspaceId=${workspaceId}`)
-      .pipe(
-        map((response) => ({
-          ...response,
-          intervals: Object.fromEntries(
-            Object.entries(response.intervals).map(([contextId, intervals]) => [
-              contextId,
-              deserializeIntervals(intervals),
-            ]),
-          ),
-        })),
-      );
+    return this.http.get<ContextStats>(this.url(contextId, 'stats', date));
   }
 
   archiveContext(contextId: string): Observable<void> {
-    return this.http.post<void>(`/api/context/${contextId}/archive`, {});
+    return this.http.post<void>(this.url(contextId, 'archive'), {});
   }
 
   restoreContext(contextId: string): Observable<void> {
-    return this.http.post<void>(`/api/context/${contextId}/restore`, {});
+    return this.http.post<void>(this.url(contextId, 'restore'), {});
   }
+
+  private withWorkspace<T extends CreateContextInput>(context: T): T & { workspaceId: string } {
+    return {
+      ...context,
+      workspaceId:
+        context.workspaceId ?? this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!,
+    };
+  }
+
+  private url(...segments: string[]): string {
+    let url = [this.baseUrl, ...segments].join('/');
+    if(segments.length === 0 && !url.endsWith('/')) {
+      url += '/';
+    }
+    return url;
+  }
+
+
 }

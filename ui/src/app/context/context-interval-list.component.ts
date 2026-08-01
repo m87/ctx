@@ -4,15 +4,16 @@ import { lucidePlus } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { DateTime } from 'luxon';
-import { ContextQueries } from '../../api/context.quries';
+import { ContextQueries } from '../../api/context.queries';
 import { Context } from '../../api/context.service';
 import { IntervalMutations } from '../../api/interval.mutations';
 import { Interval, ZonedDateTime } from '../../api/interval.service';
+import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { ContextIntervalItemComponent } from './context-interval-item.component';
 
 @Component({
   selector: 'ctx-context-interval-list',
-  imports: [ContextIntervalItemComponent, NgIcon, HlmButtonImports],
+  imports: [ContextIntervalItemComponent, NgIcon, HlmButtonImports, QueryErrorStateComponent],
   providers: [
     provideIcons({
       lucidePlus,
@@ -26,68 +27,81 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
         <span>Intervals</span>
       </div>
 
-      @if (!readonly()) {
-        <div class="w-full rounded-lg border bg-card p-3 flex flex-col gap-2">
-          <div class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold">
-            Add interval
-          </div>
-          <div class="w-full flex flex-col md:flex-row items-stretch md:items-end gap-2">
-            <label class="flex-1 text-xs text-muted-foreground">
-              Start
-              <input
-                type="datetime-local"
-                class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
-                [value]="newIntervalStartInput()"
-                (input)="newIntervalStartInput.set(getInputValue($event))"
-              />
-            </label>
-            <label class="flex-1 text-xs text-muted-foreground">
-              End
-              <input
-                type="datetime-local"
-                class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
-                [value]="newIntervalEndInput()"
-                (input)="newIntervalEndInput.set(getInputValue($event))"
-              />
-            </label>
-            <button
-              hlmBtn
-              variant="outline"
-              class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-              [disabled]="createIntervalMutation.isPending()"
-              (click)="addInterval()"
+      @if (showIntervalsError()) {
+        <ctx-query-error-state
+          class="flex-1 min-h-0"
+          [error]="contextIntervalsQuery.error()"
+          [paused]="contextIntervalsQuery.isPaused()"
+          resourceName="intervals"
+          [retrying]="contextIntervalsQuery.isFetching()"
+          (retry)="retryIntervals()"
+        ></ctx-query-error-state>
+      } @else {
+        @if (!readonly()) {
+          <div class="w-full rounded-lg border bg-card p-3 flex flex-col gap-2">
+            <div
+              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
             >
-              <ng-icon name="lucidePlus"></ng-icon>
-              <span>Add</span>
-            </button>
+              Add interval
+            </div>
+            <div class="w-full flex flex-col md:flex-row items-stretch md:items-end gap-2">
+              <label class="flex-1 text-xs text-muted-foreground">
+                Start
+                <input
+                  type="datetime-local"
+                  class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
+                  [value]="newIntervalStartInput()"
+                  (input)="newIntervalStartInput.set(getInputValue($event))"
+                />
+              </label>
+              <label class="flex-1 text-xs text-muted-foreground">
+                End
+                <input
+                  type="datetime-local"
+                  class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm mt-1"
+                  [value]="newIntervalEndInput()"
+                  (input)="newIntervalEndInput.set(getInputValue($event))"
+                />
+              </label>
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+                [disabled]="createIntervalMutation.isPending()"
+                (click)="addInterval()"
+              >
+                <ng-icon name="lucidePlus"></ng-icon>
+                <span>Add</span>
+              </button>
+            </div>
+            @if (intervalFormError()) {
+              <div class="text-xs text-red-600">{{ intervalFormError() }}</div>
+            }
           </div>
-          @if (intervalFormError()) {
-            <div class="text-xs text-red-600">{{ intervalFormError() }}</div>
+        }
+
+        <div class="w-full flex flex-col gap-2 flex-1 min-h-0 overflow-auto pr-1 pb-2">
+          @for (interval of intervals(); track interval.id) {
+            <ctx-context-interval-item
+              [interval]="interval"
+              [isEditing]="editingIntervalId() === interval.id"
+              [editStartInput]="editIntervalStartInput()"
+              [editEndInput]="editIntervalEndInput()"
+              [updatePending]="updateIntervalMutation.isPending()"
+              [deletePending]="deleteIntervalMutation.isPending()"
+              [readonly]="readonly()"
+              [canMove]="!readonly() && movableContexts().length > 0"
+              (editStartInputChange)="editIntervalStartInput.set($event)"
+              (editEndInputChange)="editIntervalEndInput.set($event)"
+              (edit)="startIntervalEdit($event)"
+              (save)="saveIntervalEdit($event)"
+              (cancel)="cancelIntervalEdit()"
+              (move)="openMoveDialog($event)"
+              (delete)="deleteInterval($event)"
+            ></ctx-context-interval-item>
           }
         </div>
       }
-
-      <div class="w-full flex flex-col gap-2 flex-1 min-h-0 overflow-auto pr-1 pb-2">
-        @for (interval of intervals(); track interval.id) {
-          <ctx-context-interval-item
-            [interval]="interval"
-            [isEditing]="editingIntervalId() === interval.id"
-            [editStartInput]="editIntervalStartInput()"
-            [editEndInput]="editIntervalEndInput()"
-            [updatePending]="updateIntervalMutation.isPending()"
-            [deletePending]="deleteIntervalMutation.isPending()"
-            [readonly]="readonly()"
-            [canMove]="!readonly() && movableContexts().length > 0"
-            (editStartInputChange)="editIntervalStartInput.set($event)"
-            (editEndInputChange)="editIntervalEndInput.set($event)"
-            (edit)="startIntervalEdit($event)"
-            (save)="saveIntervalEdit($event)"
-            (cancel)="cancelIntervalEdit()"
-            (move)="openMoveDialog($event)"
-            (delete)="deleteInterval($event)"
-          ></ctx-context-interval-item>
-        }
-      </div>
 
       @if (moveDialogIntervalId()) {
         <div class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
@@ -147,6 +161,11 @@ export class ContextIntervalListComponent {
   contextIntervalsQuery = injectQuery(() => this.contextQueries.intervals(this.contextId()));
 
   readonly intervals = computed(() => this.contextIntervalsQuery.data() ?? []);
+  readonly showIntervalsError = computed(
+    () =>
+      this.contextIntervalsQuery.data() === undefined &&
+      (this.contextIntervalsQuery.isError() || this.contextIntervalsQuery.isPaused()),
+  );
   readonly movableContexts = computed(() =>
     this.contexts().filter((context) => context.id && context.id !== this.contextId()),
   );
@@ -306,6 +325,10 @@ export class ContextIntervalListComponent {
 
   getSelectValue(event: Event): string {
     return (event.target as HTMLSelectElement).value;
+  }
+
+  retryIntervals(): void {
+    void this.contextIntervalsQuery.refetch();
   }
 
   private parseIntervalInput(

@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"github.com/m87/ctx/core"
 	"github.com/m87/nod"
+	"gorm.io/gorm"
 )
 
 type ContextRepository struct {
@@ -40,11 +41,17 @@ func (r *ContextRepository) List() ([]*core.Context, error) {
 }
 
 func (r *ContextRepository) GetActive() (*core.Context, error) {
-	return r.scope.Query().
+	context, err := r.scope.Query().
 		Where(nod.NodeFields.Kind.Equals(core.ContextType)).
 		Where(nod.NodeFields.Status.Equals("active")).
 		WithKV().
 		FindFirst()
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+
+	return context, err
 }
 
 func (r *ContextRepository) ListByWorkspace(workspaceId string) ([]*core.Context, error) {
