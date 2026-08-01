@@ -82,12 +82,12 @@ export class IntervalService {
 
   private url(...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
-    if (!url.endsWith('/')) {
+    if (segments.length === 0 && !url.endsWith('/')) {
       url += '/';
     }
     return url;
   }
-
+  
   private urlWithParams(params: { [key: string]: string }, ...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
     if (Object.keys(params).length > 0) {
