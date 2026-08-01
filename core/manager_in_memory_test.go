@@ -177,7 +177,7 @@ func (r *memoryIntervalRepository) GetActiveIntervalByContextId(contextID string
 func (r *memoryIntervalRepository) ListByDay(date time.Time, workspaceID string) ([]*Interval, error) {
 	result := make([]*Interval, 0)
 	for _, interval := range r.items {
-		if interval.WorkspaceId == workspaceID && interval.Start.Time.Year() == date.Year() && interval.Start.Time.YearDay() == date.YearDay() {
+		if interval.WorkspaceId == workspaceID && interval.Start != nil && interval.Start.Year() == date.Year() && interval.Start.YearDay() == date.YearDay() {
 			result = append(result, interval)
 		}
 	}

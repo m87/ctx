@@ -40,7 +40,7 @@ RUN mkdir /data
 RUN mkdir /blobs
 
 EXPOSE 8080
-ENV TZ=Europe/Warsaw
+ENV TZ=UTC
 ENV DATABASE_PATH=/data/ctx.db
 
 CMD ["ctx", "serve", "--addr", ":8080"]

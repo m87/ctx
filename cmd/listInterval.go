@@ -52,7 +52,7 @@ func NewListIntervalCmd() *cobra.Command {
 					if interval == nil {
 						continue
 					}
-					lines = append(lines, fmt.Sprintf("- ID: %s, ContextID: %s, Start: %s, End: %s, Status: %s", interval.Id, interval.ContextId, interval.Start.Time.Format("2006-01-02T15:04:05Z07:00"), interval.End.Time.Format("2006-01-02T15:04:05Z07:00"), interval.Status))
+					lines = append(lines, fmt.Sprintf("- ID: %s, ContextID: %s, Start: %s, End: %s, Status: %s", interval.Id, interval.ContextId, formatIntervalDateTime(interval.Start), formatIntervalDateTime(interval.End), interval.Status))
 				}
 				return strings.Join(lines, "\n")
 			}, nil)

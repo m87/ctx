@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/m87/ctx/core"
 )
 
 func parseDay(day string) (time.Time, error) {
@@ -21,28 +19,26 @@ func parseDay(day string) (time.Time, error) {
 	return parsed.UTC(), nil
 }
 
-func parseDateTime(value string) (core.ZonedTime, error) {
+func parseDateTime(value string) (time.Time, error) {
 	v := strings.TrimSpace(value)
 	// try RFC3339 first
 	parsed, err := time.Parse(time.RFC3339, v)
 	if err == nil {
-		loc := parsed.Location()
-		if loc == nil {
-			loc = time.UTC
-		}
-		return core.ZonedTime{Time: parsed, Timezone: loc.String(), IsZero: false}, nil
+		return parsed.UTC(), nil
 	}
 
 	// try local "YYYY-MM-DD HH:MM:SS" format
-	locName := core.DetectTimezoneName()
-	loc, lerr := time.LoadLocation(locName)
-	if lerr != nil {
-		loc = time.UTC
-	}
-	parsed2, err2 := time.ParseInLocation("2006-01-02 15:04:05", v, loc)
+	parsed2, err2 := time.ParseInLocation("2006-01-02 15:04:05", v, time.Local)
 	if err2 == nil {
-		return core.ZonedTime{Time: parsed2, Timezone: loc.String(), IsZero: false}, nil
+		return parsed2.UTC(), nil
 	}
 
-	return core.ZonedTime{}, fmt.Errorf("invalid datetime %q, expected RFC3339 or 'YYYY-MM-DD HH:MM:SS'", value)
+	return time.Time{}, fmt.Errorf("invalid datetime %q, expected RFC3339 or 'YYYY-MM-DD HH:MM:SS'", value)
+}
+
+func formatIntervalDateTime(value *time.Time) string {
+	if value == nil || value.IsZero() {
+		return "(ongoing)"
+	}
+	return value.UTC().Format(time.RFC3339)
 }

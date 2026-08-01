@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs/operators';
@@ -13,6 +13,7 @@ import { QueryErrorStateComponent } from '../shared/query-error-state.component'
 import { colorHash, durationAsHM } from '../utils';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
+import { TimeZoneService } from '../shared/time-zone.service';
 import { WorkspaceQueries } from '../../api/workspace.queries';
 import { IntervalQueries } from '../../api/interval.queries';
 import { DayStats } from '../../api/interval.service';
@@ -134,18 +135,21 @@ export class DayComponent {
   private intervalQueriess = inject(IntervalQueries);
   private workspaceQueries = inject(WorkspaceQueries);
   private store = inject(Store);
+  private timeZone = inject(TimeZoneService);
   private activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   route = inject(ActivatedRoute);
-  today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
-  readonly selectedDate = toSignal(
-    this.route.paramMap.pipe(map((pm) => pm.get('date') ?? this.today())),
-    {
-      initialValue: this.today(),
-    },
-  );
+  today = computed(() => this.timeZone.today());
+  private readonly routeDate = toSignal(this.route.paramMap.pipe(map((pm) => pm.get('date'))), {
+    initialValue: null,
+  });
+  readonly selectedDate = computed(() => this.routeDate() ?? this.today());
 
   dayStatsQuery = injectQuery(() =>
-    this.intervalQueriess.dayStats(this.activeWorkspaceId(), this.selectedDate()),
+    this.intervalQueriess.dayStats(
+      this.activeWorkspaceId(),
+      this.selectedDate(),
+      this.timeZone.effectiveTimeZone(),
+    ),
   );
   workspaceListQuery = injectQuery(() => this.workspaceQueries.list());
   readonly showWorkspaceListError = computed(
@@ -184,7 +188,7 @@ export class DayComponent {
 
     let firstStart = intervals[0].start;
     for (const interval of intervals) {
-      if (interval.start < firstStart) {
+      if (interval.start && (!firstStart || Date.parse(interval.start) < Date.parse(firstStart))) {
         firstStart = interval.start;
       }
     }
@@ -198,7 +202,7 @@ export class DayComponent {
 
     let lastEnd = intervals[0].end;
     for (const interval of intervals) {
-      if (interval.end > lastEnd) {
+      if (interval.end && (!lastEnd || Date.parse(interval.end) > Date.parse(lastEnd))) {
         lastEnd = interval.end;
       }
     }
@@ -224,7 +228,8 @@ export class DayComponent {
           sessions: contextStats.intervalCount,
           archived: context?.archived ?? false,
           sessionRanges: (this.dayStats().intervals[contextStats.contextId] ?? []).map(
-            (interval) => `${interval.start.toTimeString()}–${interval.end.toTimeString()}`,
+            (interval) =>
+              `${this.timeZone.formatTime(interval.start)}–${this.timeZone.formatTime(interval.end)}`,
           ),
         };
       })
@@ -261,8 +266,8 @@ export class DayComponent {
     return DateTime.fromFormat(date, 'yyyy-MM-dd').toFormat('dd.MM.yyyy');
   }
 
-  formatTime(date: { toTimeString: () => string }): string {
-    return date.toTimeString().slice(0, 5);
+  formatTime(date: string | null): string {
+    return this.timeZone.formatTime(date);
   }
 
   retryDayData(): void {

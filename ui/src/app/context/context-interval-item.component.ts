@@ -1,9 +1,10 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowRightLeft, lucidePencil, lucideTrash2 } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { Interval } from '../../api/interval.service';
 import { durationAsH, durationAsM } from '../utils';
+import { TimeZoneService } from '../shared/time-zone.service';
 
 @Component({
   selector: 'ctx-context-interval-item',
@@ -56,13 +57,13 @@ import { durationAsH, durationAsM } from '../utils';
         <div class="flex gap-2 ml-4 w-full items-center">
           <div class="flex flex-col flex-1">
             <div class="text-sm font-medium">
-              {{ interval().start.toTimeString() }} - {{ interval().end.toTimeString() }}
+              {{ formatTime(interval().start) }} - {{ formatTime(interval().end) }}
             </div>
             <div class="text-xs text-muted-foreground">
               {{
                 intervalStartDateEqEndDate(interval())
-                  ? interval().start.toDateString()
-                  : interval().start.toDateString() + ' - ' + interval().end.toDateString()
+                  ? formatDate(interval().start)
+                  : formatDate(interval().start) + ' - ' + formatDate(interval().end)
               }}
             </div>
           </div>
@@ -105,6 +106,7 @@ import { durationAsH, durationAsM } from '../utils';
   `,
 })
 export class ContextIntervalItemComponent {
+  private readonly timeZone = inject(TimeZoneService);
   readonly interval = input.required<Interval>();
   readonly isEditing = input(false);
   readonly editStartInput = input('');
@@ -127,7 +129,15 @@ export class ContextIntervalItemComponent {
   }
 
   intervalStartDateEqEndDate(interval: Interval): boolean {
-    return interval.start.toDateString() === interval.end.toDateString();
+    return this.formatDate(interval.start) === this.formatDate(interval.end);
+  }
+
+  formatTime(value: string | null): string {
+    return this.timeZone.formatTime(value);
+  }
+
+  formatDate(value: string | null): string {
+    return this.timeZone.formatDate(value);
   }
 
   parseDuration(duration: number | undefined): string {

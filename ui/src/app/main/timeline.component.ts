@@ -9,6 +9,7 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map, startWith } from 'rxjs/operators';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
+import { TimeZoneService } from '../shared/time-zone.service';
 
 const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
   contexts: [],
@@ -21,7 +22,7 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
   template: `
     <div class="w-full border-t bg-background px-4 py-2">
       <div class="text-[10px] text-muted-foreground mb-1.5 tracking-[0.08em] uppercase">
-        Timeline — {{ formatDate(selectedDate()) }}
+        Timeline — {{ formatDate(selectedDay()) }}
       </div>
 
       <div class="relative h-3.25 mb-1">
@@ -80,22 +81,26 @@ export class TimelineComponent {
   private intervalQueries = inject(IntervalQueries);
   private router = inject(Router);
   private store = inject(Store);
-  private today = DateTime.local().toFormat('yyyy-MM-dd');
+  private timeZone = inject(TimeZoneService);
   private activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
 
-  selectedDay = toSignal(
+  private routedDay = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       startWith(null),
-      map(() => this.extractDayFromUrl(this.router.url) ?? this.today),
+      map(() => this.extractDayFromUrl(this.router.url)),
     ),
     {
-      initialValue: this.extractDayFromUrl(this.router.url) ?? this.today,
+      initialValue: this.extractDayFromUrl(this.router.url),
     },
   );
-  selectedDate = computed(() => DateTime.fromFormat(this.selectedDay(), 'yyyy-MM-dd').toJSDate());
+  selectedDay = computed(() => this.routedDay() ?? this.timeZone.today());
   dayIntervalsQuery = injectQuery(() =>
-    this.intervalQueries.day(this.activeWorkspaceId(), this.selectedDay()),
+    this.intervalQueries.day(
+      this.activeWorkspaceId(),
+      this.selectedDay(),
+      this.timeZone.effectiveTimeZone(),
+    ),
   );
   dayIntervals = computed(() => this.dayIntervalsQuery.data() ?? EMPTY_DAY_INTERVALS);
   private selectedLegendContextId = signal<string | null>(null);
@@ -112,16 +117,18 @@ export class TimelineComponent {
         const colorKey = context?.id || contextId || interval.id;
         const durationMinutes = Math.max(
           interval.duration > 0
-            ? interval.duration / 60
-            : interval.end.toDateTime().diff(interval.start.toDateTime(), 'minutes').minutes,
+            ? interval.duration / 60_000_000_000
+            : this.timeZone
+                .parseInstant(interval.end)
+                .diff(this.timeZone.parseInstant(interval.start), 'minutes').minutes,
           0,
         );
 
         return {
           id: interval.id,
           contextId,
-          from: interval.start.toTimeString(),
-          to: interval.end.toTimeString(),
+          from: this.timeZone.formatTime(interval.start),
+          to: this.timeZone.formatTime(interval.end),
           durationMinutes,
           color: colorHash(colorKey),
         };
@@ -187,12 +194,8 @@ export class TimelineComponent {
     return parsedDate.isValid ? dayMatch[1] : null;
   }
 
-  formatDate(date: Date): string {
-    return new Intl.DateTimeFormat('pl-PL', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(date);
+  formatDate(date: string): string {
+    return DateTime.fromFormat(date, 'yyyy-MM-dd').toFormat('dd.MM.yyyy');
   }
 
   getHourPosition(hour: number): number {

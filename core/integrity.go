@@ -1,5 +1,7 @@
 package core
 
+import "time"
+
 type IntegrityIssue struct {
 	EntityType  string                 `json:"entityType"`
 	EntityId    string                 `json:"entityId"`
@@ -13,8 +15,8 @@ type IntegrityIssueDetails struct {
 	Name        string     `json:"name,omitempty"`
 	ContextId   string     `json:"contextId,omitempty"`
 	WorkspaceId string     `json:"workspaceId,omitempty"`
-	Start       *ZonedTime `json:"start,omitempty"`
-	End         *ZonedTime `json:"end,omitempty"`
+	Start       *time.Time `json:"start,omitempty"`
+	End         *time.Time `json:"end,omitempty"`
 }
 
 type IntegrityReport struct {
@@ -62,14 +64,10 @@ func intervalIntegrityIssue(interval *Interval, code, description string, repair
 	issue.Details = &IntegrityIssueDetails{
 		ContextId:   interval.ContextId,
 		WorkspaceId: interval.WorkspaceId,
-		Start:       &interval.Start,
-		End:         &interval.End,
+		Start:       interval.Start,
+		End:         interval.End,
 	}
 	return issue
-}
-
-func zonedTimeIsSet(value ZonedTime) bool {
-	return !value.Time.IsZero() && !value.IsZero
 }
 
 func intervalIsInactive(interval *Interval) bool {
@@ -77,5 +75,5 @@ func intervalIsInactive(interval *Interval) bool {
 }
 
 func intervalIsOpenActive(interval *Interval) bool {
-	return interval != nil && interval.Status == "active" && !zonedTimeIsSet(interval.End)
+	return interval != nil && interval.Status == "active" && !timeIsSet(interval.End)
 }

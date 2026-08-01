@@ -22,6 +22,7 @@ func CreateManager() (*core.ContextManager, error) {
 	if err != nil {
 		return nil, err
 	}
+	configureRepositoryUTC(repository)
 
 	if err := repository.Transaction(func(txRepository *nod.Repository) error {
 		systemRepository := nod.NewRepositoryWithAdapters(txRepository.DB(), txRepository.Log(), NewSystemAdapterRegistry())
@@ -45,7 +46,7 @@ func CreateManager() (*core.ContextManager, error) {
 
 		startedAt := time.Now()
 		ctxlog.Logger.Info("Starting database migration", "from_version", currentVersion, "to_version", core.CurrentDatabaseVersion)
-		migrated, err := newContextManager(txRepository).EnsureDefaultWorkspaceWithResult()
+		migrated, err := runApplicationMigrations(txRepository, currentVersion)
 		if err != nil {
 			return err
 		}
@@ -86,12 +87,19 @@ func CreateSettingsManager() (*core.SettingsManager, error) {
 	if err != nil {
 		return nil, err
 	}
+	configureRepositoryUTC(repository)
 	manager := newSettingsManager(repository)
 	if err := manager.InitSettingsIfNotExists(); err != nil {
 		return nil, err
 	}
 
 	return manager, nil
+}
+
+func configureRepositoryUTC(repository *nod.Repository) {
+	repository.DB().Config.NowFunc = func() time.Time {
+		return time.Now().UTC()
+	}
 }
 
 func newSettingsManager(repository *nod.Repository) *core.SettingsManager {

@@ -30,6 +30,7 @@ import { SettingsQueries } from '../../api/settings.queries';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { IntervalQueries } from '../../api/interval.queries';
+import { TimeZoneService } from '../shared/time-zone.service';
 
 const firstDayKey = 'client.general.firstDay';
 
@@ -464,17 +465,18 @@ export class HeaderComponent {
   private contextMutations = inject(ContextMutations);
   private contextService = inject(ContextService);
   private settingsQueries = inject(SettingsQueries);
+  private timeZone = inject(TimeZoneService);
   private readonly store = inject(Store);
   readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   private router = inject(Router);
-  today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
+  today = computed(() => this.timeZone.today());
 
   listContextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId(), true));
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   freeContextMutation = injectMutation(() => this.contextMutations.free());
   activeContextQuery = injectQuery(() => this.contextQueries.active());
-  selectedDate = toSignal(
+  private routedSelectedDate = toSignal(
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       startWith(null),
@@ -482,13 +484,18 @@ export class HeaderComponent {
     ),
     { initialValue: this.today() },
   );
+  selectedDate = computed(() => this.routedSelectedDate() ?? this.today());
   dayStatsQuery = injectQuery(() =>
-    this.inteverlaQueries.dayStats(this.activeWorkspaceId(), this.selectedDate()),
+    this.inteverlaQueries.dayStats(
+      this.activeWorkspaceId(),
+      this.selectedDate(),
+      this.timeZone.effectiveTimeZone(),
+    ),
   );
   activeContextName = computed(() => this.activeContextQuery.data()?.name ?? '');
   weekStartsOn = computed(() => (this.settingsQuery.data()?.[firstDayKey] === 'Sunday' ? 0 : 1));
   daySectionLabel = computed(() =>
-    this.selectedDate() === DateTime.local().toFormat('yyyy-MM-dd') ? 'Today' : this.selectedDate(),
+    this.selectedDate() === this.today() ? 'Today' : this.selectedDate(),
   );
 
   readonly searchTerm = signal<string>('');
@@ -531,16 +538,17 @@ export class HeaderComponent {
       computed(() => ({
         contexts: this.filteredContexts(),
         date: this.selectedDate(),
+        timeZone: this.timeZone.effectiveTimeZone(),
       })),
     ).pipe(
-      switchMap(({ contexts, date }) => {
+      switchMap(({ contexts, date, timeZone }) => {
         if (contexts.length === 0) {
           return of({} as Record<string, ContextStats>);
         }
 
         return forkJoin(
           contexts.map((context) =>
-            this.contextService.getStats(context.id, date).pipe(
+            this.contextService.getStats(context.id, date, timeZone).pipe(
               map((stats) => [context.id, stats] as const),
               catchError(() => of([context.id, null] as const)),
             ),
@@ -700,9 +708,9 @@ export class HeaderComponent {
     return this.formatDuration(stats?.totalDuration ?? 0);
   }
 
-  private resolveSelectedDate(): string {
+  private resolveSelectedDate(): string | null {
     const dayMatch = this.router.url.match(/\/day\/(\d{4}-\d{2}-\d{2})/);
-    return dayMatch?.[1] ?? DateTime.local().toFormat('yyyy-MM-dd');
+    return dayMatch?.[1] ?? null;
   }
 
   private formatDuration(duration: number): string | null {

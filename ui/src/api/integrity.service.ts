@@ -1,20 +1,13 @@
-import { HttpClient } from "@angular/common/http";
-import { inject, Injectable } from "@angular/core";
-import { Observable } from "rxjs";
-
-
-export type IntegrityDateTime = {
-  time: string | null;
-  timezone: string | null;
-  isZero: boolean | null;
-};
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
 export type IntegrityIssueDetails = {
   name?: string;
   contextId?: string;
   workspaceId?: string;
-  start?: IntegrityDateTime;
-  end?: IntegrityDateTime;
+  start?: string;
+  end?: string;
 };
 
 export type IntegrityIssue = {
@@ -46,9 +39,7 @@ export type IntegrityRepairResult = {
   report: IntegrityReport;
 };
 
-
-
-@Injectable({providedIn: 'root'})
+@Injectable({ providedIn: 'root' })
 export class IntegrityService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/integrity';
@@ -65,10 +56,9 @@ export class IntegrityService {
     return this.http.post<IntegrityRepairResult>(this.url('repair'), null);
   }
 
-
   private url(...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
-    if(segments.length === 0 && !url.endsWith('/')) {
+    if (segments.length === 0 && !url.endsWith('/')) {
       url += '/';
     }
     return url;

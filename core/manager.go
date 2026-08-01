@@ -51,6 +51,8 @@ func (m *ContextManager) SaveInterval(interval *Interval) (string, error) {
 	}
 
 	interval.WorkspaceId = context.WorkspaceId
+	interval.Start = utcTimePointer(interval.Start)
+	interval.End = utcTimePointer(interval.End)
 	return m.IntervalRepository.Save(interval)
 }
 
@@ -141,8 +143,8 @@ func (m *ContextManager) UpdateContext(context *Context) error {
 		}
 		if activeInterval != nil {
 			endTime := m.TimeProvider.Now()
-			activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
-			activeInterval.End = endTime
+			activeInterval.Duration = durationBetween(activeInterval.Start, &endTime)
+			activeInterval.End = &endTime
 			activeInterval.Status = "completed"
 			if _, err := m.SaveInterval(activeInterval); err != nil {
 				return err
@@ -180,8 +182,8 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 		activeInterval, _ := m.IntervalRepository.GetActiveIntervalByContextId(activeContext.Id)
 
 		if activeInterval != nil {
-			activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
-			activeInterval.End = endTime
+			activeInterval.Duration = durationBetween(activeInterval.Start, &endTime)
+			activeInterval.End = &endTime
 			activeInterval.Status = "completed"
 			m.SaveInterval(activeInterval)
 		}
@@ -211,7 +213,7 @@ func (m *ContextManager) SwitchContext(context *Context) error {
 
 	newInterval := &Interval{
 		ContextId:   context.Id,
-		Start:       startTime,
+		Start:       &startTime,
 		Status:      "active",
 		WorkspaceId: context.WorkspaceId,
 	}
@@ -242,8 +244,8 @@ func (m *ContextManager) FreeActiveContext() error {
 	}
 
 	if activeInterval != nil {
-		activeInterval.Duration = endTime.Time.Sub(activeInterval.Start.Time)
-		activeInterval.End = endTime
+		activeInterval.Duration = durationBetween(activeInterval.Start, &endTime)
+		activeInterval.End = &endTime
 		activeInterval.Status = "completed"
 		if _, err := m.SaveInterval(activeInterval); err != nil {
 			return err
@@ -259,7 +261,7 @@ func (m *ContextManager) GetStats(contextId string, date time.Time) (*ContextSta
 		return nil, err
 	}
 
-	now := m.TimeProvider.Now().Time.UTC()
+	now := m.TimeProvider.Now().UTC()
 
 	var totalDuration time.Duration
 	var totalSessions int
@@ -269,18 +271,18 @@ func (m *ContextManager) GetStats(contextId string, date time.Time) (*ContextSta
 	for _, interval := range allIntervalsByContext {
 		intervalDuration := interval.Duration
 		if intervalDuration <= 0 {
-			start := interval.Start.Time.UTC()
-			if start.IsZero() {
+			start := interval.Start
+			if !timeIsSet(start) {
 				intervalDuration = 0
 			} else {
-				end := interval.End.Time.UTC()
-				if end.IsZero() {
+				end := interval.End
+				if !timeIsSet(end) {
 					if interval.Status == "active" {
-						end = now
+						end = &now
 					}
 				}
-				if end.After(start) {
-					intervalDuration = end.Sub(start)
+				if timeIsSet(end) && end.After(*start) {
+					intervalDuration = end.Sub(*start)
 				}
 			}
 		}
@@ -300,7 +302,7 @@ func (m *ContextManager) GetStats(contextId string, date time.Time) (*ContextSta
 
 	return &ContextStats{
 		ContextId:     contextId,
-		Date:          date,
+		Date:          date.Format("2006-01-02"),
 		Duration:      duration,
 		Sessions:      sessions,
 		TotalDuration: totalDuration,
@@ -313,20 +315,27 @@ func ClipIntervalRangeToDay(interval *Interval, date time.Time, now time.Time) (
 		return TimeRange{}, false
 	}
 
-	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
-	dayEnd := dayStart.Add(24 * time.Hour)
+	location := date.Location()
+	if location == nil {
+		location = time.UTC
+	}
+	localDayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, location)
+	dayStart := localDayStart.UTC()
+	dayEnd := localDayStart.AddDate(0, 0, 1).UTC()
 
-	start := interval.Start.Time.UTC()
-	if start.IsZero() {
+	if !timeIsSet(interval.Start) {
 		return TimeRange{}, false
 	}
+	start := interval.Start.UTC()
 
-	end := interval.End.Time.UTC()
-	if end.IsZero() {
+	var end time.Time
+	if !timeIsSet(interval.End) {
 		if interval.Status != "active" {
 			return TimeRange{}, false
 		}
 		end = now
+	} else {
+		end = interval.End.UTC()
 	}
 
 	if end.Before(dayStart) || !start.Before(dayEnd) {
@@ -387,7 +396,7 @@ func SumMergedRangesDuration(ranges []TimeRange) time.Duration {
 
 type ContextStats struct {
 	ContextId     string        `json:"contextId"`
-	Date          time.Time     `json:"date"`
+	Date          string        `json:"date"`
 	Duration      time.Duration `json:"duration"`
 	Sessions      int           `json:"sessions"`
 	TotalDuration time.Duration `json:"totalDuration"`
@@ -400,7 +409,7 @@ func (m *ContextManager) GetWorkspaceStats(workspaceId string) (*WorkspaceStats,
 		return nil, err
 	}
 
-	now := m.TimeProvider.Now().Time.UTC()
+	now := m.TimeProvider.Now().UTC()
 	contextStats := make([]*WorkspaceContextStats, 0, len(contexts))
 	var totalDuration time.Duration
 	var totalSessions int
@@ -453,10 +462,12 @@ func intervalDurationAt(interval *Interval, now time.Time) time.Duration {
 		return 0
 	}
 
-	start := interval.Start.Time.UTC()
-	end := interval.End.Time.UTC()
-	if !start.IsZero() {
-		if end.IsZero() && interval.Status == "active" {
+	if timeIsSet(interval.Start) {
+		start := interval.Start.UTC()
+		var end time.Time
+		if timeIsSet(interval.End) {
+			end = interval.End.UTC()
+		} else if interval.Status == "active" {
 			end = now
 		}
 		if end.After(start) {

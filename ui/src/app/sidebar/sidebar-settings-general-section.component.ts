@@ -3,6 +3,12 @@ import { injectMutation, injectQuery } from '@tanstack/angular-query-experimenta
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
 import { Settings } from '../../api/settings.service';
+import {
+  browserTimeZonePreference,
+  browserTimeZone,
+  timeZoneSettingKey,
+  TimeZoneService,
+} from '../shared/time-zone.service';
 
 const themeKey = 'client.general.theme';
 const firstDayKey = 'client.general.firstDay';
@@ -39,6 +45,28 @@ const firstDayKey = 'client.general.firstDay';
       </div>
 
       <div class="space-y-2">
+        <label for="general-time-zone" class="text-foreground font-medium text-[15px]">
+          Time zone
+        </label>
+        <div class="text-[13px] sm:text-[14px]">
+          Display every recorded event in this time zone. Browser currently resolves to
+          {{ browserZone }}.
+        </div>
+        <select
+          id="general-time-zone"
+          class="w-full h-10 rounded-md border border-border bg-background px-3 text-sm mt-1"
+          [value]="selectedTimeZone()"
+          [disabled]="saveSettingsMutation.isPending()"
+          (change)="setTimeZone(getSelectValue($event))"
+        >
+          <option [value]="browserTimeZonePreference">Browser ({{ browserZone }})</option>
+          @for (zone of timeZoneOptions; track zone) {
+            <option [value]="zone">{{ zone }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="space-y-2">
         <div class="text-foreground font-medium text-[15px]">First day of week</div>
         <div class="text-[13px] sm:text-[14px]">Choose which day starts the week.</div>
         <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
@@ -70,9 +98,14 @@ const firstDayKey = 'client.general.firstDay';
 export class SidebarSettingsGeneralSectionComponent {
   private settingsQueries = inject(SettingsQueries);
   private settingsMutations = inject(SettingsMutations);
+  private timeZone = inject(TimeZoneService);
 
   readonly colorMode = signal<'light' | 'dark'>('light');
   readonly weekStart = signal<'monday' | 'sunday'>('monday');
+  readonly selectedTimeZone = signal(browserTimeZonePreference);
+  readonly browserTimeZonePreference = browserTimeZonePreference;
+  readonly browserZone = browserTimeZone();
+  readonly timeZoneOptions = this.timeZone.options;
 
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   saveSettingsMutation = injectMutation(() => this.settingsMutations.save());
@@ -83,6 +116,7 @@ export class SidebarSettingsGeneralSectionComponent {
     const settings = this.settings();
     const theme = settings[themeKey];
     const firstDay = settings[firstDayKey];
+    const selectedTimeZone = settings[timeZoneSettingKey] || browserTimeZonePreference;
 
     if (theme === 'light' || theme === 'dark') {
       this.colorMode.set(theme);
@@ -95,6 +129,9 @@ export class SidebarSettingsGeneralSectionComponent {
     if (firstDay === 'Sunday') {
       this.weekStart.set('sunday');
     }
+
+    this.selectedTimeZone.set(selectedTimeZone);
+    this.timeZone.setPreference(selectedTimeZone);
   });
 
   setColorMode(mode: 'light' | 'dark'): void {
@@ -107,11 +144,21 @@ export class SidebarSettingsGeneralSectionComponent {
     this.saveSettings();
   }
 
+  setTimeZone(timeZone: string): void {
+    this.selectedTimeZone.set(timeZone);
+    this.saveSettings();
+  }
+
+  getSelectValue(event: Event): string {
+    return (event.target as HTMLSelectElement).value;
+  }
+
   private saveSettings(): void {
     this.saveSettingsMutation.mutate({
       ...this.settings(),
       [themeKey]: this.colorMode(),
       [firstDayKey]: this.weekStart() === 'monday' ? 'Monday' : 'Sunday',
+      [timeZoneSettingKey]: this.selectedTimeZone(),
     });
   }
 }

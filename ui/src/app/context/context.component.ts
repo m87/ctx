@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArchive, lucideArchiveRestore, lucidePlay, lucideTrash2 } from '@ng-icons/lucide';
@@ -10,12 +10,12 @@ import { ContextQueries } from '../../api/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { ContextMutations } from '../../api/context.mutations';
 import { durationAsH, durationAsM } from '../utils';
-import { DateTime } from 'luxon';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { ContextIntervalListComponent } from './context-interval-list.component';
+import { TimeZoneService } from '../shared/time-zone.service';
 
 @Component({
   imports: [
@@ -203,8 +203,9 @@ export class ContextComponent {
   private router = inject(Router);
   private store = inject(Store);
   private route = inject(ActivatedRoute);
+  private timeZone = inject(TimeZoneService);
   readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
-  readonly today = signal(DateTime.local().toFormat('yyyy-MM-dd'));
+  readonly today = computed(() => this.timeZone.today());
   readonly contextId = toSignal(this.route.paramMap.pipe(map((pm) => pm.get('id') ?? '')), {
     initialValue: '',
   });
@@ -217,7 +218,9 @@ export class ContextComponent {
   contextQuery = injectQuery(() => this.contextQueries.get(this.contextId()));
   contextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
   context = computed(() => this.contextQuery.data() ?? null);
-  contextStatsQuery = injectQuery(() => this.contextQueries.stats(this.contextId(), this.today()));
+  contextStatsQuery = injectQuery(() =>
+    this.contextQueries.stats(this.contextId(), this.today(), this.timeZone.effectiveTimeZone()),
+  );
   contextStats = computed(() => this.contextStatsQuery.data());
   readonly showContextError = computed(
     () =>

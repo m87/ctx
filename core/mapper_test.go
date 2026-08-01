@@ -2,6 +2,7 @@ package core
 
 import (
 	"testing"
+	"time"
 
 	"github.com/m87/nod"
 	"github.com/stretchr/testify/require"
@@ -67,4 +68,28 @@ func TestIntervalMapperToNodeOmitsEmptyRelations(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, node.Core.ParentId)
 	require.Nil(t, node.Core.NamespaceId)
+	require.NotContains(t, node.KV, "start_timezone")
+	require.NotContains(t, node.KV, "end_timezone")
+	require.NotContains(t, node.KV, "start")
+	require.NotContains(t, node.KV, "end")
+}
+
+func TestIntervalMapperNormalizesPersistedTimesToUTC(t *testing.T) {
+	mapper := NewIntervalMapper()
+	tokyo, err := time.LoadLocation("Asia/Tokyo")
+	require.NoError(t, err)
+	start := time.Date(2026, 8, 2, 3, 0, 0, 0, tokyo)
+	end := start.Add(30 * time.Minute)
+
+	node, err := mapper.ToNode(&Interval{
+		Start: &start,
+		End:   &end,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, time.UTC, node.KV["start"].ValueTime.Location())
+	require.Equal(t, "2026-08-01T18:00:00Z", node.KV["start"].ValueTime.Format(time.RFC3339))
+	require.Equal(t, time.UTC, node.KV["end"].ValueTime.Location())
+	require.NotContains(t, node.KV, "start_timezone")
+	require.NotContains(t, node.KV, "end_timezone")
 }

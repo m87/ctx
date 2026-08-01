@@ -51,10 +51,10 @@ func (r *IntervalRepository) ListByContextId(contextId string) ([]*core.Interval
 	}
 
 	sort.SliceStable(intervals, func(i, j int) bool {
-		if intervals[i].Start.Time.Equal(intervals[j].Start.Time) {
-			return intervals[i].End.Time.After(intervals[j].End.Time)
+		if intervalTime(intervals[i].Start).Equal(intervalTime(intervals[j].Start)) {
+			return intervalTime(intervals[i].End).After(intervalTime(intervals[j].End))
 		}
-		return intervals[i].Start.Time.After(intervals[j].Start.Time)
+		return intervalTime(intervals[i].Start).After(intervalTime(intervals[j].Start))
 	})
 
 	return intervals, nil
@@ -70,8 +70,13 @@ func (r *IntervalRepository) GetActiveIntervalByContextId(contextId string) (*co
 }
 
 func (r *IntervalRepository) ListByDay(date time.Time, workspaceId string) ([]*core.Interval, error) {
-	dayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
-	dayEnd := dayStart.Add(24 * time.Hour)
+	location := date.Location()
+	if location == nil {
+		location = time.UTC
+	}
+	localDayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, location)
+	dayStart := localDayStart.UTC()
+	dayEnd := localDayStart.AddDate(0, 0, 1).UTC()
 
 	all, err := r.scope.Query().
 		Where(nod.NodeFields.Kind.Equals(core.IntervalType)).
@@ -85,15 +90,22 @@ func (r *IntervalRepository) ListByDay(date time.Time, workspaceId string) ([]*c
 
 	result := make([]*core.Interval, 0, len(all))
 	for _, interval := range all {
-		if interval.End.Time.IsZero() {
+		if interval.End == nil || interval.End.IsZero() {
 			result = append(result, interval)
 			continue
 		}
-		if !interval.End.Time.Before(dayStart) {
+		if !interval.End.Before(dayStart) {
 			result = append(result, interval)
 		}
 	}
 	return result, nil
+}
+
+func intervalTime(value *time.Time) time.Time {
+	if value == nil {
+		return time.Time{}
+	}
+	return *value
 }
 
 func (r *IntervalRepository) List() ([]*core.Interval, error) {

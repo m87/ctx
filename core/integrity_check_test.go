@@ -10,8 +10,8 @@ import (
 
 var integrityTestBaseTime = time.Date(2026, 1, 2, 10, 0, 0, 0, time.UTC)
 
-func integrityTestTime(offset time.Duration) ZonedTime {
-	return ZonedTime{Time: integrityTestBaseTime.Add(offset), Timezone: "UTC"}
+func integrityTestTime(offset time.Duration) *time.Time {
+	return testTime(integrityTestBaseTime.Add(offset))
 }
 
 type WorkspaceRepositoryMock struct {
@@ -226,7 +226,7 @@ func TestFailIntegrityCheckWithInactiveIntervalMissingTime(t *testing.T) {
 	manager := setupManagerCorrectData()
 	interval := manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0]
 	interval.Status = "completed"
-	interval.Start = ZonedTime{}
+	interval.Start = nil
 
 	report, err := manager.CheckIntegrity()
 	require.NoError(t, err)
@@ -265,10 +265,10 @@ func TestFailIntegrityCheckWithMultipleActiveContexts(t *testing.T) {
 	contexts[1].Status = "active"
 	intervals[0].Status = "active"
 	intervals[0].Start = integrityTestTime(0)
-	intervals[0].End = ZonedTime{}
+	intervals[0].End = nil
 	intervals[1].Status = "active"
 	intervals[1].Start = integrityTestTime(time.Hour)
-	intervals[1].End = ZonedTime{}
+	intervals[1].End = nil
 
 	report, err := manager.CheckIntegrity()
 	require.NoError(t, err)

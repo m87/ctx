@@ -63,6 +63,10 @@ func (h *SettingsHandler) saveClientSettings(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.manager.SaveClient(settings); err != nil {
+		if _, ok := err.(*core.InvalidTimeZoneError); ok {
+			writeError(w, http.StatusBadRequest, "INVALID_TIME_ZONE", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_SETTINGS", "Failed to save settings")
 		return
 	}

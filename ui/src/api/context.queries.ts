@@ -14,8 +14,8 @@ export const contextQueryKeys = {
   active: () => [...contextQueryKeys.all, 'active'] as const,
   stats: () => [...contextQueryKeys.all, 'stats'] as const,
   statsFor: (contextId: string) => [...contextQueryKeys.stats(), contextId] as const,
-  stat: (contextId: string, date: string) =>
-    [...contextQueryKeys.statsFor(contextId), date] as const,
+  stat: (contextId: string, date: string, timeZone: string) =>
+    [...contextQueryKeys.statsFor(contextId), date, timeZone] as const,
 };
 
 @Injectable({
@@ -55,12 +55,11 @@ export class ContextQueries {
     };
   }
 
-  stats(contextId: string, date: string) {
+  stats(contextId: string, date: string, timeZone: string) {
     return {
-      queryKey: contextQueryKeys.stat(contextId, date),
-      queryFn: () => lastValueFrom(this.contextService.getStats(contextId, date)),
+      queryKey: contextQueryKeys.stat(contextId, date, timeZone),
+      queryFn: () => lastValueFrom(this.contextService.getStats(contextId, date, timeZone)),
       enabled: contextId.length > 0 && date.length > 0,
     };
   }
-
 }

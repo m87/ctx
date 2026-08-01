@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/m87/nod"
 )
@@ -12,7 +11,7 @@ import (
 const (
 	SystemInfoType         = "system_info"
 	SystemInfoId           = "systemInfoV1"
-	CurrentDatabaseVersion = "0.5.0"
+	CurrentDatabaseVersion = "0.6.0"
 )
 
 type SystemInfo struct {
@@ -29,11 +28,9 @@ func (m *SystemInfoMapper) ToNode(info *SystemInfo) (*nod.Node, error) {
 	databaseVersion := info.DatabaseVersion
 	return &nod.Node{
 		Core: nod.NodeCore{
-			Id:        SystemInfoId,
-			Name:      SystemInfoId,
-			Kind:      SystemInfoType,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			Id:   SystemInfoId,
+			Name: SystemInfoId,
+			Kind: SystemInfoType,
 		},
 		KV: map[string]*nod.NodeKV{
 			"database_version": {Key: "database_version", ValueText: &databaseVersion},

@@ -8,7 +8,7 @@ import (
 	"github.com/m87/nod/sqlite"
 )
 
-func NewTextContextManager(current core.ZonedTime) *core.ContextManager {
+func NewTextContextManager(current time.Time) *core.ContextManager {
 	repository, _ := sqlite.NewRepository(":memory:", ctxlog.Logger, NewAdapterRegistry())
 	return core.NewContextManager(
 		NewTestTimeProvider(current),
@@ -19,21 +19,19 @@ func NewTextContextManager(current core.ZonedTime) *core.ContextManager {
 }
 
 type TestTimeProvider struct {
-	current core.ZonedTime
+	current time.Time
 }
 
-func NewTestTimeProvider(current core.ZonedTime) *TestTimeProvider {
+func NewTestTimeProvider(current time.Time) *TestTimeProvider {
 	return &TestTimeProvider{
 		current: current,
 	}
 }
 
-func (p *TestTimeProvider) Now() core.ZonedTime {
+func (p *TestTimeProvider) Now() time.Time {
 	return p.current
 }
 
 func (p *TestTimeProvider) Advance(d time.Duration) {
-	p.current = core.ZonedTime{
-		Time: p.current.Time.Add(d),
-	}
+	p.current = p.current.Add(d).UTC()
 }

@@ -55,10 +55,10 @@ func (m *ContextManager) CheckIntegrity() (*IntegrityReport, error) {
 			issues = append(issues, intervalIntegrityIssue(interval, "INTERVAL_WORKSPACE_MISMATCH", "Interval workspace differs from its context workspace", true))
 		}
 
-		if intervalIsInactive(interval) && (!zonedTimeIsSet(interval.Start) || !zonedTimeIsSet(interval.End)) {
+		if intervalIsInactive(interval) && (!timeIsSet(interval.Start) || !timeIsSet(interval.End)) {
 			issues = append(issues, intervalIntegrityIssue(interval, "INACTIVE_INTERVAL_MISSING_TIME", "Inactive interval must have both start and end time set; set the missing time manually or delete the interval", false))
 		}
-		if interval.Status == "active" && zonedTimeIsSet(interval.End) {
+		if interval.Status == "active" && timeIsSet(interval.End) {
 			issues = append(issues, intervalIntegrityIssue(interval, "ACTIVE_INTERVAL_HAS_END", "Active interval has an end time set and can be completed automatically", true))
 		}
 	}

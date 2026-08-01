@@ -103,7 +103,7 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 			repaired++
 		}
 
-		if interval.Status == "active" && zonedTimeIsSet(interval.End) {
+		if interval.Status == "active" && timeIsSet(interval.End) {
 			completeIntervalAtEnd(interval)
 			if _, err := m.IntervalRepository.Save(interval); err != nil {
 				return repaired, err
@@ -121,22 +121,21 @@ func (m *ContextManager) repairIntegrity() (int, error) {
 	return repaired, nil
 }
 
-func (m *ContextManager) integrityRepairTime() ZonedTime {
+func (m *ContextManager) integrityRepairTime() time.Time {
 	if m.TimeProvider != nil {
 		return m.TimeProvider.Now()
 	}
-	now := time.Now().UTC()
-	return ZonedTime{Time: now, Timezone: "UTC"}
+	return time.Now().UTC()
 }
 
 func completeIntervalAtEnd(interval *Interval) {
-	if zonedTimeIsSet(interval.Start) && zonedTimeIsSet(interval.End) && interval.End.Time.After(interval.Start.Time) {
-		interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+	if timeIsSet(interval.Start) && timeIsSet(interval.End) {
+		interval.Duration = durationBetween(interval.Start, interval.End)
 	}
 	interval.Status = "completed"
 }
 
-func (m *ContextManager) repairActiveContexts(activeContexts []*Context, intervals []*Interval, endTime ZonedTime) (int, error) {
+func (m *ContextManager) repairActiveContexts(activeContexts []*Context, intervals []*Interval, endTime time.Time) (int, error) {
 	if len(activeContexts) == 0 {
 		return 0, nil
 	}
@@ -172,7 +171,7 @@ func (m *ContextManager) repairActiveContexts(activeContexts []*Context, interva
 		repaired++
 
 		for _, interval := range openIntervals {
-			interval.End = endTime
+			interval.End = &endTime
 			completeIntervalAtEnd(interval)
 			if _, err := m.IntervalRepository.Save(interval); err != nil {
 				return repaired, err
@@ -193,12 +192,12 @@ func newestOpenActiveContextId(activeContexts []*Context, openIntervalsByContext
 			continue
 		}
 		for _, interval := range openIntervalsByContext[context.Id] {
-			if !zonedTimeIsSet(interval.Start) {
+			if !timeIsSet(interval.Start) {
 				continue
 			}
-			if newestContextId == "" || interval.Start.Time.After(newestStart) {
+			if newestContextId == "" || interval.Start.After(newestStart) {
 				newestContextId = context.Id
-				newestStart = interval.Start.Time
+				newestStart = *interval.Start
 			}
 		}
 	}

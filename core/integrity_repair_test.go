@@ -301,10 +301,10 @@ func TestIntegrityRepairLeavesOnlyNewestActiveContextRunning(t *testing.T) {
 	contextRepo.contexts[1].Status = "active"
 	intervalRepo.intervals[0].Status = "active"
 	intervalRepo.intervals[0].Start = integrityTestTime(time.Hour)
-	intervalRepo.intervals[0].End = ZonedTime{}
+	intervalRepo.intervals[0].End = nil
 	intervalRepo.intervals[1].Status = "active"
 	intervalRepo.intervals[1].Start = integrityTestTime(2 * time.Hour)
-	intervalRepo.intervals[1].End = ZonedTime{}
+	intervalRepo.intervals[1].End = nil
 
 	result, err := manager.RepairIntegrity()
 	require.NoError(t, err)
@@ -317,10 +317,10 @@ func TestIntegrityRepairLeavesOnlyNewestActiveContextRunning(t *testing.T) {
 	require.Len(t, intervalRepo.saved, 1)
 	require.Equal(t, "interval1", intervalRepo.saved[0].Id)
 	require.Equal(t, "completed", intervalRepo.intervals[0].Status)
-	require.Equal(t, repairTime, intervalRepo.intervals[0].End.Time)
+	require.Equal(t, repairTime, *intervalRepo.intervals[0].End)
 	require.Equal(t, 2*time.Hour, intervalRepo.intervals[0].Duration)
 	require.Equal(t, "active", intervalRepo.intervals[1].Status)
-	require.False(t, zonedTimeIsSet(intervalRepo.intervals[1].End))
+	require.False(t, timeIsSet(intervalRepo.intervals[1].End))
 }
 
 func TestIntegrityRepairLeavesIntervalWithNonexistentContext(t *testing.T) {

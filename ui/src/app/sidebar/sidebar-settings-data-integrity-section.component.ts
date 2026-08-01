@@ -2,15 +2,15 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTrash2 } from '@ng-icons/lucide';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { DateTime } from 'luxon';
 import { ContextMutations } from '../../api/context.mutations';
 import { IntervalMutations } from '../../api/interval.mutations';
-import { Interval, ZonedDateTime } from '../../api/interval.service';
+import { Interval } from '../../api/interval.service';
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
-import { IntegrityDateTime, IntegrityIssue, IntegrityReport } from '../../api/integrity.service';
+import { IntegrityIssue, IntegrityReport } from '../../api/integrity.service';
 import { IntegrityQueries } from '../../api/integrity.queries';
 import { IntegrityMutations } from '../../api/integrity.mutations';
+import { TimeZoneService } from '../shared/time-zone.service';
 
 type IntegrityIssueGroup = {
   key: string;
@@ -283,6 +283,7 @@ export class SidebarSettingsDataIntegritySectionComponent {
   private integrityMutations = inject(IntegrityMutations);
   private contextMutations = inject(ContextMutations);
   private intervalMutations = inject(IntervalMutations);
+  private timeZone = inject(TimeZoneService);
 
   integrityQuery = injectQuery(() => this.integrityQueries.integrity());
 
@@ -504,50 +505,39 @@ export class SidebarSettingsDataIntegritySectionComponent {
     );
   }
 
-  formatIntegrityTime(value: IntegrityDateTime | undefined): string {
-    if (!value?.time || value.isZero) {
+  formatIntegrityTime(value: string | undefined): string {
+    if (!value) {
       return 'Not set';
     }
 
-    return new Date(value.time).toLocaleString();
+    return this.timeZone.formatDateTime(value);
   }
 
-  private integrityDateTimeToInputValue(value: IntegrityDateTime | undefined): string {
-    if (!value?.time || value.isZero) {
-      return '';
-    }
-
-    const dateTime = value.timezone
-      ? DateTime.fromISO(value.time, { zone: value.timezone })
-      : DateTime.fromISO(value.time);
-    if (!dateTime.isValid) {
-      return '';
-    }
-
-    return dateTime.toFormat("yyyy-MM-dd'T'HH:mm");
+  private integrityDateTimeToInputValue(value: string | undefined): string {
+    return this.timeZone.toInputValue(value);
   }
 
   private parseIntegrityIntervalTimeInputs(
     intervalId: string,
     startInput: string,
     endInput: string,
-  ): { start: ZonedDateTime; end: ZonedDateTime } | null {
-    const startDateTime = DateTime.fromFormat(startInput, "yyyy-MM-dd'T'HH:mm");
-    const endDateTime = DateTime.fromFormat(endInput, "yyyy-MM-dd'T'HH:mm");
+  ): { start: string; end: string } | null {
+    const start = this.timeZone.inputToUTC(startInput);
+    const end = this.timeZone.inputToUTC(endInput);
 
-    if (!startDateTime.isValid || !endDateTime.isValid) {
+    if (!start || !end) {
       this.setIntegrityIntervalTimeError(intervalId, 'Set both start and end date/time.');
       return null;
     }
 
-    if (endDateTime <= startDateTime) {
+    if (Date.parse(end) <= Date.parse(start)) {
       this.setIntegrityIntervalTimeError(intervalId, 'End must be later than start.');
       return null;
     }
 
     return {
-      start: ZonedDateTime.fromDateTime(startDateTime),
-      end: ZonedDateTime.fromDateTime(endDateTime),
+      start,
+      end,
     };
   }
 

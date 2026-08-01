@@ -3,12 +3,12 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePlus } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { DateTime } from 'luxon';
 import { ContextQueries } from '../../api/context.queries';
 import { Context } from '../../api/context.service';
 import { IntervalMutations } from '../../api/interval.mutations';
-import { Interval, ZonedDateTime } from '../../api/interval.service';
+import { Interval } from '../../api/interval.service';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
+import { TimeZoneService } from '../shared/time-zone.service';
 import { ContextIntervalItemComponent } from './context-interval-item.component';
 
 @Component({
@@ -148,6 +148,7 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
 export class ContextIntervalListComponent {
   private contextQueries = inject(ContextQueries);
   private intervalMutations = inject(IntervalMutations);
+  private timeZone = inject(TimeZoneService);
 
   readonly contextId = input.required<string>();
   readonly activeWorkspaceId = input<string | null>(null);
@@ -222,8 +223,8 @@ export class ContextIntervalListComponent {
 
     this.intervalFormError.set('');
     this.editingIntervalId.set(interval.id);
-    this.editIntervalStartInput.set(interval.start.toInputValue());
-    this.editIntervalEndInput.set(interval.end.toInputValue());
+    this.editIntervalStartInput.set(this.timeZone.toInputValue(interval.start));
+    this.editIntervalEndInput.set(this.timeZone.toInputValue(interval.end));
   }
 
   cancelIntervalEdit() {
@@ -334,28 +335,28 @@ export class ContextIntervalListComponent {
   private parseIntervalInput(
     startInput: string,
     endInput: string,
-  ): { start: ZonedDateTime; end: ZonedDateTime } | null {
-    const startDateTime = DateTime.fromFormat(startInput, "yyyy-MM-dd'T'HH:mm");
-    const endDateTime = DateTime.fromFormat(endInput, "yyyy-MM-dd'T'HH:mm");
+  ): { start: string; end: string } | null {
+    const start = this.timeZone.inputToUTC(startInput);
+    const end = this.timeZone.inputToUTC(endInput);
 
-    if (!startDateTime.isValid || !endDateTime.isValid) {
+    if (!start || !end) {
       this.intervalFormError.set('Invalid start or end date/time.');
       return null;
     }
 
-    if (endDateTime <= startDateTime) {
+    if (Date.parse(end) <= Date.parse(start)) {
       this.intervalFormError.set('End must be later than start.');
       return null;
     }
 
     return {
-      start: ZonedDateTime.fromDateTime(startDateTime),
-      end: ZonedDateTime.fromDateTime(endDateTime),
+      start,
+      end,
     };
   }
 
   private resetNewIntervalForm() {
-    const end = DateTime.local().startOf('minute');
+    const end = this.timeZone.now().startOf('minute');
     const start = end.minus({ minutes: 30 });
     this.newIntervalStartInput.set(start.toFormat("yyyy-MM-dd'T'HH:mm"));
     this.newIntervalEndInput.set(end.toFormat("yyyy-MM-dd'T'HH:mm"));

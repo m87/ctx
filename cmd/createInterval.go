@@ -31,7 +31,7 @@ func NewCreateIntervalCmd() *cobra.Command {
 				return fmt.Errorf("context-id is required")
 			}
 
-			var start core.ZonedTime
+			var start time.Time
 			if strings.TrimSpace(startRaw) == "" {
 				start = core.NewTimer().Now()
 			} else {
@@ -44,7 +44,7 @@ func NewCreateIntervalCmd() *cobra.Command {
 
 			interval := &core.Interval{
 				ContextId: strings.TrimSpace(contextID),
-				Start:     start,
+				Start:     &start,
 				Status:    strings.TrimSpace(status),
 			}
 
@@ -61,13 +61,13 @@ func NewCreateIntervalCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				interval.End = end
-				if interval.End.Time.Before(interval.Start.Time) {
+				interval.End = &end
+				if interval.End.Before(*interval.Start) {
 					return fmt.Errorf("end must be after start")
 				}
-				interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+				interval.Duration = interval.End.Sub(*interval.Start)
 			} else {
-				interval.End = core.ZonedTime{Time: time.Time{}, Timezone: interval.Start.Timezone, IsZero: true}
+				interval.End = nil
 			}
 
 			if resolveRemoteAddr() != "" {

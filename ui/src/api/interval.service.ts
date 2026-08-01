@@ -1,44 +1,24 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
-import { DateTime } from 'luxon';
-import type { Context } from './context.service';
 import { Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
 import { WorkspaceState } from '../app/sidebar/workspace.state';
+import type { Context } from './context.service';
 
 export interface Interval {
   id: string;
   contextId: string;
-  start: ZonedDateTime;
-  end: ZonedDateTime;
+  start: string | null;
+  end: string | null;
   duration: number;
+  status?: string;
   workspaceId: string;
 }
-
-type RawZonedDateTime = {
-  time: string | null;
-  timezone: string | null;
-  isZero: boolean | null;
-};
-
-export type RawInterval = Omit<Interval, 'start' | 'end'> & {
-  start: RawZonedDateTime;
-  end: RawZonedDateTime;
-};
 
 export interface DayIntervalsResponse {
   contexts: Context[];
   intervals: Interval[];
 }
-
-type RawDayIntervalsResponse = {
-  contexts: Context[];
-  intervals: RawInterval[];
-};
-
-type RawDayStats = Omit<DayStats, 'intervals'> & {
-  intervals: { [key: string]: RawInterval[] };
-};
 
 export interface DayContextStats {
   contextId: string;
@@ -55,113 +35,17 @@ export interface DayStats {
   distribution: { [contextId: string]: number };
 }
 
-export class ZonedDateTime {
-  constructor(
-    public time: string | null,
-    public timezone: string | null,
-    public isZero: boolean | null,
-  ) {}
-
-  public static fromDateTime(dt: DateTime): ZonedDateTime {
-    return new ZonedDateTime(dt.toISO(), dt.zoneName, dt.year === 1);
-  }
-
-  public static fromTimeString(time: string, timezone: string): ZonedDateTime {
-    return new ZonedDateTime(
-      DateTime.fromISO(time).toISO(),
-      timezone,
-      DateTime.fromISO(time).year === 1,
-    );
-  }
-
-  public toDateTime(): DateTime {
-    const time = this.time ?? '';
-    const parsed = DateTime.fromISO(time);
-    if (!parsed.isValid) {
-      return parsed;
-    }
-
-    const zone = this.normalizedZone();
-    if (!zone) {
-      return parsed;
-    }
-
-    const zoned = parsed.setZone(zone);
-    return zoned.isValid ? zoned : parsed;
-  }
-
-  public toInputValue(): string {
-    return this.toDateTime().toFormat("yyyy-MM-dd'T'HH:mm");
-  }
-
-  public toString(): string {
-    if (this.isZero) {
-      return '...';
-    }
-    return this.toDateTime().toFormat('yyyy-MM-dd HH:mm');
-  }
-
-  public toTimeString(): string {
-    if (this.isZero) {
-      return '...';
-    }
-    return this.toDateTime().toFormat('HH:mm');
-  }
-
-  public toDateString(): string {
-    if (this.isZero) {
-      return '...';
-    }
-    return this.toDateTime().toFormat('yyyy-MM-dd');
-  }
-
-  private normalizedZone(): string | null {
-    if (!this.timezone || this.timezone === 'Local') {
-      return DateTime.local().zoneName;
-    }
-    return this.timezone;
-  }
-}
-
-export function deserializeInterval(interval: RawInterval): Interval {
-  return {
-    ...interval,
-    start: new ZonedDateTime(
-      interval.start?.time ?? null,
-      interval.start?.timezone ?? null,
-      interval.start?.isZero ?? null,
-    ),
-    end: new ZonedDateTime(
-      interval.end?.time ?? null,
-      interval.end?.timezone ?? null,
-      interval.end?.isZero ?? null,
-    ),
-  };
-}
-
-export function deserializeIntervals(intervals: RawInterval[]): Interval[] {
-  return intervals.map((interval) => deserializeInterval(interval));
-}
-
-export function parseDuration(duration: number): string {
-  const hours = Math.floor(duration / 3600);
-  const minutes = Math.floor((duration % 3600) / 60);
-  return `${hours}h ${minutes}m`;
-}
-
 @Injectable({ providedIn: 'root' })
 export class IntervalService {
-  http = inject(HttpClient);
-  store = inject(Store);
+  private readonly http = inject(HttpClient);
+  private readonly store = inject(Store);
   private readonly baseUrl = '/api/interval';
 
   createInterval(interval: Interval): Observable<Interval> {
     if (interval.workspaceId == null) {
       interval.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
     }
-    return this.http
-      .post<RawInterval>(this.url('/'), interval)
-      .pipe(map((response) => deserializeInterval(response)));
+    return this.http.post<Interval>(this.url('/'), interval);
   }
 
   deleteInterval(id: string): Observable<void> {
@@ -169,69 +53,46 @@ export class IntervalService {
   }
 
   updateInterval(id: string, interval: Interval): Observable<Interval> {
-    return this.http
-      .put<RawInterval>(this.url(id), interval)
-      .pipe(map((response) => deserializeInterval(response)));
+    return this.http.put<Interval>(this.url(id), interval);
   }
 
   moveInterval(id: string, targetContextId: string): Observable<Interval> {
-    return this.http
-      .patch<RawInterval>(this.url(id, 'move', targetContextId), {})
-      .pipe(map((response) => deserializeInterval(response)));
+    return this.http.patch<Interval>(this.url(id, 'move', targetContextId), {});
   }
 
   getInterval(id: string): Observable<Interval> {
-    return this.http
-      .get<RawInterval>(this.url(id))
-      .pipe(map((response) => deserializeInterval(response)));
+    return this.http.get<Interval>(this.url(id));
   }
 
-  getDayIntervals(workspaceId: string, day: string): Observable<DayIntervalsResponse> {
-    return this.http
-      .get<RawDayIntervalsResponse>(this.urlWithParams({workspaceId: workspaceId}, 'day', day))
-      .pipe(
-        map((response) => ({
-          contexts: response.contexts,
-          intervals: deserializeIntervals(response.intervals),
-        })),
-      );
+  getDayIntervals(
+    workspaceId: string,
+    day: string,
+    timeZone: string,
+  ): Observable<DayIntervalsResponse> {
+    return this.http.get<DayIntervalsResponse>(
+      this.urlWithParams({ workspaceId, timeZone }, 'day', day),
+    );
   }
 
-  getDayStats(workspaceId: string, date: string): Observable<DayStats> {
-    return this.http
-      .get<RawDayStats>(this.urlWithParams({workspaceId: workspaceId}, 'day', date, 'stats'))
-      .pipe(
-        map((response) => ({
-          ...response,
-          intervals: Object.fromEntries(
-            Object.entries(response.intervals).map(([contextId, intervals]) => [
-              contextId,
-              deserializeIntervals(intervals),
-            ]),
-          ),
-        })),
-      );
+  getDayStats(workspaceId: string, date: string, timeZone: string): Observable<DayStats> {
+    return this.http.get<DayStats>(
+      this.urlWithParams({ workspaceId, timeZone }, 'day', date, 'stats'),
+    );
   }
-
-
 
   private url(...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
     if (!url.endsWith('/')) {
       url += '/';
     }
-
     return url;
   }
 
-  private urlWithParams(params: {[key: string]: string}, ...segments: string[]): string {
+  private urlWithParams(params: { [key: string]: string }, ...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
-
-    if (params && Object.keys(params).length > 0) {
-      const queryParams = new URLSearchParams(params).toString();
-      url += `?${queryParams}`;
+    if (Object.keys(params).length > 0) {
+      url += `?${new URLSearchParams(params).toString()}`;
     }
-
     return url;
   }
 }

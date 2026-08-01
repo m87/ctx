@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/m87/ctx/core"
 	ctxlog "github.com/m87/ctx/log"
@@ -67,10 +66,9 @@ func (h *ContextHandler) getStats(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "MISSING_CONTEXT_ID", "Missing context ID")
 		return
 	}
-	dateStr := r.PathValue("date")
-	date, err := time.Parse("2006-01-02", dateStr)
+	date, err := parseRequestedDay(r)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
+		writeError(w, http.StatusBadRequest, "INVALID_DAY", err.Error())
 		return
 	}
 	stats, err := h.manager.GetStats(id, date)

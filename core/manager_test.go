@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -8,12 +9,77 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSaveIntervalNormalizesIncomingInstantsToUTC(t *testing.T) {
+	tokyo, err := time.LoadLocation("Asia/Tokyo")
+	require.NoError(t, err)
+	start := time.Date(2026, 8, 2, 3, 0, 0, 0, tokyo)
+	end := start.Add(30 * time.Minute)
+	intervalRepo := &statsIntervalRepository{}
+	manager := NewContextManager(
+		fixedTimeProvider{now: end},
+		&mockContextRepository{contextsByID: map[string]*Context{
+			"context-1": {Id: "context-1", WorkspaceId: "workspace-1"},
+		}},
+		intervalRepo,
+		&mockWorkspaceRepository{},
+	)
+	interval := &Interval{ContextId: "context-1", Start: &start, End: &end}
+
+	_, err = manager.SaveInterval(interval)
+
+	require.NoError(t, err)
+	require.Equal(t, time.UTC, interval.Start.Location())
+	require.Equal(t, "2026-08-01T18:00:00Z", interval.Start.Format(time.RFC3339))
+	require.Equal(t, time.UTC, interval.End.Location())
+	encoded, err := json.Marshal(interval)
+	require.NoError(t, err)
+	require.Contains(t, string(encoded), `"start":"2026-08-01T18:00:00Z"`)
+	require.NotContains(t, string(encoded), "Asia/Tokyo")
+}
+
+func TestClipIntervalRangeToDayUsesSelectedTimeZone(t *testing.T) {
+	tokyo, err := time.LoadLocation("Asia/Tokyo")
+	require.NoError(t, err)
+	date := time.Date(2026, 8, 2, 0, 0, 0, 0, tokyo)
+	start := time.Date(2026, 8, 1, 14, 30, 0, 0, time.UTC)
+	end := time.Date(2026, 8, 1, 15, 30, 0, 0, time.UTC)
+
+	rng, ok := ClipIntervalRangeToDay(
+		&Interval{Start: &start, End: &end, Status: "completed"},
+		date,
+		end,
+	)
+
+	require.True(t, ok)
+	require.Equal(t, "2026-08-01T15:00:00Z", rng.Start.Format(time.RFC3339))
+	require.Equal(t, "2026-08-01T15:30:00Z", rng.End.Format(time.RFC3339))
+}
+
+func TestClipIntervalRangeToDayHandlesDSTDayLength(t *testing.T) {
+	newYork, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+	date := time.Date(2026, 3, 8, 0, 0, 0, 0, newYork)
+	start := time.Date(2026, 3, 8, 4, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 3, 9, 5, 0, 0, 0, time.UTC)
+
+	rng, ok := ClipIntervalRangeToDay(
+		&Interval{Start: &start, End: &end, Status: "completed"},
+		date,
+		end,
+	)
+
+	require.True(t, ok)
+	require.Equal(t, "2026-03-08T05:00:00Z", rng.Start.Format(time.RFC3339))
+	require.Equal(t, "2026-03-09T04:00:00Z", rng.End.Format(time.RFC3339))
+	require.Equal(t, 23*time.Hour, rng.End.Sub(rng.Start))
+}
+
 type fixedTimeProvider struct {
 	now time.Time
 }
 
-func (p fixedTimeProvider) Now() ZonedTime {
-	return ZonedTime{Time: p.now, Timezone: "UTC"}
+func (p fixedTimeProvider) Now() time.Time {
+	return p.now.UTC()
 }
 
 type statsIntervalRepository struct {
@@ -151,8 +217,8 @@ func TestContextManagerCheckIntegrityReportsOrphansAndWorkspaceMismatch(t *testi
 		{Id: "context-1", WorkspaceId: "workspace-1"},
 	}}
 	intervalRepo := &statsIntervalRepository{intervals: []*Interval{
-		{Id: "missing-context", ContextId: "does-not-exist", WorkspaceId: "workspace-1", Status: "completed", Start: ZonedTime{Time: now, Timezone: "UTC"}, End: ZonedTime{Time: now.Add(time.Hour), Timezone: "UTC"}},
-		{Id: "workspace-mismatch", ContextId: "context-1", WorkspaceId: "workspace-2", Status: "completed", Start: ZonedTime{Time: now.Add(2 * time.Hour), Timezone: "UTC"}, End: ZonedTime{Time: now.Add(3 * time.Hour), Timezone: "UTC"}},
+		{Id: "missing-context", ContextId: "does-not-exist", WorkspaceId: "workspace-1", Status: "completed", Start: testTime(now), End: testTime(now.Add(time.Hour))},
+		{Id: "workspace-mismatch", ContextId: "context-1", WorkspaceId: "workspace-2", Status: "completed", Start: testTime(now.Add(2 * time.Hour)), End: testTime(now.Add(3 * time.Hour))},
 	}}
 	workspaceRepo := &mockWorkspaceRepository{workspaces: []*Workspace{
 		{Id: "workspace-1", Name: "First"},
@@ -177,8 +243,8 @@ func TestContextManagerCheckIntegrityReportsOrphansAndWorkspaceMismatch(t *testi
 func TestContextManagerRepairIntegrityRepairsWorkspaceAssignments(t *testing.T) {
 	now := time.Date(2026, 1, 2, 10, 0, 0, 0, time.UTC)
 	context := &Context{Id: "context-1", WorkspaceId: "missing-workspace"}
-	matchingInterval := &Interval{Id: "interval-1", ContextId: context.Id, WorkspaceId: "other-workspace", Status: "completed", Start: ZonedTime{Time: now, Timezone: "UTC"}, End: ZonedTime{Time: now.Add(time.Hour), Timezone: "UTC"}}
-	orphanInterval := &Interval{Id: "interval-2", ContextId: "missing-context", WorkspaceId: "default-workspace", Status: "completed", Start: ZonedTime{Time: now.Add(2 * time.Hour), Timezone: "UTC"}, End: ZonedTime{Time: now.Add(3 * time.Hour), Timezone: "UTC"}}
+	matchingInterval := &Interval{Id: "interval-1", ContextId: context.Id, WorkspaceId: "other-workspace", Status: "completed", Start: testTime(now), End: testTime(now.Add(time.Hour))}
+	orphanInterval := &Interval{Id: "interval-2", ContextId: "missing-context", WorkspaceId: "default-workspace", Status: "completed", Start: testTime(now.Add(2 * time.Hour)), End: testTime(now.Add(3 * time.Hour))}
 	contextRepo := &mockContextRepository{contexts: []*Context{context}}
 	intervalRepo := &statsIntervalRepository{intervals: []*Interval{matchingInterval, orphanInterval}}
 	workspaceRepo := &mockWorkspaceRepository{workspaces: []*Workspace{
@@ -383,12 +449,12 @@ func TestContextManagerGetWorkspaceStatsUsesAllIntervals(t *testing.T) {
 	intervalRepo := &statsIntervalRepository{intervalsByContext: map[string][]*Interval{
 		"context-1": {
 			{
-				Start:  ZonedTime{Time: now.Add(-3 * time.Hour)},
-				End:    ZonedTime{Time: now.Add(-2 * time.Hour)},
+				Start:  testTime(now.Add(-3 * time.Hour)),
+				End:    testTime(now.Add(-2 * time.Hour)),
 				Status: "completed",
 			},
 			{
-				Start:  ZonedTime{Time: now.Add(-30 * time.Minute)},
+				Start:  testTime(now.Add(-30 * time.Minute)),
 				Status: "active",
 			},
 		},

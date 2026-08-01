@@ -44,7 +44,7 @@ COPY --from=backend-build /out/ctx /usr/local/bin/ctx
 RUN chown -R appuser:appuser /data
 
 EXPOSE 8080
-ENV TZ=Europe/Warsaw
+ENV TZ=UTC
 ENV DATABASE_PATH=/data/ctx.db
 
 CMD ["ctx", "serve", "--addr", ":8080"]

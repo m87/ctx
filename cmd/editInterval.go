@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
@@ -53,26 +52,26 @@ func NewEditIntervalCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				interval.Start = start
+				interval.Start = &start
 			}
 			if strings.TrimSpace(endRaw) != "" {
 				end, err := parseDateTime(endRaw)
 				if err != nil {
 					return err
 				}
-				interval.End = end
+				interval.End = &end
 			}
 			if strings.TrimSpace(status) != "" {
 				interval.Status = strings.TrimSpace(status)
 			}
 
-			if !interval.End.Time.IsZero() {
-				if interval.End.Time.Before(interval.Start.Time) {
+			if interval.End != nil && !interval.End.IsZero() {
+				if interval.Start == nil || interval.End.Before(*interval.Start) {
 					return fmt.Errorf("end must be after start")
 				}
-				interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+				interval.Duration = interval.End.Sub(*interval.Start)
 			} else {
-				interval.End = core.ZonedTime{Time: time.Time{}, Timezone: interval.Start.Timezone, IsZero: true}
+				interval.End = nil
 			}
 
 			if resolveRemoteAddr() != "" {

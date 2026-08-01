@@ -1,6 +1,8 @@
 package core
 
-import "github.com/m87/nod"
+import (
+	"github.com/m87/nod"
+)
 
 type Context struct {
 	Id          string   `json:"id"`

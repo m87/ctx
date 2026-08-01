@@ -1,8 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, map, Observable, of, throwError } from 'rxjs';
+import { catchError, Observable, of, throwError } from 'rxjs';
 import { hasApiErrorCode } from './error';
-import { deserializeIntervals, Interval, RawInterval } from './interval.service';
+import { Interval } from './interval.service';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../app/sidebar/workspace.state';
 
@@ -39,9 +39,7 @@ export class ContextService {
   private readonly baseUrl = '/api/context';
 
   getIntervals(contextId: string): Observable<Interval[]> {
-    return this.http
-      .get<RawInterval[]>(this.url(contextId, 'intervals'))
-      .pipe(map((intervals) => deserializeIntervals(intervals)));
+    return this.http.get<Interval[]>(this.url(contextId, 'intervals'));
   }
 
   getActiveContext(): Observable<Context | null> {
@@ -86,8 +84,10 @@ export class ContextService {
     return this.http.post<void>(this.url('free'), {});
   }
 
-  getStats(contextId: string, date: string): Observable<ContextStats> {
-    return this.http.get<ContextStats>(this.url(contextId, 'stats', date));
+  getStats(contextId: string, date: string, timeZone: string): Observable<ContextStats> {
+    const params = new URLSearchParams({ timeZone });
+    const path = [this.baseUrl, contextId, 'stats', date].join('/');
+    return this.http.get<ContextStats>(`${path}?${params.toString()}`);
   }
 
   archiveContext(contextId: string): Observable<void> {
@@ -108,11 +108,9 @@ export class ContextService {
 
   private url(...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
-    if(segments.length === 0 && !url.endsWith('/')) {
+    if (segments.length === 0 && !url.endsWith('/')) {
       url += '/';
     }
     return url;
   }
-
-
 }

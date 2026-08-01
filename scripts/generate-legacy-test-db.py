@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a ctx database in the current UTC-only 0.6.0 format."""
+"""Generate the frozen ctx 0.5.0 database format used by migration tests."""
 
 from __future__ import annotations
 
@@ -11,9 +11,9 @@ from uuid import NAMESPACE_URL, uuid5
 from zoneinfo import ZoneInfo
 
 
-DATABASE_VERSION = "0.6.0"
+DATABASE_VERSION = "0.5.0"
 TEST_ID_NAMESPACE = "ctx2-test-database-v1"
-SEED_TIMEZONE_NAME = "UTC"
+TIMEZONE_NAME = "Europe/Warsaw"
 NANOSECONDS_PER_SECOND = 1_000_000_000
 SEEDED_DAYS = 7
 
@@ -32,7 +32,7 @@ def duration_ns(duration: timedelta) -> int:
 
 
 def local_zone() -> ZoneInfo:
-    return ZoneInfo(SEED_TIMEZONE_NAME)
+    return ZoneInfo(TIMEZONE_NAME)
 
 
 def recent_day_start(now: datetime, days_back: int, hour: int, minute: int = 0) -> datetime:
@@ -108,7 +108,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX idx_kv_key ON kvs(key);
         CREATE INDEX idx_kv_node_id ON kvs(node_id);
-        CREATE INDEX idx_node_kvs_key_value_time ON kvs(key, value_time, node_id);
 
         CREATE TABLE contents (
           node_id char(36),
@@ -208,7 +207,6 @@ def create_system_records(conn: sqlite3.Connection, now: datetime) -> None:
     )
     insert_kv_text(conn, "settingsV1", "client.general.firstDay", "Monday")
     insert_kv_text(conn, "settingsV1", "client.general.theme", "dark")
-    insert_kv_text(conn, "settingsV1", "client.general.timeZone", "browser")
 
 
 def create_workspace(
@@ -286,7 +284,9 @@ def create_interval(
         now=now,
     )
     insert_kv_time(conn, interval_id, "start", start)
+    insert_kv_text(conn, interval_id, "start_timezone", TIMEZONE_NAME)
     insert_kv_time(conn, interval_id, "end", end)
+    insert_kv_text(conn, interval_id, "end_timezone", TIMEZONE_NAME)
     insert_kv_int64(conn, interval_id, "duration", duration_ns(duration))
     return interval_id
 
@@ -315,8 +315,10 @@ def create_interval_record(
     )
     if start is not None:
         insert_kv_time(conn, interval_id, "start", start)
+        insert_kv_text(conn, interval_id, "start_timezone", TIMEZONE_NAME)
     if end is not None:
         insert_kv_time(conn, interval_id, "end", end)
+        insert_kv_text(conn, interval_id, "end_timezone", TIMEZONE_NAME)
     if start is not None and end is not None and end > start:
         insert_kv_int64(conn, interval_id, "duration", duration_ns(end - start))
     else:
@@ -671,7 +673,7 @@ def generate_database(
     if output.exists():
         output.unlink()
 
-    now = datetime.now(timezone.utc).replace(microsecond=0)
+    now = datetime.now(local_zone()).replace(microsecond=0)
     with sqlite3.connect(output) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
         create_schema(conn)
@@ -693,7 +695,7 @@ def generate_database(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate a current ctx 0.6.0 UTC SQLite database for testing.",
+        description="Generate a legacy ctx 0.5.0 SQLite database for migration testing.",
     )
     parser.add_argument(
         "-o",

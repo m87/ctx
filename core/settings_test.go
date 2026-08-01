@@ -49,6 +49,7 @@ func TestSettingsManagerInitSettingsIfNotExistsCreatesDefaults(t *testing.T) {
 	want := map[string]string{
 		"client.general.theme":    "light",
 		"client.general.firstDay": "Monday",
+		"client.general.timeZone": "browser",
 	}
 	require.Equal(t, want, repo.saved.raw)
 	require.Same(t, repo.saved, manager.cache)
@@ -130,6 +131,33 @@ func TestSettingsManagerSaveClientSavesAndUpdatesCache(t *testing.T) {
 	require.Same(t, repo.saved, manager.cache)
 	require.Equal(t, "dark", repo.saved.general.theme)
 	require.Equal(t, "Sunday", repo.saved.general.firstDay)
+}
+
+func TestSettingsManagerSaveClientRejectsInvalidTimeZone(t *testing.T) {
+	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+	manager := NewSettingsManager(repo, nil)
+
+	err := manager.SaveClient(map[string]string{
+		"client.general.timeZone": "Mars/Olympus_Mons",
+	})
+
+	var invalidTimeZone *InvalidTimeZoneError
+	require.ErrorAs(t, err, &invalidTimeZone)
+	require.Zero(t, repo.saveCalls)
+}
+
+func TestSettingsManagerSaveClientAcceptsBrowserAndIANATimeZones(t *testing.T) {
+	for _, zone := range []string{"browser", "Asia/Tokyo", "UTC"} {
+		t.Run(zone, func(t *testing.T) {
+			repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+			manager := NewSettingsManager(repo, nil)
+
+			err := manager.SaveClient(map[string]string{"client.general.timeZone": zone})
+
+			require.NoError(t, err)
+			require.Equal(t, 1, repo.saveCalls)
+		})
+	}
 }
 
 func TestSettingsManagerSaveClientMergesWithExistingSettings(t *testing.T) {

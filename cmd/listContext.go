@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/m87/ctx/bootstrap"
 	"github.com/m87/ctx/core"
@@ -98,13 +97,7 @@ func NewListContextCmd() *cobra.Command {
 						b.WriteString("  (none)\n")
 					} else {
 						for _, iv := range item.Intervals {
-							var endStr string
-							if iv.End.IsZero {
-								endStr = "(ongoing)"
-							} else {
-								endStr = iv.End.Time.In(iv.End.Time.Location()).Format(time.RFC3339)
-							}
-							b.WriteString(fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s\n", iv.Id, iv.Start.Time.In(iv.Start.Time.Location()).Format(time.RFC3339), endStr, iv.Status))
+							b.WriteString(fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s\n", iv.Id, formatIntervalDateTime(iv.Start), formatIntervalDateTime(iv.End), iv.Status))
 						}
 					}
 				}

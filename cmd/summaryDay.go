@@ -64,11 +64,7 @@ func NewSummaryDayCmd() *cobra.Command {
 							lines = append(lines, "  (no intervals)")
 						} else {
 							for _, iv := range ivs {
-								endStr := "(ongoing)"
-								if !iv.End.IsZero {
-									endStr = iv.End.Time.In(iv.End.Time.Location()).Format(time.RFC3339)
-								}
-								lines = append(lines, fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s", iv.Id, iv.Start.Time.In(iv.Start.Time.Location()).Format(time.RFC3339), endStr, iv.Status))
+								lines = append(lines, fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s", iv.Id, formatIntervalDateTime(iv.Start), formatIntervalDateTime(iv.End), iv.Status))
 							}
 						}
 					}
@@ -82,7 +78,7 @@ func NewSummaryDayCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			now := manager.TimeProvider.Now().Time.UTC()
+			now := manager.TimeProvider.Now().UTC()
 			rangesByContext := map[string][]core.TimeRange{}
 			countByContext := map[string]int{}
 			for _, interval := range intervals {
@@ -174,11 +170,7 @@ func NewSummaryDayCmd() *cobra.Command {
 						lines = append(lines, "  (no intervals)")
 					} else {
 						for _, iv := range ivs {
-							endStr := "(ongoing)"
-							if !iv.End.IsZero {
-								endStr = iv.End.Time.In(iv.End.Time.Location()).Format(time.RFC3339)
-							}
-							lines = append(lines, fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s", iv.Id, iv.Start.Time.In(iv.Start.Time.Location()).Format(time.RFC3339), endStr, iv.Status))
+							lines = append(lines, fmt.Sprintf("  - ID: %s, Start: %s, End: %s, Status: %s", iv.Id, formatIntervalDateTime(iv.Start), formatIntervalDateTime(iv.End), iv.Status))
 						}
 					}
 				}

@@ -1,10 +1,11 @@
-## 0.5.3
+## 0.6.0
 - dev: nod library update
 - feature: add link rules to workspaces
   - link rules are used to detect links in context names and make them clickable, for example jira issue links, github issue links, etc.
   - link rules can be added, updated, and deleted via the workspace settings view
   - link rules are applied to all contexts in the workspace
 - enhancement: include archived contexts in the search results
+- fix: timezone handling
 
 ## 0.5.2
 - fix: invalidate cache on context switch

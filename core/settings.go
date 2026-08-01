@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -33,6 +34,7 @@ type SettingsManager struct {
 var defaultClientSettings = map[string]string{
 	"client.general.theme":    "light",
 	"client.general.firstDay": "Monday",
+	"client.general.timeZone": "browser",
 }
 
 func NewSettingsManager(settingsRepo SettingsRepository, systemInfoRepo SystemInfoRepository) *SettingsManager {
@@ -93,6 +95,9 @@ func (m *SettingsManager) sanitizeSettings(settings map[string]string) map[strin
 
 func (m *SettingsManager) SaveClient(settings map[string]string) error {
 	clientSettings := m.sanitizeSettings(settings)
+	if err := validateClientTimeZone(clientSettings); err != nil {
+		return err
+	}
 	if m.cache == nil {
 		current, err := m.SettingsRepository.Load()
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -117,6 +122,33 @@ func (m *SettingsManager) SaveClient(settings map[string]string) error {
 		return err
 	}
 	m.cache = s
+	return nil
+}
+
+type InvalidTimeZoneError struct {
+	TimeZone string
+}
+
+func (e *InvalidTimeZoneError) Error() string {
+	return fmt.Sprintf("invalid time zone %q", e.TimeZone)
+}
+
+func validateClientTimeZone(settings map[string]string) error {
+	zone, exists := settings["client.general.timeZone"]
+	if !exists {
+		return nil
+	}
+	zone = strings.TrimSpace(zone)
+	if zone == "browser" {
+		return nil
+	}
+	if zone == "" {
+		return &InvalidTimeZoneError{TimeZone: zone}
+	}
+	if _, err := time.LoadLocation(zone); err != nil {
+		return &InvalidTimeZoneError{TimeZone: zone}
+	}
+	settings["client.general.timeZone"] = zone
 	return nil
 }
 
@@ -199,11 +231,9 @@ func (m *SettingsMapper) ToNode(settings *Settings) (*nod.Node, error) {
 
 	node := &nod.Node{
 		Core: nod.NodeCore{
-			Id:        "settingsV1",
-			Name:      "settingsV1",
-			Kind:      SettingsType,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			Id:   "settingsV1",
+			Name: "settingsV1",
+			Kind: SettingsType,
 		},
 		KV: kv,
 	}

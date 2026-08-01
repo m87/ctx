@@ -127,7 +127,10 @@ func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request)
 }
 
 func recalculateIntervalDuration(interval *core.Interval) {
-	interval.Duration = interval.End.Time.Sub(interval.Start.Time)
+	interval.Duration = 0
+	if interval.Start != nil && interval.End != nil && interval.End.After(*interval.Start) {
+		interval.Duration = interval.End.Sub(*interval.Start)
+	}
 }
 
 func (h *IntervalHandler) deleteInterval(w http.ResponseWriter, r *http.Request) {
@@ -145,15 +148,14 @@ func (h *IntervalHandler) deleteInterval(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
-	dateStr := r.PathValue("date")
 	workspaceId := r.URL.Query().Get("workspaceId")
 	if workspaceId == "" {
 		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
 		return
 	}
-	date, err := time.Parse("2006-01-02", dateStr)
+	date, err := parseRequestedDay(r)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
+		writeError(w, http.StatusBadRequest, "INVALID_DAY", err.Error())
 		return
 	}
 
@@ -162,7 +164,7 @@ func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTERVALS", "Failed to list intervals")
 		return
 	}
-	now := h.manager.TimeProvider.Now().Time.UTC()
+	now := h.manager.TimeProvider.Now().UTC()
 	clippedIntervals := make([]*core.Interval, 0, len(intervals))
 
 	seen := make(map[string]struct{})
@@ -173,8 +175,8 @@ func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 		}
 
 		clipped := *interval
-		clipped.Start = core.ZonedTime{Time: rng.Start, Timezone: "UTC"}
-		clipped.End = core.ZonedTime{Time: rng.End, Timezone: "UTC"}
+		clipped.Start = &rng.Start
+		clipped.End = &rng.End
 		clipped.Duration = rng.End.Sub(rng.Start)
 
 		clippedIntervals = append(clippedIntervals, &clipped)
@@ -197,10 +199,9 @@ func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
-	dateStr := r.PathValue("date")
-	date, err := time.Parse("2006-01-02", dateStr)
+	date, err := parseRequestedDay(r)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "INVALID_DATE_FORMAT", "Invalid date format, expected YYYY-MM-DD")
+		writeError(w, http.StatusBadRequest, "INVALID_DAY", err.Error())
 		return
 	}
 	workspaceId := r.URL.Query().Get("workspaceId")
@@ -215,7 +216,7 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := h.manager.TimeProvider.Now().Time.UTC()
+	now := h.manager.TimeProvider.Now().UTC()
 
 	contextsById := make(map[string]*core.Context)
 	intervalsByContext := make(map[string][]*core.Interval)
@@ -233,8 +234,8 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 		}
 
 		clipped := *interval
-		clipped.Start = core.ZonedTime{Time: rng.Start, Timezone: "UTC"}
-		clipped.End = core.ZonedTime{Time: rng.End, Timezone: "UTC"}
+		clipped.Start = &rng.Start
+		clipped.End = &rng.End
 		clipped.Duration = rng.End.Sub(rng.Start)
 
 		intervalsByContext[interval.ContextId] = append(intervalsByContext[interval.ContextId], &clipped)
