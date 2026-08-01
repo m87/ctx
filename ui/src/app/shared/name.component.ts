@@ -114,7 +114,7 @@ export interface NameSaveValue {
             </h1>
             @if (description()) {
               <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground/90">
-                <ctx-linkified-text [text]="description()" />
+                <ctx-linkified-text [text]="description() ?? ''" />
               </p>
             } @else {
               <p class="mt-1 text-sm text-muted-foreground">{{ emptyDescription() }}</p>
@@ -152,7 +152,7 @@ export interface NameSaveValue {
 export class NameComponent {
   readonly label = input('Name');
   readonly name = input('');
-  readonly description = input('');
+  readonly description = input<string | null>('');
   readonly tags = input<readonly string[]>([]);
   readonly showTags = input(false);
   readonly savePending = input(false);
@@ -178,7 +178,7 @@ export class NameComponent {
       }
 
       this.editName.set(this.name());
-      this.editDescription.set(this.description());
+      this.editDescription.set(this.description() ?? '');
       this.editTagsInput.set(this.tags().join(', '));
     });
   }
@@ -189,7 +189,7 @@ export class NameComponent {
     }
 
     this.editName.set(this.name());
-    this.editDescription.set(this.description());
+    this.editDescription.set(this.description() ?? '');
     this.editTagsInput.set(this.tags().join(', '));
     this.isEditing.set(true);
   }

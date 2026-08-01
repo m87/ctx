@@ -55,7 +55,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
             label="Context"
             accentColor="#d97706"
             [name]="currentContext.name"
-            [description]="currentContext.description"
+            [description]="currentContext.description ?? ''"
             [tags]="currentContext.tags ?? []"
             [showTags]="true"
             [readonly]="currentContext.archived ?? false"

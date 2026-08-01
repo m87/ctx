@@ -9,7 +9,7 @@ import { WorkspaceState } from '../app/sidebar/workspace.state';
 export interface Context {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   workspaceId: string;
   archived?: boolean;
   status?: string;
