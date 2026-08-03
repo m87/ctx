@@ -1,5 +1,4 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
@@ -16,7 +15,6 @@ const firstDayKey = 'client.general.firstDay';
 
 @Component({
   selector: 'ctx-sidebar-settings-general-section',
-  imports: [FormsModule],
   template: `
     <div class="space-y-7">
       <div class="space-y-2">
@@ -57,13 +55,17 @@ const firstDayKey = 'client.general.firstDay';
         <select
           id="general-time-zone"
           class="w-full h-10 rounded-md border border-border bg-background px-3 text-sm mt-1"
-          [ngModel]="selectedTimeZone()"
           [disabled]="saveSettingsMutation.isPending()"
-          (ngModelChange)="setTimeZone($event)"
+          (change)="setTimeZone(getSelectValue($event))"
         >
-          <option [value]="browserTimeZonePreference">Browser ({{ browserZone }})</option>
-          @for (zone of timeZoneOptions; track zone) {
-            <option [value]="zone">{{ zone }}</option>
+          <option
+            [value]="browserTimeZonePreference"
+            [selected]="selectedTimeZone() === browserTimeZonePreference"
+          >
+            Browser ({{ browserZone }})
+          </option>
+          @for (zone of timeZoneOptions(); track zone) {
+            <option [value]="zone" [selected]="selectedTimeZone() === zone">{{ zone }}</option>
           }
         </select>
       </div>
@@ -104,10 +106,16 @@ export class SidebarSettingsGeneralSectionComponent {
 
   readonly colorMode = signal<'light' | 'dark'>('light');
   readonly weekStart = signal<'monday' | 'sunday'>('monday');
-  readonly selectedTimeZone = signal(browserTimeZonePreference);
+  readonly selectedTimeZone = this.timeZone.preference;
   readonly browserTimeZonePreference = browserTimeZonePreference;
   readonly browserZone = browserTimeZone();
-  readonly timeZoneOptions = this.timeZone.options;
+  readonly timeZoneOptions = computed(() => {
+    const selectedTimeZone = this.selectedTimeZone();
+    const options = this.timeZone.options;
+    return selectedTimeZone === browserTimeZonePreference || options.includes(selectedTimeZone)
+      ? options
+      : [selectedTimeZone, ...options];
+  });
 
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   saveSettingsMutation = injectMutation(() => this.settingsMutations.save());
@@ -118,7 +126,7 @@ export class SidebarSettingsGeneralSectionComponent {
     const settings = this.settings();
     const theme = settings[themeKey];
     const firstDay = settings[firstDayKey];
-    const selectedTimeZone = settings[timeZoneSettingKey] || browserTimeZonePreference;
+    const selectedTimeZone = settings[timeZoneSettingKey];
 
     if (theme === 'light' || theme === 'dark') {
       this.colorMode.set(theme);
@@ -132,8 +140,9 @@ export class SidebarSettingsGeneralSectionComponent {
       this.weekStart.set('sunday');
     }
 
-    this.selectedTimeZone.set(selectedTimeZone);
-    this.timeZone.setPreference(selectedTimeZone);
+    if (selectedTimeZone) {
+      this.timeZone.setPreference(selectedTimeZone);
+    }
   });
 
   setColorMode(mode: 'light' | 'dark'): void {
@@ -147,8 +156,12 @@ export class SidebarSettingsGeneralSectionComponent {
   }
 
   setTimeZone(timeZone: string): void {
-    this.selectedTimeZone.set(timeZone);
+    this.timeZone.setPreference(timeZone);
     this.saveSettings();
+  }
+
+  getSelectValue(event: Event): string {
+    return (event.target as HTMLSelectElement).value;
   }
 
   private saveSettings(): void {

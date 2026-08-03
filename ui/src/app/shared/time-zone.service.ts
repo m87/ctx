@@ -44,8 +44,9 @@ export function supportedTimeZones(): string[] {
 @Injectable({ providedIn: 'root' })
 export class TimeZoneService {
   private readonly settingsService = inject(SettingsService);
-  private readonly preference = signal(browserTimeZonePreference);
+  private readonly preferenceState = signal(browserTimeZonePreference);
 
+  readonly preference = this.preferenceState.asReadonly();
   readonly effectiveTimeZone = computed(() => resolveTimeZone(this.preference()));
   readonly options = supportedTimeZones();
 
@@ -61,7 +62,7 @@ export class TimeZoneService {
 
   setPreference(preference: string | null | undefined): void {
     const normalized = preference?.trim() || browserTimeZonePreference;
-    this.preference.set(
+    this.preferenceState.set(
       normalized === browserTimeZonePreference || IANAZone.isValidZone(normalized)
         ? normalized
         : browserTimeZonePreference,
