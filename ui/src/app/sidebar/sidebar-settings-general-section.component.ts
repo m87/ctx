@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { SettingsMutations } from '../../api/settings.mutations';
 import { SettingsQueries } from '../../api/settings.queries';
@@ -15,6 +16,7 @@ const firstDayKey = 'client.general.firstDay';
 
 @Component({
   selector: 'ctx-sidebar-settings-general-section',
+  imports: [FormsModule],
   template: `
     <div class="space-y-7">
       <div class="space-y-2">
@@ -55,9 +57,9 @@ const firstDayKey = 'client.general.firstDay';
         <select
           id="general-time-zone"
           class="w-full h-10 rounded-md border border-border bg-background px-3 text-sm mt-1"
-          [value]="selectedTimeZone()"
+          [ngModel]="selectedTimeZone()"
           [disabled]="saveSettingsMutation.isPending()"
-          (change)="setTimeZone(getSelectValue($event))"
+          (ngModelChange)="setTimeZone($event)"
         >
           <option [value]="browserTimeZonePreference">Browser ({{ browserZone }})</option>
           @for (zone of timeZoneOptions; track zone) {
@@ -147,10 +149,6 @@ export class SidebarSettingsGeneralSectionComponent {
   setTimeZone(timeZone: string): void {
     this.selectedTimeZone.set(timeZone);
     this.saveSettings();
-  }
-
-  getSelectValue(event: Event): string {
-    return (event.target as HTMLSelectElement).value;
   }
 
   private saveSettings(): void {
