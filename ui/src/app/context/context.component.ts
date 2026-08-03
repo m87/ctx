@@ -1,7 +1,13 @@
 import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArchive, lucideArchiveRestore, lucidePlay, lucideTrash2 } from '@ng-icons/lucide';
+import {
+  lucideArchive,
+  lucideArchiveRestore,
+  lucidePause,
+  lucidePlay,
+  lucideTrash2,
+} from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { map } from 'rxjs';
@@ -30,6 +36,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
     provideIcons({
       lucideArchive,
       lucideArchiveRestore,
+      lucidePause,
       lucidePlay,
       lucideTrash2,
     }),
@@ -106,16 +113,29 @@ import { TimeZoneService } from '../shared/time-zone.service';
             >
               <ng-icon name="lucideTrash2"></ng-icon>
             </button>
-            <button
-              hlmBtn
-              variant="outline"
-              class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-              [disabled]="currentContext.archived"
-              (click)="startContext()"
-            >
-              <ng-icon name="lucidePlay"></ng-icon>
-              <span class="font-semibold text-blue-600">Start</span>
-            </button>
+            @if (isActiveContext()) {
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-9 px-3 text-xs bg-amber-100/70 text-amber-700"
+                [disabled]="freeContextMutation.isPending()"
+                (click)="pauseContext()"
+              >
+                <ng-icon name="lucidePause"></ng-icon>
+                <span class="font-semibold">Pause</span>
+              </button>
+            } @else {
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+                [disabled]="currentContext.archived || switchContextMutation.isPending()"
+                (click)="startContext()"
+              >
+                <ng-icon name="lucidePlay"></ng-icon>
+                <span class="font-semibold text-blue-600">Start</span>
+              </button>
+            }
           </div>
         </div>
 
@@ -211,13 +231,16 @@ export class ContextComponent {
   });
 
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
+  freeContextMutation = injectMutation(() => this.contextMutations.free());
   updateContextMutation = injectMutation(() => this.contextMutations.update());
   deleteContextMutation = injectMutation(() => this.contextMutations.delete());
   archiveContextMutation = injectMutation(() => this.contextMutations.archive());
   restoreContextMutation = injectMutation(() => this.contextMutations.restore());
   contextQuery = injectQuery(() => this.contextQueries.get(this.contextId()));
+  activeContextQuery = injectQuery(() => this.contextQueries.active());
   contextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
   context = computed(() => this.contextQuery.data() ?? null);
+  isActiveContext = computed(() => this.activeContextQuery.data()?.id === this.contextId());
   contextStatsQuery = injectQuery(() =>
     this.contextQueries.stats(this.contextId(), this.today(), this.timeZone.effectiveTimeZone()),
   );
@@ -240,6 +263,13 @@ export class ContextComponent {
       return;
     }
     this.switchContextMutation.mutate(context);
+  }
+
+  pauseContext(): void {
+    if (!this.isActiveContext()) {
+      return;
+    }
+    this.freeContextMutation.mutate();
   }
 
   deleteContext() {

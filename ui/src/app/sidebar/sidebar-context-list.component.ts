@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucidePlay, lucidePlus } from '@ng-icons/lucide';
+import { lucidePause, lucidePlay, lucidePlus } from '@ng-icons/lucide';
 import { ContextMutations } from '../../api/context.mutations';
 import { ContextQueries } from '../../api/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
@@ -13,7 +13,7 @@ import { WorkspaceState } from './workspace.state';
 @Component({
   selector: 'ctx-sidebar-context-list',
   imports: [NgIcon, RouterLink, LinkifiedTextComponent],
-  providers: [provideIcons({ lucidePlay, lucidePlus })],
+  providers: [provideIcons({ lucidePause, lucidePlay, lucidePlus })],
   template: ` <div class="group/list flex flex-col gap-1 p-2">
     @if (isAddingContext()) {
       <input
@@ -39,18 +39,27 @@ import { WorkspaceState } from './workspace.state';
 
     @for (context of contexts(); track context.id) {
       <div
-        class="group flex justify-between items-center text-[13px] px-2 py-1.5 font-medium hover:bg-muted/60 rounded-md cursor-pointer"
+        class="group flex items-center gap-2 text-[13px] pl-2 pr-1 py-1 font-medium hover:bg-muted/60 rounded-md cursor-pointer"
+        [routerLink]="['/context', context.id]"
+        role="link"
+        tabindex="0"
       >
-        <span [routerLink]="['/context', context.id]" class="truncate">
+        <span class="min-w-0 flex-1 truncate">
           <ctx-linkified-text [text]="context.name" />
         </span>
-        <span class="relative h-4 text-muted-foreground text-[13px] flex items-center justify-end">
+        <button
+          type="button"
+          class="h-6 w-6 shrink-0 rounded flex items-center justify-center text-muted-foreground opacity-60 hover:opacity-100 hover:bg-muted md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
+          [disabled]="switchContextMutation.isPending() || freeContextMutation.isPending()"
+          [attr.aria-label]="(isActiveContext(context.id) ? 'Pause ' : 'Start ') + context.name"
+          [title]="(isActiveContext(context.id) ? 'Pause ' : 'Start ') + context.name"
+          (click)="toggleContext($event, context)"
+        >
           <ng-icon
-            name="lucidePlay"
-            class="absolute inset-0 flex items-center justify-end opacity-0 group-hover:opacity-100"
-            (click)="switchContextMutation.mutate(context)"
+            [name]="isActiveContext(context.id) ? 'lucidePause' : 'lucidePlay'"
+            class="text-[12px] pointer-events-none"
           ></ng-icon>
-        </span>
+        </button>
       </div>
     }
   </div>`,
@@ -64,8 +73,10 @@ export class SidebarContextListComponent {
   readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
 
   listContextsQuery = injectQuery(() => this.contextQueries.list(this.selectedWorkspaceId()));
+  activeContextQuery = injectQuery(() => this.contextQueries.active());
   createContextMutation = injectMutation(() => this.contextMutations.create());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
+  freeContextMutation = injectMutation(() => this.contextMutations.free());
 
   readonly contexts = computed<readonly Context[]>(() => this.listContextsQuery.data() ?? []);
   readonly isAddingContext = signal<boolean>(false);
@@ -104,5 +115,19 @@ export class SidebarContextListComponent {
       workspaceId: this.selectedWorkspaceId() ?? '',
     });
     this.cancelAddContext();
+  }
+
+  isActiveContext(contextId: string): boolean {
+    return this.activeContextQuery.data()?.id === contextId;
+  }
+
+  toggleContext(event: MouseEvent, context: Context): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.isActiveContext(context.id)) {
+      this.freeContextMutation.mutate();
+      return;
+    }
+    this.switchContextMutation.mutate(context);
   }
 }

@@ -1,4 +1,4 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { ContextListGroupItemComponent } from './context-list-group-item.component';
 import { ContextListItem } from './context-list-item.component';
@@ -60,7 +60,12 @@ export interface ContextListGroup {
 
       @if (expanded()) {
         @for (item of group().items; track item.id) {
-          <ctx-context-list-group-item [item]="item"></ctx-context-list-group-item>
+          <ctx-context-list-group-item
+            [item]="item"
+            [active]="activeContextId() === item.id"
+            [startPending]="startPending()"
+            (start)="start.emit($event)"
+          ></ctx-context-list-group-item>
         }
       }
     </div>
@@ -68,6 +73,9 @@ export interface ContextListGroup {
 })
 export class ContextListGroupComponent {
   readonly group = input.required<ContextListGroup>();
+  readonly activeContextId = input<string | null>(null);
+  readonly startPending = input(false);
+  readonly start = output<ContextListItem>();
   readonly expanded = signal(false);
 
   toggle(): void {

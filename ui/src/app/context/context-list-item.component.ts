@@ -1,4 +1,6 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucidePause, lucidePlay } from '@ng-icons/lucide';
 import { RouterLink } from '@angular/router';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 
@@ -17,7 +19,8 @@ export interface ContextListItem {
 
 @Component({
   selector: 'ctx-context-list-item',
-  imports: [RouterLink, LinkifiedTextComponent],
+  imports: [NgIcon, RouterLink, LinkifiedTextComponent],
+  providers: [provideIcons({ lucidePause, lucidePlay })],
   template: `
     <div
       class="block cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
@@ -36,6 +39,21 @@ export interface ContextListItem {
           </span>
         }
         <span class="text-xs text-muted-foreground">{{ item().duration }}</span>
+        @if (!item().archived) {
+          <button
+            type="button"
+            class="h-7 w-7 -my-1 -mr-1 shrink-0 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center"
+            [disabled]="startPending()"
+            [attr.aria-label]="(active() ? 'Pause ' : 'Start ') + item().name"
+            [title]="(active() ? 'Pause ' : 'Start ') + item().name"
+            (click)="requestStart($event)"
+          >
+            <ng-icon
+              [name]="active() ? 'lucidePause' : 'lucidePlay'"
+              class="text-[13px] pointer-events-none"
+            ></ng-icon>
+          </button>
+        }
       </div>
       <div class="h-1.5 rounded bg-muted/40 overflow-hidden">
         <div
@@ -64,6 +82,15 @@ export interface ContextListItem {
 })
 export class ContextListItemComponent {
   readonly item = input.required<ContextListItem>();
+  readonly active = input(false);
+  readonly startPending = input(false);
+  readonly start = output<ContextListItem>();
+
+  requestStart(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.start.emit(this.item());
+  }
 
   boundedPercentage(value: number): number {
     if (!Number.isFinite(value)) {
