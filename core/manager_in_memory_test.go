@@ -122,6 +122,25 @@ func (r *memoryWorkspaceRepository) List() ([]*Workspace, error) {
 	return result, nil
 }
 
+func (r *memoryWorkspaceRepository) ListToSync(limit int) ([]*Workspace, error) {
+	workspaces, err := r.List()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*Workspace, 0, len(workspaces))
+	for _, workspace := range workspaces {
+		if workspace == nil || workspace.Synced {
+			continue
+		}
+		result = append(result, workspace)
+		if limit > 0 && len(result) == limit {
+			break
+		}
+	}
+	return result, nil
+}
+
 type memoryIntervalRepository struct {
 	items  map[string]*Interval
 	nextID int

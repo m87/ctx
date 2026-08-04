@@ -180,6 +180,20 @@ func (r *mockWorkspaceRepository) List() ([]*Workspace, error) {
 	return r.workspaces, nil
 }
 
+func (r *mockWorkspaceRepository) ListToSync(limit int) ([]*Workspace, error) {
+	result := make([]*Workspace, 0, len(r.workspaces))
+	for _, workspace := range r.workspaces {
+		if workspace == nil || workspace.Synced {
+			continue
+		}
+		result = append(result, workspace)
+		if limit > 0 && len(result) == limit {
+			break
+		}
+	}
+	return result, nil
+}
+
 func TestContextManagerEnsureDefaultWorkspaceFillsOnlyMissingAssignments(t *testing.T) {
 	unassignedContext := &Context{Id: "context-1"}
 	assignedContext := &Context{Id: "context-2", WorkspaceId: "workspace-2"}
