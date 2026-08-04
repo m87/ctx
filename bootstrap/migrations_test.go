@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/m87/ctx/core"
 	"github.com/stretchr/testify/require"
 )
@@ -17,6 +18,7 @@ func TestLegacyDatabaseGeneratorMigratesToUTCFormat(t *testing.T) {
 	databasePath := generateTestDatabase(t, "generate-legacy-test-db.py")
 
 	legacyDB := openTestDatabase(t, databasePath)
+	clientIdBefore := querySystemInfoClientId(t, legacyDB)
 	require.Equal(t, "0.5.0", querySetting(t, legacyDB, "kvs", "database_version"))
 	require.Greater(t, queryKVCount(t, legacyDB, "kvs", "start_timezone", "end_timezone"), int64(0))
 	forceLegacyOffsetStart(t, legacyDB)
@@ -33,6 +35,7 @@ func TestLegacyDatabaseGeneratorMigratesToUTCFormat(t *testing.T) {
 	require.NoError(t, err)
 
 	migratedDB := openTestDatabase(t, databasePath)
+	require.Equal(t, clientIdBefore, querySystemInfoClientId(t, migratedDB))
 	require.Equal(t, core.CurrentDatabaseVersion, querySetting(t, migratedDB, "node_kvs", "database_version"))
 	require.Equal(t, "browser", querySetting(t, migratedDB, "node_kvs", "client.general.timeZone"))
 	require.Zero(t, queryKVCount(t, migratedDB, "node_kvs", "start_timezone", "end_timezone"))
@@ -46,6 +49,7 @@ func TestLegacyDatabaseGeneratorMigratesToUTCFormat(t *testing.T) {
 	require.NoError(t, err)
 
 	idempotentDB := openTestDatabase(t, databasePath)
+	require.Equal(t, clientIdBefore, querySystemInfoClientId(t, idempotentDB))
 	require.Equal(t, before, queryIntervalInstants(t, idempotentDB, "node_kvs"))
 	require.Zero(t, queryKVCount(t, idempotentDB, "node_kvs", "start_timezone", "end_timezone"))
 	require.NoError(t, idempotentDB.Close())
@@ -76,6 +80,49 @@ func TestCurrentDatabaseGeneratorUsesUTCFormat(t *testing.T) {
 	require.Equal(t, core.CurrentDatabaseVersion, querySetting(t, openedDB, "node_kvs", "database_version"))
 	require.Zero(t, queryKVCount(t, openedDB, "node_kvs", "start_timezone", "end_timezone"))
 	require.NoError(t, openedDB.Close())
+}
+
+func TestDatabaseGeneratorsCreateUniqueClientIds(t *testing.T) {
+	for _, scriptName := range []string{"generate-test-db.py", "generate-legacy-test-db.py"} {
+		t.Run(scriptName, func(t *testing.T) {
+			firstPath := generateTestDatabase(t, scriptName)
+			secondPath := generateTestDatabase(t, scriptName)
+
+			firstDB := openTestDatabase(t, firstPath)
+			firstClientId := querySystemInfoClientId(t, firstDB)
+			require.NoError(t, firstDB.Close())
+
+			secondDB := openTestDatabase(t, secondPath)
+			secondClientId := querySystemInfoClientId(t, secondDB)
+			require.NoError(t, secondDB.Close())
+
+			require.NotEqual(t, firstClientId, secondClientId)
+			_, err := uuid.Parse(firstClientId)
+			require.NoError(t, err)
+			_, err = uuid.Parse(secondClientId)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestCreateManagerCreatesUniqueClientIdsForNewDatabases(t *testing.T) {
+	clientIds := make([]string, 0, 2)
+	for _, fileName := range []string{"first.db", "second.db"} {
+		databasePath := filepath.Join(t.TempDir(), fileName)
+		t.Setenv("DATABASE_PATH", databasePath)
+
+		_, err := CreateManager()
+		require.NoError(t, err)
+
+		db := openTestDatabase(t, databasePath)
+		clientId := querySystemInfoClientId(t, db)
+		require.NoError(t, db.Close())
+		_, err = uuid.Parse(clientId)
+		require.NoError(t, err)
+		clientIds = append(clientIds, clientId)
+	}
+
+	require.NotEqual(t, clientIds[0], clientIds[1])
 }
 
 func TestMigrationRollsBackApplicationChangesWhenTimestampIsInvalid(t *testing.T) {
@@ -148,6 +195,15 @@ func queryOptionalSetting(t *testing.T, db *sql.DB, table string, key string) st
 	}
 	require.NoError(t, err)
 	return value
+}
+
+func querySystemInfoClientId(t *testing.T, db *sql.DB) string {
+	t.Helper()
+	var clientId string
+	require.NoError(t, db.QueryRow(
+		"SELECT id FROM node_cores WHERE kind = 'system_info' LIMIT 1",
+	).Scan(&clientId))
+	return clientId
 }
 
 func queryKVCount(t *testing.T, db *sql.DB, table string, keys ...string) int64 {

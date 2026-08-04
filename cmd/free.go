@@ -16,7 +16,7 @@ func NewFreeCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteFreeContext(); err != nil {
+				if err := remoteClient().FreeContext(); err != nil {
 					return err
 				}
 			} else {

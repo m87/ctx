@@ -75,7 +75,7 @@ func NewEditIntervalCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteUpdateInterval(interval); err != nil {
+				if err := remoteClient().UpdateInterval(interval); err != nil {
 					return err
 				}
 			} else {

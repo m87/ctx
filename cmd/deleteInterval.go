@@ -26,7 +26,7 @@ func NewDeleteIntervalCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteDeleteInterval(id); err != nil {
+				if err := remoteClient().DeleteInterval(id); err != nil {
 					return err
 				}
 			} else {

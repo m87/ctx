@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	ctxlog "github.com/m87/ctx/log"
 )
 
 type TimeRange struct {
@@ -585,4 +587,56 @@ func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) 
 	}
 
 	return repaired, nil
+}
+
+func (m *ContextManager) Sync(addr string) error {
+	// sync server -> client
+	// resolve conflicts
+	// sync client -> server
+
+	err := m.syncWorkspaces(addr)
+	if err != nil {
+		return err
+	}
+
+	err = m.syncContexts()
+	if err != nil {
+		return err
+	}
+
+	err = m.syncIntervals()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ContextManager) syncWorkspaces(addr string) error {
+	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
+	workspacesToSync, err := remoteClient.ListUnsyncedWorkspaces(0)
+	if err != nil {
+		return err
+	}
+
+	for _, workspace := range workspacesToSync {
+		_, err := m.WorkspaceRepository.GetById(workspace.Id)
+
+		if err != nil {
+			ctxlog.Logger.Warn("Failed to sync workspace. Id conflict", workspace.Id, err)
+			continue
+		}
+
+		m.WorkspaceRepository.Save(workspace)
+	}
+
+	return nil
+}
+
+func (m *ContextManager) syncContexts() error {
+	return nil
+}
+
+func (m *ContextManager) syncIntervals() error {
+	return nil
 }

@@ -33,6 +33,11 @@ func NewServer(manager *core.ContextManager, settingsManager *core.SettingsManag
 func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, settingsManager *core.SettingsManager) {
 	apiMux := http.NewServeMux()
 
+	syncMux := http.NewServeMux()
+	registerSyncHandler(syncMux, manager)
+	apiMux.Handle("/sync/", http.StripPrefix("/sync", syncMux))
+	apiMux.Handle("/sync", http.StripPrefix("/sync", syncMux))
+
 	versionMux := http.NewServeMux()
 	registerVersionHandler(versionMux)
 	apiMux.Handle("/version/", stripPrefixOrRoot("/version", versionMux))
@@ -68,6 +73,12 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 }
 
 func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, settingsManager *core.SettingsManager) {
+
+	syncMux := http.NewServeMux()
+	registerSyncHandler(syncMux, manager)
+	mux.Handle("/sync/", http.StripPrefix("/sync", syncMux))
+	mux.Handle("/sync", http.StripPrefix("/sync", syncMux))
+
 	versionMux := http.NewServeMux()
 	registerVersionHandler(versionMux)
 	mux.Handle("/version/", stripPrefixOrRoot("/version", versionMux))
@@ -120,7 +131,7 @@ func (s *Server) Handler() http.Handler {
 			base.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") {
 			base.ServeHTTP(w, r)
 			return
 		}

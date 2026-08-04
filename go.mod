@@ -3,7 +3,8 @@ module github.com/m87/ctx
 go 1.26.3
 
 require (
-	github.com/m87/nod v0.0.2-0.20260719134319-4eb78d2055d5
+	github.com/google/uuid v1.6.0
+	github.com/m87/nod v0.0.2-0.20260804183818-6dc510cca261
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
@@ -16,7 +17,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect

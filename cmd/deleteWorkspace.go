@@ -13,7 +13,7 @@ func NewDeleteWorkspaceCmd() *cobra.Command {
 		Short: "Delete a workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if resolveRemoteAddr() != "" {
-				return remoteDeleteWorkspace(workspaceId)
+				return remoteClient().DeleteWorkspace(workspaceId)
 			}
 			manager, err := bootstrap.CreateManager()
 			if err != nil {

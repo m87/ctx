@@ -20,7 +20,7 @@ func NewRestoreContextCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteRestoreContext(contextId); err != nil {
+				if err := remoteClient().RestoreContext(contextId); err != nil {
 					return err
 				}
 			} else {

@@ -7,7 +7,7 @@ import argparse
 import sqlite3
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, uuid4, uuid5
 from zoneinfo import ZoneInfo
 
 
@@ -189,14 +189,15 @@ def insert_kv_time(conn: sqlite3.Connection, node_id: str, key: str, value: date
 
 
 def create_system_records(conn: sqlite3.Connection, now: datetime) -> None:
+    client_id = str(uuid4())
     insert_node(
         conn,
-        node_id="systemInfoV1",
+        node_id=client_id,
         kind="system_info",
         name="systemInfoV1",
         now=now,
     )
-    insert_kv_text(conn, "systemInfoV1", "database_version", DATABASE_VERSION)
+    insert_kv_text(conn, client_id, "database_version", DATABASE_VERSION)
 
     insert_node(
         conn,

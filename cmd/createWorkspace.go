@@ -27,7 +27,7 @@ func NewCreateWorkspaceCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteCreateWorkspace(workspace); err != nil {
+				if err := remoteClient().CreateWorkspace(workspace); err != nil {
 					return err
 				}
 			} else {

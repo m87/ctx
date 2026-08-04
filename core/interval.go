@@ -14,6 +14,7 @@ type Interval struct {
 	Duration    time.Duration `json:"duration"`
 	Status      string        `json:"status"`
 	WorkspaceId string        `json:"workspaceId"`
+	Synced      bool          `json:"synced"`
 }
 
 type IntervalMapper struct {
@@ -29,6 +30,7 @@ func (m *IntervalMapper) ToNode(interval *Interval) (*nod.Node, error) {
 	durationNanos := interval.Duration.Nanoseconds()
 	kv := map[string]*nod.NodeKV{
 		"duration": {Key: "duration", ValueInt64: &durationNanos},
+		"synced":   {Key: "synced", ValueBool: &interval.Synced},
 	}
 	if timeIsSet(interval.Start) {
 		start := interval.Start.UTC()
@@ -38,6 +40,7 @@ func (m *IntervalMapper) ToNode(interval *Interval) (*nod.Node, error) {
 		end := interval.End.UTC()
 		kv["end"] = &nod.NodeKV{Key: "end", ValueTime: &end}
 	}
+
 	node := &nod.Node{
 		Core: nod.NodeCore{
 			Id:          interval.Id,
@@ -80,6 +83,7 @@ func (m *IntervalMapper) FromNode(node *nod.Node) (*Interval, error) {
 		Duration:    time.Duration(nodInt64(node.KV, "duration")),
 		Status:      node.Core.Status,
 		WorkspaceId: workspaceId,
+		Synced:      nodBool(node.KV, "synced"),
 	}, nil
 }
 

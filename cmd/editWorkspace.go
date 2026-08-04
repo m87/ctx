@@ -23,7 +23,7 @@ func NewEditWorkspaceCmd() *cobra.Command {
 			var manager *core.ContextManager
 			var err error
 			if resolveRemoteAddr() != "" {
-				workspace, err = remoteGetWorkspace(workspaceId)
+				workspace, err = remoteClient().GetWorkspace(workspaceId)
 			} else {
 				manager, err = bootstrap.CreateManager()
 				if err != nil {
@@ -46,7 +46,7 @@ func NewEditWorkspaceCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				return remoteUpdateWorkspace(workspace)
+				return remoteClient().UpdateWorkspace(workspace)
 			}
 			_, err = manager.WorkspaceRepository.Save(workspace)
 			if err != nil {

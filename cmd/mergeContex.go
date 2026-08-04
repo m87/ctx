@@ -35,7 +35,7 @@ func NewMergeContextCmd() *cobra.Command {
 
 			moved := 0
 			if resolveRemoteAddr() != "" {
-				intervals, err := remoteListContextIntervals(source)
+				intervals, err := remoteClient().ListContextIntervals(source)
 				if err != nil {
 					return err
 				}
@@ -43,13 +43,13 @@ func NewMergeContextCmd() *cobra.Command {
 					if interval == nil || strings.TrimSpace(interval.Id) == "" {
 						continue
 					}
-					if err := remoteMoveInterval(interval.Id, target); err != nil {
+					if err := remoteClient().MoveInterval(interval.Id, target); err != nil {
 						return err
 					}
 					moved++
 				}
 				if deleteSource {
-					if err := remoteDeleteContext(source); err != nil {
+					if err := remoteClient().DeleteContext(source); err != nil {
 						return err
 					}
 				}

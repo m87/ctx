@@ -33,7 +33,7 @@ func NewCreateContextCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteCreateContext(context); err != nil {
+				if err := remoteClient().CreateContext(context); err != nil {
 					return err
 				}
 			} else {
