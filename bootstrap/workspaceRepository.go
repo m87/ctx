@@ -58,7 +58,7 @@ func (r *WorkspaceRepository) GetProperties(workspaceId string) (core.WorkspaceS
 func (r *WorkspaceRepository) ListToSync(limit int) ([]*core.Workspace, error) {
 	return r.scope.Query().
 		Where(nod.NodeFields.Kind.Equals(core.WorkspaceType)).
-		Where(nod.KvBool("synced").Equals(false)).
+		Where(nod.Or(nod.Kv("synced").NotExists(), nod.KvBool("synced").Equals(false))).
 		WithKV().
 		WithTags().
 		WithContent().
