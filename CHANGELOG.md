@@ -6,6 +6,7 @@
   - link rules are applied to all contexts in the workspace
 - enhancement: include archived contexts in the search results
 - fix: timezone handling
+- feature: database synchronization with remote server
 
 ## 0.5.2
 - fix: invalidate cache on context switch
