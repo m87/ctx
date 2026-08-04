@@ -13,6 +13,7 @@ type Context struct {
 	Archived    bool     `json:"archived"`
 	Description string   `json:"description,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
+	Synced      bool     `json:"synced"`
 }
 
 const ContextType = "context"
@@ -41,6 +42,7 @@ func (m *ContextMapper) ToNode(context *Context) (*nod.Node, error) {
 	})
 	node.KV = map[string]*nod.NodeKV{
 		"archived": {Key: "archived", ValueBool: &context.Archived},
+		"synced":   {Key: "synced", ValueBool: &context.Synced},
 	}
 
 	node.Tags = ConvertToNodTags(context.Tags)
@@ -68,6 +70,7 @@ func (m *ContextMapper) FromNode(node *nod.Node) (*Context, error) {
 		Archived:    nodBool(node.KV, "archived"),
 		Description: ConvertFromNodContent(node.Content)["description"],
 		Tags:        ConvertFromNodTags(node.Tags),
+		Synced:      nodBool(node.KV, "synced"),
 	}, nil
 }
 

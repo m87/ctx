@@ -586,3 +586,38 @@ func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) 
 
 	return repaired, nil
 }
+
+func (m *ContextManager) Sync(from *time.Time) error {
+	// sync server -> client
+	// resolve conflicts
+	// sync client -> server
+
+	err := m.syncWorkspaces()
+	if err != nil {
+		return err
+	}
+
+	err = m.syncContexts(from)
+	if err != nil {
+		return err
+	}
+
+	err = m.syncIntervals(from)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ContextManager) syncWorkspaces() error {
+	return nil
+}
+
+func (m *ContextManager) syncContexts(from *time.Time) error {
+	return nil
+}
+
+func (m *ContextManager) syncIntervals(from *time.Time) error {
+	return nil
+}

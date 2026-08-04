@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/m87/ctx/core"
 	ctxlog "github.com/m87/ctx/log"
 	"github.com/m87/nod"
@@ -33,8 +34,12 @@ func CreateManager() (*core.ContextManager, error) {
 		}
 
 		currentVersion := ""
+		clientId := uuid.NewString()
 		if systemInfo != nil {
 			currentVersion = systemInfo.DatabaseVersion
+			if strings.TrimSpace(systemInfo.ClientId) != "" {
+				clientId = systemInfo.ClientId
+			}
 		}
 		needsMigration, err := core.DatabaseVersionNeedsMigration(currentVersion, core.CurrentDatabaseVersion)
 		if err != nil {
@@ -50,7 +55,10 @@ func CreateManager() (*core.ContextManager, error) {
 		if err != nil {
 			return err
 		}
-		if err := settingsManager.SystemInfoRepository.Save(&core.SystemInfo{DatabaseVersion: core.CurrentDatabaseVersion}); err != nil {
+		if err := settingsManager.SystemInfoRepository.Save(&core.SystemInfo{
+			DatabaseVersion: core.CurrentDatabaseVersion,
+			ClientId:        clientId,
+		}); err != nil {
 			return err
 		}
 		ctxlog.Logger.Info("Database migration completed", "database_version", core.CurrentDatabaseVersion, "records_updated", migrated, "duration", time.Since(startedAt))

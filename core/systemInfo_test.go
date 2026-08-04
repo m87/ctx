@@ -6,6 +6,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSystemInfoMapperUsesClientIdAsNodeId(t *testing.T) {
+	info := &SystemInfo{
+		DatabaseVersion: CurrentDatabaseVersion,
+		ClientId:        "7aa13ad4-7af8-42db-bd6a-927ac9573d8f",
+	}
+
+	node, err := NewSystemInfoMapper().ToNode(info)
+	require.NoError(t, err)
+	require.Equal(t, info.ClientId, node.Core.Id)
+	require.Equal(t, SystemInfoName, node.Core.Name)
+	require.NotContains(t, node.KV, "client_id")
+
+	restored, err := NewSystemInfoMapper().FromNode(node)
+	require.NoError(t, err)
+	require.Equal(t, info, restored)
+}
+
+func TestSystemInfoMapperRequiresClientId(t *testing.T) {
+	_, err := NewSystemInfoMapper().ToNode(&SystemInfo{DatabaseVersion: CurrentDatabaseVersion})
+	require.ErrorContains(t, err, "client ID is required")
+}
+
 func TestDatabaseVersionNeedsMigration(t *testing.T) {
 	tests := []struct {
 		current string

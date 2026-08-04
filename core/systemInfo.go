@@ -10,12 +10,13 @@ import (
 
 const (
 	SystemInfoType         = "system_info"
-	SystemInfoId           = "systemInfoV1"
+	SystemInfoName         = "systemInfoV1"
 	CurrentDatabaseVersion = "0.6.0"
 )
 
 type SystemInfo struct {
 	DatabaseVersion string
+	ClientId        string
 }
 
 type SystemInfoMapper struct{}
@@ -25,11 +26,15 @@ func NewSystemInfoMapper() *SystemInfoMapper {
 }
 
 func (m *SystemInfoMapper) ToNode(info *SystemInfo) (*nod.Node, error) {
+	clientId := strings.TrimSpace(info.ClientId)
+	if clientId == "" {
+		return nil, fmt.Errorf("system info client ID is required")
+	}
 	databaseVersion := info.DatabaseVersion
 	return &nod.Node{
 		Core: nod.NodeCore{
-			Id:   SystemInfoId,
-			Name: SystemInfoId,
+			Id:   clientId,
+			Name: SystemInfoName,
 			Kind: SystemInfoType,
 		},
 		KV: map[string]*nod.NodeKV{
@@ -39,7 +44,10 @@ func (m *SystemInfoMapper) ToNode(info *SystemInfo) (*nod.Node, error) {
 }
 
 func (m *SystemInfoMapper) FromNode(node *nod.Node) (*SystemInfo, error) {
-	return &SystemInfo{DatabaseVersion: nodString(node.KV, "database_version")}, nil
+	return &SystemInfo{
+		DatabaseVersion: nodString(node.KV, "database_version"),
+		ClientId:        node.Core.Id,
+	}, nil
 }
 
 func (m *SystemInfoMapper) IsApplicable(node *nod.Node) bool {
