@@ -111,6 +111,20 @@ func (r *statsIntervalRepository) ListByDay(time.Time, string) ([]*Interval, err
 }
 func (r *statsIntervalRepository) List() ([]*Interval, error) { return r.intervals, nil }
 
+func (r *statsIntervalRepository) ListToSync(limit int) ([]*Interval, error) {
+	result := make([]*Interval, 0, len(r.intervals))
+	for _, interval := range r.intervals {
+		if interval == nil || interval.Synced {
+			continue
+		}
+		result = append(result, interval)
+		if limit > 0 && len(result) == limit {
+			break
+		}
+	}
+	return result, nil
+}
+
 type mockContextRepository struct {
 	contexts             []*Context
 	contextsByID         map[string]*Context
@@ -138,6 +152,20 @@ func (r *mockContextRepository) Delete(contextID string) error {
 
 func (r *mockContextRepository) List() ([]*Context, error) {
 	return r.contexts, nil
+}
+
+func (r *mockContextRepository) ListToSync(limit int) ([]*Context, error) {
+	result := make([]*Context, 0, len(r.contexts))
+	for _, context := range r.contexts {
+		if context == nil || context.Synced {
+			continue
+		}
+		result = append(result, context)
+		if limit > 0 && len(result) == limit {
+			break
+		}
+	}
+	return result, nil
 }
 
 func (r *mockContextRepository) ListByWorkspace(workspaceID string) ([]*Context, error) {

@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -174,7 +173,7 @@ func (c *RemoteClient) ListUnsyncedWorkspaces(limit int) ([]*Workspace, error) {
 	if limit <= 0 {
 		limit = DefaultSyncLimit
 	}
-	path := "/api/sync/workspace/?limit=" + strconv.Itoa(limit)
+	path := "/sync/workspaces"
 	var workspaces []*Workspace
 	if err := c.requestJSON(http.MethodGet, path, nil, &workspaces); err != nil {
 		return nil, err
@@ -182,16 +181,26 @@ func (c *RemoteClient) ListUnsyncedWorkspaces(limit int) ([]*Workspace, error) {
 	return workspaces, nil
 }
 
-func (c *RemoteClient) SyncWorkspace(workspace *Workspace) error {
-	if workspace == nil {
-		return fmt.Errorf("workspace is required")
+func (c *RemoteClient) ListUnsyncedContexts(limit int) ([]*Context, error) {
+	if limit <= 0 {
+		limit = DefaultSyncLimit
 	}
-	var synced Workspace
-	if err := c.requestJSON(http.MethodPost, "/api/sync/workspace/", workspace, &synced); err != nil {
-		return err
+	var contexts []*Context
+	if err := c.requestJSON(http.MethodGet, "/sync/contexts", nil, &contexts); err != nil {
+		return nil, err
 	}
-	*workspace = synced
-	return nil
+	return contexts, nil
+}
+
+func (c *RemoteClient) ListUnsyncedIntervals(limit int) ([]*Interval, error) {
+	if limit <= 0 {
+		limit = DefaultSyncLimit
+	}
+	var intervals []*Interval
+	if err := c.requestJSON(http.MethodGet, "/sync/intervals", nil, &intervals); err != nil {
+		return nil, err
+	}
+	return intervals, nil
 }
 
 func (c *RemoteClient) GetWorkspace(id string) (*Workspace, error) {

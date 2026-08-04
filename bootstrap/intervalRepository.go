@@ -114,3 +114,11 @@ func (r *IntervalRepository) List() ([]*core.Interval, error) {
 		WithKV().
 		FindAll()
 }
+
+func (r *IntervalRepository) ListToSync(limit int) ([]*core.Interval, error) {
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.IntervalType)).
+		Where(nod.Or(nod.Kv("synced").NotExists(), nod.KvBool("synced").Equals(false))).
+		WithKV().
+		FindAll()
+}

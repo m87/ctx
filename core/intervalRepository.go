@@ -11,4 +11,5 @@ type IntervalRepository interface {
 	GetActiveIntervalByContextId(contextId string) (*Interval, error)
 	ListByDay(date time.Time, workspaceId string) ([]*Interval, error)
 	List() ([]*Interval, error)
+	ListToSync(limit int) ([]*Interval, error)
 }

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"time"
-
-	ctxlog "github.com/m87/ctx/log"
 )
 
 type TimeRange struct {
@@ -599,12 +597,12 @@ func (m *ContextManager) Sync(addr string) error {
 		return err
 	}
 
-	err = m.syncContexts()
+	err = m.syncContexts(addr)
 	if err != nil {
 		return err
 	}
 
-	err = m.syncIntervals()
+	err = m.syncIntervals(addr)
 	if err != nil {
 		return err
 	}
@@ -620,23 +618,40 @@ func (m *ContextManager) syncWorkspaces(addr string) error {
 	}
 
 	for _, workspace := range workspacesToSync {
-		_, err := m.WorkspaceRepository.GetById(workspace.Id)
-
-		if err != nil {
-			ctxlog.Logger.Warn("Failed to sync workspace. Id conflict", workspace.Id, err)
-			continue
-		}
-
 		m.WorkspaceRepository.Save(workspace)
 	}
 
 	return nil
 }
 
-func (m *ContextManager) syncContexts() error {
+func (m *ContextManager) syncContexts(addr string) error {
+	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
+	contextsToSync, err := remoteClient.ListUnsyncedContexts(0)
+	if err != nil {
+		return err
+	}
+
+	for _, context := range contextsToSync {
+		if _, err := m.ContextRepository.Save(context); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (m *ContextManager) syncIntervals() error {
+func (m *ContextManager) syncIntervals(addr string) error {
+	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
+	intervalsToSync, err := remoteClient.ListUnsyncedIntervals(0)
+	if err != nil {
+		return err
+	}
+
+	for _, interval := range intervalsToSync {
+		if _, err := m.IntervalRepository.Save(interval); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

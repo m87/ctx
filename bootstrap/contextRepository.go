@@ -79,3 +79,13 @@ func (r *ContextRepository) ListByWorkspaceIncludingArchived(workspaceId string)
 		WithTags().
 		FindAll()
 }
+
+func (r *ContextRepository) ListToSync(limit int) ([]*core.Context, error) {
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.ContextType)).
+		Where(nod.Or(nod.Kv("synced").NotExists(), nod.KvBool("synced").Equals(false))).
+		WithKV().
+		WithTags().
+		WithContent().
+		FindAll()
+}

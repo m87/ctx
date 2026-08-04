@@ -61,6 +61,25 @@ func (r *memoryContextRepository) List() ([]*Context, error) {
 	return result, nil
 }
 
+func (r *memoryContextRepository) ListToSync(limit int) ([]*Context, error) {
+	contexts, err := r.List()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*Context, 0, len(contexts))
+	for _, context := range contexts {
+		if context == nil || context.Synced {
+			continue
+		}
+		result = append(result, context)
+		if limit > 0 && len(result) == limit {
+			break
+		}
+	}
+	return result, nil
+}
+
 func (r *memoryContextRepository) ListByWorkspace(workspaceID string) ([]*Context, error) {
 	return r.listByWorkspace(workspaceID, false), nil
 }
@@ -207,6 +226,25 @@ func (r *memoryIntervalRepository) List() ([]*Interval, error) {
 	result := make([]*Interval, 0, len(r.items))
 	for _, interval := range r.items {
 		result = append(result, interval)
+	}
+	return result, nil
+}
+
+func (r *memoryIntervalRepository) ListToSync(limit int) ([]*Interval, error) {
+	intervals, err := r.List()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*Interval, 0, len(intervals))
+	for _, interval := range intervals {
+		if interval == nil || interval.Synced {
+			continue
+		}
+		result = append(result, interval)
+		if limit > 0 && len(result) == limit {
+			break
+		}
 	}
 	return result, nil
 }
