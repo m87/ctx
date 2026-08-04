@@ -36,7 +36,7 @@ func NewSwitchCmd() *cobra.Command {
 				if contextID == "" && selectedWorkspaceID == "" {
 					return fmt.Errorf("workspace is required when switching by name")
 				}
-				if err := remoteSwitchContext(contextID, contextName, selectedWorkspaceID); err != nil {
+				if err := remoteClient().SwitchContext(contextID, contextName, selectedWorkspaceID); err != nil {
 					return err
 				}
 				return printOutput(cmd, map[string]string{"id": contextID, "name": contextName, "status": "switched"}, func() string {

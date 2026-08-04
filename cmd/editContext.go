@@ -54,7 +54,7 @@ func NewEditContextCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteUpdateContext(context); err != nil {
+				if err := remoteClient().UpdateContext(context); err != nil {
 					return err
 				}
 			} else {

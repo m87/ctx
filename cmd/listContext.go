@@ -24,7 +24,7 @@ func NewListContextCmd() *cobra.Command {
 
 			var contexts []*core.Context
 			if resolveRemoteAddr() != "" {
-				contexts, err = remoteListContexts(selectedWorkspaceID)
+				contexts, err = remoteClient().ListContexts(selectedWorkspaceID)
 			} else {
 				contexts, err = manager.ContextRepository.ListByWorkspace(selectedWorkspaceID)
 			}
@@ -56,7 +56,7 @@ func NewListContextCmd() *cobra.Command {
 			for _, context := range contexts {
 				var intervals []*core.Interval
 				if resolveRemoteAddr() != "" {
-					ivs, ierr := remoteListContextIntervals(context.Id)
+					ivs, ierr := remoteClient().ListContextIntervals(context.Id)
 					if ierr != nil {
 						return ierr
 					}

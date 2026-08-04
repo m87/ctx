@@ -13,25 +13,9 @@ type IntervalHandler struct {
 	manager *core.ContextManager
 }
 
-type DayReport struct {
-	Contexts  []*core.Context  `json:"contexts"`
-	Intervals []*core.Interval `json:"intervals"`
-}
-
-type ContextStats struct {
-	ContextId     string  `json:"contextId"`
-	Duration      int64   `json:"duration"`
-	Percentage    float64 `json:"percentage"`
-	IntervalCount int     `json:"intervalCount"`
-}
-
-type DayStats struct {
-	Date         string                      `json:"date"`
-	ContextStats []*ContextStats             `json:"contextStats"`
-	Contexts     []*core.Context             `json:"contexts"`
-	Intervals    map[string][]*core.Interval `json:"intervals"`
-	Distribution map[string]float64          `json:"distribution"`
-}
+type DayReport = core.DayReport
+type ContextStats = core.DayContextStats
+type DayStats = core.DayStats
 
 func registerIntervalHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	handler := &IntervalHandler{manager: manager}

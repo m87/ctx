@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/m87/ctx/bootstrap"
+	"github.com/m87/ctx/core"
 	"github.com/spf13/cobra"
 )
 
@@ -28,9 +29,9 @@ func NewListIntervalCmd() *cobra.Command {
 			}
 			dayStr := day.Format("2006-01-02")
 
-			var report *DayReport
+			var report *core.DayReport
 			if resolveRemoteAddr() != "" {
-				report, err = remoteListIntervalsByDay(dayStr, selectedWorkspaceID)
+				report, err = remoteClient().ListIntervalsByDay(dayStr, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -39,7 +40,7 @@ func NewListIntervalCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				report = &DayReport{Intervals: intervals}
+				report = &core.DayReport{Intervals: intervals}
 			}
 
 			return printOutput(cmd, report, func() string {

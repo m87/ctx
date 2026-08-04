@@ -20,7 +20,7 @@ func NewArchiveContextCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteArchiveContext(contextId); err != nil {
+				if err := remoteClient().ArchiveContext(contextId); err != nil {
 					return err
 				}
 			} else {

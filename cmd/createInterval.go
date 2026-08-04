@@ -71,7 +71,7 @@ func NewCreateIntervalCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteCreateInterval(interval); err != nil {
+				if err := remoteClient().CreateInterval(interval); err != nil {
 					return err
 				}
 			} else {

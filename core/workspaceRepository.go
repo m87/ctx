@@ -5,4 +5,5 @@ type WorkspaceRepository interface {
 	Save(workspace *Workspace) (string, error)
 	Delete(id string) error
 	List() ([]*Workspace, error)
+	ListToSync(limit int) ([]*Workspace, error)
 }

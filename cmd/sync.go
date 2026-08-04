@@ -14,7 +14,7 @@ func NewSyncCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			err = manager.Sync(nil)
+			err = manager.Sync(resolveRemoteAddr())
 			if err != nil {
 				return err
 			}

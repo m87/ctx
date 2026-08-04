@@ -33,7 +33,7 @@ func NewSummaryDayCmd() *cobra.Command {
 
 			if resolveRemoteAddr() != "" {
 				fmt.Printf("Fetching summary for %s from remote...\n", dayStr)
-				stats, err := remoteSummaryDay(dayStr, selectedWorkspaceID)
+				stats, err := remoteClient().SummaryDay(dayStr, selectedWorkspaceID)
 				if err != nil {
 					return err
 				}
@@ -123,7 +123,7 @@ func NewSummaryDayCmd() *cobra.Command {
 			}
 
 			var totalDuration time.Duration
-			ctxStats := make([]*DayContextStats, 0, len(stats))
+			ctxStats := make([]*core.DayContextStats, 0, len(stats))
 			for _, item := range stats {
 				durationStr := item["duration"].(string)
 				d, _ := time.ParseDuration(durationStr)
@@ -137,7 +137,7 @@ func NewSummaryDayCmd() *cobra.Command {
 				if totalDuration > 0 {
 					pct = (float64(d) / float64(totalDuration)) * 100.0
 				}
-				ctxStats = append(ctxStats, &DayContextStats{ContextId: cid, Duration: int64(d), Percentage: pct, IntervalCount: item["intervals"].(int)})
+				ctxStats = append(ctxStats, &core.DayContextStats{ContextId: cid, Duration: int64(d), Percentage: pct, IntervalCount: item["intervals"].(int)})
 			}
 
 			contexts := make([]*core.Context, 0, len(ctxStats))
@@ -151,7 +151,7 @@ func NewSummaryDayCmd() *cobra.Command {
 				intervalsMap[cs.ContextId] = intervalsByContext[cs.ContextId]
 			}
 
-			verboseResult := &DayStats{
+			verboseResult := &core.DayStats{
 				Date:         dayStr,
 				ContextStats: ctxStats,
 				Contexts:     contexts,

@@ -21,7 +21,7 @@ func NewListWorkspaceCmd() *cobra.Command {
 			var workspaces []*core.Workspace
 
 			if resolveRemoteAddr() != "" {
-				workspaces, err = remoteListWorkspaces()
+				workspaces, err = remoteClient().ListWorkspaces()
 			} else {
 				workspaces, err = manager.WorkspaceRepository.List()
 			}

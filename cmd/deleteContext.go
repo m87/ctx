@@ -25,7 +25,7 @@ func NewDeleteContextCmd() *cobra.Command {
 			}
 
 			if resolveRemoteAddr() != "" {
-				if err := remoteDeleteContext(id); err != nil {
+				if err := remoteClient().DeleteContext(id); err != nil {
 					return err
 				}
 			} else {
