@@ -11,10 +11,18 @@ type TimeRange struct {
 	End   time.Time
 }
 
+type SyncDirection string
+
+const (
+	SyncDirectionDownload SyncDirection = "download"
+	SyncDirectionUpload   SyncDirection = "upload"
+)
+
 type SyncProgress struct {
-	Resource string
-	Current  int
-	Total    int
+	Direction SyncDirection
+	Resource  string
+	Current   int
+	Total     int
 }
 
 type SyncProgressHandler func(progress SyncProgress)
@@ -626,12 +634,12 @@ func (m *ContextManager) syncWorkspaces(addr string) error {
 		return err
 	}
 
-	m.reportSyncProgress("workspaces", 0, len(workspacesToSync))
+	m.reportSyncProgress(SyncDirectionDownload, "workspaces", 0, len(workspacesToSync))
 	for index, workspace := range workspacesToSync {
 		if _, err := m.WorkspaceRepository.Save(workspace); err != nil {
 			return err
 		}
-		m.reportSyncProgress("workspaces", index+1, len(workspacesToSync))
+		m.reportSyncProgress(SyncDirectionDownload, "workspaces", index+1, len(workspacesToSync))
 	}
 
 	return nil
@@ -644,12 +652,12 @@ func (m *ContextManager) syncContexts(addr string) error {
 		return err
 	}
 
-	m.reportSyncProgress("contexts", 0, len(contextsToSync))
+	m.reportSyncProgress(SyncDirectionDownload, "contexts", 0, len(contextsToSync))
 	for index, context := range contextsToSync {
 		if _, err := m.ContextRepository.Save(context); err != nil {
 			return err
 		}
-		m.reportSyncProgress("contexts", index+1, len(contextsToSync))
+		m.reportSyncProgress(SyncDirectionDownload, "contexts", index+1, len(contextsToSync))
 	}
 
 	return nil
@@ -662,24 +670,25 @@ func (m *ContextManager) syncIntervals(addr string) error {
 		return err
 	}
 
-	m.reportSyncProgress("intervals", 0, len(intervalsToSync))
+	m.reportSyncProgress(SyncDirectionDownload, "intervals", 0, len(intervalsToSync))
 	for index, interval := range intervalsToSync {
 		if _, err := m.IntervalRepository.Save(interval); err != nil {
 			return err
 		}
-		m.reportSyncProgress("intervals", index+1, len(intervalsToSync))
+		m.reportSyncProgress(SyncDirectionDownload, "intervals", index+1, len(intervalsToSync))
 	}
 
 	return nil
 }
 
-func (m *ContextManager) reportSyncProgress(resource string, current, total int) {
+func (m *ContextManager) reportSyncProgress(direction SyncDirection, resource string, current, total int) {
 	if m.OnSyncProgress == nil {
 		return
 	}
 	m.OnSyncProgress(SyncProgress{
-		Resource: resource,
-		Current:  current,
-		Total:    total,
+		Direction: direction,
+		Resource:  resource,
+		Current:   current,
+		Total:     total,
 	})
 }

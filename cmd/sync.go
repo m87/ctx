@@ -60,12 +60,30 @@ func formatSyncProgress(progress core.SyncProgress) string {
 		current = total
 	}
 
-	filled := 0
-	if total > 0 {
-		filled = current * syncProgressBarWidth / total
+	bar := formatDirectionalProgressBar(current, total)
+	verb := "Syncing"
+	switch progress.Direction {
+	case core.SyncDirectionDownload:
+		verb = "Downloading"
+	case core.SyncDirectionUpload:
+		verb = "Uploading"
 	}
-	bar := strings.Repeat("#", filled) + strings.Repeat("-", syncProgressBarWidth-filled)
-	return fmt.Sprintf("Syncing %-10s [%s] %d/%d", progress.Resource, bar, current, total)
+	return fmt.Sprintf("%s %-10s [%s] %d/%d", verb, progress.Resource, bar, current, total)
+}
+
+func formatDirectionalProgressBar(current, total int) string {
+	if total <= 0 {
+		return strings.Repeat(".", syncProgressBarWidth)
+	}
+	if current >= total {
+		return strings.Repeat("=", syncProgressBarWidth)
+	}
+
+	filled := current * syncProgressBarWidth / total
+	if filled >= syncProgressBarWidth {
+		filled = syncProgressBarWidth - 1
+	}
+	return strings.Repeat("=", filled) + ">" + strings.Repeat(".", syncProgressBarWidth-filled-1)
 }
 
 func init() {
