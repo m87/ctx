@@ -11,19 +11,19 @@ var Commit = ""
 var Date = ""
 
 type VersionInfo struct {
-	Version string `json:"version"`
-	Release string `json:"release"`
-	Commit  string `json:"commit,omitempty"`
-	Date    string `json:"date,omitempty"`
+	Version   string `json:"version"`
+	Release   string `json:"release"`
+	Commit    string `json:"commit,omitempty"`
+	Date      string `json:"date,omitempty"`
 	DBVersion string `json:"dbVersion,omitempty"`
 }
 
 func CurrentVersion() VersionInfo {
 	return VersionInfo{
-		Version: Release,
-		Release: Release,
-		Commit:  Commit,
-		Date:    Date,
+		Version:   Release,
+		Release:   Release,
+		Commit:    Commit,
+		Date:      Date,
 		DBVersion: core.CurrentDatabaseVersion,
 	}
 }

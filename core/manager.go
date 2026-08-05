@@ -607,7 +607,7 @@ func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) 
 
 func (m *ContextManager) Sync(addr string) error {
 	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
-	info, err := remoteClient.Version();
+	info, err := remoteClient.Version()
 	if err != nil {
 		return err
 	}
@@ -615,17 +615,17 @@ func (m *ContextManager) Sync(addr string) error {
 		return errors.New("remote database version is incompatible with local database version")
 	}
 
-	err = m.syncWorkspaces(addr)
+	err = m.syncWorkspaces(remoteClient)
 	if err != nil {
 		return err
 	}
 
-	err = m.syncContexts(addr)
+	err = m.syncContexts(remoteClient)
 	if err != nil {
 		return err
 	}
 
-	err = m.syncIntervals(addr)
+	err = m.syncIntervals(remoteClient)
 	if err != nil {
 		return err
 	}
@@ -633,20 +633,18 @@ func (m *ContextManager) Sync(addr string) error {
 	return nil
 }
 
-func (m *ContextManager) syncWorkspaces(addr string) error {
-	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
-
+func (m *ContextManager) syncWorkspaces(remoteClient *RemoteClient) error {
 	localWorkspaces, err := m.WorkspaceRepository.ListToSync(0)
 	if err != nil {
 		return err
 	}
 	if len(localWorkspaces) > 0 {
-	  m.reportSyncProgress(SyncDirectionUpload, "workspaces", 0, len(localWorkspaces))
+		m.reportSyncProgress(SyncDirectionUpload, "workspaces", 0, len(localWorkspaces))
 		for index, workspace := range localWorkspaces {
 			if err := remoteClient.SyncWorkspaces([]*Workspace{workspace}); err != nil {
 				return err
 			}
-		  m.reportSyncProgress(SyncDirectionUpload, "workspaces", index+1, len(localWorkspaces))
+			m.reportSyncProgress(SyncDirectionUpload, "workspaces", index+1, len(localWorkspaces))
 		}
 	}
 
@@ -666,23 +664,20 @@ func (m *ContextManager) syncWorkspaces(addr string) error {
 	return nil
 }
 
-func (m *ContextManager) syncContexts(addr string) error {
-	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
-
+func (m *ContextManager) syncContexts(remoteClient *RemoteClient) error {
 	localContexts, err := m.ContextRepository.ListToSync(0)
 	if err != nil {
 		return err
 	}
 	if len(localContexts) > 0 {
-	  m.reportSyncProgress(SyncDirectionUpload, "contexts", 0, len(localContexts))
+		m.reportSyncProgress(SyncDirectionUpload, "contexts", 0, len(localContexts))
 		for index, context := range localContexts {
 			if err := remoteClient.SyncContexts([]*Context{context}); err != nil {
 				return err
 			}
-		  m.reportSyncProgress(SyncDirectionUpload, "contexts", index+1, len(localContexts))
+			m.reportSyncProgress(SyncDirectionUpload, "contexts", index+1, len(localContexts))
 		}
 	}
-
 
 	contextsToSync, err := remoteClient.ListUnsyncedContexts(0)
 	if err != nil {
@@ -700,22 +695,20 @@ func (m *ContextManager) syncContexts(addr string) error {
 	return nil
 }
 
-func (m *ContextManager) syncIntervals(addr string) error {
-	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
-
+func (m *ContextManager) syncIntervals(remoteClient *RemoteClient) error {
 	localIntervals, err := m.IntervalRepository.ListToSync(0)
 	if err != nil {
 		return err
 	}
 	if len(localIntervals) > 0 {
-	  m.reportSyncProgress(SyncDirectionUpload, "intervals", 0, len(localIntervals))
+		m.reportSyncProgress(SyncDirectionUpload, "intervals", 0, len(localIntervals))
 		for index, interval := range localIntervals {
 			if err := remoteClient.SyncIntervals([]*Interval{interval}); err != nil {
 				return err
 			}
-		  m.reportSyncProgress(SyncDirectionUpload, "intervals", index+1, len(localIntervals))
+			m.reportSyncProgress(SyncDirectionUpload, "intervals", index+1, len(localIntervals))
 		}
-	}	
+	}
 
 	intervalsToSync, err := remoteClient.ListUnsyncedIntervals(0)
 	if err != nil {

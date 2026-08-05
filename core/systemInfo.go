@@ -15,7 +15,7 @@ const (
 )
 
 type SystemInfo struct {
-	DatabaseVersion string
+	DatabaseVersion string `json:"dbVersion,omitempty"`
 	ClientId        string
 }
 
