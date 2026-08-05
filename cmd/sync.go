@@ -65,6 +65,7 @@ func formatSyncProgress(progress core.SyncProgress) string {
 	switch progress.Direction {
 	case core.SyncDirectionDownload:
 		verb = "Downloading"
+		bar = formatDownloadProgressBar(current, total)
 	case core.SyncDirectionUpload:
 		verb = "Uploading"
 	}
@@ -84,6 +85,21 @@ func formatDirectionalProgressBar(current, total int) string {
 		filled = syncProgressBarWidth - 1
 	}
 	return strings.Repeat("=", filled) + ">" + strings.Repeat(".", syncProgressBarWidth-filled-1)
+}
+
+func formatDownloadProgressBar(current, total int) string {
+	if total <= 0 {
+		return strings.Repeat(".", syncProgressBarWidth)
+	}
+	if current >= total {
+		return strings.Repeat("=", syncProgressBarWidth)
+	}
+
+	filled := current * syncProgressBarWidth / total
+	if filled >= syncProgressBarWidth {
+		filled = syncProgressBarWidth - 1
+	}
+	return strings.Repeat(".", syncProgressBarWidth-filled-1) + "<" + strings.Repeat("=", filled)
 }
 
 func init() {

@@ -215,6 +215,14 @@ func (c *RemoteClient) SyncIntervals(interval []*Interval) error {
 	return c.requestJSON(http.MethodPost, "/sync/intervals", interval, nil)
 }
 
+func (c *RemoteClient) Version() (SystemInfo, error) {
+	var info SystemInfo
+	if err := c.requestJSON(http.MethodGet, "/version", nil, &info); err != nil {
+		return SystemInfo{}, err
+	}
+	return info, nil
+}
+
 func (c *RemoteClient) GetWorkspace(id string) (*Workspace, error) {
 	var workspace Workspace
 	if err := c.requestJSON(http.MethodGet, "/workspace/"+url.PathEscape(strings.TrimSpace(id)), nil, &workspace); err != nil {

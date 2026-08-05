@@ -1,6 +1,10 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/m87/ctx/core"
+)
 
 var Release = "dev"
 var Commit = ""
@@ -11,6 +15,7 @@ type VersionInfo struct {
 	Release string `json:"release"`
 	Commit  string `json:"commit,omitempty"`
 	Date    string `json:"date,omitempty"`
+	DBVersion string `json:"dbVersion,omitempty"`
 }
 
 func CurrentVersion() VersionInfo {
@@ -19,6 +24,7 @@ func CurrentVersion() VersionInfo {
 		Release: Release,
 		Commit:  Commit,
 		Date:    Date,
+		DBVersion: core.CurrentDatabaseVersion,
 	}
 }
 

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -605,7 +606,16 @@ func (m *ContextManager) setDefaultWorkspaceIfNotSet(defaultWorkspaceId string) 
 }
 
 func (m *ContextManager) Sync(addr string) error {
-	err := m.syncWorkspaces(addr)
+	remoteClient := NewRemoteClient(addr, DefaultRemoteTimeout)
+	info, err := remoteClient.Version();
+	if err != nil {
+		return err
+	}
+	if info.DatabaseVersion != CurrentDatabaseVersion {
+		return errors.New("remote database version is incompatible with local database version")
+	}
+
+	err = m.syncWorkspaces(addr)
 	if err != nil {
 		return err
 	}
