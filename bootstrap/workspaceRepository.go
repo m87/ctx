@@ -64,3 +64,14 @@ func (r *WorkspaceRepository) ListToSync(limit int) ([]*core.Workspace, error) {
 		WithContent().
 		FindAll()
 }
+
+func (r *WorkspaceRepository) SaveAll(workspaces []core.Workspace) error {
+	for _, workspace := range workspaces {
+		_, err := r.scope.SaveNode(&workspace)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

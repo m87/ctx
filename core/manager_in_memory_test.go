@@ -47,6 +47,15 @@ func (r *memoryContextRepository) Save(context *Context) (string, error) {
 	return context.Id, nil
 }
 
+func (r *memoryContextRepository) SaveAll(contexts []Context) error {
+	for i := range contexts {
+		if _, err := r.Save(&contexts[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *memoryContextRepository) Delete(id string) error {
 	delete(r.items, id)
 	return nil
@@ -127,6 +136,15 @@ func (r *memoryWorkspaceRepository) Save(workspace *Workspace) (string, error) {
 	return workspace.Id, nil
 }
 
+func (r *memoryWorkspaceRepository) SaveAll(workspaces []Workspace) error {
+	for i := range workspaces {
+		if _, err := r.Save(&workspaces[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *memoryWorkspaceRepository) Delete(id string) error {
 	delete(r.items, id)
 	return nil
@@ -177,6 +195,15 @@ func (r *memoryIntervalRepository) Save(interval *Interval) (string, error) {
 	}
 	r.items[interval.Id] = interval
 	return interval.Id, nil
+}
+
+func (r *memoryIntervalRepository) SaveAll(intervals []Interval) error {
+	for i := range intervals {
+		if _, err := r.Save(&intervals[i]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *memoryIntervalRepository) Delete(id string) error {

@@ -95,6 +95,14 @@ func (r *statsIntervalRepository) Save(interval *Interval) (string, error) {
 	r.savedIntervals = append(r.savedIntervals, interval)
 	return interval.Id, nil
 }
+func (r *statsIntervalRepository) SaveAll(intervals []Interval) error {
+	for i := range intervals {
+		if _, err := r.Save(&intervals[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (r *statsIntervalRepository) Delete(string) error { return nil }
 func (r *statsIntervalRepository) DeleteByContextId(contextID string) error {
 	r.deletedContextID = contextID
@@ -143,6 +151,15 @@ func (r *mockContextRepository) GetById(id string) (*Context, error) {
 func (r *mockContextRepository) Save(context *Context) (string, error) {
 	r.savedContexts = append(r.savedContexts, context)
 	return context.Id, nil
+}
+
+func (r *mockContextRepository) SaveAll(contexts []Context) error {
+	for i := range contexts {
+		if _, err := r.Save(&contexts[i]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *mockContextRepository) Delete(contextID string) error {
@@ -196,6 +213,15 @@ func (r *mockWorkspaceRepository) GetById(id string) (*Workspace, error) {
 
 func (r *mockWorkspaceRepository) Save(*Workspace) (string, error) {
 	return "", nil
+}
+
+func (r *mockWorkspaceRepository) SaveAll(workspaces []Workspace) error {
+	for i := range workspaces {
+		if _, err := r.Save(&workspaces[i]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *mockWorkspaceRepository) Delete(workspaceID string) error {

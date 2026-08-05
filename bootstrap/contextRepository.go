@@ -89,3 +89,12 @@ func (r *ContextRepository) ListToSync(limit int) ([]*core.Context, error) {
 		WithContent().
 		FindAll()
 }
+
+func (r *ContextRepository) SaveAll(contexts []core.Context) error {
+	for _, context := range contexts {
+		if _, err := r.Save(&context); err != nil {
+			return err
+		}
+	}
+	return nil
+}

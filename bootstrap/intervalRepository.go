@@ -122,3 +122,13 @@ func (r *IntervalRepository) ListToSync(limit int) ([]*core.Interval, error) {
 		WithKV().
 		FindAll()
 }
+
+func (r *IntervalRepository) SaveAll(intervals []core.Interval) error {
+	for _, interval := range intervals {
+		_, err := r.scope.SaveNode(&interval)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

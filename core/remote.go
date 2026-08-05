@@ -203,6 +203,18 @@ func (c *RemoteClient) ListUnsyncedIntervals(limit int) ([]*Interval, error) {
 	return intervals, nil
 }
 
+func (c *RemoteClient) SyncWorkspaces(workspace []*Workspace) error {
+	return c.requestJSON(http.MethodPost, "/sync/workspaces", workspace, nil)
+}
+
+func (c *RemoteClient) SyncContexts(context []*Context) error {
+	return c.requestJSON(http.MethodPost, "/sync/contexts", context, nil)
+}
+
+func (c *RemoteClient) SyncIntervals(interval []*Interval) error {
+	return c.requestJSON(http.MethodPost, "/sync/intervals", interval, nil)
+}
+
 func (c *RemoteClient) GetWorkspace(id string) (*Workspace, error) {
 	var workspace Workspace
 	if err := c.requestJSON(http.MethodGet, "/workspace/"+url.PathEscape(strings.TrimSpace(id)), nil, &workspace); err != nil {

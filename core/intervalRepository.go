@@ -12,4 +12,5 @@ type IntervalRepository interface {
 	ListByDay(date time.Time, workspaceId string) ([]*Interval, error)
 	List() ([]*Interval, error)
 	ListToSync(limit int) ([]*Interval, error)
+	SaveAll(intervals []Interval) error
 }

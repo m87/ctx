@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/m87/ctx/core"
@@ -16,9 +17,51 @@ func NewSyncHandler(manager *core.ContextManager) *SyncHandler {
 
 func registerSyncHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	handler := NewSyncHandler(manager)
-	mux.HandleFunc("/workspaces", handler.GetWorkspacesToSync)
-	mux.HandleFunc("/contexts", handler.GetContextsToSync)
-	mux.HandleFunc("/intervals", handler.GetIntervalsToSync)
+	mux.HandleFunc("GET /workspaces", handler.GetWorkspacesToSync)
+	mux.HandleFunc("GET /contexts", handler.GetContextsToSync)
+	mux.HandleFunc("GET /intervals", handler.GetIntervalsToSync)
+	mux.HandleFunc("POST /workspaces", handler.UploadWorkspaces)
+	mux.HandleFunc("POST /contexts", handler.UploadContexts)
+	mux.HandleFunc("POST /intervals", handler.UploadIntervals)
+}
+
+func (h *SyncHandler) UploadWorkspaces(w http.ResponseWriter, r *http.Request) {
+	var workspaces []core.Workspace
+	if err := json.NewDecoder(r.Body).Decode(&workspaces); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		return
+	}
+
+	if err := h.manager.WorkspaceRepository.SaveAll(workspaces); err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_WORKSPACES", "Failed to save workspaces")
+		return
+	}
+}
+
+func (h *SyncHandler) UploadContexts(w http.ResponseWriter, r *http.Request) {
+	var contexts []core.Context
+	if err := json.NewDecoder(r.Body).Decode(&contexts); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		return
+	}
+
+	if err := h.manager.ContextRepository.SaveAll(contexts); err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_CONTEXTS", "Failed to save contexts")
+		return
+	}
+}
+
+func (h *SyncHandler) UploadIntervals(w http.ResponseWriter, r *http.Request) {
+	var intervals []core.Interval
+	if err := json.NewDecoder(r.Body).Decode(&intervals); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		return
+	}
+
+	if err := h.manager.IntervalRepository.SaveAll(intervals); err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_INTERVALS", "Failed to save intervals")
+		return
+	}
 }
 
 func (h *SyncHandler) GetWorkspacesToSync(w http.ResponseWriter, r *http.Request) {

@@ -9,4 +9,5 @@ type ContextRepository interface {
 	ListByWorkspaceIncludingArchived(workspaceId string) ([]*Context, error)
 	GetActive() (*Context, error)
 	ListToSync(limit int) ([]*Context, error)
+	SaveAll(contexts []Context) error
 }
