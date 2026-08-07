@@ -26,39 +26,39 @@ func registerSyncHandler(mux *http.ServeMux, manager *core.ContextManager) {
 }
 
 func (h *SyncHandler) UploadWorkspaces(w http.ResponseWriter, r *http.Request) {
-	var workspaces []core.Workspace
+	var workspaces []*core.Workspace
 	if err := json.NewDecoder(r.Body).Decode(&workspaces); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
-	if err := h.manager.WorkspaceRepository.SaveAll(workspaces); err != nil {
+	if _, err := h.manager.WorkspaceRepository.SaveAll(workspaces); err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_WORKSPACES", "Failed to save workspaces")
 		return
 	}
 }
 
 func (h *SyncHandler) UploadContexts(w http.ResponseWriter, r *http.Request) {
-	var contexts []core.Context
+	var contexts []*core.Context
 	if err := json.NewDecoder(r.Body).Decode(&contexts); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
-	if err := h.manager.ContextRepository.SaveAll(contexts); err != nil {
+	if _, err := h.manager.ContextRepository.SaveAll(contexts); err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_CONTEXTS", "Failed to save contexts")
 		return
 	}
 }
 
 func (h *SyncHandler) UploadIntervals(w http.ResponseWriter, r *http.Request) {
-	var intervals []core.Interval
+	var intervals []*core.Interval
 	if err := json.NewDecoder(r.Body).Decode(&intervals); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
-	if err := h.manager.IntervalRepository.SaveAll(intervals); err != nil {
+	if _, err := h.manager.IntervalRepository.SaveAll(intervals); err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_INTERVALS", "Failed to save intervals")
 		return
 	}

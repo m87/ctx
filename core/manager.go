@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 )
@@ -638,13 +639,17 @@ func (m *ContextManager) syncWorkspaces(remoteClient *RemoteClient) error {
 	if err != nil {
 		return err
 	}
+
+		batchSize := 50
+		current := 0
 	if len(localWorkspaces) > 0 {
 		m.reportSyncProgress(SyncDirectionUpload, "workspaces", 0, len(localWorkspaces))
-		for index, workspace := range localWorkspaces {
-			if err := remoteClient.SyncWorkspaces([]*Workspace{workspace}); err != nil {
+		for batch := range slices.Chunk(localWorkspaces, batchSize) {
+			if err := remoteClient.SyncWorkspaces(batch); err != nil {
 				return err
 			}
-			m.reportSyncProgress(SyncDirectionUpload, "workspaces", index+1, len(localWorkspaces))
+			current += len(batch)
+			m.reportSyncProgress(SyncDirectionUpload, "workspaces", current, len(localWorkspaces))
 		}
 	}
 
@@ -654,11 +659,13 @@ func (m *ContextManager) syncWorkspaces(remoteClient *RemoteClient) error {
 	}
 
 	m.reportSyncProgress(SyncDirectionDownload, "workspaces", 0, len(workspacesToSync))
-	for index, workspace := range workspacesToSync {
-		if _, err := m.WorkspaceRepository.Save(workspace); err != nil {
+	current = 0
+	for batch := range slices.Chunk(workspacesToSync, batchSize) {
+		if _, err := m.WorkspaceRepository.SaveAll(batch); err != nil {
 			return err
 		}
-		m.reportSyncProgress(SyncDirectionDownload, "workspaces", index+1, len(workspacesToSync))
+		current += len(batch)
+		m.reportSyncProgress(SyncDirectionDownload, "workspaces", current, len(workspacesToSync))
 	}
 
 	return nil
@@ -669,13 +676,16 @@ func (m *ContextManager) syncContexts(remoteClient *RemoteClient) error {
 	if err != nil {
 		return err
 	}
+	batchSize := 50
+	current := 0
 	if len(localContexts) > 0 {
 		m.reportSyncProgress(SyncDirectionUpload, "contexts", 0, len(localContexts))
-		for index, context := range localContexts {
-			if err := remoteClient.SyncContexts([]*Context{context}); err != nil {
+		for batch := range slices.Chunk(localContexts, batchSize) {
+			if err := remoteClient.SyncContexts(batch); err != nil {
 				return err
 			}
-			m.reportSyncProgress(SyncDirectionUpload, "contexts", index+1, len(localContexts))
+			current += len(batch)
+			m.reportSyncProgress(SyncDirectionUpload, "contexts", current, len(localContexts))
 		}
 	}
 
@@ -684,12 +694,14 @@ func (m *ContextManager) syncContexts(remoteClient *RemoteClient) error {
 		return err
 	}
 
+	current = 0
 	m.reportSyncProgress(SyncDirectionDownload, "contexts", 0, len(contextsToSync))
-	for index, context := range contextsToSync {
-		if _, err := m.ContextRepository.Save(context); err != nil {
+	for batch := range slices.Chunk(contextsToSync, batchSize) {
+		if _, err := m.ContextRepository.SaveAll(batch); err != nil {
 			return err
 		}
-		m.reportSyncProgress(SyncDirectionDownload, "contexts", index+1, len(contextsToSync))
+		current += len(batch)
+		m.reportSyncProgress(SyncDirectionDownload, "contexts", current, len(contextsToSync))
 	}
 
 	return nil
@@ -700,13 +712,16 @@ func (m *ContextManager) syncIntervals(remoteClient *RemoteClient) error {
 	if err != nil {
 		return err
 	}
+	batchSize := 50
+	current := 0
 	if len(localIntervals) > 0 {
 		m.reportSyncProgress(SyncDirectionUpload, "intervals", 0, len(localIntervals))
-		for index, interval := range localIntervals {
-			if err := remoteClient.SyncIntervals([]*Interval{interval}); err != nil {
+		for batch := range slices.Chunk(localIntervals, batchSize) {
+			if err := remoteClient.SyncIntervals(batch); err != nil {
 				return err
 			}
-			m.reportSyncProgress(SyncDirectionUpload, "intervals", index+1, len(localIntervals))
+			current += len(batch)
+			m.reportSyncProgress(SyncDirectionUpload, "intervals", current, len(localIntervals))
 		}
 	}
 
@@ -714,13 +729,14 @@ func (m *ContextManager) syncIntervals(remoteClient *RemoteClient) error {
 	if err != nil {
 		return err
 	}
-
+	current = 0
 	m.reportSyncProgress(SyncDirectionDownload, "intervals", 0, len(intervalsToSync))
-	for index, interval := range intervalsToSync {
-		if _, err := m.IntervalRepository.Save(interval); err != nil {
+	for batch := range slices.Chunk(intervalsToSync, batchSize) {
+		if _, err := m.IntervalRepository.SaveAll(batch); err != nil {
 			return err
 		}
-		m.reportSyncProgress(SyncDirectionDownload, "intervals", index+1, len(intervalsToSync))
+		current += len(batch)
+		m.reportSyncProgress(SyncDirectionDownload, "intervals", current, len(intervalsToSync))
 	}
 
 	return nil

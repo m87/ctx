@@ -90,11 +90,6 @@ func (r *ContextRepository) ListToSync(limit int) ([]*core.Context, error) {
 		FindAll()
 }
 
-func (r *ContextRepository) SaveAll(contexts []core.Context) error {
-	for _, context := range contexts {
-		if _, err := r.Save(&context); err != nil {
-			return err
-		}
-	}
-	return nil
+func (r *ContextRepository) SaveAll(contexts []*core.Context) ([]string, error) {
+	return r.scope.SaveNodes(contexts)
 }

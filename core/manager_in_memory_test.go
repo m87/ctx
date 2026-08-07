@@ -47,13 +47,16 @@ func (r *memoryContextRepository) Save(context *Context) (string, error) {
 	return context.Id, nil
 }
 
-func (r *memoryContextRepository) SaveAll(contexts []Context) error {
-	for i := range contexts {
-		if _, err := r.Save(&contexts[i]); err != nil {
-			return err
+func (r *memoryContextRepository) SaveAll(contexts []*Context) ([]string, error) {
+	ids := make([]string, 0, len(contexts))
+	for _, context := range contexts {
+		id, err := r.Save(context)
+		if err != nil {
+			return nil, err
 		}
+		ids = append(ids, id)
 	}
-	return nil
+	return ids, nil
 }
 
 func (r *memoryContextRepository) Delete(id string) error {
@@ -136,13 +139,16 @@ func (r *memoryWorkspaceRepository) Save(workspace *Workspace) (string, error) {
 	return workspace.Id, nil
 }
 
-func (r *memoryWorkspaceRepository) SaveAll(workspaces []Workspace) error {
-	for i := range workspaces {
-		if _, err := r.Save(&workspaces[i]); err != nil {
-			return err
+func (r *memoryWorkspaceRepository) SaveAll(workspaces []*Workspace) ([]string, error) {
+	ids := make([]string, 0, len(workspaces))
+	for _, workspace := range workspaces {
+		id, err := r.Save(workspace)
+		if err != nil {
+			return nil, err
 		}
+		ids = append(ids, id)
 	}
-	return nil
+	return ids, nil
 }
 
 func (r *memoryWorkspaceRepository) Delete(id string) error {
@@ -197,13 +203,16 @@ func (r *memoryIntervalRepository) Save(interval *Interval) (string, error) {
 	return interval.Id, nil
 }
 
-func (r *memoryIntervalRepository) SaveAll(intervals []Interval) error {
-	for i := range intervals {
-		if _, err := r.Save(&intervals[i]); err != nil {
-			return err
+func (r *memoryIntervalRepository) SaveAll(intervals []*Interval) ([]string, error) {
+	ids := make([]string, 0, len(intervals))
+	for _, interval := range intervals {
+		id, err := r.Save(interval)
+		if err != nil {
+			return nil, err
 		}
+		ids = append(ids, id)
 	}
-	return nil
+	return ids, nil
 }
 
 func (r *memoryIntervalRepository) Delete(id string) error {

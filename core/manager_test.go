@@ -95,14 +95,19 @@ func (r *statsIntervalRepository) Save(interval *Interval) (string, error) {
 	r.savedIntervals = append(r.savedIntervals, interval)
 	return interval.Id, nil
 }
-func (r *statsIntervalRepository) SaveAll(intervals []Interval) error {
-	for i := range intervals {
-		if _, err := r.Save(&intervals[i]); err != nil {
-			return err
+
+func (r *statsIntervalRepository) SaveAll(intervals []*Interval) ([]string, error) {
+	ids := make([]string, 0, len(intervals))
+	for _, interval := range intervals {
+		id, err := r.Save(interval)
+		if err != nil {
+			return nil, err
 		}
+		ids = append(ids, id)
 	}
-	return nil
+	return ids, nil
 }
+
 func (r *statsIntervalRepository) Delete(string) error { return nil }
 func (r *statsIntervalRepository) DeleteByContextId(contextID string) error {
 	r.deletedContextID = contextID
@@ -153,13 +158,16 @@ func (r *mockContextRepository) Save(context *Context) (string, error) {
 	return context.Id, nil
 }
 
-func (r *mockContextRepository) SaveAll(contexts []Context) error {
-	for i := range contexts {
-		if _, err := r.Save(&contexts[i]); err != nil {
-			return err
+func (r *mockContextRepository) SaveAll(contexts []*Context) ([]string, error) {
+	ids := make([]string, 0, len(contexts))
+	for _, context := range contexts {
+		id, err := r.Save(context)
+		if err != nil {
+			return nil, err
 		}
+		ids = append(ids, id)
 	}
-	return nil
+	return ids, nil
 }
 
 func (r *mockContextRepository) Delete(contextID string) error {
@@ -215,13 +223,16 @@ func (r *mockWorkspaceRepository) Save(*Workspace) (string, error) {
 	return "", nil
 }
 
-func (r *mockWorkspaceRepository) SaveAll(workspaces []Workspace) error {
-	for i := range workspaces {
-		if _, err := r.Save(&workspaces[i]); err != nil {
-			return err
+func (r *mockWorkspaceRepository) SaveAll(workspaces []*Workspace) ([]string, error) {
+	ids := make([]string, 0, len(workspaces))
+	for _, workspace := range workspaces {
+		id, err := r.Save(workspace)
+		if err != nil {
+			return nil, err
 		}
+		ids = append(ids, id)
 	}
-	return nil
+	return ids, nil
 }
 
 func (r *mockWorkspaceRepository) Delete(workspaceID string) error {
