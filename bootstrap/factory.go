@@ -77,6 +77,7 @@ func newContextManager(repository *nod.Repository) *core.ContextManager {
 		NewContextRepository(repository),
 		NewIntervalRepository(repository),
 		NewWorkspaceRepository(repository),
+		NewProjectRepository(repository),
 	)
 	manager.RunInTransaction = func(fn func(*core.ContextManager) error) error {
 		return repository.Transaction(func(txRepository *nod.Repository) error {

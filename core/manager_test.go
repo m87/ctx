@@ -22,6 +22,7 @@ func TestSaveIntervalNormalizesIncomingInstantsToUTC(t *testing.T) {
 		}},
 		intervalRepo,
 		&mockWorkspaceRepository{},
+		&mockProjectRepository{},
 	)
 	interval := &Interval{ContextId: "context-1", Start: &start, End: &end}
 
@@ -207,6 +208,51 @@ func (r *mockContextRepository) GetActive() (*Context, error) {
 	return nil, nil
 }
 
+type mockProjectRepository struct {
+	projectsByID     map[string]*Project
+	projects         []*Project
+	savedProjects    []*Project
+	deletedProjectID string
+}
+
+func (r *mockProjectRepository) GetById(id string) (*Project, error) {
+	return r.projectsByID[id], nil
+}
+
+func (r *mockProjectRepository) Save(project *Project) (string, error) {
+	r.savedProjects = append(r.savedProjects, project)
+	return project.Id, nil
+}
+
+func (r *mockProjectRepository) SaveAll(projects []*Project) ([]string, error) {
+	ids := make([]string, 0, len(projects))
+	for _, project := range projects {
+		id, err := r.Save(project)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+func (r *mockProjectRepository) Delete(projectID string) error {
+	r.deletedProjectID = projectID
+	return nil
+}
+
+func (r *mockProjectRepository) List(workspaceID string) ([]*Project, error) {
+	return r.projects, nil
+}
+
+func (r *mockProjectRepository) ListIncludingArchived(workspaceID string) ([]*Project, error) {
+	return r.projects, nil
+}
+
+func (r *mockProjectRepository) ListToSync(limit int) ([]*Project, error) {
+	return nil, nil
+}
+
 type mockWorkspaceRepository struct {
 	deleteErr          error
 	deleteCalls        int
@@ -276,7 +322,11 @@ func TestContextManagerEnsureDefaultWorkspaceFillsOnlyMissingAssignments(t *test
 		{Id: "default-workspace", Name: "Default"},
 		{Id: "workspace-2", Name: "Second"},
 	}}
-	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo)
+	projectRepo := &mockProjectRepository{projects: []*Project{
+		{Id: "project-1", WorkspaceId: "default-workspace"},
+		{Id: "project-2", WorkspaceId: "workspace-2"},
+	}}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo, projectRepo)
 
 	err := manager.EnsureDefaultWorkspace()
 
@@ -303,7 +353,11 @@ func TestContextManagerCheckIntegrityReportsOrphansAndWorkspaceMismatch(t *testi
 		{Id: "workspace-1", Name: "First"},
 		{Id: "workspace-2", Name: "Second"},
 	}}
-	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo)
+	projectRepo := &mockProjectRepository{projects: []*Project{
+		{Id: "project-1", WorkspaceId: "workspace-1"},
+		{Id: "project-2", WorkspaceId: "workspace-2"},
+	}}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo, projectRepo)
 
 	report, err := manager.CheckIntegrity()
 
@@ -329,7 +383,10 @@ func TestContextManagerRepairIntegrityRepairsWorkspaceAssignments(t *testing.T) 
 	workspaceRepo := &mockWorkspaceRepository{workspaces: []*Workspace{
 		{Id: "default-workspace", Name: "Default"},
 	}}
-	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo)
+	projectRepo := &mockProjectRepository{projects: []*Project{
+		{Id: "project-1", WorkspaceId: "default-workspace"},
+	}}
+	manager := NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo, projectRepo)
 
 	result, err := manager.RepairIntegrity()
 
@@ -354,7 +411,10 @@ func TestContextManagerCreateContextAssignsWorkspace(t *testing.T) {
 	workspaceRepo := &mockWorkspaceRepository{workspacesByID: map[string]*Workspace{
 		"workspace-1": {Id: "workspace-1", Name: "First"},
 	}}
-	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo)
+	projectRepo := &mockProjectRepository{projectsByID: map[string]*Project{
+		"project-1": {Id: "project-1", WorkspaceId: "workspace-1"},
+	}}
+	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo, projectRepo)
 	context := &Context{Name: "Context", WorkspaceId: "workspace-1"}
 
 	_, err := manager.CreateContext(context)
@@ -368,6 +428,7 @@ func TestContextManagerCreateContextRequiresExistingWorkspace(t *testing.T) {
 		&mockContextRepository{},
 		nil,
 		&mockWorkspaceRepository{},
+		&mockProjectRepository{},
 	)
 
 	_, err := manager.CreateContext(&Context{Name: "Context", WorkspaceId: "missing"})
@@ -381,7 +442,7 @@ func TestContextManagerUpdateContextPreservesWorkspaceWhenPayloadOmitsIt(t *test
 	contextRepo := &mockContextRepository{contextsByID: map[string]*Context{
 		"context-1": {Id: "context-1", Name: "Old", WorkspaceId: "workspace-1"},
 	}}
-	manager := NewContextManager(nil, contextRepo, nil, nil)
+	manager := NewContextManager(nil, contextRepo, nil, nil, nil)
 	updated := &Context{Id: "context-1", Name: "New"}
 
 	err := manager.UpdateContext(updated)
@@ -395,7 +456,7 @@ func TestContextManagerUpdateContextRejectsWorkspaceMove(t *testing.T) {
 	contextRepo := &mockContextRepository{contextsByID: map[string]*Context{
 		"context-1": {Id: "context-1", WorkspaceId: "workspace-1"},
 	}}
-	manager := NewContextManager(nil, contextRepo, nil, nil)
+	manager := NewContextManager(nil, contextRepo, nil, nil, nil)
 
 	err := manager.UpdateContext(&Context{Id: "context-1", WorkspaceId: "workspace-2"})
 
@@ -411,7 +472,7 @@ func TestContextManagerSaveIntervalUsesContextWorkspace(t *testing.T) {
 		"context-2": {Id: "context-2", WorkspaceId: "workspace-2"},
 	}}
 	intervalRepo := &statsIntervalRepository{}
-	manager := NewContextManager(nil, contextRepo, intervalRepo, nil)
+	manager := NewContextManager(nil, contextRepo, intervalRepo, nil, nil)
 	interval := &Interval{
 		Id:          "interval-1",
 		ContextId:   "context-2",
@@ -431,6 +492,7 @@ func TestContextManagerSaveIntervalRejectsMissingContext(t *testing.T) {
 		&mockContextRepository{},
 		&statsIntervalRepository{},
 		nil,
+		nil,
 	)
 
 	_, err := manager.SaveInterval(&Interval{ContextId: "missing"})
@@ -443,7 +505,7 @@ func TestContextManagerSaveIntervalRejectsMissingContext(t *testing.T) {
 func TestContextManagerDeleteContextDeletesIntervals(t *testing.T) {
 	contextRepo := &mockContextRepository{}
 	intervalRepo := &statsIntervalRepository{}
-	manager := NewContextManager(nil, contextRepo, intervalRepo, nil)
+	manager := NewContextManager(nil, contextRepo, intervalRepo, nil, nil)
 
 	err := manager.DeleteContext("context-1")
 
@@ -456,7 +518,7 @@ func TestContextManagerDeleteContextStopsWhenIntervalDeleteFails(t *testing.T) {
 	wantErr := errors.New("delete intervals failed")
 	contextRepo := &mockContextRepository{}
 	intervalRepo := &statsIntervalRepository{deleteByContextErr: wantErr}
-	manager := NewContextManager(nil, contextRepo, intervalRepo, nil)
+	manager := NewContextManager(nil, contextRepo, intervalRepo, nil, nil)
 
 	err := manager.DeleteContext("context-1")
 
@@ -468,7 +530,7 @@ func TestContextManagerDeleteContextStopsWhenIntervalDeleteFails(t *testing.T) {
 func TestContextManagerDeleteWorkspaceDeletesUnusedWorkspace(t *testing.T) {
 	contextRepo := &mockContextRepository{}
 	workspaceRepo := &mockWorkspaceRepository{}
-	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo)
+	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo, nil)
 
 	err := manager.DeleteWorkspace("workspace-1")
 
@@ -484,7 +546,7 @@ func TestContextManagerDeleteWorkspaceReturnsWorkspaceInUseError(t *testing.T) {
 		contexts: []*Context{{Id: "context-1", WorkspaceId: "workspace-1"}},
 	}
 	workspaceRepo := &mockWorkspaceRepository{}
-	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo)
+	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo, nil)
 
 	err := manager.DeleteWorkspace("workspace-1")
 
@@ -498,7 +560,7 @@ func TestContextManagerDeleteWorkspaceReturnsContextRepositoryError(t *testing.T
 	wantErr := errors.New("list contexts failed")
 	contextRepo := &mockContextRepository{listByWorkspaceErr: wantErr}
 	workspaceRepo := &mockWorkspaceRepository{}
-	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo)
+	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo, nil)
 
 	err := manager.DeleteWorkspace("workspace-1")
 
@@ -510,7 +572,7 @@ func TestContextManagerDeleteWorkspaceReturnsWorkspaceRepositoryError(t *testing
 	wantErr := errors.New("delete workspace failed")
 	contextRepo := &mockContextRepository{}
 	workspaceRepo := &mockWorkspaceRepository{deleteErr: wantErr}
-	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo)
+	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo, nil)
 
 	err := manager.DeleteWorkspace("workspace-1")
 
@@ -546,6 +608,7 @@ func TestContextManagerGetWorkspaceStatsUsesAllIntervals(t *testing.T) {
 		contextRepo,
 		intervalRepo,
 		&mockWorkspaceRepository{},
+		&mockProjectRepository{},
 	)
 
 	stats, err := manager.GetWorkspaceStats("workspace-1")

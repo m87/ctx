@@ -19,9 +19,10 @@ func newTestManager() *testManager {
 	contexts := &memoryContextRepository{items: make(map[string]*Context)}
 	intervals := &memoryIntervalRepository{items: make(map[string]*Interval)}
 	workspaces := &memoryWorkspaceRepository{items: make(map[string]*Workspace)}
+	projects := &memoryProjectRepository{items: make(map[string]*Project)}
 
 	return &testManager{
-		Manager:    NewContextManager(fixedTimeProvider{now: time.Now().UTC()}, contexts, intervals, workspaces),
+		Manager:    NewContextManager(fixedTimeProvider{now: time.Now().UTC()}, contexts, intervals, workspaces, projects),
 		Contexts:   contexts,
 		Intervals:  intervals,
 		Workspaces: workspaces,
@@ -118,6 +119,73 @@ func (r *memoryContextRepository) GetActive() (*Context, error) {
 		}
 	}
 	return nil, nil
+}
+
+type memoryProjectRepository struct {
+	items  map[string]*Project
+	nextID int
+}
+
+func (r *memoryProjectRepository) GetById(id string) (*Project, error) { return r.items[id], nil }
+
+func (r *memoryProjectRepository) Save(project *Project) (string, error) {
+	if project == nil {
+		return "", fmt.Errorf("project is required")
+	}
+	if project.Id == "" {
+		r.nextID++
+		project.Id = fmt.Sprintf("project-%d", r.nextID)
+	}
+	r.items[project.Id] = project
+	return project.Id, nil
+}
+
+func (r *memoryProjectRepository) SaveAll(projects []*Project) ([]string, error) {
+	ids := make([]string, 0, len(projects))
+	for _, project := range projects {
+		id, err := r.Save(project)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+func (r *memoryProjectRepository) Delete(id string) error {
+	delete(r.items, id)
+	return nil
+}
+
+func (r *memoryProjectRepository) List(workspaceID string) ([]*Project, error) {
+	result := make([]*Project, 0)
+	for _, project := range r.items {
+			result = append(result, project)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Id < result[j].Id })
+	return result, nil
+}
+
+func (r *memoryProjectRepository) ListIncludingArchived(workspaceID string) ([]*Project, error) {
+	result := make([]*Project, 0)
+	for _, project := range r.items {
+		if project.WorkspaceId == workspaceID {
+			result = append(result, project)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Id < result[j].Id })
+	return result, nil
+}
+
+func (r *memoryProjectRepository) ListToSync(limit int) ([]*Project, error) {
+	projects := make([]*Project, 0, len(r.items))
+	for _, project := range r.items {
+		projects = append(projects, project)
+		if limit > 0 && len(projects) == limit {
+			break
+		}
+	}
+	return projects, nil
 }
 
 type memoryWorkspaceRepository struct {
