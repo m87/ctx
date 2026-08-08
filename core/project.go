@@ -43,6 +43,9 @@ func (p *Project) FromNode(node *nod.Node) error {
 	return nil
 }
 
-func (p *Project) IsApplicablet(node *nod.Node) bool {
+func (p *Project) IsApplicable(node *nod.Node) bool {
 	return node.Core.Kind == ProjectType
 }
+
+
+var _ nod.NodeCodec = (*Project)(nil)

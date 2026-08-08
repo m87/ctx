@@ -52,8 +52,8 @@ func testProjectIsApplicable(t *testing.T) {
 			Kind: ProjectType,
 		},
 	}
-	assert.True(t, project.IsApplicablet(node))
+	assert.True(t, project.IsApplicable(node))
 
 	node.Core.Kind = "other"
-	assert.False(t, project.IsApplicablet(node))
+	assert.False(t, project.IsApplicable(node))
 }

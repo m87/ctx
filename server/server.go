@@ -58,6 +58,11 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 	apiMux.Handle("/context/", http.StripPrefix("/context", contextMux))
 	apiMux.Handle("/context", http.StripPrefix("/context", contextMux))
 
+	projectMux := http.NewServeMux()
+	registerProjectHandler(projectMux, manager)
+	apiMux.Handle("/project/", http.StripPrefix("/project", projectMux))
+	apiMux.Handle("/project", http.StripPrefix("/project", projectMux))
+
 	workspaceMux := http.NewServeMux()
 	registerWorkspaceHandler(workspaceMux, manager)
 	apiMux.Handle("/workspace/", http.StripPrefix("/workspace", workspaceMux))
@@ -99,6 +104,11 @@ func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, sett
 	mux.Handle("/context/", http.StripPrefix("/context", contextMux))
 	mux.Handle("/context", http.StripPrefix("/context", contextMux))
 
+	projectMux := http.NewServeMux()
+	registerProjectHandler(projectMux, manager)
+	mux.Handle("/project/", http.StripPrefix("/project", projectMux))
+	mux.Handle("/project", http.StripPrefix("/project", projectMux))
+
 	workspaceMux := http.NewServeMux()
 	registerWorkspaceHandler(workspaceMux, manager)
 	mux.Handle("/workspace/", http.StripPrefix("/workspace", workspaceMux))
@@ -131,7 +141,7 @@ func (s *Server) Handler() http.Handler {
 			base.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") || strings.HasPrefix(r.URL.Path, "/project") {
 			base.ServeHTTP(w, r)
 			return
 		}

@@ -147,6 +147,26 @@ func (m *ContextManager) CreateContext(context *Context) (string, error) {
 	return m.ContextRepository.Save(context)
 }
 
+func (m *ContextManager) CreateProject(project *Project) (string, error) {
+	if project == nil {
+		return "", fmt.Errorf("project is required")
+	}
+	if project.WorkspaceId == "" {
+		return "", &WorkspaceNotFoundError{}
+	}
+
+	workspace, err := m.WorkspaceRepository.GetById(project.WorkspaceId)
+	if err != nil {
+		return "", err
+	}
+	if workspace == nil {
+		return "", &WorkspaceNotFoundError{WorkspaceId: project.WorkspaceId}
+	}
+
+	project.Id = ""
+	return m.ProjectRepository.Save(project)
+}
+
 func (m *ContextManager) UpdateContext(context *Context) error {
 	if context == nil {
 		return fmt.Errorf("context is required")

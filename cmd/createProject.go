@@ -49,5 +49,5 @@ func NewCreateProjectCmd() *cobra.Command {
 }
 
 func init() {
-	rootCmd.AddCommand(NewCreateProjectCmd())
+	createCmd.AddCommand(NewCreateProjectCmd())
 }
