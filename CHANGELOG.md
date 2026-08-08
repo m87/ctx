@@ -1,10 +1,10 @@
-## 1.1.0 - tui
+<!-- ## 1.1.0 - tui -->
 
-## 1.0.0 - bugs, refactor, review, small enhancements 
+<!-- ## 1.0.0 - bugs, refactor, review, small enhancements  -->
 
-## 0.9.0 - postgresql support & search filters
+<!-- ## 0.9.0 - postgresql support & search filters -->
 
-## 0.8.0 - stats & labels
+<!-- ## 0.8.0 - stats & labels -->
 
 ## 0.7.0
 - feature: projects support — create, rename, select, and delete projects to organize contexts
