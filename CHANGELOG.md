@@ -1,3 +1,16 @@
+<!-- ## 1.1.0 - tui -->
+
+<!-- ## 1.0.0 - bugs, refactor, review, small enhancements  -->
+
+<!-- ## 0.9.0 - postgresql support & search filters -->
+
+<!-- ## 0.8.0 - stats & labels -->
+
+## 0.7.0
+- feature: projects support — create, rename, select, and delete projects to organize contexts
+    - projects can be nested, allowing for a hierarchical structure of contexts
+
+
 ## 0.6.0
 - dev: nod library update
 - feature: add link rules to workspaces

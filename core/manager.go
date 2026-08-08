@@ -36,6 +36,7 @@ type ContextManager struct {
 	WorkspaceRepository WorkspaceRepository
 	RunInTransaction    func(func(*ContextManager) error) error
 	OnSyncProgress      SyncProgressHandler
+	ProjectRepository   ProjectRepository
 }
 
 func NewContextManager(
@@ -43,18 +44,40 @@ func NewContextManager(
 	contextRepo ContextRepository,
 	intervalRepo IntervalRepository,
 	workspaceRepo WorkspaceRepository,
+	projectRepo ProjectRepository,
 ) *ContextManager {
 	manager := &ContextManager{
 		TimeProvider:        tp,
 		ContextRepository:   contextRepo,
 		IntervalRepository:  intervalRepo,
 		WorkspaceRepository: workspaceRepo,
+		ProjectRepository: projectRepo,
 	}
 	manager.RunInTransaction = func(fn func(*ContextManager) error) error {
 		return fn(manager)
 	}
 	return manager
 }
+
+func (m *ContextManager) SaveProject(project *Project) (string, error) {
+	if project == nil {
+		return "", fmt.Errorf("project is required")
+	}
+	if project.WorkspaceId == "" {
+		return "", &WorkspaceNotFoundError{}
+	}
+
+	workspace, err := m.WorkspaceRepository.GetById(project.WorkspaceId)
+	if err != nil {
+		return "", err
+	}
+	if workspace == nil {
+		return "", &WorkspaceNotFoundError{WorkspaceId: project.WorkspaceId}
+	}
+
+	return m.ProjectRepository.Save(project)
+}
+
 
 func (m *ContextManager) SaveInterval(interval *Interval) (string, error) {
 	if interval == nil {
@@ -122,6 +145,26 @@ func (m *ContextManager) CreateContext(context *Context) (string, error) {
 
 	context.Id = ""
 	return m.ContextRepository.Save(context)
+}
+
+func (m *ContextManager) CreateProject(project *Project) (string, error) {
+	if project == nil {
+		return "", fmt.Errorf("project is required")
+	}
+	if project.WorkspaceId == "" {
+		return "", &WorkspaceNotFoundError{}
+	}
+
+	workspace, err := m.WorkspaceRepository.GetById(project.WorkspaceId)
+	if err != nil {
+		return "", err
+	}
+	if workspace == nil {
+		return "", &WorkspaceNotFoundError{WorkspaceId: project.WorkspaceId}
+	}
+
+	project.Id = ""
+	return m.ProjectRepository.Save(project)
 }
 
 func (m *ContextManager) UpdateContext(context *Context) error {

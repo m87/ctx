@@ -15,6 +15,7 @@ func NewTextContextManager(current time.Time) *core.ContextManager {
 		NewContextRepository(repository),
 		NewIntervalRepository(repository),
 		NewWorkspaceRepository(repository),
+		NewProjectRepository(repository),
 	)
 }
 

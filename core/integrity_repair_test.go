@@ -8,6 +8,63 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type ProjectRepositoryRepairMock struct {
+	ProjectRepository
+	projects  []*Project
+	saved     []*Project
+	listError error
+	saveError error
+	called    bool
+}
+
+func (m *ProjectRepositoryRepairMock) List(workspaceId string) ([]*Project, error) {
+	m.called = true
+	return m.projects, m.listError
+}
+
+func (m *ProjectRepositoryRepairMock) Save(project *Project) (string, error) {
+	if m.saveError != nil {
+		return "", m.saveError
+	}
+	m.saved = append(m.saved, project)
+	return project.Id, nil
+}	
+
+func (m *ProjectRepositoryRepairMock) ListIncludingArchived(workspaceId string) ([]*Project, error) {
+	m.called = true
+	return m.projects, m.listError
+}	
+
+func (m *ProjectRepositoryRepairMock) ListToSync(limit int) ([]*Project, error) {
+	m.called = true
+	return m.projects, m.listError
+}
+
+func (m *ProjectRepositoryRepairMock) SaveAll(projects []*Project) ([]string, error) {
+	if m.saveError != nil {
+		return nil, m.saveError
+	}
+	var ids []string
+	for _, project := range projects {
+		m.saved = append(m.saved, project)
+		ids = append(ids, project.Id)
+	}
+	return ids, nil
+}
+
+func (m *ProjectRepositoryRepairMock) Delete(id string) error {
+	return nil
+}
+
+func (m *ProjectRepositoryRepairMock) GetById(id string) (*Project, error) {
+	for _, project := range m.projects {
+		if project.Id == id {
+			return project, nil
+		}
+	}
+	return nil, nil
+}
+
 type WorkspaceRepositoryRepairMock struct {
 	WorkspaceRepository
 	workspaces []*Workspace
@@ -98,7 +155,14 @@ func setupManagerCorrectDataForRepair() *ContextManager {
 		},
 	}
 
-	return NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo)
+	projectRepo := &ProjectRepositoryRepairMock{
+		projects: []*Project{
+			{Id: "project1", WorkspaceId: "workspace1"},
+			{Id: "project2", WorkspaceId: "workspace2"},
+		},
+	}
+
+	return NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo, projectRepo)
 }
 
 func TestPassIntegrityRepairWithCorrectData(t *testing.T) {
