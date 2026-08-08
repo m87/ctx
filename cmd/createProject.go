@@ -29,9 +29,16 @@ func NewCreateProjectCmd() *cobra.Command {
 				WorkspaceId: workspaceId,
 			}
 
-			_, err = manager.ProjectRepository.Save(project)
-			if err != nil {
-				return err
+			if resolveRemoteAddr() != "" {
+				if err := remoteClient().CreateProject(project); err != nil {
+					return err
+				}
+			} else {
+				id, err := manager.ProjectRepository.Save(project)
+				if err != nil {
+					return err
+				}
+				project.Id = id
 			}
 
 			return nil
