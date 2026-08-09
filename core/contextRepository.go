@@ -6,6 +6,7 @@ type ContextRepository interface {
 	Delete(id string) error
 	List() ([]*Context, error)
 	ListByWorkspace(workspaceId string) ([]*Context, error)
+	ListByProject(projectId string) ([]*Context, error)
 	ListByWorkspaceIncludingArchived(workspaceId string) ([]*Context, error)
 	GetActive() (*Context, error)
 	ListToSync(limit int) ([]*Context, error)

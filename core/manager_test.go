@@ -200,6 +200,16 @@ func (r *mockContextRepository) ListByWorkspace(workspaceID string) ([]*Context,
 	return r.contexts, r.listByWorkspaceErr
 }
 
+func (r *mockContextRepository) ListByProject(projectID string) ([]*Context, error) {
+	result := make([]*Context, 0)
+	for _, context := range r.contexts {
+		if context != nil && context.ParentId == projectID {
+			result = append(result, context)
+		}
+	}
+	return result, nil
+}
+
 func (r *mockContextRepository) ListByWorkspaceIncludingArchived(workspaceID string) ([]*Context, error) {
 	return r.ListByWorkspace(workspaceID)
 }
@@ -247,6 +257,16 @@ func (r *mockProjectRepository) List(workspaceID string) ([]*Project, error) {
 
 func (r *mockProjectRepository) ListIncludingArchived(workspaceID string) ([]*Project, error) {
 	return r.projects, nil
+}
+
+func (r *mockProjectRepository) ListChildren(parentID string) ([]*Project, error) {
+	result := make([]*Project, 0)
+	for _, project := range r.projects {
+		if project != nil && project.ParentId == parentID {
+			result = append(result, project)
+		}
+	}
+	return result, nil
 }
 
 func (r *mockProjectRepository) ListToSync(limit int) ([]*Project, error) {

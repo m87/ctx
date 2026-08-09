@@ -5,7 +5,6 @@ import (
 	"github.com/m87/nod"
 )
 
-
 type ProjectRepository struct {
 	scope *nod.NodeScope[core.Project]
 }
@@ -18,6 +17,13 @@ func (r *ProjectRepository) GetById(id string) (*core.Project, error) {
 	return r.scope.Query().
 		Where(nod.NodeFields.Id.Equals(id)).
 		FindFirst()
+}
+
+func (r *ProjectRepository) ListChildren(parentId string) ([]*core.Project, error) {
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.ProjectType)).
+		Where(nod.NodeFields.ParentId.Equals(parentId)).
+		FindAll()
 }
 
 func (r *ProjectRepository) Save(project *core.Project) (string, error) {

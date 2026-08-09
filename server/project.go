@@ -18,6 +18,40 @@ func registerProjectHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("PUT /{id}", handlder.updateProject)
 	mux.HandleFunc("POST /", handlder.createProject)
 	mux.HandleFunc("DELETE /{id}", handlder.deleteProject)
+	mux.HandleFunc("GET /{id}/projects", handlder.listChildren)
+	mux.HandleFunc("GET /{id}/contexts", handlder.listContexts)
+}
+
+func (h *ProjectHandler) listContexts(w http.ResponseWriter, r *http.Request) {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_PROJECT_ID", "Missing project ID")
+		return
+	}
+
+	contexts, err := h.manager.ContextRepository.ListByProject(projectId)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_CONTEXTS", "Failed to list contexts")
+		return
+	}
+
+	writeJson(w, http.StatusOK, contexts)
+}
+
+func (h *ProjectHandler) listChildren(w http.ResponseWriter, r *http.Request) {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_PROJECT_ID", "Missing project ID")
+		return
+	}
+
+	projects, err := h.manager.ProjectRepository.ListChildren(projectId)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_PROJECTS", "Failed to list projects")
+		return
+	}
+
+	writeJson(w, http.StatusOK, projects)
 }
 
 func (h *ProjectHandler) deleteProject(w http.ResponseWriter, r *http.Request) {

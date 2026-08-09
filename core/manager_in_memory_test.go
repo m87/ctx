@@ -97,6 +97,17 @@ func (r *memoryContextRepository) ListByWorkspace(workspaceID string) ([]*Contex
 	return r.listByWorkspace(workspaceID, false), nil
 }
 
+func (r *memoryContextRepository) ListByProject(projectID string) ([]*Context, error) {
+	result := make([]*Context, 0)
+	for _, context := range r.items {
+		if context.ParentId == projectID {
+			result = append(result, context)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Id < result[j].Id })
+	return result, nil
+}
+
 func (r *memoryContextRepository) ListByWorkspaceIncludingArchived(workspaceID string) ([]*Context, error) {
 	return r.listByWorkspace(workspaceID, true), nil
 }
@@ -160,7 +171,7 @@ func (r *memoryProjectRepository) Delete(id string) error {
 func (r *memoryProjectRepository) List(workspaceID string) ([]*Project, error) {
 	result := make([]*Project, 0)
 	for _, project := range r.items {
-			result = append(result, project)
+		result = append(result, project)
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Id < result[j].Id })
 	return result, nil
@@ -170,6 +181,17 @@ func (r *memoryProjectRepository) ListIncludingArchived(workspaceID string) ([]*
 	result := make([]*Project, 0)
 	for _, project := range r.items {
 		if project.WorkspaceId == workspaceID {
+			result = append(result, project)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Id < result[j].Id })
+	return result, nil
+}
+
+func (r *memoryProjectRepository) ListChildren(parentID string) ([]*Project, error) {
+	result := make([]*Project, 0)
+	for _, project := range r.items {
+		if project.ParentId == parentID {
 			result = append(result, project)
 		}
 	}

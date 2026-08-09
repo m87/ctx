@@ -23,6 +23,16 @@ func (r *ContextRepository) GetById(id string) (*core.Context, error) {
 		FindFirst()
 }
 
+func (r *ContextRepository) ListByProject(projectId string) ([]*core.Context, error) {
+	return r.scope.Query().
+		Where(nod.NodeFields.Kind.Equals(core.ContextType)).
+		Where(nod.NodeFields.ParentId.Equals(projectId)).
+		WithKV().
+		WithContent().
+		WithTags().
+		FindAll()
+}
+
 func (r *ContextRepository) Save(context *core.Context) (string, error) {
 	return r.scope.SaveNode(context)
 }
