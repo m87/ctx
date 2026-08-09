@@ -98,6 +98,14 @@ func (m *ContextManager) SaveInterval(interval *Interval) (string, error) {
 	return m.IntervalRepository.Save(interval)
 }
 
+type ProjectNotFoundError struct {
+	ProjectId string
+}
+
+func (e *ProjectNotFoundError) Error() string {
+	return fmt.Sprintf("project %q not found", e.ProjectId)
+}
+
 type ContextNotFoundError struct {
 	ContextId string
 }
@@ -165,6 +173,31 @@ func (m *ContextManager) CreateProject(project *Project) (string, error) {
 
 	project.Id = ""
 	return m.ProjectRepository.Save(project)
+}
+
+func (m *ContextManager) UpdateProject(project *Project) error {
+	if project == nil {
+		return fmt.Errorf("project is required")
+	}
+	if project.Id == "" {
+		return &ProjectNotFoundError{}
+	}
+
+	existing, err := m.ProjectRepository.GetById(project.Id)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return &ProjectNotFoundError{ProjectId: project.Id}
+	}
+
+
+	project.WorkspaceId = existing.WorkspaceId
+	if _, err = m.ProjectRepository.Save(project); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *ContextManager) UpdateContext(context *Context) error {

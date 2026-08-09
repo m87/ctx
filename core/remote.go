@@ -161,6 +161,18 @@ func (c *RemoteClient) CreateWorkspace(workspace *Workspace) error {
 	return nil
 }
 
+func (c *RemoteClient) UpdateProject(project *Project) error {
+	return c.requestJSON(http.MethodPut, "/project/"+strings.TrimSpace(project.Id), project, project)
+}
+
+func (c *RemoteClient) GetProject(id string) (*Project, error) {
+	var project Project
+	if err := c.requestJSON(http.MethodGet, "/project/"+url.PathEscape(strings.TrimSpace(id)), nil, &project); err != nil {
+		return nil, err
+	}
+	return &project, nil
+}
+
 func (c *RemoteClient) CreateProject(project *Project) error {
 	var created Project
 	if err := c.requestJSON(http.MethodPost, "/project/", project, &created); err != nil {

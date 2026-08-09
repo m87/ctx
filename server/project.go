@@ -14,7 +14,53 @@ type ProjectHandler struct {
 func registerProjectHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	handlder := &ProjectHandler{manager: manager}
 	mux.HandleFunc("GET /", handlder.listProjects)
+	mux.HandleFunc("GET /{id}", handlder.getProject)
+	mux.HandleFunc("PUT /{id}", handlder.updateProject)
 	mux.HandleFunc("POST /", handlder.createProject)
+
+
+}
+func (h *ProjectHandler) getProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_PROJECT_ID", "Missing project ID")
+		return
+	}
+
+	project, err := h.manager.ProjectRepository.GetById(id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_PROJECT", "Failed to get project")
+		return
+	}
+	if project == nil {
+		writeError(w, http.StatusNotFound, "PROJECT_NOT_FOUND", "Project not found")
+		return
+	}
+
+	writeJson(w, http.StatusOK, project)
+}
+
+func (h *ProjectHandler) updateProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_PROJECT_ID", "Missing project ID")
+		return
+	}
+
+	var project core.Project
+	if err := json.NewDecoder(r.Body).Decode(&project); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON body")
+		return
+	}
+
+	project.Id = id
+
+	if err := h.manager.UpdateProject(&project); err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_PROJECT", "Failed to update project")
+		return
+	}
+
+	writeJson(w, http.StatusOK, project)
 }
 
 func (h *ProjectHandler) createProject(w http.ResponseWriter, r *http.Request) {
