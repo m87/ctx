@@ -13,6 +13,13 @@ export class CacheService {
     return this.invalidate(contextQueryKeys.lists(), workspaceQueryKeys.stats());
   }
 
+  afterProjectChange(workspaceId: string) {
+    return this.invalidate(
+      workspaceQueryKeys.statsFor(workspaceId),
+      workspaceQueryKeys.detail(workspaceId),
+    );
+  }
+
   afterActiveIntervalChange() {
     return this.invalidate(
       contextQueryKeys.lists(),
