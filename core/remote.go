@@ -371,3 +371,7 @@ func (c *RemoteClient) MoveInterval(intervalID string, targetContextID string) e
 	path := "/interval/" + strings.TrimSpace(intervalID) + "/move/" + strings.TrimSpace(targetContextID)
 	return c.requestJSON(http.MethodPatch, path, nil, nil)
 }
+
+func (c *RemoteClient) DeleteProject(id string) error {
+	return c.requestJSON(http.MethodDelete, "/project/"+strings.TrimSpace(id), nil, nil)
+}

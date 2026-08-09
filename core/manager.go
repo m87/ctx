@@ -51,7 +51,7 @@ func NewContextManager(
 		ContextRepository:   contextRepo,
 		IntervalRepository:  intervalRepo,
 		WorkspaceRepository: workspaceRepo,
-		ProjectRepository: projectRepo,
+		ProjectRepository:   projectRepo,
 	}
 	manager.RunInTransaction = func(fn func(*ContextManager) error) error {
 		return fn(manager)
@@ -77,7 +77,6 @@ func (m *ContextManager) SaveProject(project *Project) (string, error) {
 
 	return m.ProjectRepository.Save(project)
 }
-
 
 func (m *ContextManager) SaveInterval(interval *Interval) (string, error) {
 	if interval == nil {
@@ -190,7 +189,6 @@ func (m *ContextManager) UpdateProject(project *Project) error {
 	if existing == nil {
 		return &ProjectNotFoundError{ProjectId: project.Id}
 	}
-
 
 	project.WorkspaceId = existing.WorkspaceId
 	if _, err = m.ProjectRepository.Save(project); err != nil {
@@ -716,8 +714,8 @@ func (m *ContextManager) syncWorkspaces(remoteClient *RemoteClient) error {
 		return err
 	}
 
-		batchSize := 50
-		current := 0
+	batchSize := 50
+	current := 0
 	if len(localWorkspaces) > 0 {
 		m.reportSyncProgress(SyncDirectionUpload, "workspaces", 0, len(localWorkspaces))
 		for batch := range slices.Chunk(localWorkspaces, batchSize) {
@@ -828,4 +826,12 @@ func (m *ContextManager) reportSyncProgress(direction SyncDirection, resource st
 		Current:   current,
 		Total:     total,
 	})
+}
+
+func (m *ContextManager) DeleteProject(projectId string) error {
+	if projectId == "" {
+		return fmt.Errorf("project id is required")
+	}
+
+	return m.ProjectRepository.Delete(projectId)
 }

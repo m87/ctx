@@ -17,9 +17,25 @@ func registerProjectHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("GET /{id}", handlder.getProject)
 	mux.HandleFunc("PUT /{id}", handlder.updateProject)
 	mux.HandleFunc("POST /", handlder.createProject)
-
-
+	mux.HandleFunc("DELETE /{id}", handlder.deleteProject)
 }
+
+func (h *ProjectHandler) deleteProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_PROJECT_ID", "Missing project ID")
+		return
+	}
+
+	err := h.manager.DeleteProject(id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_DELETE_PROJECT", "Failed to delete project")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *ProjectHandler) getProject(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
@@ -87,7 +103,7 @@ func (h *ProjectHandler) createProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	project.Id = id
-	writeJson(w, http.StatusCreated, project)	
+	writeJson(w, http.StatusCreated, project)
 }
 
 func (h *ProjectHandler) listProjects(w http.ResponseWriter, r *http.Request) {
