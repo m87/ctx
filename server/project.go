@@ -18,8 +18,25 @@ func registerProjectHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("PUT /{id}", handlder.updateProject)
 	mux.HandleFunc("POST /", handlder.createProject)
 	mux.HandleFunc("DELETE /{id}", handlder.deleteProject)
+	mux.HandleFunc("GET /projects", handlder.listRootProjects)
 	mux.HandleFunc("GET /{id}/projects", handlder.listChildren)
 	mux.HandleFunc("GET /{id}/contexts", handlder.listContexts)
+}
+
+func (h *ProjectHandler) listRootProjects(w http.ResponseWriter, r *http.Request) {
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
+
+	projects, err := h.manager.ProjectRepository.List(workspaceId)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_PROJECTS", "Failed to list projects")
+		return
+	}
+
+	writeJson(w, http.StatusOK, projects)
 }
 
 func (h *ProjectHandler) listContexts(w http.ResponseWriter, r *http.Request) {

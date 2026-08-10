@@ -7,24 +7,23 @@ const (
 )
 
 type Project struct {
-	Id string
-	Name string
-	ParentId string
-	WorkspaceId string
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	ParentId    string `json:"parentId,omitempty"`
+	WorkspaceId string `json:"workspaceId"`
 }
 
 func (p *Project) ToNode() (*nod.Node, error) {
 	return &nod.Node{
 		Core: nod.NodeCore{
-			Kind: ProjectType,
-			Id: p.Id,
-			Name: p.Name,
-			ParentId: stringPointerIfNotEmpty(p.ParentId),
+			Kind:        ProjectType,
+			Id:          p.Id,
+			Name:        p.Name,
+			ParentId:    stringPointerIfNotEmpty(p.ParentId),
 			NamespaceId: stringPointerIfNotEmpty(p.WorkspaceId),
 		},
 	}, nil
 }
-
 
 func (p *Project) FromNode(node *nod.Node) error {
 	p.Id = node.Core.Id
@@ -38,14 +37,11 @@ func (p *Project) FromNode(node *nod.Node) error {
 		p.WorkspaceId = *node.Core.NamespaceId
 	}
 
-
-
 	return nil
 }
 
 func (p *Project) IsApplicable(node *nod.Node) bool {
 	return node.Core.Kind == ProjectType
 }
-
 
 var _ nod.NodeCodec = (*Project)(nil)

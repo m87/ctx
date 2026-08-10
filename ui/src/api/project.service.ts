@@ -7,7 +7,7 @@ export interface Project {
   id: string;
   name: string;
   workspaceId: string;
-  parnetId?: string;
+  parentId?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,8 +31,12 @@ export class ProjectService {
     return this.http.delete<void>(this.url(projectId));
   }
 
-  subprojects(projectId: string): Observable<Project[]> {
-    return this.http.get<Project[]>(this.url(projectId, 'projects'));
+  subprojects(projectId: string, workspaceId: string): Observable<Project[]> {
+    if (projectId) {
+      return this.http.get<Project[]>(this.url(projectId, 'projects'), { params: { workspaceId } });
+    } else {
+      return this.http.get<Project[]>(this.url('projects'), { params: { workspaceId } });
+    }
   }
 
   contexts(projectId: string): Observable<Context[]> {

@@ -3,12 +3,19 @@ import { Action, NgxsAfterBootstrap, Selector, State, StateContext } from '@ngxs
 export type WorkspaceStateModel = {
   selectedWorkspaceId: string | null;
   initialized: boolean;
+  selectedProjectId?: string | null;
 };
 
 export class SelectWorkspace {
   static readonly type = '[Workspace] Select';
 
   constructor(public workspaceId: string | null) {}
+}
+
+export class SelectProject {
+  static readonly type = '[Workspace] Select Project';
+
+  constructor(public projectId: string | null) {}
 }
 
 @State<WorkspaceStateModel>({
@@ -27,6 +34,20 @@ export class WorkspaceState implements NgxsAfterBootstrap {
   @Selector()
   static initialized(state: WorkspaceStateModel): boolean {
     return state.initialized;
+  }
+
+  @Selector()
+  static selectedProjectId(state: WorkspaceStateModel): string | null | undefined {
+    return state.selectedProjectId;
+  }
+
+  @Action(SelectProject)
+  selectProject(ctx: StateContext<WorkspaceStateModel>, action: SelectProject): void {
+    const state = ctx.getState();
+    ctx.setState({
+      ...state,
+      selectedProjectId: action.projectId,
+    });
   }
 
   ngxsAfterBootstrap(ctx: StateContext<WorkspaceStateModel>): void {

@@ -10,11 +10,13 @@ import { VersionQueries } from '../../api/version.queries';
 import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.component';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from './workspace.state';
+import { ProjectWidgetComponent } from './project-widget.component';
 
 @Component({
   selector: 'ctx-sidebar',
   imports: [
     SidebarContextListComponent,
+    ProjectWidgetComponent,
     SidebarWorkspaceSelectComponent,
     RouterLink,
     RouterLinkActive,
@@ -56,6 +58,9 @@ import { WorkspaceState } from './workspace.state';
             overview
           </div> -->
         </div>
+      </div>
+      <div class="min-h-0 overflow-auto border-b max-h-[50%]">
+        <ctx-project-widget></ctx-project-widget>
       </div>
       <div class="min-h-0 flex-1 overflow-auto">
         <ctx-sidebar-context-list></ctx-sidebar-context-list>

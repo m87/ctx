@@ -18,4 +18,18 @@ export class ProjectQueries {
       queryFn: () => lastValueFrom(this.projectService.get(projectId)),
     };
   }
+
+  subprojects(projectId: string, workspaceId: string) {
+    return {
+      queryKey: [...projectQueryKeys.detail(projectId), 'subprojects'] as const,
+      queryFn: () => lastValueFrom(this.projectService.subprojects(projectId, workspaceId)),
+    };
+  }
+
+  contexts(projectId: string) {
+    return {
+      queryKey: [...projectQueryKeys.detail(projectId), 'contexts'] as const,
+      queryFn: () => lastValueFrom(this.projectService.contexts(projectId)),
+    };
+  }
 }

@@ -23,6 +23,10 @@ export const routes: Routes = [
     loadComponent: () => import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),
   },
   {
+    path: 'project/:id',
+    loadComponent: () => import('./project/project.component').then((m) => m.ProjectComponent),
+  },
+  {
     path: 'context/:id',
     loadComponent: () => import('./context/context.component').then((m) => m.ContextComponent),
   },
