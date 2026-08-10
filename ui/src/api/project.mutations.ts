@@ -19,4 +19,19 @@ export class ProjectMutations {
       },
     });
   }
+
+  update() {
+    return mutationOptions({
+      mutationFn: (project: Project) =>
+        lastValueFrom(this.projectService.update(project.id, project)),
+      onSuccess: (data) => this.cache.afterProjectChange(data.workspaceId),
+    });
+  }
+
+  delete() {
+    return mutationOptions({
+      mutationFn: (project: Project) => lastValueFrom(this.projectService.delete(project.id)),
+      onSuccess: (_data, project) => this.cache.afterProjectDelete(project.id, project.workspaceId),
+    });
+  }
 }

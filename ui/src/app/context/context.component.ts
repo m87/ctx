@@ -107,7 +107,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
             <button
               hlmBtn
               variant="outline"
-              class="h-9 px-3 text-xs bg-red-100/70 text-red-700"
+              class="size-9 p-0 text-xs bg-red-100/70 text-red-700"
               [disabled]="deleteContextMutation.isPending()"
               (click)="deleteContext()"
             >

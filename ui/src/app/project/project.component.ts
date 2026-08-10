@@ -1,48 +1,127 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
-import { injectQuery } from '@tanstack/angular-query-experimental';
+import { ActivatedRoute, Router } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideTrash2 } from '@ng-icons/lucide';
+import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { map } from 'rxjs';
+import { Store } from '@ngxs/store';
+import { ProjectMutations } from '../../api/project.mutations';
 import { ProjectQueries } from '../../api/project.queries';
+import { NameComponent, NameSaveValue } from '../shared/name.component';
+import { QueryErrorStateComponent } from '../shared/query-error-state.component';
+import { SelectProject } from '../sidebar/workspace.state';
 
 @Component({
-  selector: "ctx-project",
-  imports: [],
+  selector: 'ctx-project',
+  imports: [NameComponent, NgIcon, HlmButtonImports, QueryErrorStateComponent],
+  providers: [provideIcons({ lucideTrash2 })],
   template: `
-    <div class="flex flex-col h-full">
-      <div class="flex-1 overflow-auto">
-        @if (projectDetailsQuery.isLoading()) {
-          <div class="flex items-center justify-center h-full">
-            <span class="text-sm text-muted-foreground">Loading project details...</span>
+    <div
+      class="w-full h-full overflow-hidden flex flex-col items-start justify-start p-4 md:p-6 gap-5 relative"
+    >
+      @if (showProjectError()) {
+        <ctx-query-error-state
+          class="flex-1 min-h-0"
+          [error]="projectDetailsQuery.error()"
+          [paused]="projectDetailsQuery.isPaused()"
+          resourceName="project"
+          [retrying]="projectDetailsQuery.isFetching()"
+          (retry)="retryProject()"
+        ></ctx-query-error-state>
+      } @else if (project(); as currentProject) {
+        <div class="w-full flex flex-col md:flex-row justify-between items-start gap-4">
+          <ctx-name
+            class="w-full min-w-0"
+            label="Project"
+            [name]="currentProject.name"
+            [showDescription]="false"
+            namePlaceholder="Project name"
+            [savePending]="updateProjectMutation.isPending()"
+            (save)="saveProjectName($event)"
+          ></ctx-name>
+
+          <div class="flex items-center gap-2 w-full md:w-auto flex-nowrap md:pt-5">
+            <button
+              hlmBtn
+              variant="outline"
+              class="size-9 p-0 text-xs bg-red-100/70 text-red-700"
+              aria-label="Delete project"
+              title="Delete"
+              [disabled]="deleteProjectMutation.isPending()"
+              (click)="deleteProject()"
+            >
+              <ng-icon name="lucideTrash2"></ng-icon>
+            </button>
           </div>
-        } @else if (projectDetailsQuery.isError()) {
-          <div class="flex items-center justify-center h-full">
-            <span class="text-sm text-destructive">Error loading project details.</span>
-          </div>
-        } @else {
-          <div class="p-4">
-            <h2 class="text-lg font-semibold">{{ projectDetailsQuery.data()?.name }}</h2>
-            <p class="text-sm text-muted-foreground">Project ID: {{ projectDetailsQuery.data()?.id }}</p>
-            <p class="text-sm text-muted-foreground">Workspace ID: {{ projectDetailsQuery.data()?.workspaceId }}</p>
-            @if (projectDetailsQuery.data()?.parentId) {
-              <p class="text-sm text-muted-foreground">Parent Project ID: {{ projectDetailsQuery.data()?.parentId }}</p>
-            }
-          </div>
-        }
-      </div>
+        </div>
+      }
     </div>
   `,
-  styles: [],
+  styles: `
+    :host {
+      display: block;
+      width: 100%;
+      max-width: 1000px;
+      height: 100%;
+      min-height: 0;
+    }
+  `,
 })
 export class ProjectComponent {
   private readonly projectQueries = inject(ProjectQueries);
+  private readonly projectMutations = inject(ProjectMutations);
   private readonly activeRoute = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly store = inject(Store);
 
   readonly projectId = toSignal(
     this.activeRoute.paramMap.pipe(map((params) => params.get('id') ?? '')),
     { initialValue: '' },
   );
-  readonly projectDetailsQuery = injectQuery(() =>
-    this.projectQueries.get(this.projectId()),
+  readonly projectDetailsQuery = injectQuery(() => this.projectQueries.get(this.projectId()));
+  readonly updateProjectMutation = injectMutation(() => this.projectMutations.update());
+  readonly deleteProjectMutation = injectMutation(() => this.projectMutations.delete());
+  readonly project = computed(() => this.projectDetailsQuery.data() ?? null);
+  readonly showProjectError = computed(
+    () =>
+      this.projectDetailsQuery.data() === undefined &&
+      (this.projectDetailsQuery.isError() || this.projectDetailsQuery.isPaused()),
   );
+
+  saveProjectName(value: NameSaveValue): void {
+    const project = this.project();
+    if (!project) {
+      return;
+    }
+
+    this.updateProjectMutation.mutate({
+      ...project,
+      name: value.name,
+    });
+  }
+
+  deleteProject(): void {
+    const project = this.project();
+    if (!project) {
+      return;
+    }
+
+    if (!window.confirm(`Delete project "${project.name}"?`)) {
+      return;
+    }
+
+    this.deleteProjectMutation.mutate(project, {
+      onSuccess: () => {
+        const parentId = project.parentId ?? null;
+        this.store.dispatch(new SelectProject(parentId));
+        void this.router.navigate(parentId ? ['/project', parentId] : ['/day']);
+      },
+    });
+  }
+
+  retryProject(): void {
+    void this.projectDetailsQuery.refetch();
+  }
 }

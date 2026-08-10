@@ -67,7 +67,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
 
               <button
                 type="button"
-                class="h-8 w-8 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 flex items-center justify-center shrink-0 mt-5"
+                class="size-9 rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 flex items-center justify-center shrink-0 mt-5"
                 aria-label="Delete workspace"
                 title="Delete"
                 (click)="deleteWorkspace()"

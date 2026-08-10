@@ -41,19 +41,21 @@ export interface NameSaveValue {
               />
             </label>
 
-            <label class="flex flex-col gap-1">
-              <span
-                class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                >Description</span
-              >
-              <textarea
-                class="w-full min-h-24 rounded-md border border-border bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                [value]="editDescription()"
-                (input)="editDescription.set(getInputValue($event))"
-                (keydown.escape)="cancelEdit()"
-                [placeholder]="descriptionPlaceholder()"
-              ></textarea>
-            </label>
+            @if (showDescription()) {
+              <label class="flex flex-col gap-1">
+                <span
+                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                  >Description</span
+                >
+                <textarea
+                  class="w-full min-h-24 rounded-md border border-border bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  [value]="editDescription()"
+                  (input)="editDescription.set(getInputValue($event))"
+                  (keydown.escape)="cancelEdit()"
+                  [placeholder]="descriptionPlaceholder()"
+                ></textarea>
+              </label>
+            }
 
             @if (showTags()) {
               <label class="flex flex-col gap-1">
@@ -112,12 +114,14 @@ export interface NameSaveValue {
             <h1 class="text-2xl font-semibold tracking-tight truncate">
               <ctx-linkified-text [text]="name()" />
             </h1>
-            @if (description()) {
-              <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground/90">
-                <ctx-linkified-text [text]="description() ?? ''" />
-              </p>
-            } @else {
-              <p class="mt-1 text-sm text-muted-foreground">{{ emptyDescription() }}</p>
+            @if (showDescription()) {
+              @if (description()) {
+                <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground/90">
+                  <ctx-linkified-text [text]="description() ?? ''" />
+                </p>
+              } @else {
+                <p class="mt-1 text-sm text-muted-foreground">{{ emptyDescription() }}</p>
+              }
             }
 
             @if (showTags() && tags().length > 0) {
@@ -136,7 +140,7 @@ export interface NameSaveValue {
           @if (!readonly()) {
             <button
               type="button"
-              class="h-8 w-8 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center shrink-0"
+              class="size-9 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center shrink-0"
               aria-label="Edit"
               title="Edit"
               (click)="startEdit()"
@@ -154,6 +158,7 @@ export class NameComponent {
   readonly name = input('');
   readonly description = input<string | null>('');
   readonly tags = input<readonly string[]>([]);
+  readonly showDescription = input(true);
   readonly showTags = input(false);
   readonly savePending = input(false);
   readonly readonly = input(false);

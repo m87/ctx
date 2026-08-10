@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { QueryClient, QueryKey } from '@tanstack/angular-query-experimental';
 import { contextQueryKeys } from './context.queries';
 import { intervalQueryKeys } from './interval.queries';
+import { projectQueryKeys } from './project.queries';
 import { settingsQueryKeys } from './settings.queries';
 import { workspaceQueryKeys } from './workspace.queries';
 
@@ -15,9 +16,15 @@ export class CacheService {
 
   afterProjectChange(workspaceId: string) {
     return this.invalidate(
+      projectQueryKeys.all,
       workspaceQueryKeys.statsFor(workspaceId),
       workspaceQueryKeys.detail(workspaceId),
     );
+  }
+
+  afterProjectDelete(projectId: string, workspaceId: string) {
+    this.remove(projectQueryKeys.detail(projectId));
+    return this.afterProjectChange(workspaceId);
   }
 
   afterActiveIntervalChange() {
