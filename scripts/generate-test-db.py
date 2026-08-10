@@ -232,6 +232,28 @@ def create_workspace(
     return workspace_id
 
 
+def create_project(
+    conn: sqlite3.Connection,
+    *,
+    slug: str,
+    name: str,
+    workspace_id: str,
+    now: datetime,
+    parent_project_id: str | None = None,
+) -> str:
+    project_id = stable_id("project", slug)
+    insert_node(
+        conn,
+        node_id=project_id,
+        namespace_id=workspace_id,
+        parent_id=parent_project_id,
+        kind="project",
+        name=name,
+        now=now,
+    )
+    return project_id
+
+
 def create_context(
     conn: sqlite3.Connection,
     *,
@@ -241,13 +263,14 @@ def create_context(
     description: str,
     now: datetime,
     status: str = "inactive",
+    project_id: str | None = None,
 ) -> str:
     context_id = stable_id("context", slug)
     insert_node(
         conn,
         node_id=context_id,
         namespace_id=workspace_id,
-        parent_id=None,
+        parent_id=project_id,
         kind="context",
         status=status,
         name=name,
@@ -323,6 +346,50 @@ def create_interval_record(
     else:
         insert_kv_int64(conn, interval_id, "duration", 0)
     return interval_id
+
+
+def seed_project_hierarchy(
+    conn: sqlite3.Connection,
+    *,
+    workspace_id: str,
+    slug_prefix: str,
+    projects: list[tuple[str, str, str | None]],
+    contexts: list[tuple[str, str, str]],
+    interval_hour: int,
+    now: datetime,
+) -> None:
+    project_ids: dict[str, str] = {}
+    project_names: dict[str, str] = {}
+    for project_slug, project_name, parent_slug in projects:
+        project_ids[project_slug] = create_project(
+            conn,
+            slug=f"{slug_prefix}-{project_slug}",
+            name=project_name,
+            workspace_id=workspace_id,
+            parent_project_id=project_ids[parent_slug] if parent_slug is not None else None,
+            now=now,
+        )
+        project_names[project_slug] = project_name
+
+    for index, (project_slug, context_slug, context_name) in enumerate(contexts):
+        context_id = create_context(
+            conn,
+            slug=f"{slug_prefix}-project-{context_slug}",
+            name=context_name,
+            workspace_id=workspace_id,
+            project_id=project_ids[project_slug],
+            description=f"Sample context assigned to the {project_names[project_slug]} project.",
+            now=now,
+        )
+        create_interval(
+            conn,
+            slug=f"{slug_prefix}-project-{context_slug}-interval",
+            context_id=context_id,
+            workspace_id=workspace_id,
+            start=recent_day_start(now, index % SEEDED_DAYS, interval_hour),
+            duration=timedelta(minutes=25 + (index % 3) * 5),
+            now=now,
+        )
 
 
 def seed_large_distribution_workspace(
@@ -404,6 +471,30 @@ def seed_large_distribution_workspace(
             now=now,
         )
 
+    seed_project_hierarchy(
+        conn,
+        workspace_id=workspace_id,
+        slug_prefix="large",
+        projects=[
+            ("atlas", "Atlas Platform", None),
+            ("atlas-web", "Web Experience", "atlas"),
+            ("atlas-web-accessibility", "Accessibility Refresh", "atlas-web"),
+            ("atlas-api", "Public API", "atlas"),
+            ("operations", "Operations Suite", None),
+            ("operations-reporting", "Reporting Dashboard", "operations"),
+        ],
+        contexts=[
+            ("atlas", "architecture", "Platform Architecture"),
+            ("atlas-web", "design-system", "Design System"),
+            ("atlas-web-accessibility", "keyboard-navigation", "Keyboard Navigation"),
+            ("atlas-api", "api-contract", "API Contract"),
+            ("operations", "operations-planning", "Operations Planning"),
+            ("operations-reporting", "metrics-dashboard", "Metrics Dashboard"),
+        ],
+        interval_hour=6,
+        now=now,
+    )
+
     return workspace_id
 
 
@@ -439,6 +530,31 @@ def seed_small_healthy_workspace(conn: sqlite3.Connection, *, now: datetime) -> 
                 duration=timedelta(minutes=minutes),
                 now=now,
             )
+
+    seed_project_hierarchy(
+        conn,
+        workspace_id=workspace_id,
+        slug_prefix="small",
+        projects=[
+            ("website", "Personal Website", None),
+            ("website-content", "Content Refresh", "website"),
+            ("website-content-portfolio", "Portfolio Case Studies", "website-content"),
+            ("website-hosting", "Hosting Migration", "website"),
+            ("home", "Home Operations", None),
+            ("home-finance", "Finance Dashboard", "home"),
+        ],
+        contexts=[
+            ("website", "website-planning", "Website Planning"),
+            ("website-content", "copywriting", "Copywriting"),
+            ("website-content-portfolio", "case-study-review", "Case Study Review"),
+            ("website-hosting", "deployment-checklist", "Deployment Checklist"),
+            ("home", "household-planning", "Household Planning"),
+            ("home-finance", "budget-review", "Budget Review"),
+        ],
+        interval_hour=7,
+        now=now,
+    )
+
     return workspace_id
 
 

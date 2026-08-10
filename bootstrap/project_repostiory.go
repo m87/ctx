@@ -44,6 +44,7 @@ func (r *ProjectRepository) List(workspaceId string) ([]*core.Project, error) {
 	return r.scope.Query().
 		Where(nod.NodeFields.Kind.Equals(core.ProjectType)).
 		Where(nod.NodeFields.NamespaceId.Equals(workspaceId)).
+		Where(nod.NodeFields.ParentId.IsNil()).
 		FindAll()
 }
 

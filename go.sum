@@ -42,6 +42,8 @@ github.com/m87/nod v0.0.2-0.20260804193219-115ed6225e21 h1:rLvZovSoXrylZ7Y9npRIy
 github.com/m87/nod v0.0.2-0.20260804193219-115ed6225e21/go.mod h1:J2cJSCgjhcSXvQ0GjQkXRL79a+3lD4F5B+tfeNmsPK8=
 github.com/m87/nod v0.0.2-0.20260807103307-e1a6d95c6e8e h1:AVMys5zCuGGZujmxgvwVTypg0yqQjeh+roe5VQ/oq7Y=
 github.com/m87/nod v0.0.2-0.20260807103307-e1a6d95c6e8e/go.mod h1:J2cJSCgjhcSXvQ0GjQkXRL79a+3lD4F5B+tfeNmsPK8=
+github.com/m87/nod v0.0.2-0.20260810204553-5743ff2c2f9c h1:e9Sj5z66rwEKXdw3Pgp8+YqUxhjFYhgX9RvcgeUhnG4=
+github.com/m87/nod v0.0.2-0.20260810204553-5743ff2c2f9c/go.mod h1:J2cJSCgjhcSXvQ0GjQkXRL79a+3lD4F5B+tfeNmsPK8=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
