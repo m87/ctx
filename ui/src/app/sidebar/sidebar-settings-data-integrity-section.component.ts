@@ -2,14 +2,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTrash2 } from '@ng-icons/lucide';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { ContextMutations } from '../../api/context.mutations';
-import { IntervalMutations } from '../../api/interval.mutations';
-import { Interval } from '../../api/interval.service';
-import { SettingsMutations } from '../../api/settings.mutations';
-import { SettingsQueries } from '../../api/settings.queries';
-import { IntegrityIssue, IntegrityReport } from '../../api/integrity.service';
-import { IntegrityQueries } from '../../api/integrity.queries';
-import { IntegrityMutations } from '../../api/integrity.mutations';
+import { ContextMutations } from '../../api/context/context.mutations';
+import { IntervalMutations } from '../../api/interval/interval.mutations';
+import { Interval } from '../../api/interval/interval.service';
+import { IntegrityIssue, IntegrityReport } from '../../api/integrity/integrity.service';
+import { IntegrityQueries } from '../../api/integrity/integrity.queries';
+import { IntegrityMutations } from '../../api/integrity/integrity.mutations';
 import { TimeZoneService } from '../shared/time-zone.service';
 
 type IntegrityIssueGroup = {

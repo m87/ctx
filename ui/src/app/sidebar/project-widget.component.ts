@@ -4,7 +4,7 @@ import { lucideArrowLeft, lucideCheck, lucideChevronRight, lucideFolder, lucideP
 import { Store } from '@ngxs/store';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
-import { ProjectQueries } from '../../api/project.queries';
+import { ProjectQueries } from '../../api/project/project.queries';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { SelectProject } from './workspace.state';
 import { Router, RouterLink } from '@angular/router';

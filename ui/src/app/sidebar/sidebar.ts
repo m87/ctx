@@ -6,7 +6,7 @@ import { SidebarContextListComponent } from './sidebar-context-list.component';
 import { SidebarSettingsModalComponent } from './sidebar-settings-modal.component';
 import { SidebarStore } from './sidebar.store';
 import { injectQuery } from '@tanstack/angular-query-experimental';
-import { VersionQueries } from '../../api/version.queries';
+import { VersionQueries } from '../../api/version/version.queries';
 import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.component';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from './workspace.state';

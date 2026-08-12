@@ -1,10 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, Observable, of, throwError } from 'rxjs';
-import { hasApiErrorCode } from './error';
-import { Interval } from './interval.service';
+import { hasApiErrorCode } from '../error';
+import { Interval } from '../interval/interval.service';
 import { Store } from '@ngxs/store';
-import { WorkspaceState } from '../app/sidebar/workspace.state';
+import { WorkspaceState } from '../../app/sidebar/workspace.state';
 
 export interface Context {
   id: string;

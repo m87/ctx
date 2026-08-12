@@ -2,7 +2,7 @@ import { Router } from '@angular/router';
 import { inject, Injectable } from '@angular/core';
 import { mutationOptions } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
-import { CacheService } from './cache.service';
+import { CacheService } from '../cache/cache.service';
 import { Context, ContextService, CreateContextInput, SwitchContextInput } from './context.service';
 
 @Injectable({

@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { mutationOptions } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
-import { CacheService } from './cache.service';
+import { CacheService } from '../cache/cache.service';
 import { Interval, IntervalService } from './interval.service';
 
 @Injectable({ providedIn: 'root' })

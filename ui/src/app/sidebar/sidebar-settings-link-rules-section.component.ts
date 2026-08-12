@@ -3,10 +3,10 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucidePencil, lucideTrash2, lucideX } from '@ng-icons/lucide';
 import { Store } from '@ngxs/store';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { WorkspaceQueries } from '../../api/workspace.queries';
+import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
 import { WorkspaceState } from './workspace.state';
-import { WorkspaceMutations } from '../../api/workspace.mutations';
-import { LinkRule } from '../../api/workspace.service';
+import { WorkspaceMutations } from '../../api/workspace/workspace.mutations';
+import { LinkRule } from '../../api/workspace/workspace.service';
 
 type LinkRuleField = keyof LinkRule;
 

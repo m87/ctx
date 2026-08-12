@@ -1,10 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { QueryClient, QueryKey } from '@tanstack/angular-query-experimental';
-import { contextQueryKeys } from './context.queries';
-import { intervalQueryKeys } from './interval.queries';
-import { projectQueryKeys } from './project.queries';
-import { settingsQueryKeys } from './settings.queries';
-import { workspaceQueryKeys } from './workspace.queries';
+import { contextQueryKeys } from '../context/context.queries';
+import { intervalQueryKeys } from '../interval/interval.queries';
+import { projectQueryKeys } from '../project/project.queries';
+import { settingsQueryKeys } from '../settings/settings.queries';
+import { workspaceQueryKeys } from '../workspace/workspace.queries';
 
 @Injectable({ providedIn: 'root' })
 export class CacheService {

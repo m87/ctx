@@ -2,7 +2,7 @@ import { Component, inject, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowRightLeft, lucidePencil, lucideTrash2 } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { Interval } from '../../api/interval.service';
+import { Interval } from '../../api/interval/interval.service';
 import { durationAsH, durationAsM } from '../utils';
 import { TimeZoneService } from '../shared/time-zone.service';
 

@@ -1,8 +1,8 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { injectQuery } from '@tanstack/angular-query-experimental';
-import { WorkspaceQueries } from '../../api/workspace.queries';
-import { LinkRule } from '../../api/workspace.service';
+import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
+import { LinkRule } from '../../api/workspace/workspace.service';
 import { WorkspaceState } from '../sidebar/workspace.state';
 
 export type LinkifiedTextPart = {

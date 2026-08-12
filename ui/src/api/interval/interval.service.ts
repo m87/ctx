@@ -2,8 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { Observable } from 'rxjs';
-import { WorkspaceState } from '../app/sidebar/workspace.state';
-import type { Context } from './context.service';
+import { WorkspaceState } from '../../app/sidebar/workspace.state';
+import type { Context } from '../context/context.service';
 
 export interface Interval {
   id: string;
@@ -87,7 +87,7 @@ export class IntervalService {
     }
     return url;
   }
-  
+
   private urlWithParams(params: { [key: string]: string }, ...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
     if (Object.keys(params).length > 0) {

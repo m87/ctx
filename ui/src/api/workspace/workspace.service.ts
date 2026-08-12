@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
-import { Context } from './context.service';
+import { Context } from '../context/context.service';
 
 export interface Workspace {
   id: string;

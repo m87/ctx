@@ -19,9 +19,9 @@ import {
 import { Store } from '@ngxs/store';
 import { SelectWorkspace, WorkspaceState } from './workspace.state';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { WorkspaceQueries } from '../../api/workspace.queries';
-import { WorkspaceMutations } from '../../api/workspace.mutations';
-import { Workspace } from '../../api/workspace.service';
+import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
+import { WorkspaceMutations } from '../../api/workspace/workspace.mutations';
+import { Workspace } from '../../api/workspace/workspace.service';
 
 @Component({
   selector: 'ctx-sidebar-workspace-select',

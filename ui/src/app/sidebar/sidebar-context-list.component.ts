@@ -1,10 +1,10 @@
 import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePause, lucidePlay, lucidePlus } from '@ng-icons/lucide';
-import { ContextMutations } from '../../api/context.mutations';
-import { ContextQueries } from '../../api/context.queries';
+import { ContextMutations } from '../../api/context/context.mutations';
+import { ContextQueries } from '../../api/context/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { Context } from '../../api/context.service';
+import { Context } from '../../api/context/context.service';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';

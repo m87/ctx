@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { DateTime, IANAZone } from 'luxon';
 import { take } from 'rxjs';
-import { SettingsService } from '../../api/settings.service';
+import { SettingsService } from '../../api/settings/settings.service';
 
 export const timeZoneSettingKey = 'client.general.timeZone';
 export const browserTimeZonePreference = 'browser';

@@ -3,8 +3,8 @@ import { Router } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { mutationOptions } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
-import { SelectWorkspace } from '../app/sidebar/workspace.state';
-import { CacheService } from './cache.service';
+import { SelectWorkspace } from '../../app/sidebar/workspace.state';
+import { CacheService } from '../cache/cache.service';
 import { Workspace, WorkspaceService } from './workspace.service';
 
 @Injectable({

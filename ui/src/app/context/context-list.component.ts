@@ -1,7 +1,7 @@
 import { Component, inject, input } from '@angular/core';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { ContextMutations } from '../../api/context.mutations';
-import { ContextQueries } from '../../api/context.queries';
+import { ContextMutations } from '../../api/context/context.mutations';
+import { ContextQueries } from '../../api/context/context.queries';
 import { ContextListGroup, ContextListGroupComponent } from './context-list-group.component';
 import { ContextListItem, ContextListItemComponent } from './context-list-item.component';
 

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Project, ProjectService } from './project.service';
-import { CacheService } from './cache.service';
+import { CacheService } from '../cache/cache.service';
 import { lastValueFrom } from 'rxjs';
 import { mutationOptions } from '@tanstack/angular-query-experimental';
 

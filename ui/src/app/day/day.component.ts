@@ -14,9 +14,9 @@ import { colorHash, durationAsHM } from '../utils';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { TimeZoneService } from '../shared/time-zone.service';
-import { WorkspaceQueries } from '../../api/workspace.queries';
-import { IntervalQueries } from '../../api/interval.queries';
-import { DayStats } from '../../api/interval.service';
+import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
+import { IntervalQueries } from '../../api/interval/interval.queries';
+import { DayStats } from '../../api/interval/interval.service';
 
 const EMPTY_DAY_STATS: DayStats = {
   date: '',

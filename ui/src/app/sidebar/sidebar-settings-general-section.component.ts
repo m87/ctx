@@ -1,8 +1,8 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { SettingsMutations } from '../../api/settings.mutations';
-import { SettingsQueries } from '../../api/settings.queries';
-import { Settings } from '../../api/settings.service';
+import { SettingsMutations } from '../../api/settings/settings.mutations';
+import { SettingsQueries } from '../../api/settings/settings.queries';
+import { Settings } from '../../api/settings/settings.service';
 import {
   browserTimeZonePreference,
   browserTimeZone,

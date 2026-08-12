@@ -3,12 +3,12 @@ import { Component, effect, inject } from '@angular/core';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { HlmToaster } from '@spartan-ng/helm/sonner';
 import { toast } from 'ngx-sonner';
-import { SettingsQueries } from '../api/settings.queries';
+import { SettingsQueries } from '../api/settings/settings.queries';
 import { HeaderComponent } from './header/header';
 import { MainComponent } from './main/main';
 import { SidebarComponent } from './sidebar/sidebar';
 import { SidebarStore } from './sidebar/sidebar.store';
-import { IntegrityQueries } from '../api/integrity.queries';
+import { IntegrityQueries } from '../api/integrity/integrity.queries';
 
 const themeKey = 'client.general.theme';
 

@@ -1,10 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { mutationOptions, QueryClient } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
-import { CacheService } from './cache.service';
+import { CacheService } from '../cache/cache.service';
 import { settingsQueryKeys } from './settings.queries';
 import { Settings, SettingsService } from './settings.service';
-import { timeZoneSettingKey, TimeZoneService } from '../app/shared/time-zone.service';
+import { timeZoneSettingKey, TimeZoneService } from '../../app/shared/time-zone.service';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsMutations {
