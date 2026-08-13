@@ -5,6 +5,9 @@ FROM --platform=$BUILDPLATFORM node:22-alpine AS ui-build
 WORKDIR /ui
 
 COPY ui/package*.json ./
+RUN npm install --global npm@11.12.1
+
+COPY ui/.npmrc ./
 RUN npm ci
 
 COPY ui .

@@ -1,6 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowLeft, lucideCheck, lucideChevronRight, lucideFolder, lucidePlus, lucideX } from '@ng-icons/lucide';
+import {
+  lucideArrowLeft,
+  lucideCheck,
+  lucideChevronRight,
+  lucideFolder,
+  lucidePlus,
+  lucideX,
+} from '@ng-icons/lucide';
 import { Store } from '@ngxs/store';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
@@ -12,7 +19,16 @@ import { Router, RouterLink } from '@angular/router';
 @Component({
   selector: 'ctx-project-widget',
   imports: [NgIcon, HlmIcon, HlmButtonImports, RouterLink],
-  providers: [provideIcons({ lucidePlus, lucideArrowLeft, lucideCheck, lucideX, lucideFolder, lucideChevronRight })],
+  providers: [
+    provideIcons({
+      lucidePlus,
+      lucideArrowLeft,
+      lucideCheck,
+      lucideX,
+      lucideFolder,
+      lucideChevronRight,
+    }),
+  ],
   template: `
     <div class="flex flex-col h-full">
       <div class="flex-1 overflow-auto">
@@ -20,13 +36,20 @@ import { Router, RouterLink } from '@angular/router';
           class="flex items-center justify-between w-full gap-1 px-4 py-2 text-sm font-semibold text-muted-foreground"
         >
           @if (selectedProjectId()) {
-            <div class="flex items-center cursor-pointer" [routerLink]="['/project', selectedProjectId()]">
-            <ng-icon hlm name="lucideArrowLeft" size="18px" (click)="selectProject(this.projectDetailsQuery.data()?.parentId ?? '')"></ng-icon>
-            <span class="ml-1">{{ projectDetailsQuery.data()?.name }}</span>
-      </div>
+            <div
+              class="flex items-center cursor-pointer"
+              [routerLink]="['/project', selectedProjectId()]"
+            >
+              <ng-icon
+                hlm
+                name="lucideArrowLeft"
+                size="18px"
+                (click)="selectProject(this.projectDetailsQuery.data()?.parentId ?? '')"
+              ></ng-icon>
+              <span class="ml-1">{{ projectDetailsQuery.data()?.name }}</span>
+            </div>
           } @else {
-
-          <span class="ml-1 text-xs">PROJECTS</span>
+            <span class="ml-1 text-xs">PROJECTS</span>
           }
           <ng-icon
             hlm
@@ -56,18 +79,22 @@ import { Router, RouterLink } from '@angular/router';
         @if (subprojectsQuery.isSuccess()) {
           @for (project of subprojectsQuery.data(); track project.id) {
             <div
-              class="flex items-center justify-between w-full gap-1 px-5 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted/50 cursor-pointer" (click)="selectProject(project.id)"
+              class="flex items-center justify-between w-full gap-1 px-5 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted/50 cursor-pointer"
+              (click)="selectProject(project.id)"
             >
               <div class="flex items-center">
-              <ng-icon hlm name="lucideFolder" size="14px" class="w-4 h-4 mr-1"></ng-icon>
-              <span class="ml-1">{{ project.name }}</span>
-                </div>
-          <div>
-                <ng-icon hlm name="lucideChevronRight" size="14px" class="w-4 h-4 ml-auto"></ng-icon>
-
+                <ng-icon hlm name="lucideFolder" size="14px" class="w-4 h-4 mr-1"></ng-icon>
+                <span class="ml-1">{{ project.name }}</span>
+              </div>
+              <div>
+                <ng-icon
+                  hlm
+                  name="lucideChevronRight"
+                  size="14px"
+                  class="w-4 h-4 ml-auto"
+                ></ng-icon>
               </div>
             </div>
-
           }
         } @else {
           <div class="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>

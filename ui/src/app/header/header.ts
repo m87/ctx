@@ -22,7 +22,7 @@ import { Context } from '../../api/context/context.service';
 import { ContextQueries } from '../../api/context/context.queries';
 import { ContextMutations } from '../../api/context/context.mutations';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
-import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
+import { HlmDatePicker, HlmDatePickerTrigger } from '@spartan-ng/helm/date-picker';
 import { DateTime } from 'luxon';
 import { catchError, filter, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { ContextService, ContextStats } from '../../api/context/context.service';
@@ -42,7 +42,8 @@ const firstDayKey = 'client.general.firstDay';
     HlmInputImports,
     HlmButtonImports,
     RouterLink,
-    HlmDatePickerImports,
+    HlmDatePicker,
+    HlmDatePickerTrigger,
   ],
   providers: [
     provideIcons({
@@ -265,21 +266,20 @@ const firstDayKey = 'client.general.firstDay';
 
           <div class="flex items-center gap-2">
             <hlm-date-picker
-              [buttonId]="'dupa'"
               align="end"
               class="w-auto"
               [autoCloseOnSelect]="true"
               [weekStartsOn]="weekStartsOn()"
               (dateChange)="navigateToDate($event)"
             >
-              <button
-                id="dupa"
-                class="h-8 px-2 sm:px-3 text-xs text-muted-foreground gap-2 flex items-center"
-                aria-label="Select date"
-              >
-                <span class="hidden sm:inline">{{ today() }}</span>
-                <ng-icon name="lucideCalendar" class="cursor-pointer"></ng-icon>
-              </button>
+              <hlm-date-picker-trigger buttonId="dupa" class="w-auto" aria-label="Select date">
+                <span
+                  class="h-8 px-2 sm:px-3 text-xs text-muted-foreground gap-2 flex items-center"
+                >
+                  <span class="hidden sm:inline">{{ today() }}</span>
+                  <ng-icon name="lucideCalendar" class="cursor-pointer"></ng-icon>
+                </span>
+              </hlm-date-picker-trigger>
             </hlm-date-picker>
           </div>
           <button
