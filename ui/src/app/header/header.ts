@@ -32,9 +32,10 @@ import { HlmDatePicker, HlmDatePickerTrigger } from '@spartan-ng/helm/date-picke
 import { DateTime } from 'luxon';
 import { catchError, filter, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { ProjectQueries } from '../../api/project/project.queries';
+import { Project } from '../../api/project/project.service';
 import { SettingsQueries } from '../../api/settings/settings.queries';
 import { Store } from '@ngxs/store';
-import { WorkspaceState } from '../sidebar/workspace.state';
+import { SelectProject, WorkspaceState } from '../sidebar/workspace.state';
 import { IntervalQueries } from '../../api/interval/interval.queries';
 import { TimeZoneService } from '../shared/time-zone.service';
 import { SearchProjectBadgeComponent } from './search-project-badge.component';
@@ -89,7 +90,7 @@ const firstDayKey = 'client.general.firstDay';
             <input
               hlmInput
               type="text"
-              placeholder="Search or create new context"
+              placeholder="Search projects or contexts"
               class="h-8 w-full text-xs"
               [value]="searchTerm()"
               (input)="onSearchInput($event)"
@@ -154,6 +155,41 @@ const firstDayKey = 'client.general.firstDay';
                     }}</span>
                     <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
                   </button>
+                }
+
+                @if (matchedProjects().length > 0) {
+                  <div
+                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                  >
+                    Projects
+                  </div>
+                }
+                @for (project of matchedProjects(); track project.id) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="
+                      activeSuggestionIndex() === projectSuggestionIndex(project.id)
+                    "
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === projectSuggestionIndex(project.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== projectSuggestionIndex(project.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(projectSuggestionIndex(project.id))"
+                    (mousedown)="openProject(project)"
+                  >
+                    <span class="min-w-0 flex items-center gap-1.5">
+                      <ng-icon name="lucideFolder" class="shrink-0 text-[11px]"></ng-icon>
+                      <span class="truncate">{{ project.name }}</span>
+                    </span>
+                    <span class="shrink-0 text-[10px] text-muted-foreground">Project</span>
+                  </button>
+                }
+
+                @if (matchedProjects().length > 0 && filteredContexts().length > 0) {
+                  <div class="my-1 border-t border-border/70"></div>
                 }
 
                 @if (dayMatchedContexts().length > 0) {
@@ -358,7 +394,7 @@ const firstDayKey = 'client.general.firstDay';
             <input
               hlmInput
               type="text"
-              placeholder="Search or create new context"
+              placeholder="Search projects or contexts"
               class="h-8 w-full text-xs pr-9"
               [value]="searchTerm()"
               (input)="onSearchInput($event)"
@@ -432,6 +468,41 @@ const firstDayKey = 'client.general.firstDay';
                     }}</span>
                     <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
                   </button>
+                }
+
+                @if (matchedProjects().length > 0) {
+                  <div
+                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                  >
+                    Projects
+                  </div>
+                }
+                @for (project of matchedProjects(); track project.id) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center justify-between gap-2 text-left px-2 py-1.5 rounded-sm text-xs hover:bg-muted"
+                    [class.bg-muted]="
+                      activeSuggestionIndex() === projectSuggestionIndex(project.id)
+                    "
+                    [class.text-foreground]="
+                      activeSuggestionIndex() === projectSuggestionIndex(project.id)
+                    "
+                    [class.text-muted-foreground]="
+                      activeSuggestionIndex() !== projectSuggestionIndex(project.id)
+                    "
+                    (mouseenter)="setActiveSuggestionIndex(projectSuggestionIndex(project.id))"
+                    (mousedown)="openProject(project)"
+                  >
+                    <span class="min-w-0 flex items-center gap-1.5">
+                      <ng-icon name="lucideFolder" class="shrink-0 text-[11px]"></ng-icon>
+                      <span class="truncate">{{ project.name }}</span>
+                    </span>
+                    <span class="shrink-0 text-[10px] text-muted-foreground">Project</span>
+                  </button>
+                }
+
+                @if (matchedProjects().length > 0 && filteredContexts().length > 0) {
+                  <div class="my-1 border-t border-border/70"></div>
                 }
 
                 @if (dayMatchedContexts().length > 0) {
@@ -584,6 +655,7 @@ export class HeaderComponent {
   today = computed(() => this.timeZone.today());
 
   listContextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId(), true));
+  allProjectsQuery = injectQuery(() => this.projectQueries.all(this.activeWorkspaceId() ?? ''));
   selectedProjectQuery = injectQuery(() => this.projectQueries.get(this.selectedProjectId()));
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
@@ -616,6 +688,7 @@ export class HeaderComponent {
   readonly mobileSearchOpen = signal<boolean>(false);
   readonly activeSuggestionIndex = signal<number>(-1);
   readonly contexts = computed<readonly Context[]>(() => this.listContextsQuery.data() ?? []);
+  readonly projects = computed<readonly Project[]>(() => this.allProjectsQuery.data() ?? []);
   readonly selectedProject = computed<ProjectMetadata | null>(() => {
     const projectId = this.selectedProjectId();
     if (!projectId) {
@@ -632,6 +705,13 @@ export class HeaderComponent {
       return [];
     }
     return this.contexts().filter((context) => context.name.toLowerCase().includes(term));
+  });
+  readonly matchedProjects = computed<readonly Project[]>(() => {
+    const term = this.searchTerm().trim().toLowerCase();
+    if (!term) {
+      return [];
+    }
+    return this.projects().filter((project) => project.name.toLowerCase().includes(term));
   });
   readonly activeFilteredContexts = computed<readonly Context[]>(() =>
     this.filteredContexts().filter((context) => !context.archived),
@@ -656,7 +736,9 @@ export class HeaderComponent {
   readonly creationSuggestionCount = computed(() => (this.selectedProject() ? 2 : 1));
   readonly suggestionCount = computed<number>(() =>
     this.searchTerm().trim().length > 0
-      ? this.suggestionContexts().length + this.creationSuggestionCount()
+      ? this.suggestionContexts().length +
+        this.matchedProjects().length +
+        this.creationSuggestionCount()
       : 0,
   );
   readonly statsByContextId = toSignal(
@@ -757,6 +839,13 @@ export class HeaderComponent {
     this.router.navigate(['/context', context.id]);
   }
 
+  openProject(project: Project): void {
+    this.searchTerm.set(project.name);
+    this.resetSearchUi();
+    this.store.dispatch(new SelectProject(project.id));
+    void this.router.navigate(['/project', project.id]);
+  }
+
   createContextFromTerm(
     term: string,
     project: ProjectMetadata | null = this.selectedProject(),
@@ -827,8 +916,15 @@ export class HeaderComponent {
     }
 
     if (this.showSuggestions()) {
+      const resultIndex = activeIndex - this.creationSuggestionCount();
+      const selectedProjectResult = this.matchedProjects()[resultIndex];
+      if (selectedProjectResult) {
+        this.openProject(selectedProjectResult);
+        return;
+      }
+
       const selectedContext =
-        this.suggestionContexts()[activeIndex - this.creationSuggestionCount()];
+        this.suggestionContexts()[resultIndex - this.matchedProjects().length];
       if (selectedContext) {
         this.selectContext(selectedContext);
         return;
@@ -841,6 +937,14 @@ export class HeaderComponent {
   suggestionIndex(contextId: string): number {
     return (
       this.suggestionContexts().findIndex((context) => context.id === contextId) +
+      this.creationSuggestionCount() +
+      this.matchedProjects().length
+    );
+  }
+
+  projectSuggestionIndex(projectId: string): number {
+    return (
+      this.matchedProjects().findIndex((project) => project.id === projectId) +
       this.creationSuggestionCount()
     );
   }
