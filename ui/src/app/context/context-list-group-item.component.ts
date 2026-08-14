@@ -4,10 +4,11 @@ import { lucidePause, lucidePlay } from '@ng-icons/lucide';
 import { RouterLink } from '@angular/router';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { ContextListItem } from './context-list-item.component';
+import { ContextListProjectTagComponent } from './context-list-project-tag.component';
 
 @Component({
   selector: 'ctx-context-list-group-item',
-  imports: [NgIcon, RouterLink, LinkifiedTextComponent],
+  imports: [NgIcon, RouterLink, LinkifiedTextComponent, ContextListProjectTagComponent],
   providers: [provideIcons({ lucidePause, lucidePlay })],
   template: `
     <div
@@ -50,9 +51,14 @@ import { ContextListItem } from './context-list-item.component';
           [style.background-color]="item().color"
         ></div>
       </div>
-      <div class="mt-2 text-[10px] text-muted-foreground">
-        {{ item().sessions ?? 0 }} {{ item().sessions === 1 ? 'session' : 'sessions' }} ·
-        {{ boundedPercentage(item().percentage).toFixed(1) }}%
+      <div class="mt-2 flex items-start justify-between gap-2 text-[10px] text-muted-foreground">
+        <span>
+          {{ item().sessions ?? 0 }} {{ item().sessions === 1 ? 'session' : 'sessions' }} ·
+          {{ boundedPercentage(item().percentage).toFixed(1) }}%
+        </span>
+        @if (item().project; as project) {
+          <ctx-context-list-project-tag [project]="project" />
+        }
       </div>
     </div>
   `,

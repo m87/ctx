@@ -125,6 +125,14 @@ func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "CONTEXT_ARCHIVED", err.Error())
 			return
 		}
+		if _, ok := err.(*core.ProjectNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_NOT_FOUND", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectWorkspaceMismatchError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_WORKSPACE_MISMATCH", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SWITCH_CONTEXT", "Failed to switch context")
 		return
 	}
@@ -173,6 +181,14 @@ func (h *ContextHandler) createContext(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if _, ok := err.(*core.WorkspaceNotFoundError); ok {
 			writeError(w, http.StatusBadRequest, "WORKSPACE_NOT_FOUND", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_NOT_FOUND", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectWorkspaceMismatchError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_WORKSPACE_MISMATCH", err.Error())
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_CREATE_CONTEXT", "Failed to create context")
@@ -232,6 +248,14 @@ func (h *ContextHandler) updateContext(w http.ResponseWriter, r *http.Request) {
 		}
 		if _, ok := err.(*core.ContextWorkspaceMoveNotAllowedError); ok {
 			writeError(w, http.StatusBadRequest, "CONTEXT_WORKSPACE_MOVE_NOT_ALLOWED", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_NOT_FOUND", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectWorkspaceMismatchError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_WORKSPACE_MISMATCH", err.Error())
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_CONTEXT", "Failed to update context")

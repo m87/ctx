@@ -2,7 +2,9 @@ import { Component, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucidePause, lucidePlay } from '@ng-icons/lucide';
 import { RouterLink } from '@angular/router';
+import { ProjectMetadata } from '../../api/context/context.service';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
+import { ContextListProjectTagComponent } from './context-list-project-tag.component';
 
 export interface ContextListItem {
   id: string;
@@ -15,11 +17,12 @@ export interface ContextListItem {
   sessionRanges?: readonly string[];
   distributionPercentage?: number;
   archived?: boolean;
+  project?: ProjectMetadata;
 }
 
 @Component({
   selector: 'ctx-context-list-item',
-  imports: [NgIcon, RouterLink, LinkifiedTextComponent],
+  imports: [NgIcon, RouterLink, LinkifiedTextComponent, ContextListProjectTagComponent],
   providers: [provideIcons({ lucidePause, lucidePlay })],
   template: `
     <div
@@ -62,19 +65,24 @@ export interface ContextListItem {
           [style.background-color]="item().color"
         ></div>
       </div>
-      <div class="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
-        @if ((item().sessionRanges ?? []).length > 0) {
-          @for (session of item().sessionRanges ?? []; track session) {
-            <span>{{ session }}</span>
+      <div class="mt-2 flex items-start justify-between gap-2 text-[10px] text-muted-foreground">
+        <div class="min-w-0 flex flex-wrap gap-x-2 gap-y-1">
+          @if ((item().sessionRanges ?? []).length > 0) {
+            @for (session of item().sessionRanges ?? []; track session) {
+              <span>{{ session }}</span>
+            }
+          } @else if (item().sessions !== undefined) {
+            <span>
+              {{ item().sessions }}
+              {{ item().sessions === 1 ? 'session' : 'sessions' }} ·
+              {{ boundedPercentage(item().percentage).toFixed(1) }}%
+            </span>
+          } @else {
+            <span>{{ boundedPercentage(item().percentage).toFixed(1) }}%</span>
           }
-        } @else if (item().sessions !== undefined) {
-          <span>
-            {{ item().sessions }}
-            {{ item().sessions === 1 ? 'session' : 'sessions' }} ·
-            {{ boundedPercentage(item().percentage).toFixed(1) }}%
-          </span>
-        } @else {
-          <span>{{ boundedPercentage(item().percentage).toFixed(1) }}%</span>
+        </div>
+        @if (item().project; as project) {
+          <ctx-context-list-project-tag [project]="project" />
         }
       </div>
     </div>

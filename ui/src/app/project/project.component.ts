@@ -1,8 +1,14 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideFolder, lucideTrash2 } from '@ng-icons/lucide';
+import {
+  lucideChevronRight,
+  lucideFolder,
+  lucidePencil,
+  lucideTrash2,
+  lucideX,
+} from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { map } from 'rxjs';
@@ -12,12 +18,24 @@ import { ProjectQueries } from '../../api/project/project.queries';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { SelectProject } from '../sidebar/workspace.state';
-import { HlmSeparatorImports } from '@spartan-ng/helm/separator';
+import { LinkifiedTextComponent } from '../shared/linkified-text.component';
+import { colorHash } from '../utils';
+
+const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 
 @Component({
   selector: 'ctx-project',
-  imports: [NameComponent, NgIcon, HlmButtonImports, QueryErrorStateComponent, HlmSeparatorImports],
-  providers: [provideIcons({ lucideTrash2, lucideFolder })],
+  imports: [
+    NameComponent,
+    NgIcon,
+    HlmButtonImports,
+    QueryErrorStateComponent,
+    RouterLink,
+    LinkifiedTextComponent,
+  ],
+  providers: [
+    provideIcons({ lucideTrash2, lucideFolder, lucideChevronRight, lucidePencil, lucideX }),
+  ],
   template: `
     <div
       class="w-full h-full overflow-hidden flex flex-col items-start justify-start p-4 md:p-6 gap-5 relative"
@@ -58,35 +76,163 @@ import { HlmSeparatorImports } from '@spartan-ng/helm/separator';
           </div>
         </div>
 
-        <div class="w-full flex-1 overflow-hidden">
-          <div class="flex flex-col gap-1.5 overflow-y-auto">
+        @if (editingParentAssignment()) {
+          <div class="w-full rounded-lg border bg-card p-3">
+            <div
+              class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
+            >
+              Parent project
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              <select
+                class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                [disabled]="updateProjectMutation.isPending()"
+                (change)="assignParentProject($event)"
+              >
+                <option [value]="workspaceRootValue" [selected]="!currentProject.parentId">
+                  Workspace root
+                </option>
+                @for (project of availableParentProjects(); track project.id) {
+                  <option [value]="project.id" [selected]="currentProject.parentId === project.id">
+                    {{ project.name }}
+                  </option>
+                }
+              </select>
+              <button
+                type="button"
+                class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+                aria-label="Cancel parent project assignment"
+                title="Cancel"
+                [disabled]="updateProjectMutation.isPending()"
+                (click)="editingParentAssignment.set(false)"
+              >
+                <ng-icon name="lucideX"></ng-icon>
+              </button>
+            </div>
+          </div>
+        } @else if (parentProject(); as parent) {
+          <div
+            class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+            [routerLink]="['/project', parent.id]"
+            role="link"
+            tabindex="0"
+            (click)="selectProject(parent.id)"
+          >
+            <ctx-name
+              class="min-w-0 flex-1"
+              label="Parent project"
+              [name]="parent.name"
+              [showDescription]="false"
+              [readonly]="true"
+              [compact]="true"
+              [accentColor]="itemColor(parent.id)"
+            ></ctx-name>
+            <button
+              type="button"
+              class="size-8 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+              aria-label="Change parent project"
+              title="Change parent project"
+              (click)="startParentAssignmentEdit($event)"
+            >
+              <ng-icon name="lucidePencil"></ng-icon>
+            </button>
+            <ng-icon
+              name="lucideChevronRight"
+              class="text-sm shrink-0 text-muted-foreground/70"
+            ></ng-icon>
+          </div>
+        } @else {
+          <button
+            type="button"
+            class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
+            (click)="editingParentAssignment.set(true)"
+          >
+            <ng-icon name="lucideFolder"></ng-icon>
+            <span>Assign parent project</span>
+          </button>
+        }
+
+        <div class="w-full flex-1 min-h-0 overflow-auto pr-1 pb-2">
+          <section>
+            <div
+              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+            >
+              Subprojects
+            </div>
             @if ((projectSubprojectsQuery.data() ?? []).length > 0) {
-              @for (subproject of projectSubprojectsQuery.data() ?? []; track subproject.id) {
-                <div
-                  class="flex items-center gap-2 text-[13px] pl-2 pr-1 py-1 cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
-                >
-                  <ng-icon name="lucideFolder" class="text-[10px] text-muted-foreground"></ng-icon>
-                  <span class="min-w-0 flex-1 truncate">{{ subproject.name }}</span>
-                </div>
-              }
+              <div class="flex flex-col gap-2">
+                @for (subproject of projectSubprojectsQuery.data() ?? []; track subproject.id) {
+                  <div
+                    class="block cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                    [routerLink]="['/project', subproject.id]"
+                    role="link"
+                    tabindex="0"
+                    (click)="selectProject(subproject.id)"
+                  >
+                    <div class="flex items-center gap-2">
+                      <ng-icon
+                        name="lucideFolder"
+                        class="text-sm shrink-0"
+                        [style.color]="itemColor(subproject.id)"
+                      ></ng-icon>
+                      <span class="text-sm font-medium min-w-0 flex-1 truncate">
+                        <ctx-linkified-text [text]="subproject.name" />
+                      </span>
+                      <ng-icon
+                        name="lucideChevronRight"
+                        class="text-sm shrink-0 text-muted-foreground/70"
+                      ></ng-icon>
+                    </div>
+                  </div>
+                }
+              </div>
             } @else {
-              <div class="text-[13px] text-muted-foreground mb-1.5">No subprojects.</div>
+              <p class="text-xs text-muted-foreground">No subprojects.</p>
             }
-          </div>
-          <hlm-separator class="my-2"></hlm-separator>
-          <div class="flex flex-col gap-1.5 overflow-y-auto mt-4">
+          </section>
+
+          <section class="mt-6">
+            <div
+              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+            >
+              Contexts
+            </div>
             @if ((projectContextsQuery.data() ?? []).length > 0) {
-              @for (context of projectContextsQuery.data() ?? []; track context.id) {
-                <div
-                  class="flex items-center gap-2 text-[13px] pl-2 pr-1 py-1 font-medium cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
-                >
-                  <span class="min-w-0 flex-1 truncate">{{ context.name }}</span>
-                </div>
-              }
+              <div class="flex flex-col gap-2">
+                @for (context of projectContextsQuery.data() ?? []; track context.id) {
+                  <div
+                    class="block cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                    [routerLink]="['/context', context.id]"
+                    role="link"
+                    tabindex="0"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-2 h-2 rounded-sm shrink-0"
+                        [style.background-color]="itemColor(context.id)"
+                      ></span>
+                      <span class="text-sm font-medium min-w-0 flex-1 truncate">
+                        <ctx-linkified-text [text]="context.name" />
+                      </span>
+                      @if (context.archived) {
+                        <span
+                          class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground"
+                        >
+                          Archived
+                        </span>
+                      }
+                      <ng-icon
+                        name="lucideChevronRight"
+                        class="text-sm shrink-0 text-muted-foreground/70"
+                      ></ng-icon>
+                    </div>
+                  </div>
+                }
+              </div>
             } @else {
-              <div class="text-[13px] text-muted-foreground">No contexts.</div>
+              <p class="text-xs text-muted-foreground">No contexts.</p>
             }
-          </div>
+          </section>
         </div>
       }
     </div>
@@ -116,6 +262,10 @@ export class ProjectComponent {
     (state) => state.workspace.selectedWorkspaceId,
   );
   readonly projectDetailsQuery = injectQuery(() => this.projectQueries.get(this.projectId()));
+  readonly projectWorkspaceId = computed(
+    () => this.projectDetailsQuery.data()?.workspaceId ?? this.selecetedWorkspaceId() ?? '',
+  );
+  readonly allProjectsQuery = injectQuery(() => this.projectQueries.all(this.projectWorkspaceId()));
   readonly updateProjectMutation = injectMutation(() => this.projectMutations.update());
   readonly deleteProjectMutation = injectMutation(() => this.projectMutations.delete());
   readonly projectContextsQuery = injectQuery(() => this.projectQueries.contexts(this.projectId()));
@@ -123,6 +273,39 @@ export class ProjectComponent {
     this.projectQueries.subprojects(this.projectId(), this.selecetedWorkspaceId()),
   );
   readonly project = computed(() => this.projectDetailsQuery.data() ?? null);
+  readonly parentProject = computed(() => {
+    const parentId = this.project()?.parentId;
+    return parentId
+      ? ((this.allProjectsQuery.data() ?? []).find((project) => project.id === parentId) ?? null)
+      : null;
+  });
+  readonly availableParentProjects = computed(() => {
+    const currentProjectId = this.projectId();
+    const projects = this.allProjectsQuery.data() ?? [];
+    const projectsById = new Map(projects.map((project) => [project.id, project]));
+
+    return projects.filter((candidate) => {
+      if (candidate.id === currentProjectId) {
+        return false;
+      }
+
+      const visited = new Set<string>();
+      let ancestorId = candidate.parentId;
+      while (ancestorId) {
+        if (ancestorId === currentProjectId) {
+          return false;
+        }
+        if (visited.has(ancestorId)) {
+          return false;
+        }
+        visited.add(ancestorId);
+        ancestorId = projectsById.get(ancestorId)?.parentId;
+      }
+      return true;
+    });
+  });
+  readonly editingParentAssignment = signal(false);
+  readonly workspaceRootValue = WORKSPACE_ROOT_VALUE;
   readonly showProjectError = computed(
     () =>
       this.projectDetailsQuery.data() === undefined &&
@@ -139,6 +322,31 @@ export class ProjectComponent {
       ...project,
       name: value.name,
     });
+  }
+
+  startParentAssignmentEdit(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.editingParentAssignment.set(true);
+  }
+
+  assignParentProject(event: Event): void {
+    const project = this.project();
+    if (!project) {
+      return;
+    }
+
+    const selectedValue = (event.target as HTMLSelectElement).value;
+    const parentId = selectedValue === WORKSPACE_ROOT_VALUE ? '' : selectedValue;
+    this.updateProjectMutation.mutate(
+      {
+        ...project,
+        parentId: parentId || undefined,
+      },
+      {
+        onSuccess: () => this.editingParentAssignment.set(false),
+      },
+    );
   }
 
   deleteProject(): void {
@@ -158,6 +366,14 @@ export class ProjectComponent {
         void this.router.navigate(parentId ? ['/project', parentId] : ['/day']);
       },
     });
+  }
+
+  selectProject(projectId: string): void {
+    this.store.dispatch(new SelectProject(projectId));
+  }
+
+  itemColor(id: string): string {
+    return colorHash(id);
   }
 
   retryProject(): void {

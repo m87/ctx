@@ -14,6 +14,7 @@ type ProjectHandler struct {
 func registerProjectHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	handlder := &ProjectHandler{manager: manager}
 	mux.HandleFunc("GET /", handlder.listProjects)
+	mux.HandleFunc("GET /all", handlder.listAllProjects)
 	mux.HandleFunc("GET /{id}", handlder.getProject)
 	mux.HandleFunc("PUT /{id}", handlder.updateProject)
 	mux.HandleFunc("POST /", handlder.createProject)
@@ -31,6 +32,22 @@ func (h *ProjectHandler) listRootProjects(w http.ResponseWriter, r *http.Request
 	}
 
 	projects, err := h.manager.ProjectRepository.List(workspaceId)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_PROJECTS", "Failed to list projects")
+		return
+	}
+
+	writeJson(w, http.StatusOK, projects)
+}
+
+func (h *ProjectHandler) listAllProjects(w http.ResponseWriter, r *http.Request) {
+	workspaceId := r.URL.Query().Get("workspaceId")
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
+
+	projects, err := h.manager.ProjectRepository.ListIncludingArchived(workspaceId)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_PROJECTS", "Failed to list projects")
 		return
@@ -80,6 +97,10 @@ func (h *ProjectHandler) deleteProject(w http.ResponseWriter, r *http.Request) {
 
 	err := h.manager.DeleteProject(id)
 	if err != nil {
+		if _, ok := err.(*core.ProjectNotFoundError); ok {
+			writeError(w, http.StatusNotFound, "PROJECT_NOT_FOUND", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_DELETE_PROJECT", "Failed to delete project")
 		return
 	}
@@ -123,6 +144,18 @@ func (h *ProjectHandler) updateProject(w http.ResponseWriter, r *http.Request) {
 	project.Id = id
 
 	if err := h.manager.UpdateProject(&project); err != nil {
+		if _, ok := err.(*core.ProjectNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_NOT_FOUND", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectWorkspaceMismatchError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_WORKSPACE_MISMATCH", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectHierarchyCycleError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_HIERARCHY_CYCLE", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_PROJECT", "Failed to update project")
 		return
 	}
@@ -149,6 +182,22 @@ func (h *ProjectHandler) createProject(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.manager.CreateProject(&project)
 	if err != nil {
+		if _, ok := err.(*core.WorkspaceNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "WORKSPACE_NOT_FOUND", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectNotFoundError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_NOT_FOUND", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectWorkspaceMismatchError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_WORKSPACE_MISMATCH", err.Error())
+			return
+		}
+		if _, ok := err.(*core.ProjectHierarchyCycleError); ok {
+			writeError(w, http.StatusBadRequest, "PROJECT_HIERARCHY_CYCLE", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_CREATE_PROJECT", "Failed to create project")
 		return
 	}

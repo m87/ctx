@@ -23,7 +23,7 @@ export interface Context {
 }
 
 export type CreateContextInput = Pick<Context, 'name'> &
-  Partial<Pick<Context, 'description' | 'workspaceId' | 'tags'>>;
+  Partial<Pick<Context, 'description' | 'workspaceId' | 'tags' | 'project'>>;
 
 export type SwitchContextInput = CreateContextInput & Partial<Pick<Context, 'id'>>;
 

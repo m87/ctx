@@ -12,13 +12,15 @@ import { Store } from '@ngxs/store';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
 import { ProjectQueries } from '../../api/project/project.queries';
-import { injectQuery } from '@tanstack/angular-query-experimental';
+import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
+import { ProjectMutations } from '../../api/project/project.mutations';
 import { SelectProject } from './workspace.state';
 import { Router, RouterLink } from '@angular/router';
+import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 
 @Component({
   selector: 'ctx-project-widget',
-  imports: [NgIcon, HlmIcon, HlmButtonImports, RouterLink],
+  imports: [NgIcon, HlmIcon, HlmButtonImports, RouterLink, LinkifiedTextComponent],
   providers: [
     provideIcons({
       lucidePlus,
@@ -36,17 +38,20 @@ import { Router, RouterLink } from '@angular/router';
           class="flex items-center justify-between w-full gap-1 px-4 py-2 text-sm font-semibold text-muted-foreground"
         >
           @if (selectedProjectId()) {
-            <div
-              class="flex items-center cursor-pointer"
-              [routerLink]="['/project', selectedProjectId()]"
-            >
+            <div class="flex min-w-0 items-center">
               <ng-icon
                 hlm
                 name="lucideArrowLeft"
                 size="18px"
+                class="shrink-0 cursor-pointer"
                 (click)="selectProject(this.projectDetailsQuery.data()?.parentId ?? '')"
               ></ng-icon>
-              <span class="ml-1">{{ projectDetailsQuery.data()?.name }}</span>
+              <span
+                class="ml-1 min-w-0 truncate cursor-pointer"
+                [routerLink]="['/project', selectedProjectId()]"
+              >
+                <ctx-linkified-text [text]="projectDetailsQuery.data()?.name ?? ''" />
+              </span>
             </div>
           } @else {
             <span class="ml-1 text-xs">PROJECTS</span>
@@ -61,13 +66,22 @@ import { Router, RouterLink } from '@angular/router';
         </div>
 
         @if (newProject()) {
-          <div class="flex border rounded-md bg-black border-dashed items-center mx-2 my-2">
+          <div class="flex border rounded-md bg-card border-dashed items-center mx-2 my-2">
             <input
               type="text"
               placeholder="New project name"
               class="w-full px-2 py-1 focus:outline-none focus:ring focus:border-blue-300 outline-none bg-transparent text-sm"
+              [value]="newProjectName()"
+              (input)="onNewProjectNameInput($event)"
+              (keydown.enter)="createProject()"
+              (keydown.escape)="cancelProject()"
             />
-            <button hlmBtn variant="ghost" (click)="createProject()">
+            <button
+              hlmBtn
+              variant="ghost"
+              [disabled]="createProjectMutation.isPending()"
+              (click)="createProject()"
+            >
               <ng-icon hlm name="lucideCheck" size="15px"></ng-icon>
             </button>
             <button hlmBtn variant="ghost" (click)="cancelProject()">
@@ -84,7 +98,9 @@ import { Router, RouterLink } from '@angular/router';
             >
               <div class="flex items-center">
                 <ng-icon hlm name="lucideFolder" size="14px" class="w-4 h-4 mr-1"></ng-icon>
-                <span class="ml-1">{{ project.name }}</span>
+                <span class="ml-1">
+                  <ctx-linkified-text [text]="project.name" />
+                </span>
               </div>
               <div>
                 <ng-icon
@@ -107,13 +123,15 @@ import { Router, RouterLink } from '@angular/router';
 export class ProjectWidgetComponent {
   private readonly store = inject(Store);
   private readonly projectQueries = inject(ProjectQueries);
+  private readonly projectMutations = inject(ProjectMutations);
   readonly router = inject(Router);
   readonly subprojectsQuery = injectQuery(() =>
     this.projectQueries.subprojects(this.selectedProjectId(), this.selectedWorkspaceId()),
   );
   readonly projectDetailsQuery = injectQuery(() =>
-    this.projectQueries.get(this.selectedProjectId()),
+    this.projectQueries.get(this.selectedProjectId() ?? ''),
   );
+  readonly createProjectMutation = injectMutation(() => this.projectMutations.create());
   readonly selectedProjectId = this.store.selectSignal(
     (state) => state.workspace.selectedProjectId,
   );
@@ -121,17 +139,44 @@ export class ProjectWidgetComponent {
     (state) => state.workspace.selectedWorkspaceId,
   );
   newProject = signal(false);
+  newProjectName = signal('');
 
-  createProject() {
-    this.newProject.set(false);
+  onNewProjectNameInput(event: Event): void {
+    this.newProjectName.set((event.target as HTMLInputElement).value);
   }
 
-  cancelProject() {
-    this.newProject.set(false);
+  createProject(): void {
+    const name = this.newProjectName().trim();
+    const workspaceId = this.selectedWorkspaceId();
+    if (!name || !workspaceId) {
+      return;
+    }
+
+    this.createProjectMutation.mutate(
+      {
+        id: '',
+        name,
+        workspaceId,
+        parentId: this.selectedProjectId() ?? undefined,
+      },
+      {
+        onSuccess: (project) => {
+          this.newProject.set(false);
+          this.newProjectName.set('');
+          this.selectProject(project.id);
+        },
+      },
+    );
   }
 
-  selectProject(projectId: string) {
-    this.store.dispatch(new SelectProject(projectId));
-    this.router.navigate(['/project', projectId]);
+  cancelProject(): void {
+    this.newProject.set(false);
+    this.newProjectName.set('');
+  }
+
+  selectProject(projectId: string): void {
+    const normalizedProjectId = projectId || null;
+    this.store.dispatch(new SelectProject(normalizedProjectId));
+    void this.router.navigate(normalizedProjectId ? ['/project', normalizedProjectId] : ['/day']);
   }
 }

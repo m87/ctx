@@ -39,6 +39,10 @@ export class ProjectService {
     }
   }
 
+  all(workspaceId: string): Observable<Project[]> {
+    return this.http.get<Project[]>(this.url('all'), { params: { workspaceId } });
+  }
+
   contexts(projectId: string): Observable<Context[]> {
     return this.http.get<Context[]>(this.url(projectId, 'contexts'));
   }

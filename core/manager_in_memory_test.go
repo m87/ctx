@@ -100,7 +100,7 @@ func (r *memoryContextRepository) ListByWorkspace(workspaceID string) ([]*Contex
 func (r *memoryContextRepository) ListByProject(projectID string) ([]*Context, error) {
 	result := make([]*Context, 0)
 	for _, context := range r.items {
-		if context.ParentId == projectID {
+		if context.Project != nil && context.Project.Id == projectID {
 			result = append(result, context)
 		}
 	}

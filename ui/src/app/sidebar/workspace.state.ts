@@ -60,6 +60,7 @@ export class WorkspaceState implements NgxsAfterBootstrap {
     ctx.setState({
       ...state,
       selectedWorkspaceId: action.workspaceId,
+      selectedProjectId: null,
     });
   }
 }

@@ -11,12 +11,19 @@ export class CacheService {
   private readonly queryClient = inject(QueryClient);
 
   afterContextCreate() {
-    return this.invalidate(contextQueryKeys.lists(), workspaceQueryKeys.stats());
+    return this.invalidate(
+      contextQueryKeys.lists(),
+      projectQueryKeys.all,
+      workspaceQueryKeys.stats(),
+    );
   }
 
   afterProjectChange(workspaceId: string) {
     return this.invalidate(
       projectQueryKeys.all,
+      contextQueryKeys.lists(),
+      contextQueryKeys.details(),
+      intervalQueryKeys.dayStats(),
       workspaceQueryKeys.statsFor(workspaceId),
       workspaceQueryKeys.detail(workspaceId),
     );
@@ -33,6 +40,7 @@ export class CacheService {
       contextQueryKeys.active(),
       contextQueryKeys.intervals(),
       contextQueryKeys.stats(),
+      projectQueryKeys.all,
       intervalQueryKeys.dayStats(),
       intervalQueryKeys.days(),
       workspaceQueryKeys.stats(),
@@ -43,6 +51,7 @@ export class CacheService {
     return this.invalidate(
       contextQueryKeys.lists(),
       contextQueryKeys.detail(contextId),
+      projectQueryKeys.all,
       intervalQueryKeys.dayStats(),
       intervalQueryKeys.days(),
       workspaceQueryKeys.stats(),
@@ -60,6 +69,7 @@ export class CacheService {
     return this.invalidate(
       contextQueryKeys.lists(),
       contextQueryKeys.active(),
+      projectQueryKeys.all,
       intervalQueryKeys.dayStats(),
       intervalQueryKeys.days(),
       workspaceQueryKeys.stats(),

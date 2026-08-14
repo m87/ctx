@@ -105,6 +105,25 @@ func (e *ProjectNotFoundError) Error() string {
 	return fmt.Sprintf("project %q not found", e.ProjectId)
 }
 
+type ProjectWorkspaceMismatchError struct {
+	ProjectId          string
+	ProjectWorkspaceId string
+	WorkspaceId        string
+}
+
+func (e *ProjectWorkspaceMismatchError) Error() string {
+	return fmt.Sprintf("project %q does not belong to workspace %q", e.ProjectId, e.WorkspaceId)
+}
+
+type ProjectHierarchyCycleError struct {
+	ProjectId string
+	ParentId  string
+}
+
+func (e *ProjectHierarchyCycleError) Error() string {
+	return fmt.Sprintf("project %q cannot be assigned below project %q", e.ProjectId, e.ParentId)
+}
+
 type ContextNotFoundError struct {
 	ContextId string
 }
@@ -149,6 +168,9 @@ func (m *ContextManager) CreateContext(context *Context) (string, error) {
 	if workspace == nil {
 		return "", &WorkspaceNotFoundError{WorkspaceId: context.WorkspaceId}
 	}
+	if err := m.normalizeContextProject(context); err != nil {
+		return "", err
+	}
 
 	context.Id = ""
 	return m.ContextRepository.Save(context)
@@ -168,6 +190,9 @@ func (m *ContextManager) CreateProject(project *Project) (string, error) {
 	}
 	if workspace == nil {
 		return "", &WorkspaceNotFoundError{WorkspaceId: project.WorkspaceId}
+	}
+	if err := m.validateProjectParent("", project.ParentId, project.WorkspaceId); err != nil {
+		return "", err
 	}
 
 	project.Id = ""
@@ -191,8 +216,25 @@ func (m *ContextManager) UpdateProject(project *Project) error {
 	}
 
 	project.WorkspaceId = existing.WorkspaceId
+	if err := m.validateProjectParent(project.Id, project.ParentId, project.WorkspaceId); err != nil {
+		return err
+	}
 	if _, err = m.ProjectRepository.Save(project); err != nil {
 		return err
+	}
+
+	contexts, err := m.ContextRepository.ListByProject(project.Id)
+	if err != nil {
+		return err
+	}
+	for _, context := range contexts {
+		if context == nil {
+			continue
+		}
+		context.Project = &ProjectMetadata{Id: project.Id, Name: project.Name}
+		if _, err := m.ContextRepository.Save(context); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -222,6 +264,9 @@ func (m *ContextManager) UpdateContext(context *Context) error {
 	}
 
 	context.WorkspaceId = existing.WorkspaceId
+	if err := m.normalizeContextProject(context); err != nil {
+		return err
+	}
 	if context.Archived {
 		context.Status = "inactive"
 	}
@@ -243,6 +288,67 @@ func (m *ContextManager) UpdateContext(context *Context) error {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func (m *ContextManager) normalizeContextProject(context *Context) error {
+	if context.Project == nil || context.Project.Id == "" {
+		context.Project = nil
+		return nil
+	}
+
+	project, err := m.ProjectRepository.GetById(context.Project.Id)
+	if err != nil {
+		return err
+	}
+	if project == nil {
+		return &ProjectNotFoundError{ProjectId: context.Project.Id}
+	}
+	if project.WorkspaceId != context.WorkspaceId {
+		return &ProjectWorkspaceMismatchError{
+			ProjectId:          project.Id,
+			ProjectWorkspaceId: project.WorkspaceId,
+			WorkspaceId:        context.WorkspaceId,
+		}
+	}
+
+	context.Project = &ProjectMetadata{Id: project.Id, Name: project.Name}
+	return nil
+}
+
+func (m *ContextManager) validateProjectParent(projectId, parentId, workspaceId string) error {
+	if parentId == "" {
+		return nil
+	}
+
+	visited := make(map[string]struct{})
+	currentId := parentId
+	for currentId != "" {
+		if currentId == projectId {
+			return &ProjectHierarchyCycleError{ProjectId: projectId, ParentId: parentId}
+		}
+		if _, exists := visited[currentId]; exists {
+			return &ProjectHierarchyCycleError{ProjectId: projectId, ParentId: parentId}
+		}
+		visited[currentId] = struct{}{}
+
+		parent, err := m.ProjectRepository.GetById(currentId)
+		if err != nil {
+			return err
+		}
+		if parent == nil {
+			return &ProjectNotFoundError{ProjectId: currentId}
+		}
+		if parent.WorkspaceId != workspaceId {
+			return &ProjectWorkspaceMismatchError{
+				ProjectId:          parent.Id,
+				ProjectWorkspaceId: parent.WorkspaceId,
+				WorkspaceId:        workspaceId,
+			}
+		}
+		currentId = parent.ParentId
 	}
 
 	return nil
@@ -831,6 +937,53 @@ func (m *ContextManager) reportSyncProgress(direction SyncDirection, resource st
 func (m *ContextManager) DeleteProject(projectId string) error {
 	if projectId == "" {
 		return fmt.Errorf("project id is required")
+	}
+
+	project, err := m.ProjectRepository.GetById(projectId)
+	if err != nil {
+		return err
+	}
+	if project == nil {
+		return &ProjectNotFoundError{ProjectId: projectId}
+	}
+
+	var parentMetadata *ProjectMetadata
+	if project.ParentId != "" {
+		parent, err := m.ProjectRepository.GetById(project.ParentId)
+		if err != nil {
+			return err
+		}
+		if parent != nil {
+			parentMetadata = &ProjectMetadata{Id: parent.Id, Name: parent.Name}
+		}
+	}
+
+	children, err := m.ProjectRepository.ListChildren(projectId)
+	if err != nil {
+		return err
+	}
+	for _, child := range children {
+		if child == nil {
+			continue
+		}
+		child.ParentId = project.ParentId
+		if _, err := m.ProjectRepository.Save(child); err != nil {
+			return err
+		}
+	}
+
+	contexts, err := m.ContextRepository.ListByProject(projectId)
+	if err != nil {
+		return err
+	}
+	for _, context := range contexts {
+		if context == nil {
+			continue
+		}
+		context.Project = parentMetadata
+		if _, err := m.ContextRepository.Save(context); err != nil {
+			return err
+		}
 	}
 
 	return m.ProjectRepository.Delete(projectId)

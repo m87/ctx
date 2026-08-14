@@ -236,6 +236,7 @@ export class WorkspaceComponent {
           percentage: stats.percentage,
           color: colorHash(stats.contextId),
           archived: context?.archived ?? false,
+          project: context?.project,
         };
       });
 

@@ -5,6 +5,7 @@ import { ContextMutations } from '../../api/context/context.mutations';
 import { ContextQueries } from '../../api/context/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { Context } from '../../api/context/context.service';
+import { ProjectQueries } from '../../api/project/project.queries';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngxs/store';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
@@ -67,13 +68,16 @@ import { WorkspaceState } from './workspace.state';
 export class SidebarContextListComponent {
   private contextQueries = inject(ContextQueries);
   private contextMutations = inject(ContextMutations);
+  private projectQueries = inject(ProjectQueries);
   private store = inject(Store);
   private readonly newContextInput = viewChild<ElementRef<HTMLInputElement>>('newContextInput');
 
   readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   readonly selectedProject = this.store.selectSignal(WorkspaceState.selectedProjectId);
+  readonly selectedProjectId = computed(() => this.selectedProject() ?? '');
 
   listContextsQuery = injectQuery(() => this.contextQueries.list(this.selectedWorkspaceId()));
+  selectedProjectQuery = injectQuery(() => this.projectQueries.get(this.selectedProjectId()));
   activeContextQuery = injectQuery(() => this.contextQueries.active());
   createContextMutation = injectMutation(() => this.contextMutations.create());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
@@ -123,9 +127,16 @@ export class SidebarContextListComponent {
       return;
     }
 
+    const projectId = this.selectedProjectId();
     this.createContextMutation.mutate({
       name,
       workspaceId: this.selectedWorkspaceId() ?? '',
+      project: projectId
+        ? {
+            id: projectId,
+            name: this.selectedProjectQuery.data()?.name ?? '',
+          }
+        : undefined,
     });
     this.cancelAddContext();
   }

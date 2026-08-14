@@ -111,9 +111,15 @@ export interface NameSaveValue {
       } @else {
         <div class="mt-1 flex items-start gap-3">
           <div class="min-w-0 flex-1">
-            <h1 class="text-2xl font-semibold tracking-tight truncate">
-              <ctx-linkified-text [text]="name()" />
-            </h1>
+            @if (compact()) {
+              <div class="text-sm font-medium truncate">
+                <ctx-linkified-text [text]="name()" />
+              </div>
+            } @else {
+              <h1 class="text-2xl font-semibold tracking-tight truncate">
+                <ctx-linkified-text [text]="name()" />
+              </h1>
+            }
             @if (showDescription()) {
               @if (description()) {
                 <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground/90">
@@ -162,6 +168,7 @@ export class NameComponent {
   readonly showTags = input(false);
   readonly savePending = input(false);
   readonly readonly = input(false);
+  readonly compact = input(false);
   readonly accentColor = input<string | null>(null);
   readonly emptyDescription = input('No description');
   readonly namePlaceholder = input('Name');

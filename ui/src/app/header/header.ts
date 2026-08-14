@@ -4,6 +4,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideCalendar,
   lucideClock3,
+  lucideFolder,
   lucideGanttChart,
   lucideHistory,
   lucidePanelLeft,
@@ -18,19 +19,25 @@ import { BreadcrumbService } from '../header/breadcrumbs';
 import { SidebarStore } from '../sidebar/sidebar.store';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
-import { Context } from '../../api/context/context.service';
+import {
+  Context,
+  ContextService,
+  ContextStats,
+  ProjectMetadata,
+} from '../../api/context/context.service';
 import { ContextQueries } from '../../api/context/context.queries';
 import { ContextMutations } from '../../api/context/context.mutations';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { HlmDatePicker, HlmDatePickerTrigger } from '@spartan-ng/helm/date-picker';
 import { DateTime } from 'luxon';
 import { catchError, filter, forkJoin, map, of, startWith, switchMap } from 'rxjs';
-import { ContextService, ContextStats } from '../../api/context/context.service';
+import { ProjectQueries } from '../../api/project/project.queries';
 import { SettingsQueries } from '../../api/settings/settings.queries';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { IntervalQueries } from '../../api/interval/interval.queries';
 import { TimeZoneService } from '../shared/time-zone.service';
+import { SearchProjectBadgeComponent } from './search-project-badge.component';
 
 const firstDayKey = 'client.general.firstDay';
 
@@ -44,6 +51,7 @@ const firstDayKey = 'client.general.firstDay';
     RouterLink,
     HlmDatePicker,
     HlmDatePickerTrigger,
+    SearchProjectBadgeComponent,
   ],
   providers: [
     provideIcons({
@@ -56,6 +64,7 @@ const firstDayKey = 'client.general.firstDay';
       lucidePlus,
       lucideClock3,
       lucideHistory,
+      lucideFolder,
     }),
   ],
   template: `
@@ -93,18 +102,59 @@ const firstDayKey = 'client.general.firstDay';
               <div
                 class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
               >
-                <button
-                  type="button"
-                  class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
-                  [class.bg-muted]="activeSuggestionIndex() === 0"
-                  [class.text-foreground]="activeSuggestionIndex() === 0"
-                  [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
-                  (mouseenter)="setActiveSuggestionIndex(0)"
-                  (mousedown)="createContextFromTerm(searchTerm().trim())"
-                >
-                  <ng-icon name="lucidePlus" class="text-xs"></ng-icon>
-                  <span class="truncate font-medium">{{ searchTerm().trim() }}</span>
-                </button>
+                @if (selectedProject(); as project) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    [class.bg-muted]="activeSuggestionIndex() === 0"
+                    [class.text-foreground]="activeSuggestionIndex() === 0"
+                    [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
+                    (mouseenter)="setActiveSuggestionIndex(0)"
+                    (mousedown)="createContextFromTerm(searchTerm().trim(), project)"
+                  >
+                    <ng-icon name="lucidePlus" class="text-xs shrink-0"></ng-icon>
+                    <span class="min-w-0 flex-1 truncate font-medium">{{
+                      searchTerm().trim()
+                    }}</span>
+                    <span
+                      class="max-w-40 shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+                    >
+                      <ng-icon name="lucideFolder" class="shrink-0 text-[10px]"></ng-icon>
+                      <span class="truncate">{{ project.name }}</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    [class.bg-muted]="activeSuggestionIndex() === 1"
+                    [class.text-foreground]="activeSuggestionIndex() === 1"
+                    [class.text-muted-foreground]="activeSuggestionIndex() !== 1"
+                    (mouseenter)="setActiveSuggestionIndex(1)"
+                    (mousedown)="createContextFromTerm(searchTerm().trim(), null)"
+                  >
+                    <ng-icon name="lucidePlus" class="text-xs shrink-0"></ng-icon>
+                    <span class="min-w-0 flex-1 truncate font-medium">{{
+                      searchTerm().trim()
+                    }}</span>
+                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    [class.bg-muted]="activeSuggestionIndex() === 0"
+                    [class.text-foreground]="activeSuggestionIndex() === 0"
+                    [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
+                    (mouseenter)="setActiveSuggestionIndex(0)"
+                    (mousedown)="createContextFromTerm(searchTerm().trim(), null)"
+                  >
+                    <ng-icon name="lucidePlus" class="text-xs shrink-0"></ng-icon>
+                    <span class="min-w-0 flex-1 truncate font-medium">{{
+                      searchTerm().trim()
+                    }}</span>
+                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                  </button>
+                }
 
                 @if (dayMatchedContexts().length > 0) {
                   <div
@@ -131,6 +181,9 @@ const firstDayKey = 'client.general.firstDay';
                     <span
                       class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
                     >
+                      @if (context.project; as project) {
+                        <ctx-search-project-badge [project]="project" />
+                      }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
                           <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
@@ -168,6 +221,9 @@ const firstDayKey = 'client.general.firstDay';
                     <span
                       class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
                     >
+                      @if (context.project; as project) {
+                        <ctx-search-project-badge [project]="project" />
+                      }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
                           <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
@@ -210,6 +266,9 @@ const firstDayKey = 'client.general.firstDay';
                     <span
                       class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
                     >
+                      @if (context.project; as project) {
+                        <ctx-search-project-badge [project]="project" />
+                      }
                       <span class="rounded-sm border px-1 py-0.5 leading-none">Archived</span>
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
@@ -321,18 +380,59 @@ const firstDayKey = 'client.general.firstDay';
               <div
                 class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
               >
-                <button
-                  type="button"
-                  class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
-                  [class.bg-muted]="activeSuggestionIndex() === 0"
-                  [class.text-foreground]="activeSuggestionIndex() === 0"
-                  [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
-                  (mouseenter)="setActiveSuggestionIndex(0)"
-                  (mousedown)="createContextFromTerm(searchTerm().trim())"
-                >
-                  <ng-icon name="lucidePlus" class="text-xs"></ng-icon>
-                  <span class="truncate font-medium">{{ searchTerm().trim() }}</span>
-                </button>
+                @if (selectedProject(); as project) {
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    [class.bg-muted]="activeSuggestionIndex() === 0"
+                    [class.text-foreground]="activeSuggestionIndex() === 0"
+                    [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
+                    (mouseenter)="setActiveSuggestionIndex(0)"
+                    (mousedown)="createContextFromTerm(searchTerm().trim(), project)"
+                  >
+                    <ng-icon name="lucidePlus" class="text-xs shrink-0"></ng-icon>
+                    <span class="min-w-0 flex-1 truncate font-medium">{{
+                      searchTerm().trim()
+                    }}</span>
+                    <span
+                      class="max-w-32 shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+                    >
+                      <ng-icon name="lucideFolder" class="shrink-0 text-[10px]"></ng-icon>
+                      <span class="truncate">{{ project.name }}</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    [class.bg-muted]="activeSuggestionIndex() === 1"
+                    [class.text-foreground]="activeSuggestionIndex() === 1"
+                    [class.text-muted-foreground]="activeSuggestionIndex() !== 1"
+                    (mouseenter)="setActiveSuggestionIndex(1)"
+                    (mousedown)="createContextFromTerm(searchTerm().trim(), null)"
+                  >
+                    <ng-icon name="lucidePlus" class="text-xs shrink-0"></ng-icon>
+                    <span class="min-w-0 flex-1 truncate font-medium">{{
+                      searchTerm().trim()
+                    }}</span>
+                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    [class.bg-muted]="activeSuggestionIndex() === 0"
+                    [class.text-foreground]="activeSuggestionIndex() === 0"
+                    [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
+                    (mouseenter)="setActiveSuggestionIndex(0)"
+                    (mousedown)="createContextFromTerm(searchTerm().trim(), null)"
+                  >
+                    <ng-icon name="lucidePlus" class="text-xs shrink-0"></ng-icon>
+                    <span class="min-w-0 flex-1 truncate font-medium">{{
+                      searchTerm().trim()
+                    }}</span>
+                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                  </button>
+                }
 
                 @if (dayMatchedContexts().length > 0) {
                   <div
@@ -359,6 +459,9 @@ const firstDayKey = 'client.general.firstDay';
                     <span
                       class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
                     >
+                      @if (context.project; as project) {
+                        <ctx-search-project-badge [project]="project" />
+                      }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
                           <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
@@ -396,6 +499,9 @@ const firstDayKey = 'client.general.firstDay';
                     <span
                       class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
                     >
+                      @if (context.project; as project) {
+                        <ctx-search-project-badge [project]="project" />
+                      }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
                           <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
@@ -438,6 +544,9 @@ const firstDayKey = 'client.general.firstDay';
                     <span
                       class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
                     >
+                      @if (context.project; as project) {
+                        <ctx-search-project-badge [project]="project" />
+                      }
                       <span class="rounded-sm border px-1 py-0.5 leading-none">Archived</span>
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
@@ -463,15 +572,19 @@ export class HeaderComponent {
   private contextQueries = inject(ContextQueries);
   private inteverlaQueries = inject(IntervalQueries);
   private contextMutations = inject(ContextMutations);
+  private projectQueries = inject(ProjectQueries);
   private contextService = inject(ContextService);
   private settingsQueries = inject(SettingsQueries);
   private timeZone = inject(TimeZoneService);
   private readonly store = inject(Store);
   readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  private readonly selectedProjectState = this.store.selectSignal(WorkspaceState.selectedProjectId);
+  readonly selectedProjectId = computed(() => this.selectedProjectState() ?? '');
   private router = inject(Router);
   today = computed(() => this.timeZone.today());
 
   listContextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId(), true));
+  selectedProjectQuery = injectQuery(() => this.projectQueries.get(this.selectedProjectId()));
   settingsQuery = injectQuery(() => this.settingsQueries.settings());
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   freeContextMutation = injectMutation(() => this.contextMutations.free());
@@ -503,6 +616,16 @@ export class HeaderComponent {
   readonly mobileSearchOpen = signal<boolean>(false);
   readonly activeSuggestionIndex = signal<number>(-1);
   readonly contexts = computed<readonly Context[]>(() => this.listContextsQuery.data() ?? []);
+  readonly selectedProject = computed<ProjectMetadata | null>(() => {
+    const projectId = this.selectedProjectId();
+    if (!projectId) {
+      return null;
+    }
+    return {
+      id: projectId,
+      name: this.selectedProjectQuery.data()?.name ?? 'Current project',
+    };
+  });
   readonly filteredContexts = computed<readonly Context[]>(() => {
     const term = this.searchTerm().trim().toLowerCase();
     if (!term) {
@@ -530,8 +653,11 @@ export class HeaderComponent {
     ...this.otherMatchedContexts(),
     ...this.archivedMatchedContexts(),
   ]);
+  readonly creationSuggestionCount = computed(() => (this.selectedProject() ? 2 : 1));
   readonly suggestionCount = computed<number>(() =>
-    this.searchTerm().trim().length > 0 ? this.suggestionContexts().length + 1 : 0,
+    this.searchTerm().trim().length > 0
+      ? this.suggestionContexts().length + this.creationSuggestionCount()
+      : 0,
   );
   readonly statsByContextId = toSignal(
     toObservable(
@@ -631,14 +757,21 @@ export class HeaderComponent {
     this.router.navigate(['/context', context.id]);
   }
 
-  createContextFromTerm(term: string): void {
+  createContextFromTerm(
+    term: string,
+    project: ProjectMetadata | null = this.selectedProject(),
+  ): void {
     const normalizedTerm = term.trim();
     if (!normalizedTerm) {
       return;
     }
     this.searchTerm.set(normalizedTerm);
     this.resetSearchUi();
-    this.switchContextMutation.mutate({ id: '', name: normalizedTerm });
+    this.switchContextMutation.mutate({
+      id: '',
+      name: normalizedTerm,
+      project: project ?? undefined,
+    });
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -683,8 +816,19 @@ export class HeaderComponent {
       return;
     }
 
-    if (this.showSuggestions() && this.activeSuggestionIndex() > 0) {
-      const selectedContext = this.suggestionContexts()[this.activeSuggestionIndex() - 1];
+    const activeIndex = Math.max(0, this.activeSuggestionIndex());
+    const selectedProject = this.selectedProject();
+    if (this.showSuggestions() && activeIndex < this.creationSuggestionCount()) {
+      this.createContextFromTerm(
+        term,
+        selectedProject && activeIndex === 0 ? selectedProject : null,
+      );
+      return;
+    }
+
+    if (this.showSuggestions()) {
+      const selectedContext =
+        this.suggestionContexts()[activeIndex - this.creationSuggestionCount()];
       if (selectedContext) {
         this.selectContext(selectedContext);
         return;
@@ -695,7 +839,10 @@ export class HeaderComponent {
   }
 
   suggestionIndex(contextId: string): number {
-    return this.suggestionContexts().findIndex((context) => context.id === contextId) + 1;
+    return (
+      this.suggestionContexts().findIndex((context) => context.id === contextId) +
+      this.creationSuggestionCount()
+    );
   }
 
   contextTodayDuration(contextId: string): string | null {

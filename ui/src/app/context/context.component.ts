@@ -1,12 +1,16 @@
-import { Component, computed, inject } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArchive,
   lucideArchiveRestore,
+  lucideChevronRight,
+  lucideFolder,
   lucidePause,
+  lucidePencil,
   lucidePlay,
   lucideTrash2,
+  lucideX,
 } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -15,13 +19,16 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ContextQueries } from '../../api/context/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { ContextMutations } from '../../api/context/context.mutations';
-import { durationAsH, durationAsM } from '../utils';
+import { colorHash, durationAsH, durationAsM } from '../utils';
 import { Store } from '@ngxs/store';
-import { WorkspaceState } from '../sidebar/workspace.state';
+import { SelectProject, WorkspaceState } from '../sidebar/workspace.state';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { ContextIntervalListComponent } from './context-interval-list.component';
 import { TimeZoneService } from '../shared/time-zone.service';
+import { ProjectQueries } from '../../api/project/project.queries';
+
+const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 
 @Component({
   imports: [
@@ -31,14 +38,19 @@ import { TimeZoneService } from '../shared/time-zone.service';
     HlmButtonImports,
     HlmCardImports,
     QueryErrorStateComponent,
+    RouterLink,
   ],
   providers: [
     provideIcons({
       lucideArchive,
       lucideArchiveRestore,
+      lucideChevronRight,
+      lucideFolder,
       lucidePause,
+      lucidePencil,
       lucidePlay,
       lucideTrash2,
+      lucideX,
     }),
   ],
   selector: 'ctx-context',
@@ -139,6 +151,85 @@ import { TimeZoneService } from '../shared/time-zone.service';
           </div>
         </div>
 
+        @if (editingProjectAssignment()) {
+          <div class="w-full rounded-lg border bg-card p-3">
+            <div
+              class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
+            >
+              Project
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              <select
+                class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                [disabled]="updateContextMutation.isPending()"
+                (change)="assignContextToProject($event)"
+              >
+                <option [value]="workspaceRootValue" [selected]="!currentContext.project?.id">
+                  Workspace root
+                </option>
+                @for (project of availableProjects(); track project.id) {
+                  <option
+                    [value]="project.id"
+                    [selected]="currentContext.project?.id === project.id"
+                  >
+                    {{ project.name }}
+                  </option>
+                }
+              </select>
+              <button
+                type="button"
+                class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+                aria-label="Cancel project assignment"
+                title="Cancel"
+                [disabled]="updateContextMutation.isPending()"
+                (click)="editingProjectAssignment.set(false)"
+              >
+                <ng-icon name="lucideX"></ng-icon>
+              </button>
+            </div>
+          </div>
+        } @else if (currentContext.project; as project) {
+          <div
+            class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+            [routerLink]="['/project', project.id]"
+            role="link"
+            tabindex="0"
+            (click)="selectProject(project.id)"
+          >
+            <ctx-name
+              class="min-w-0 flex-1"
+              label="Project"
+              [name]="project.name"
+              [showDescription]="false"
+              [readonly]="true"
+              [compact]="true"
+              [accentColor]="projectColor(project.id)"
+            ></ctx-name>
+            <button
+              type="button"
+              class="size-8 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+              aria-label="Change project"
+              title="Change project"
+              (click)="startProjectAssignmentEdit($event)"
+            >
+              <ng-icon name="lucidePencil"></ng-icon>
+            </button>
+            <ng-icon
+              name="lucideChevronRight"
+              class="text-sm shrink-0 text-muted-foreground/70"
+            ></ng-icon>
+          </div>
+        } @else {
+          <button
+            type="button"
+            class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
+            (click)="editingProjectAssignment.set(true)"
+          >
+            <ng-icon name="lucideFolder"></ng-icon>
+            <span>Assign to project</span>
+          </button>
+        }
+
         @if (showContextStatsError()) {
           <ctx-query-error-state
             class="w-full min-h-40"
@@ -224,6 +315,7 @@ export class ContextComponent {
   private store = inject(Store);
   private route = inject(ActivatedRoute);
   private timeZone = inject(TimeZoneService);
+  private projectQueries = inject(ProjectQueries);
   readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   readonly today = computed(() => this.timeZone.today());
   readonly contextId = toSignal(this.route.paramMap.pipe(map((pm) => pm.get('id') ?? '')), {
@@ -240,6 +332,13 @@ export class ContextComponent {
   activeContextQuery = injectQuery(() => this.contextQueries.active());
   contextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
   context = computed(() => this.contextQuery.data() ?? null);
+  readonly contextWorkspaceId = computed(
+    () => this.context()?.workspaceId ?? this.activeWorkspaceId() ?? '',
+  );
+  projectsQuery = injectQuery(() => this.projectQueries.all(this.contextWorkspaceId()));
+  readonly availableProjects = computed(() => this.projectsQuery.data() ?? []);
+  readonly editingProjectAssignment = signal(false);
+  readonly workspaceRootValue = WORKSPACE_ROOT_VALUE;
   isActiveContext = computed(() => this.activeContextQuery.data()?.id === this.contextId());
   contextStatsQuery = injectQuery(() =>
     this.contextQueries.stats(this.contextId(), this.today(), this.timeZone.effectiveTimeZone()),
@@ -326,6 +425,43 @@ export class ContextComponent {
     }
 
     this.restoreContextMutation.mutate(context.id);
+  }
+
+  startProjectAssignmentEdit(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.editingProjectAssignment.set(true);
+  }
+
+  assignContextToProject(event: Event): void {
+    const context = this.context();
+    if (!context) {
+      return;
+    }
+
+    const selectedValue = (event.target as HTMLSelectElement).value;
+    const projectId = selectedValue === WORKSPACE_ROOT_VALUE ? '' : selectedValue;
+    const project = this.availableProjects().find((candidate) => candidate.id === projectId);
+    this.updateContextMutation.mutate(
+      {
+        id: context.id,
+        context: {
+          ...context,
+          project: project ? { id: project.id, name: project.name } : undefined,
+        },
+      },
+      {
+        onSuccess: () => this.editingProjectAssignment.set(false),
+      },
+    );
+  }
+
+  selectProject(projectId: string): void {
+    this.store.dispatch(new SelectProject(projectId));
+  }
+
+  projectColor(projectId: string): string {
+    return colorHash(projectId);
   }
 
   parseDuration(duration: number | undefined): string {

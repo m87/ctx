@@ -227,6 +227,7 @@ export class DayComponent {
           color: colorHash(context?.id ?? contextStats.contextId),
           sessions: contextStats.intervalCount,
           archived: context?.archived ?? false,
+          project: context?.project,
           sessionRanges: (this.dayStats().intervals[contextStats.contextId] ?? []).map(
             (interval) =>
               `${this.timeZone.formatTime(interval.start)}–${this.timeZone.formatTime(interval.end)}`,

@@ -203,7 +203,7 @@ func (r *mockContextRepository) ListByWorkspace(workspaceID string) ([]*Context,
 func (r *mockContextRepository) ListByProject(projectID string) ([]*Context, error) {
 	result := make([]*Context, 0)
 	for _, context := range r.contexts {
-		if context != nil && context.ParentId == projectID {
+		if context != nil && context.Project != nil && context.Project.Id == projectID {
 			result = append(result, context)
 		}
 	}
@@ -442,6 +442,50 @@ func TestContextManagerCreateContextAssignsWorkspace(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestContextManagerCreateContextCanonicalizesAssignedProject(t *testing.T) {
+	contextRepo := &mockContextRepository{}
+	workspaceRepo := &mockWorkspaceRepository{workspacesByID: map[string]*Workspace{
+		"workspace-1": {Id: "workspace-1", Name: "First"},
+	}}
+	projectRepo := &mockProjectRepository{projectsByID: map[string]*Project{
+		"project-1": {Id: "project-1", Name: "Canonical project", WorkspaceId: "workspace-1"},
+	}}
+	manager := NewContextManager(nil, contextRepo, nil, workspaceRepo, projectRepo)
+	context := &Context{
+		Name:        "Context",
+		WorkspaceId: "workspace-1",
+		Project:     &ProjectMetadata{Id: "project-1", Name: "Stale name"},
+	}
+
+	_, err := manager.CreateContext(context)
+
+	require.NoError(t, err)
+	require.Equal(t, &ProjectMetadata{Id: "project-1", Name: "Canonical project"}, context.Project)
+}
+
+func TestContextManagerCreateContextRejectsProjectFromAnotherWorkspace(t *testing.T) {
+	manager := NewContextManager(
+		nil,
+		&mockContextRepository{},
+		nil,
+		&mockWorkspaceRepository{workspacesByID: map[string]*Workspace{
+			"workspace-1": {Id: "workspace-1"},
+		}},
+		&mockProjectRepository{projectsByID: map[string]*Project{
+			"project-2": {Id: "project-2", WorkspaceId: "workspace-2"},
+		}},
+	)
+
+	_, err := manager.CreateContext(&Context{
+		Name:        "Context",
+		WorkspaceId: "workspace-1",
+		Project:     &ProjectMetadata{Id: "project-2"},
+	})
+
+	var mismatchErr *ProjectWorkspaceMismatchError
+	require.ErrorAs(t, err, &mismatchErr)
+}
+
 func TestContextManagerCreateContextRequiresExistingWorkspace(t *testing.T) {
 	manager := NewContextManager(
 		nil,
@@ -485,6 +529,91 @@ func TestContextManagerUpdateContextRejectsWorkspaceMove(t *testing.T) {
 	require.Equal(t, "workspace-1", moveErr.FromWorkspaceId)
 	require.Equal(t, "workspace-2", moveErr.ToWorkspaceId)
 	require.Empty(t, contextRepo.savedContexts)
+}
+
+func TestContextManagerUpdateContextCanUnassignProject(t *testing.T) {
+	existing := &Context{
+		Id:          "context-1",
+		WorkspaceId: "workspace-1",
+		Project:     &ProjectMetadata{Id: "project-1", Name: "Project"},
+	}
+	contextRepo := &mockContextRepository{contextsByID: map[string]*Context{
+		"context-1": existing,
+	}}
+	manager := NewContextManager(nil, contextRepo, nil, nil, &mockProjectRepository{})
+	updated := &Context{Id: "context-1", Name: "Context"}
+
+	err := manager.UpdateContext(updated)
+
+	require.NoError(t, err)
+	require.Nil(t, updated.Project)
+	require.Equal(t, "workspace-1", updated.WorkspaceId)
+}
+
+func TestContextManagerUpdateProjectRejectsDescendantAsParent(t *testing.T) {
+	projectRepo := &mockProjectRepository{projectsByID: map[string]*Project{
+		"project-1": {Id: "project-1", WorkspaceId: "workspace-1"},
+		"project-2": {Id: "project-2", ParentId: "project-1", WorkspaceId: "workspace-1"},
+	}}
+	manager := NewContextManager(nil, &mockContextRepository{}, nil, nil, projectRepo)
+
+	err := manager.UpdateProject(&Project{
+		Id:       "project-1",
+		Name:     "Parent",
+		ParentId: "project-2",
+	})
+
+	var cycleErr *ProjectHierarchyCycleError
+	require.ErrorAs(t, err, &cycleErr)
+	require.Empty(t, projectRepo.savedProjects)
+}
+
+func TestContextManagerUpdateProjectRefreshesContextMetadata(t *testing.T) {
+	context := &Context{
+		Id:          "context-1",
+		WorkspaceId: "workspace-1",
+		Project:     &ProjectMetadata{Id: "project-1", Name: "Old name"},
+	}
+	contextRepo := &mockContextRepository{contexts: []*Context{context}}
+	projectRepo := &mockProjectRepository{projectsByID: map[string]*Project{
+		"project-1": {Id: "project-1", Name: "Old name", WorkspaceId: "workspace-1"},
+	}}
+	manager := NewContextManager(nil, contextRepo, nil, nil, projectRepo)
+
+	err := manager.UpdateProject(&Project{Id: "project-1", Name: "New name"})
+
+	require.NoError(t, err)
+	require.Equal(t, &ProjectMetadata{Id: "project-1", Name: "New name"}, context.Project)
+	require.Equal(t, []*Context{context}, contextRepo.savedContexts)
+}
+
+func TestContextManagerDeleteProjectMovesContentsToParent(t *testing.T) {
+	context := &Context{
+		Id:          "context-1",
+		WorkspaceId: "workspace-1",
+		Project:     &ProjectMetadata{Id: "project-2", Name: "Child"},
+	}
+	childProject := &Project{
+		Id:          "project-3",
+		ParentId:    "project-2",
+		WorkspaceId: "workspace-1",
+	}
+	contextRepo := &mockContextRepository{contexts: []*Context{context}}
+	projectRepo := &mockProjectRepository{
+		projectsByID: map[string]*Project{
+			"project-1": {Id: "project-1", Name: "Parent", WorkspaceId: "workspace-1"},
+			"project-2": {Id: "project-2", Name: "Deleted", ParentId: "project-1", WorkspaceId: "workspace-1"},
+		},
+		projects: []*Project{childProject},
+	}
+	manager := NewContextManager(nil, contextRepo, nil, nil, projectRepo)
+
+	err := manager.DeleteProject("project-2")
+
+	require.NoError(t, err)
+	require.Equal(t, "project-1", childProject.ParentId)
+	require.Equal(t, &ProjectMetadata{Id: "project-1", Name: "Parent"}, context.Project)
+	require.Equal(t, "project-2", projectRepo.deletedProjectID)
 }
 
 func TestContextManagerSaveIntervalUsesContextWorkspace(t *testing.T) {
