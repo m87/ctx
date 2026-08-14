@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideTrash2 } from '@ng-icons/lucide';
+import { lucideFolder, lucideTrash2 } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { map } from 'rxjs';
@@ -12,11 +12,12 @@ import { ProjectQueries } from '../../api/project/project.queries';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { SelectProject } from '../sidebar/workspace.state';
+import { HlmSeparatorImports } from '@spartan-ng/helm/separator';
 
 @Component({
   selector: 'ctx-project',
-  imports: [NameComponent, NgIcon, HlmButtonImports, QueryErrorStateComponent],
-  providers: [provideIcons({ lucideTrash2 })],
+  imports: [NameComponent, NgIcon, HlmButtonImports, QueryErrorStateComponent, HlmSeparatorImports],
+  providers: [provideIcons({ lucideTrash2, lucideFolder })],
   template: `
     <div
       class="w-full h-full overflow-hidden flex flex-col items-start justify-start p-4 md:p-6 gap-5 relative"
@@ -56,6 +57,37 @@ import { SelectProject } from '../sidebar/workspace.state';
             </button>
           </div>
         </div>
+
+        <div class="w-full flex-1 overflow-hidden">
+          <div class="flex flex-col gap-1.5 overflow-y-auto">
+            @if ((projectSubprojectsQuery.data() ?? []).length > 0) {
+              @for (subproject of projectSubprojectsQuery.data() ?? []; track subproject.id) {
+                <div
+                  class="flex items-center gap-2 text-[13px] pl-2 pr-1 py-1 cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                >
+                  <ng-icon name="lucideFolder" class="text-[10px] text-muted-foreground"></ng-icon>
+                  <span class="min-w-0 flex-1 truncate">{{ subproject.name }}</span>
+                </div>
+              }
+            } @else {
+              <div class="text-[13px] text-muted-foreground mb-1.5">No subprojects.</div>
+            }
+          </div>
+          <hlm-separator class="my-2"></hlm-separator>
+          <div class="flex flex-col gap-1.5 overflow-y-auto mt-4">
+            @if ((projectContextsQuery.data() ?? []).length > 0) {
+              @for (context of projectContextsQuery.data() ?? []; track context.id) {
+                <div
+                  class="flex items-center gap-2 text-[13px] pl-2 pr-1 py-1 font-medium cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                >
+                  <span class="min-w-0 flex-1 truncate">{{ context.name }}</span>
+                </div>
+              }
+            } @else {
+              <div class="text-[13px] text-muted-foreground">No contexts.</div>
+            }
+          </div>
+        </div>
       }
     </div>
   `,
@@ -80,9 +112,16 @@ export class ProjectComponent {
     this.activeRoute.paramMap.pipe(map((params) => params.get('id') ?? '')),
     { initialValue: '' },
   );
+  readonly selecetedWorkspaceId = this.store.selectSignal(
+    (state) => state.workspace.selectedWorkspaceId,
+  );
   readonly projectDetailsQuery = injectQuery(() => this.projectQueries.get(this.projectId()));
   readonly updateProjectMutation = injectMutation(() => this.projectMutations.update());
   readonly deleteProjectMutation = injectMutation(() => this.projectMutations.delete());
+  readonly projectContextsQuery = injectQuery(() => this.projectQueries.contexts(this.projectId()));
+  readonly projectSubprojectsQuery = injectQuery(() =>
+    this.projectQueries.subprojects(this.projectId(), this.selecetedWorkspaceId()),
+  );
   readonly project = computed(() => this.projectDetailsQuery.data() ?? null);
   readonly showProjectError = computed(
     () =>

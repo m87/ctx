@@ -264,13 +264,16 @@ def create_context(
     now: datetime,
     status: str = "inactive",
     project_id: str | None = None,
+    project_name: str | None = None,
 ) -> str:
+    if (project_id is None) != (project_name is None):
+        raise ValueError("project_id and project_name must be provided together")
+
     context_id = stable_id("context", slug)
     insert_node(
         conn,
         node_id=context_id,
         namespace_id=workspace_id,
-        parent_id=project_id,
         kind="context",
         status=status,
         name=name,
@@ -283,6 +286,9 @@ def create_context(
         value=description,
         now=now,
     )
+    if project_id is not None and project_name is not None:
+        insert_kv_text(conn, context_id, "projectId", project_id)
+        insert_kv_text(conn, context_id, "projectName", project_name)
     return context_id
 
 
@@ -378,6 +384,7 @@ def seed_project_hierarchy(
             name=context_name,
             workspace_id=workspace_id,
             project_id=project_ids[project_slug],
+            project_name=project_names[project_slug],
             description=f"Sample context assigned to the {project_names[project_slug]} project.",
             now=now,
         )

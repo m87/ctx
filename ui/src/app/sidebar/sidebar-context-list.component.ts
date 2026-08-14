@@ -71,6 +71,7 @@ export class SidebarContextListComponent {
   private readonly newContextInput = viewChild<ElementRef<HTMLInputElement>>('newContextInput');
 
   readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  readonly selectedProject = this.store.selectSignal(WorkspaceState.selectedProjectId);
 
   listContextsQuery = injectQuery(() => this.contextQueries.list(this.selectedWorkspaceId()));
   activeContextQuery = injectQuery(() => this.contextQueries.active());
@@ -78,7 +79,9 @@ export class SidebarContextListComponent {
   switchContextMutation = injectMutation(() => this.contextMutations.switch());
   freeContextMutation = injectMutation(() => this.contextMutations.free());
 
-  readonly contexts = computed<readonly Context[]>(() => this.listContextsQuery.data() ?? []);
+  readonly contexts = computed<readonly Context[]>(() =>
+    this.filterBySelectedProject(this.listContextsQuery.data() ?? []),
+  );
   readonly isAddingContext = signal<boolean>(false);
   readonly newContextName = signal<string>('');
 
@@ -87,6 +90,16 @@ export class SidebarContextListComponent {
       this.newContextInput()?.nativeElement.focus();
     }
   });
+
+  filterBySelectedProject(contexts: readonly Context[]): readonly Context[] {
+    const selectedProjectId = this.selectedProject();
+    if (!selectedProjectId) {
+      return contexts.filter((context) => !context.project || !context.project.id);
+    }
+    return contexts.filter(
+      (context) => context.project && context.project.id === selectedProjectId,
+    );
+  }
 
   startAddContext(): void {
     this.isAddingContext.set(true);

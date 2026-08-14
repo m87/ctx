@@ -6,6 +6,11 @@ import { Interval } from '../interval/interval.service';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../../app/sidebar/workspace.state';
 
+export interface ProjectMetadata {
+  id: string;
+  name: string;
+}
+
 export interface Context {
   id: string;
   name: string;
@@ -14,6 +19,7 @@ export interface Context {
   archived?: boolean;
   status?: string;
   tags?: string[];
+  project?: ProjectMetadata;
 }
 
 export type CreateContextInput = Pick<Context, 'name'> &

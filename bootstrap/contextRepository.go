@@ -26,7 +26,7 @@ func (r *ContextRepository) GetById(id string) (*core.Context, error) {
 func (r *ContextRepository) ListByProject(projectId string) ([]*core.Context, error) {
 	return r.scope.Query().
 		Where(nod.NodeFields.Kind.Equals(core.ContextType)).
-		Where(nod.NodeFields.ParentId.Equals(projectId)).
+		Where(nod.KvString("projectId").Equals(projectId)).
 		WithKV().
 		WithContent().
 		WithTags().
