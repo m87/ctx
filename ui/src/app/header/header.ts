@@ -35,10 +35,11 @@ import { ProjectQueries } from '../../api/project/project.queries';
 import { Project } from '../../api/project/project.service';
 import { SettingsQueries } from '../../api/settings/settings.queries';
 import { Store } from '@ngxs/store';
-import { SelectProject, WorkspaceState } from '../sidebar/workspace.state';
+import { WorkspaceState } from '../sidebar/workspace.state';
 import { IntervalQueries } from '../../api/interval/interval.queries';
 import { TimeZoneService } from '../shared/time-zone.service';
 import { SearchProjectBadgeComponent } from './search-project-badge.component';
+import { parseProjectPicker } from './search-project-picker';
 
 const firstDayKey = 'client.general.firstDay';
 
@@ -90,7 +91,7 @@ const firstDayKey = 'client.general.firstDay';
             <input
               hlmInput
               type="text"
-              placeholder="Search projects or contexts"
+              placeholder="Search or create new context; use #project"
               class="h-8 w-full text-xs"
               [value]="searchTerm()"
               (input)="onSearchInput($event)"
@@ -103,7 +104,7 @@ const firstDayKey = 'client.general.firstDay';
               <div
                 class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
               >
-                @if (selectedProject(); as project) {
+                @if (projectCreationSuggestion(); as project) {
                   <button
                     type="button"
                     class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
@@ -139,7 +140,7 @@ const firstDayKey = 'client.general.firstDay';
                     }}</span>
                     <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
                   </button>
-                } @else {
+                } @else if (!projectPickerMode()) {
                   <button
                     type="button"
                     class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
@@ -161,7 +162,7 @@ const firstDayKey = 'client.general.firstDay';
                   <div
                     class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
                   >
-                    Projects
+                    Project for context
                   </div>
                 }
                 @for (project of matchedProjects(); track project.id) {
@@ -178,7 +179,7 @@ const firstDayKey = 'client.general.firstDay';
                       activeSuggestionIndex() !== projectSuggestionIndex(project.id)
                     "
                     (mouseenter)="setActiveSuggestionIndex(projectSuggestionIndex(project.id))"
-                    (mousedown)="openProject(project)"
+                    (mousedown)="selectProjectSuggestion($event, project)"
                   >
                     <span class="min-w-0 flex items-center gap-1.5">
                       <ng-icon name="lucideFolder" class="shrink-0 text-[11px]"></ng-icon>
@@ -186,10 +187,6 @@ const firstDayKey = 'client.general.firstDay';
                     </span>
                     <span class="shrink-0 text-[10px] text-muted-foreground">Project</span>
                   </button>
-                }
-
-                @if (matchedProjects().length > 0 && filteredContexts().length > 0) {
-                  <div class="my-1 border-t border-border/70"></div>
                 }
 
                 @if (dayMatchedContexts().length > 0) {
@@ -394,7 +391,7 @@ const firstDayKey = 'client.general.firstDay';
             <input
               hlmInput
               type="text"
-              placeholder="Search projects or contexts"
+              placeholder="Search or create new context; use #project"
               class="h-8 w-full text-xs pr-9"
               [value]="searchTerm()"
               (input)="onSearchInput($event)"
@@ -416,7 +413,7 @@ const firstDayKey = 'client.general.firstDay';
               <div
                 class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
               >
-                @if (selectedProject(); as project) {
+                @if (projectCreationSuggestion(); as project) {
                   <button
                     type="button"
                     class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
@@ -452,7 +449,7 @@ const firstDayKey = 'client.general.firstDay';
                     }}</span>
                     <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
                   </button>
-                } @else {
+                } @else if (!projectPickerMode()) {
                   <button
                     type="button"
                     class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
@@ -474,7 +471,7 @@ const firstDayKey = 'client.general.firstDay';
                   <div
                     class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
                   >
-                    Projects
+                    Project for context
                   </div>
                 }
                 @for (project of matchedProjects(); track project.id) {
@@ -491,7 +488,7 @@ const firstDayKey = 'client.general.firstDay';
                       activeSuggestionIndex() !== projectSuggestionIndex(project.id)
                     "
                     (mouseenter)="setActiveSuggestionIndex(projectSuggestionIndex(project.id))"
-                    (mousedown)="openProject(project)"
+                    (mousedown)="selectProjectSuggestion($event, project)"
                   >
                     <span class="min-w-0 flex items-center gap-1.5">
                       <ng-icon name="lucideFolder" class="shrink-0 text-[11px]"></ng-icon>
@@ -499,10 +496,6 @@ const firstDayKey = 'client.general.firstDay';
                     </span>
                     <span class="shrink-0 text-[10px] text-muted-foreground">Project</span>
                   </button>
-                }
-
-                @if (matchedProjects().length > 0 && filteredContexts().length > 0) {
-                  <div class="my-1 border-t border-border/70"></div>
                 }
 
                 @if (dayMatchedContexts().length > 0) {
@@ -699,7 +692,15 @@ export class HeaderComponent {
       name: this.selectedProjectQuery.data()?.name ?? 'Current project',
     };
   });
+  readonly projectPicker = computed(() => parseProjectPicker(this.searchTerm()));
+  readonly projectPickerMode = computed(() => this.projectPicker() !== null);
+  readonly projectCreationSuggestion = computed<ProjectMetadata | null>(() =>
+    this.projectPickerMode() ? null : this.selectedProject(),
+  );
   readonly filteredContexts = computed<readonly Context[]>(() => {
+    if (this.projectPickerMode()) {
+      return [];
+    }
     const term = this.searchTerm().trim().toLowerCase();
     if (!term) {
       return [];
@@ -707,10 +708,11 @@ export class HeaderComponent {
     return this.contexts().filter((context) => context.name.toLowerCase().includes(term));
   });
   readonly matchedProjects = computed<readonly Project[]>(() => {
-    const term = this.searchTerm().trim().toLowerCase();
-    if (!term) {
+    const picker = this.projectPicker();
+    if (!picker) {
       return [];
     }
+    const term = picker.projectQuery.toLowerCase();
     return this.projects().filter((project) => project.name.toLowerCase().includes(term));
   });
   readonly activeFilteredContexts = computed<readonly Context[]>(() =>
@@ -733,7 +735,12 @@ export class HeaderComponent {
     ...this.otherMatchedContexts(),
     ...this.archivedMatchedContexts(),
   ]);
-  readonly creationSuggestionCount = computed(() => (this.selectedProject() ? 2 : 1));
+  readonly creationSuggestionCount = computed(() => {
+    if (this.projectPickerMode()) {
+      return 0;
+    }
+    return this.selectedProject() ? 2 : 1;
+  });
   readonly suggestionCount = computed<number>(() =>
     this.searchTerm().trim().length > 0
       ? this.suggestionContexts().length +
@@ -828,22 +835,22 @@ export class HeaderComponent {
       this.openContext(context);
       return;
     }
-    this.searchTerm.set(context.name);
     this.resetSearchUi();
     this.switchContextMutation.mutate(context);
   }
 
   openContext(context: Context): void {
-    this.searchTerm.set(context.name);
     this.resetSearchUi();
     this.router.navigate(['/context', context.id]);
   }
 
-  openProject(project: Project): void {
-    this.searchTerm.set(project.name);
-    this.resetSearchUi();
-    this.store.dispatch(new SelectProject(project.id));
-    void this.router.navigate(['/project', project.id]);
+  selectProjectSuggestion(event: MouseEvent, project: Project): void {
+    event.preventDefault();
+    const picker = this.projectPicker();
+    if (!picker) {
+      return;
+    }
+    this.createContextFromTerm(picker.contextName, { id: project.id, name: project.name });
   }
 
   createContextFromTerm(
@@ -854,7 +861,6 @@ export class HeaderComponent {
     if (!normalizedTerm) {
       return;
     }
-    this.searchTerm.set(normalizedTerm);
     this.resetSearchUi();
     this.switchContextMutation.mutate({
       id: '',
@@ -870,6 +876,9 @@ export class HeaderComponent {
       }
       event.preventDefault();
       const suggestionsLength = this.suggestionCount();
+      if (suggestionsLength === 0) {
+        return;
+      }
       const currentIndex = this.activeSuggestionIndex();
       this.activeSuggestionIndex.set((currentIndex + 1 + suggestionsLength) % suggestionsLength);
       return;
@@ -881,6 +890,9 @@ export class HeaderComponent {
       }
       event.preventDefault();
       const suggestionsLength = this.suggestionCount();
+      if (suggestionsLength === 0) {
+        return;
+      }
       const currentIndex = this.activeSuggestionIndex();
       this.activeSuggestionIndex.set((currentIndex - 1 + suggestionsLength) % suggestionsLength);
       return;
@@ -906,6 +918,20 @@ export class HeaderComponent {
     }
 
     const activeIndex = Math.max(0, this.activeSuggestionIndex());
+    if (this.projectPickerMode()) {
+      const project = this.matchedProjects()[activeIndex];
+      if (project) {
+        const picker = this.projectPicker();
+        if (picker) {
+          this.createContextFromTerm(picker.contextName, {
+            id: project.id,
+            name: project.name,
+          });
+        }
+      }
+      return;
+    }
+
     const selectedProject = this.selectedProject();
     if (this.showSuggestions() && activeIndex < this.creationSuggestionCount()) {
       this.createContextFromTerm(
@@ -917,14 +943,7 @@ export class HeaderComponent {
 
     if (this.showSuggestions()) {
       const resultIndex = activeIndex - this.creationSuggestionCount();
-      const selectedProjectResult = this.matchedProjects()[resultIndex];
-      if (selectedProjectResult) {
-        this.openProject(selectedProjectResult);
-        return;
-      }
-
-      const selectedContext =
-        this.suggestionContexts()[resultIndex - this.matchedProjects().length];
+      const selectedContext = this.suggestionContexts()[resultIndex];
       if (selectedContext) {
         this.selectContext(selectedContext);
         return;
@@ -983,6 +1002,7 @@ export class HeaderComponent {
   }
 
   private resetSearchUi(): void {
+    this.searchTerm.set('');
     this.searchFocused.set(false);
     this.activeSuggestionIndex.set(-1);
     this.mobileSearchOpen.set(false);
