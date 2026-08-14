@@ -45,7 +45,7 @@ export class IntervalService {
     if (interval.workspaceId == null) {
       interval.workspaceId = this.store.selectSnapshot(WorkspaceState.selectedWorkspaceId)!;
     }
-    return this.http.post<Interval>(this.url('/'), interval);
+    return this.http.post<Interval>(this.url(), interval);
   }
 
   deleteInterval(id: string): Observable<void> {
