@@ -56,7 +56,7 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
   selector: 'ctx-context',
   template: `
     <div
-      class="w-full h-full overflow-hidden flex flex-col items-start justify-start p-4 md:p-6 gap-5 relative"
+      class="w-full h-full overflow-y-auto overflow-x-hidden md:overflow-hidden flex flex-col items-start justify-start p-4 md:p-6 gap-5 relative"
     >
       @if (showContextError()) {
         <ctx-query-error-state

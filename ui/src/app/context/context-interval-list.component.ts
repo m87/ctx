@@ -20,7 +20,7 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
     }),
   ],
   template: `
-    <div class="w-full flex flex-col gap-4 flex-1 min-h-0">
+    <div class="w-full flex flex-col gap-4 md:flex-1 md:min-h-0">
       <div
         class="w-full flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
       >
@@ -80,7 +80,9 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
           </div>
         }
 
-        <div class="w-full flex flex-col gap-2 flex-1 min-h-0 overflow-auto pr-1 pb-2">
+        <div
+          class="w-full flex flex-col gap-2 md:flex-1 md:min-h-0 md:overflow-auto pr-1 pb-2"
+        >
           @for (interval of intervals(); track interval.id) {
             <ctx-context-interval-item
               [interval]="interval"
@@ -140,8 +142,14 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
     :host {
       display: flex;
       width: 100%;
-      flex: 1 1 auto;
-      min-height: 0;
+      flex: 0 0 auto;
+    }
+
+    @media (min-width: 48rem) {
+      :host {
+        flex: 1 1 auto;
+        min-height: 0;
+      }
     }
   `,
 })
