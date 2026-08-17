@@ -36,6 +36,28 @@ export interface ContextStats {
   duration: number;
 }
 
+export interface ArchiveCandidate {
+  id: string;
+  name: string;
+  lastIntervalAt: string;
+  project?: ProjectMetadata;
+}
+
+export interface ArchiveCandidatesPreview {
+  cutoff: string;
+  contexts: ArchiveCandidate[];
+}
+
+export interface BulkArchiveInput {
+  workspaceId: string;
+  olderThanDays: number;
+  timeZone: string;
+}
+
+export interface BulkArchiveResult extends ArchiveCandidatesPreview {
+  archivedCount: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -102,6 +124,25 @@ export class ContextService {
 
   restoreContext(contextId: string): Observable<void> {
     return this.http.post<void>(this.url(contextId, 'restore'), {});
+  }
+
+  getArchiveCandidates(
+    workspaceId: string,
+    olderThanDays: number,
+    timeZone: string,
+  ): Observable<ArchiveCandidatesPreview> {
+    const params = new URLSearchParams({
+      workspaceId,
+      olderThanDays: olderThanDays.toString(),
+      timeZone,
+    });
+    return this.http.get<ArchiveCandidatesPreview>(
+      `${this.url('archivization')}?${params.toString()}`,
+    );
+  }
+
+  archiveStaleContexts(input: BulkArchiveInput): Observable<BulkArchiveResult> {
+    return this.http.post<BulkArchiveResult>(this.url('archivization'), input);
   }
 
   private withWorkspace<T extends CreateContextInput>(context: T): T & { workspaceId: string } {

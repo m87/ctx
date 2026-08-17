@@ -28,7 +28,7 @@ type LinkRuleEdit = {
           <span
             class="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground"
           >
-            Per workspace
+            Workspace
           </span>
         </div>
         <div class="text-[13px] sm:text-[14px]">

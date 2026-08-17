@@ -4,8 +4,9 @@ import { lucideX } from '@ng-icons/lucide';
 import { SidebarSettingsDataIntegritySectionComponent } from './sidebar-settings-data-integrity-section.component';
 import { SidebarSettingsGeneralSectionComponent } from './sidebar-settings-general-section.component';
 import { SidebarSettingsLinkRulesSectionComponent } from './sidebar-settings-link-rules-section.component';
+import { SidebarSettingsArchivizationSectionComponent } from './sidebar-settings-archivization-section.component';
 
-const settingsSections = ['General', 'Link rules', 'Data integrity'] as const;
+const settingsSections = ['General', 'Link rules', 'Archivization', 'Data integrity'] as const;
 
 type SettingsSection = (typeof settingsSections)[number];
 
@@ -16,6 +17,7 @@ type SettingsSection = (typeof settingsSections)[number];
     SidebarSettingsGeneralSectionComponent,
     SidebarSettingsLinkRulesSectionComponent,
     SidebarSettingsDataIntegritySectionComponent,
+    SidebarSettingsArchivizationSectionComponent,
   ],
   providers: [provideIcons({ lucideX })],
   template: `
@@ -82,6 +84,13 @@ type SettingsSection = (typeof settingsSections)[number];
                   }
                   @case ('Link rules') {
                     <ctx-sidebar-settings-link-rules-section />
+                  }
+                  @case ('Archivization') {
+                    @defer (when activeSettingsSection() === 'Archivization') {
+                      <ctx-sidebar-settings-archivization-section />
+                    } @placeholder {
+                      <div class="text-[13px]">Loading archivization settings...</div>
+                    }
                   }
                   @case ('Data integrity') {
                     <ctx-sidebar-settings-data-integrity-section />

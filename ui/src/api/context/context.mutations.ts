@@ -3,7 +3,13 @@ import { inject, Injectable } from '@angular/core';
 import { mutationOptions } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { CacheService } from '../cache/cache.service';
-import { Context, ContextService, CreateContextInput, SwitchContextInput } from './context.service';
+import {
+  BulkArchiveInput,
+  Context,
+  ContextService,
+  CreateContextInput,
+  SwitchContextInput,
+} from './context.service';
 
 @Injectable({
   providedIn: 'root',
@@ -67,6 +73,14 @@ export class ContextMutations {
       mutationFn: (contextId: string) =>
         lastValueFrom(this.contextService.restoreContext(contextId)),
       onSuccess: (_data, contextId) => this.cache.afterContextMetadataChange(contextId),
+    });
+  }
+
+  bulkArchive() {
+    return mutationOptions({
+      mutationFn: (input: BulkArchiveInput) =>
+        lastValueFrom(this.contextService.archiveStaleContexts(input)),
+      onSuccess: () => this.cache.afterBulkContextArchive(),
     });
   }
 }

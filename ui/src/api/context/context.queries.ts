@@ -16,6 +16,9 @@ export const contextQueryKeys = {
   statsFor: (contextId: string) => [...contextQueryKeys.stats(), contextId] as const,
   stat: (contextId: string, date: string, timeZone: string) =>
     [...contextQueryKeys.statsFor(contextId), date, timeZone] as const,
+  archivization: () => [...contextQueryKeys.all, 'archivization'] as const,
+  archiveCandidates: (workspaceId: string | null, olderThanDays: number, timeZone: string) =>
+    [...contextQueryKeys.archivization(), workspaceId, olderThanDays, timeZone] as const,
 };
 
 @Injectable({
@@ -60,6 +63,18 @@ export class ContextQueries {
       queryKey: contextQueryKeys.stat(contextId, date, timeZone),
       queryFn: () => lastValueFrom(this.contextService.getStats(contextId, date, timeZone)),
       enabled: contextId.length > 0 && date.length > 0,
+    };
+  }
+
+  archiveCandidates(workspaceId: string | null, olderThanDays: number, timeZone: string) {
+    return {
+      queryKey: contextQueryKeys.archiveCandidates(workspaceId, olderThanDays, timeZone),
+      queryFn: () =>
+        lastValueFrom(
+          this.contextService.getArchiveCandidates(workspaceId!, olderThanDays, timeZone),
+        ),
+      enabled:
+        workspaceId !== null && workspaceId.length > 0 && olderThanDays > 0 && timeZone.length > 0,
     };
   }
 }

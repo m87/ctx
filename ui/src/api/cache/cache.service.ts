@@ -59,6 +59,18 @@ export class CacheService {
     );
   }
 
+  afterBulkContextArchive() {
+    return this.invalidate(
+      contextQueryKeys.lists(),
+      contextQueryKeys.details(),
+      contextQueryKeys.archivization(),
+      projectQueryKeys.all,
+      intervalQueryKeys.dayStats(),
+      intervalQueryKeys.days(),
+      workspaceQueryKeys.stats(),
+    );
+  }
+
   afterContextDelete(contextId: string) {
     this.remove(
       contextQueryKeys.detail(contextId),

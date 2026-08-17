@@ -18,6 +18,8 @@ func registerContextHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	handler := &ContextHandler{manager: manager}
 	mux.HandleFunc("GET /", handler.listContexts)
 	mux.HandleFunc("POST /", handler.createContext)
+	mux.HandleFunc("GET /archivization", handler.listArchiveCandidates)
+	mux.HandleFunc("POST /archivization", handler.archiveStaleContexts)
 	mux.HandleFunc("DELETE /{id}", handler.deleteContext)
 	mux.HandleFunc("GET /{id}", handler.getContext)
 	mux.HandleFunc("PUT /{id}", handler.updateContext)
@@ -28,6 +30,73 @@ func registerContextHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("GET /{id}/stats/{date}", handler.getStats)
 	mux.HandleFunc("POST /{id}/archive", handler.archiveContext)
 	mux.HandleFunc("POST /{id}/restore", handler.restoreContext)
+}
+
+type archiveStaleContextsRequest struct {
+	WorkspaceId   string `json:"workspaceId"`
+	OlderThanDays int    `json:"olderThanDays"`
+	TimeZone      string `json:"timeZone"`
+}
+
+func (h *ContextHandler) listArchiveCandidates(w http.ResponseWriter, r *http.Request) {
+	workspaceId := strings.TrimSpace(r.URL.Query().Get("workspaceId"))
+	if workspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
+
+	olderThanDays, err := strconv.Atoi(r.URL.Query().Get("olderThanDays"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_ARCHIVE_THRESHOLD", "Archive threshold must be a whole number of days")
+		return
+	}
+	location, err := parseTimeZone(r.URL.Query().Get(timeZoneQueryParameter))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_TIME_ZONE", err.Error())
+		return
+	}
+
+	preview, err := h.manager.ListArchiveCandidates(workspaceId, olderThanDays, location)
+	if err != nil {
+		if _, ok := err.(*core.InvalidArchiveThresholdError); ok {
+			writeError(w, http.StatusBadRequest, "INVALID_ARCHIVE_THRESHOLD", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_ARCHIVE_CANDIDATES", "Failed to list archive candidates")
+		return
+	}
+
+	writeJson(w, http.StatusOK, preview)
+}
+
+func (h *ContextHandler) archiveStaleContexts(w http.ResponseWriter, r *http.Request) {
+	var request archiveStaleContextsRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
+		return
+	}
+	request.WorkspaceId = strings.TrimSpace(request.WorkspaceId)
+	if request.WorkspaceId == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_WORKSPACE_ID", "Missing workspace ID")
+		return
+	}
+	location, err := parseTimeZone(request.TimeZone)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_TIME_ZONE", err.Error())
+		return
+	}
+
+	result, err := h.manager.ArchiveStaleContexts(request.WorkspaceId, request.OlderThanDays, location)
+	if err != nil {
+		if _, ok := err.(*core.InvalidArchiveThresholdError); ok {
+			writeError(w, http.StatusBadRequest, "INVALID_ARCHIVE_THRESHOLD", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_ARCHIVE_STALE_CONTEXTS", "Failed to archive stale contexts")
+		return
+	}
+
+	writeJson(w, http.StatusOK, result)
 }
 
 func (h *ContextHandler) archiveContext(w http.ResponseWriter, r *http.Request) {
