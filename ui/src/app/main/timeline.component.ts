@@ -10,6 +10,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { TimeZoneService } from '../shared/time-zone.service';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
   contexts: [],
@@ -17,7 +18,7 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
 };
 
 @Component({
-  imports: [RouterLink],
+  imports: [RouterLink, HlmSkeletonImports],
   selector: 'ctx-timeline',
   template: `
     <div class="w-full border-t bg-background px-4 py-2">
@@ -44,40 +45,52 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
           ></div>
         }
 
-        <div class="absolute inset-0 bg-muted/30 rounded-lg"></div>
+        @if (dayIntervalsQuery.isLoading()) {
+          <hlm-skeleton class="h-full w-full"></hlm-skeleton>
+        } @else {
+          <div class="absolute inset-0 bg-muted/30 rounded-lg"></div>
 
-        @for (interval of intervals(); track interval.id) {
-          @if (getWidth(interval.from, interval.to) > 0) {
-            <div
-              class="absolute top-0 h-full rounded-[3px] opacity-85 hover:opacity-100 hover:scale-y-110 transition-all duration-100 origin-center cursor-pointer"
-              [style.background-color]="interval.color"
-              [style.left.%]="getLeft(interval.from)"
-              [style.width.%]="getWidth(interval.from, interval.to)"
-              [attr.aria-label]="'Interwał od ' + interval.from + ' do ' + interval.to"
-              (click)="selectLegendContext(interval.contextId)"
-            ></div>
+          @for (interval of intervals(); track interval.id) {
+            @if (getWidth(interval.from, interval.to) > 0) {
+              <div
+                class="absolute top-0 h-full rounded-[3px] opacity-85 hover:opacity-100 hover:scale-y-110 transition-all duration-100 origin-center cursor-pointer"
+                [style.background-color]="interval.color"
+                [style.left.%]="getLeft(interval.from)"
+                [style.width.%]="getWidth(interval.from, interval.to)"
+                [attr.aria-label]="'Interwał od ' + interval.from + ' do ' + interval.to"
+                (click)="selectLegendContext(interval.contextId)"
+              ></div>
+            }
           }
         }
       </div>
 
       <div class="flex flex-wrap gap-x-3 gap-y-1.5 mt-2">
-        @for (context of visibleLegendContexts(); track context.id) {
-          <div
-            class="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-default"
-            [routerLink]="['/context', context.id]"
-          >
-            <span
-              class="w-1.75 h-1.75 rounded-sm shrink-0"
-              [style.background-color]="context.color"
-            ></span>
-            {{ context.name }}
-          </div>
+        @if (dayIntervalsQuery.isLoading()) {
+          <span class="sr-only" role="status">Loading timeline</span>
+          @for (item of legendSkeletonItems; track item) {
+            <hlm-skeleton class="h-2.5 w-20"></hlm-skeleton>
+          }
+        } @else {
+          @for (context of visibleLegendContexts(); track context.id) {
+            <div
+              class="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-default"
+              [routerLink]="['/context', context.id]"
+            >
+              <span
+                class="w-1.75 h-1.75 rounded-sm shrink-0"
+                [style.background-color]="context.color"
+              ></span>
+              {{ context.name }}
+            </div>
+          }
         }
       </div>
     </div>
   `,
 })
 export class TimelineComponent {
+  readonly legendSkeletonItems = [0, 1, 2];
   private intervalQueries = inject(IntervalQueries);
   private router = inject(Router);
   private store = inject(Store);

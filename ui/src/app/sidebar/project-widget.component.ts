@@ -17,10 +17,18 @@ import { ProjectMutations } from '../../api/project/project.mutations';
 import { SelectProject } from './workspace.state';
 import { Router, RouterLink } from '@angular/router';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 @Component({
   selector: 'ctx-project-widget',
-  imports: [NgIcon, HlmIcon, HlmButtonImports, RouterLink, LinkifiedTextComponent],
+  imports: [
+    NgIcon,
+    HlmIcon,
+    HlmButtonImports,
+    RouterLink,
+    LinkifiedTextComponent,
+    HlmSkeletonImports,
+  ],
   providers: [
     provideIcons({
       lucidePlus,
@@ -46,12 +54,16 @@ import { LinkifiedTextComponent } from '../shared/linkified-text.component';
                 class="shrink-0 cursor-pointer"
                 (click)="selectProject(this.projectDetailsQuery.data()?.parentId ?? '')"
               ></ng-icon>
-              <span
-                class="ml-1 min-w-0 truncate cursor-pointer"
-                [routerLink]="['/project', selectedProjectId()]"
-              >
-                <ctx-linkified-text [text]="projectDetailsQuery.data()?.name ?? ''" />
-              </span>
+              @if (projectDetailsQuery.isLoading()) {
+                <hlm-skeleton class="h-3.5 w-24 ml-1"></hlm-skeleton>
+              } @else {
+                <span
+                  class="ml-1 min-w-0 truncate cursor-pointer"
+                  [routerLink]="['/project', selectedProjectId()]"
+                >
+                  <ctx-linkified-text [text]="projectDetailsQuery.data()?.name ?? ''" />
+                </span>
+              }
             </div>
           } @else {
             <span class="ml-1 text-xs">PROJECTS</span>
@@ -90,7 +102,17 @@ import { LinkifiedTextComponent } from '../shared/linkified-text.component';
           </div>
         }
 
-        @if (subprojectsQuery.isSuccess()) {
+        @if (subprojectsQuery.isLoading()) {
+          <div class="px-5 py-2 flex flex-col gap-4" role="status">
+            <span class="sr-only">Loading projects</span>
+            @for (item of projectSkeletonItems; track item) {
+              <div class="flex items-center gap-2">
+                <hlm-skeleton class="size-3.5 shrink-0"></hlm-skeleton>
+                <hlm-skeleton class="h-3.5 w-full" [class.max-w-28]="item % 2 === 0"></hlm-skeleton>
+              </div>
+            }
+          </div>
+        } @else {
           @for (project of subprojectsQuery.data(); track project.id) {
             <div
               class="flex items-center justify-between w-full gap-1 px-5 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted/50 cursor-pointer"
@@ -112,8 +134,6 @@ import { LinkifiedTextComponent } from '../shared/linkified-text.component';
               </div>
             </div>
           }
-        } @else {
-          <div class="px-4 py-2 text-sm text-muted-foreground">Loading projects...</div>
         }
       </div>
     </div>
@@ -121,6 +141,7 @@ import { LinkifiedTextComponent } from '../shared/linkified-text.component';
   styles: [],
 })
 export class ProjectWidgetComponent {
+  readonly projectSkeletonItems = [0, 1, 2];
   private readonly store = inject(Store);
   private readonly projectQueries = inject(ProjectQueries);
   private readonly projectMutations = inject(ProjectMutations);

@@ -10,10 +10,17 @@ import { Interval } from '../../api/interval/interval.service';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { TimeZoneService } from '../shared/time-zone.service';
 import { ContextIntervalItemComponent } from './context-interval-item.component';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 @Component({
   selector: 'ctx-context-interval-list',
-  imports: [ContextIntervalItemComponent, NgIcon, HlmButtonImports, QueryErrorStateComponent],
+  imports: [
+    ContextIntervalItemComponent,
+    NgIcon,
+    HlmButtonImports,
+    QueryErrorStateComponent,
+    HlmSkeletonImports,
+  ],
   providers: [
     provideIcons({
       lucidePlus,
@@ -80,27 +87,38 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
           </div>
         }
 
-        <div
-          class="w-full flex flex-col gap-2 md:flex-1 md:min-h-0 md:overflow-auto pr-1 pb-2"
-        >
-          @for (interval of intervals(); track interval.id) {
-            <ctx-context-interval-item
-              [interval]="interval"
-              [isEditing]="editingIntervalId() === interval.id"
-              [editStartInput]="editIntervalStartInput()"
-              [editEndInput]="editIntervalEndInput()"
-              [updatePending]="updateIntervalMutation.isPending()"
-              [deletePending]="deleteIntervalMutation.isPending()"
-              [readonly]="readonly()"
-              [canMove]="!readonly() && movableContexts().length > 0"
-              (editStartInputChange)="editIntervalStartInput.set($event)"
-              (editEndInputChange)="editIntervalEndInput.set($event)"
-              (edit)="startIntervalEdit($event)"
-              (save)="saveIntervalEdit($event)"
-              (cancel)="cancelIntervalEdit()"
-              (move)="openMoveDialog($event)"
-              (delete)="deleteInterval($event)"
-            ></ctx-context-interval-item>
+        <div class="w-full flex flex-col gap-2 md:flex-1 md:min-h-0 md:overflow-auto pr-1 pb-2">
+          @if (contextIntervalsQuery.isLoading()) {
+            <div class="flex flex-col gap-2" role="status">
+              <span class="sr-only">Loading intervals</span>
+              @for (item of intervalSkeletonItems; track item) {
+                <div class="rounded-lg border bg-card p-3 flex items-center gap-3">
+                  <hlm-skeleton class="h-3.5 w-28"></hlm-skeleton>
+                  <hlm-skeleton class="h-3.5 w-36"></hlm-skeleton>
+                  <hlm-skeleton class="h-7 w-16 ml-auto"></hlm-skeleton>
+                </div>
+              }
+            </div>
+          } @else {
+            @for (interval of intervals(); track interval.id) {
+              <ctx-context-interval-item
+                [interval]="interval"
+                [isEditing]="editingIntervalId() === interval.id"
+                [editStartInput]="editIntervalStartInput()"
+                [editEndInput]="editIntervalEndInput()"
+                [updatePending]="updateIntervalMutation.isPending()"
+                [deletePending]="deleteIntervalMutation.isPending()"
+                [readonly]="readonly()"
+                [canMove]="!readonly() && movableContexts().length > 0"
+                (editStartInputChange)="editIntervalStartInput.set($event)"
+                (editEndInputChange)="editIntervalEndInput.set($event)"
+                (edit)="startIntervalEdit($event)"
+                (save)="saveIntervalEdit($event)"
+                (cancel)="cancelIntervalEdit()"
+                (move)="openMoveDialog($event)"
+                (delete)="deleteInterval($event)"
+              ></ctx-context-interval-item>
+            }
           }
         </div>
       }
@@ -154,6 +172,7 @@ import { ContextIntervalItemComponent } from './context-interval-item.component'
   `,
 })
 export class ContextIntervalListComponent {
+  readonly intervalSkeletonItems = [0, 1, 2];
   private contextQueries = inject(ContextQueries);
   private intervalMutations = inject(IntervalMutations);
   private timeZone = inject(TimeZoneService);

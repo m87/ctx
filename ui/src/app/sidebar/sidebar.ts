@@ -11,12 +11,14 @@ import { SidebarWorkspaceSelectComponent } from './sidebar-workspace-select.comp
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from './workspace.state';
 import { ProjectWidgetComponent } from './project-widget.component';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 @Component({
   selector: 'ctx-sidebar',
   imports: [
     SidebarContextListComponent,
     ProjectWidgetComponent,
+    HlmSkeletonImports,
     SidebarWorkspaceSelectComponent,
     RouterLink,
     RouterLinkActive,
@@ -66,9 +68,13 @@ import { ProjectWidgetComponent } from './project-widget.component';
         <ctx-sidebar-context-list></ctx-sidebar-context-list>
       </div>
       <div class="border-t mt-auto shrink-0 px-3 py-2 flex items-center justify-between">
-        <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]"
-          >v{{ appVersion() }}</span
-        >
+        @if (versionQuery.isLoading()) {
+          <hlm-skeleton class="h-2.5 w-10"></hlm-skeleton>
+        } @else {
+          <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]"
+            >v{{ appVersion() }}</span
+          >
+        }
         <button
           type="button"
           class="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"

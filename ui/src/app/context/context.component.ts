@@ -27,6 +27,7 @@ import { QueryErrorStateComponent } from '../shared/query-error-state.component'
 import { ContextIntervalListComponent } from './context-interval-list.component';
 import { TimeZoneService } from '../shared/time-zone.service';
 import { ProjectQueries } from '../../api/project/project.queries';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 
@@ -39,6 +40,7 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
     HlmCardImports,
     QueryErrorStateComponent,
     RouterLink,
+    HlmSkeletonImports,
   ],
   providers: [
     provideIcons({
@@ -67,6 +69,34 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
           [retrying]="contextQuery.isFetching()"
           (retry)="retryContext()"
         ></ctx-query-error-state>
+      } @else if (contextQuery.isLoading()) {
+        <div class="w-full flex-1 min-h-0" role="status" aria-label="Loading context">
+          <span class="sr-only">Loading context</span>
+          <div class="flex flex-col md:flex-row justify-between gap-4 mb-5">
+            <div class="flex-1">
+              <hlm-skeleton class="h-2.5 w-16 mb-2"></hlm-skeleton>
+              <hlm-skeleton class="h-7 w-52 mb-2"></hlm-skeleton>
+              <hlm-skeleton class="h-3 w-80 max-w-full"></hlm-skeleton>
+            </div>
+            <div class="flex gap-2 md:pt-5">
+              @for (item of actionSkeletonItems; track item) {
+                <hlm-skeleton class="h-9 w-20"></hlm-skeleton>
+              }
+            </div>
+          </div>
+          <hlm-skeleton class="h-14 w-full mb-5"></hlm-skeleton>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+            @for (item of statsSkeletonItems; track item) {
+              <div class="rounded-lg border bg-card p-3">
+                <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+                <hlm-skeleton class="h-5 w-14"></hlm-skeleton>
+              </div>
+            }
+          </div>
+          <hlm-skeleton class="h-2.5 w-16 mb-4"></hlm-skeleton>
+          <hlm-skeleton class="h-24 w-full mb-3"></hlm-skeleton>
+          <hlm-skeleton class="h-16 w-full"></hlm-skeleton>
+        </div>
       } @else if (context(); as currentContext) {
         <div class="w-full flex flex-col md:flex-row justify-between items-start gap-4">
           <ctx-name
@@ -239,6 +269,16 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
             [retrying]="contextStatsQuery.isFetching()"
             (retry)="retryContextStats()"
           ></ctx-query-error-state>
+        } @else if (contextStatsQuery.isLoading()) {
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full" role="status">
+            <span class="sr-only">Loading context statistics</span>
+            @for (item of statsSkeletonItems; track item) {
+              <div class="rounded-lg border bg-card p-3">
+                <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+                <hlm-skeleton class="h-5 w-14"></hlm-skeleton>
+              </div>
+            }
+          </div>
         } @else {
           <div class="flex w-full">
             <div class="w-full flex items-center justify-center gap-4">
@@ -309,6 +349,8 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
   `,
 })
 export class ContextComponent {
+  readonly actionSkeletonItems = [0, 1, 2];
+  readonly statsSkeletonItems = [0, 1, 2, 3];
   private contextQueries = inject(ContextQueries);
   private contextMutations = inject(ContextMutations);
   private router = inject(Router);

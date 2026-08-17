@@ -17,6 +17,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
 import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
 import { IntervalQueries } from '../../api/interval/interval.queries';
 import { DayStats } from '../../api/interval/interval.service';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 const EMPTY_DAY_STATS: DayStats = {
   date: '',
@@ -28,7 +29,13 @@ const EMPTY_DAY_STATS: DayStats = {
 
 @Component({
   selector: 'ctx-day',
-  imports: [ContextListComponent, DistributionComponent, NgIcon, QueryErrorStateComponent],
+  imports: [
+    ContextListComponent,
+    DistributionComponent,
+    NgIcon,
+    QueryErrorStateComponent,
+    HlmSkeletonImports,
+  ],
   providers: [
     provideIcons({
       lucidePlay,
@@ -51,13 +58,21 @@ const EMPTY_DAY_STATS: DayStats = {
                 <span class="inline-flex items-center gap-1.5" [title]="'Start of first session'">
                   <ng-icon name="lucidePlay" class="text-[11px]"></ng-icon>
                 </span>
-                <span class="tabular-nums">{{ firstContextStart() }}</span>
+                @if (isDayLoading()) {
+                  <hlm-skeleton class="h-3 w-9"></hlm-skeleton>
+                } @else {
+                  <span class="tabular-nums">{{ firstContextStart() }}</span>
+                }
               </div>
               <div class="flex items-center justify-between gap-1">
                 <span class="inline-flex items-center gap-1.5" [title]="'End of last session'">
                   <ng-icon name="lucideFlag" class="text-[11px]"></ng-icon>
                 </span>
-                <span class="tabular-nums">{{ lastContextEnd() }}</span>
+                @if (isDayLoading()) {
+                  <hlm-skeleton class="h-3 w-9"></hlm-skeleton>
+                } @else {
+                  <span class="tabular-nums">{{ lastContextEnd() }}</span>
+                }
               </div>
             </div>
           </div>
@@ -73,6 +88,34 @@ const EMPTY_DAY_STATS: DayStats = {
           [retrying]="dayErrorRetrying()"
           (retry)="retryDayData()"
         ></ctx-query-error-state>
+      } @else if (isDayLoading()) {
+        <div class="flex-1 min-h-0" role="status" aria-label="Loading daily summary">
+          <span class="sr-only">Loading daily summary</span>
+          <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 mb-6">
+            @for (item of summarySkeletonItems; track item) {
+              <div class="rounded-lg border bg-card px-3 py-2.5">
+                <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+                <hlm-skeleton class="h-5 w-14"></hlm-skeleton>
+              </div>
+            }
+          </div>
+          <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+          <hlm-skeleton class="h-2 w-full mb-6"></hlm-skeleton>
+          <hlm-skeleton class="h-2.5 w-16 mb-2"></hlm-skeleton>
+          <div class="flex flex-col gap-2">
+            @for (item of contextSkeletonItems; track item) {
+              <div class="rounded-lg border bg-card p-3">
+                <div class="flex items-center gap-2 mb-3">
+                  <hlm-skeleton class="size-2 shrink-0"></hlm-skeleton>
+                  <hlm-skeleton class="h-3.5 w-2/5"></hlm-skeleton>
+                  <hlm-skeleton class="h-3 w-12 ml-auto"></hlm-skeleton>
+                </div>
+                <hlm-skeleton class="h-1.5 w-full mb-2"></hlm-skeleton>
+                <hlm-skeleton class="h-2.5 w-24"></hlm-skeleton>
+              </div>
+            }
+          </div>
+        </div>
       } @else {
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 mb-6">
           <div class="rounded-lg border bg-card px-3 py-2.5">
@@ -132,6 +175,8 @@ const EMPTY_DAY_STATS: DayStats = {
   `,
 })
 export class DayComponent {
+  readonly summarySkeletonItems = [0, 1, 2, 3];
+  readonly contextSkeletonItems = [0, 1, 2];
   private intervalQueriess = inject(IntervalQueries);
   private workspaceQueries = inject(WorkspaceQueries);
   private store = inject(Store);
@@ -163,6 +208,19 @@ export class DayComponent {
       (this.dayStatsQuery.isError() || this.dayStatsQuery.isPaused()),
   );
   readonly showDayError = computed(() => this.showWorkspaceListError() || this.showDayStatsError());
+  readonly isDayLoading = computed(() => {
+    if (this.workspaceListQuery.isLoading()) {
+      return true;
+    }
+
+    const workspaces = this.workspaceListQuery.data() ?? [];
+    const workspaceId = this.activeWorkspaceId();
+    if (workspaces.length > 0 && !workspaceId) {
+      return true;
+    }
+
+    return !!workspaceId && this.dayStatsQuery.isLoading();
+  });
   readonly dayError = computed(() =>
     this.showWorkspaceListError() ? this.workspaceListQuery.error() : this.dayStatsQuery.error(),
   );

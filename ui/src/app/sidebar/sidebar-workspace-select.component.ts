@@ -22,10 +22,11 @@ import { injectMutation, injectQuery } from '@tanstack/angular-query-experimenta
 import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
 import { WorkspaceMutations } from '../../api/workspace/workspace.mutations';
 import { Workspace } from '../../api/workspace/workspace.service';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 @Component({
   selector: 'ctx-sidebar-workspace-select',
-  imports: [NgIcon],
+  imports: [NgIcon, HlmSkeletonImports],
   providers: [
     provideIcons({ lucideCheck, lucideChevronDown, lucideChevronUp, lucidePlus, lucideX }),
   ],
@@ -38,7 +39,11 @@ import { Workspace } from '../../api/workspace/workspace.service';
         aria-label="Select workspace"
       >
         <div class="min-w-0 text-left leading-tight">
-          <div class="text-sm font-semibold truncate">{{ activeWorkspaceName() }}</div>
+          @if (listWorkspacesQuery.isLoading()) {
+            <hlm-skeleton class="h-3.5 w-28 mb-1"></hlm-skeleton>
+          } @else {
+            <div class="text-sm font-semibold truncate">{{ activeWorkspaceName() }}</div>
+          }
           <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground/80">
             workspace
           </div>
@@ -95,7 +100,15 @@ import { Workspace } from '../../api/workspace/workspace.service';
 
           <div class="max-h-64 overflow-y-auto pr-1">
             @if (listWorkspacesQuery.isLoading()) {
-              <div class="px-2.5 py-2 text-[12px] text-muted-foreground">Loading workspaces...</div>
+              <div class="px-2.5 py-2 flex flex-col gap-3" role="status">
+                <span class="sr-only">Loading workspaces</span>
+                @for (item of workspaceSkeletonItems; track item) {
+                  <div>
+                    <hlm-skeleton class="h-3.5 w-3/5 mb-1.5"></hlm-skeleton>
+                    <hlm-skeleton class="h-2.5 w-4/5"></hlm-skeleton>
+                  </div>
+                }
+              </div>
             }
 
             @for (workspace of workspaces(); track workspace.id) {
@@ -135,6 +148,7 @@ import { Workspace } from '../../api/workspace/workspace.service';
   `,
 })
 export class SidebarWorkspaceSelectComponent {
+  readonly workspaceSkeletonItems = [0, 1, 2];
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly store = inject(Store);
   private readonly workspaceQueries = inject(WorkspaceQueries);

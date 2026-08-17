@@ -17,6 +17,7 @@ import { DistributionComponent, DistributionItem } from '../shared/distribution.
 import { NameComponent, NameSaveValue } from '../shared/name.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { colorHash, durationAsHM } from '../utils';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 const GROUPED_CONTEXT_ID = '__contexts_below_1_percent__';
 const GROUPED_CONTEXT_THRESHOLD = 1;
@@ -37,6 +38,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
     NameComponent,
     NgIcon,
     QueryErrorStateComponent,
+    HlmSkeletonImports,
   ],
   providers: [provideIcons({ lucideTrash2 })],
   template: `
@@ -50,6 +52,37 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
           [retrying]="workspaceErrorRetrying()"
           (retry)="retryWorkspaceData()"
         ></ctx-query-error-state>
+      } @else if (isWorkspaceLoading()) {
+        <div class="w-full flex-1 min-h-0" role="status" aria-label="Loading workspace">
+          <span class="sr-only">Loading workspace</span>
+          <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+          <hlm-skeleton class="h-7 w-56 mb-2"></hlm-skeleton>
+          <hlm-skeleton class="h-3 w-80 max-w-full mb-12"></hlm-skeleton>
+          <hlm-skeleton class="h-2.5 w-28 mb-2"></hlm-skeleton>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
+            @for (item of summarySkeletonItems; track item) {
+              <div class="rounded-lg border bg-card px-3 py-2.5">
+                <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+                <hlm-skeleton class="h-5 w-14"></hlm-skeleton>
+              </div>
+            }
+          </div>
+          <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+          <hlm-skeleton class="h-2 w-full mb-6"></hlm-skeleton>
+          <hlm-skeleton class="h-2.5 w-16 mb-2"></hlm-skeleton>
+          <div class="flex flex-col gap-2">
+            @for (item of contextSkeletonItems; track item) {
+              <div class="rounded-lg border bg-card p-3">
+                <div class="flex items-center gap-2 mb-3">
+                  <hlm-skeleton class="size-2"></hlm-skeleton>
+                  <hlm-skeleton class="h-3.5 w-2/5"></hlm-skeleton>
+                  <hlm-skeleton class="h-3 w-12 ml-auto"></hlm-skeleton>
+                </div>
+                <hlm-skeleton class="h-1.5 w-full"></hlm-skeleton>
+              </div>
+            }
+          </div>
+        </div>
       } @else {
         <div class="mb-5">
           @if (workspace()) {
@@ -155,6 +188,8 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
   `,
 })
 export class WorkspaceComponent {
+  readonly summarySkeletonItems = [0, 1, 2, 3];
+  readonly contextSkeletonItems = [0, 1, 2];
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(Store);
   private readonly workspaceQueries = inject(WorkspaceQueries);
@@ -192,6 +227,14 @@ export class WorkspaceComponent {
   readonly showWorkspaceError = computed(
     () => this.showWorkspaceListError() || this.showWorkspaceStatsError(),
   );
+  readonly isWorkspaceLoading = computed(() => {
+    if (this.listWorkspacesQuery.isLoading()) {
+      return true;
+    }
+
+    const workspaceId = this.activeWorkspaceId();
+    return !!workspaceId && this.workspaceStatsQuery.isLoading();
+  });
   readonly workspaceError = computed(() =>
     this.showWorkspaceListError()
       ? this.listWorkspacesQuery.error()

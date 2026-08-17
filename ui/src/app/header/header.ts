@@ -40,6 +40,7 @@ import { IntervalQueries } from '../../api/interval/interval.queries';
 import { TimeZoneService } from '../shared/time-zone.service';
 import { SearchProjectBadgeComponent } from './search-project-badge.component';
 import { parseProjectPicker } from './search-project-picker';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 const firstDayKey = 'client.general.firstDay';
 
@@ -54,6 +55,7 @@ const firstDayKey = 'client.general.firstDay';
     HlmDatePicker,
     HlmDatePickerTrigger,
     SearchProjectBadgeComponent,
+    HlmSkeletonImports,
   ],
   providers: [
     provideIcons({
@@ -329,7 +331,9 @@ const firstDayKey = 'client.general.firstDay';
             <ng-icon name="lucideSearch"></ng-icon>
           </button>
 
-          @if (activeContextName()) {
+          @if (activeContextQuery.isLoading()) {
+            <hlm-skeleton class="h-8 w-28"></hlm-skeleton>
+          } @else if (activeContextName()) {
             <div class="flex items-center max-w-40">
               <div
                 class="h-8 px-2 rounded-l-md border bg-muted/40 flex items-center gap-2 max-w-28"

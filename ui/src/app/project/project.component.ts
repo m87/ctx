@@ -20,6 +20,7 @@ import { QueryErrorStateComponent } from '../shared/query-error-state.component'
 import { SelectProject } from '../sidebar/workspace.state';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { colorHash } from '../utils';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 
@@ -32,6 +33,7 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
     QueryErrorStateComponent,
     RouterLink,
     LinkifiedTextComponent,
+    HlmSkeletonImports,
   ],
   providers: [
     provideIcons({ lucideTrash2, lucideFolder, lucideChevronRight, lucidePencil, lucideX }),
@@ -49,6 +51,30 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
           [retrying]="projectDetailsQuery.isFetching()"
           (retry)="retryProject()"
         ></ctx-query-error-state>
+      } @else if (projectDetailsQuery.isLoading()) {
+        <div class="w-full flex-1 min-h-0" role="status" aria-label="Loading project">
+          <span class="sr-only">Loading project</span>
+          <div class="flex justify-between gap-4 mb-5">
+            <div class="flex-1">
+              <hlm-skeleton class="h-2.5 w-14 mb-2"></hlm-skeleton>
+              <hlm-skeleton class="h-7 w-52"></hlm-skeleton>
+            </div>
+            <hlm-skeleton class="size-9 mt-5"></hlm-skeleton>
+          </div>
+          <hlm-skeleton class="h-14 w-full mb-6"></hlm-skeleton>
+          <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+          <div class="flex flex-col gap-2 mb-6">
+            @for (item of listSkeletonItems; track item) {
+              <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
+            }
+          </div>
+          <hlm-skeleton class="h-2.5 w-16 mb-2"></hlm-skeleton>
+          <div class="flex flex-col gap-2">
+            @for (item of listSkeletonItems; track item) {
+              <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
+            }
+          </div>
+        </div>
       } @else if (project(); as currentProject) {
         <div class="w-full flex flex-col md:flex-row justify-between items-start gap-4">
           <ctx-name
@@ -110,6 +136,8 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
               </button>
             </div>
           </div>
+        } @else if (currentProject.parentId && allProjectsQuery.isLoading()) {
+          <hlm-skeleton class="h-16 w-full"></hlm-skeleton>
         } @else if (parentProject(); as parent) {
           <div
             class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
@@ -159,7 +187,14 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
             >
               Subprojects
             </div>
-            @if ((projectSubprojectsQuery.data() ?? []).length > 0) {
+            @if (projectSubprojectsQuery.isLoading()) {
+              <div class="flex flex-col gap-2" role="status">
+                <span class="sr-only">Loading subprojects</span>
+                @for (item of listSkeletonItems; track item) {
+                  <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
+                }
+              </div>
+            } @else if ((projectSubprojectsQuery.data() ?? []).length > 0) {
               <div class="flex flex-col gap-2">
                 @for (subproject of projectSubprojectsQuery.data() ?? []; track subproject.id) {
                   <div
@@ -197,7 +232,14 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
             >
               Contexts
             </div>
-            @if ((projectContextsQuery.data() ?? []).length > 0) {
+            @if (projectContextsQuery.isLoading()) {
+              <div class="flex flex-col gap-2" role="status">
+                <span class="sr-only">Loading project contexts</span>
+                @for (item of listSkeletonItems; track item) {
+                  <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
+                }
+              </div>
+            } @else if ((projectContextsQuery.data() ?? []).length > 0) {
               <div class="flex flex-col gap-2">
                 @for (context of projectContextsQuery.data() ?? []; track context.id) {
                   <div
@@ -248,6 +290,7 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
   `,
 })
 export class ProjectComponent {
+  readonly listSkeletonItems = [0, 1, 2];
   private readonly projectQueries = inject(ProjectQueries);
   private readonly projectMutations = inject(ProjectMutations);
   private readonly activeRoute = inject(ActivatedRoute);
