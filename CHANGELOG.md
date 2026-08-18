@@ -11,6 +11,7 @@
     - projects can be nested, allowing for a hierarchical structure of contexts
 - enhancement: skeletons for loading states
 - feature: bulk context archivization
+- feature: daily summary for projects
 
 
 ## 0.6.0
