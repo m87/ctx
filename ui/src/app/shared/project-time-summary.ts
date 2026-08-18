@@ -1,9 +1,8 @@
-import type { ProjectMetadata } from '../../api/context/context.service';
-import type { DayStats } from '../../api/interval/interval.service';
+import type { Context, ProjectMetadata } from '../../api/context/context.service';
 
 export const UNASSIGNED_PROJECT_ID = '__unassigned_project__';
 
-export interface DayProjectSummary {
+export interface ProjectTimeSummary {
   id: string;
   name: string;
   duration: number;
@@ -12,16 +11,22 @@ export interface DayProjectSummary {
   project?: ProjectMetadata;
 }
 
-export function summarizeDayByProject(
-  dayStats: Pick<DayStats, 'contexts' | 'contextStats'>,
-): DayProjectSummary[] {
-  const contextsById = new Map(dayStats.contexts.map((context) => [context.id, context]));
+interface ContextTimeStats {
+  contextId: string;
+  duration: number;
+}
+
+export function summarizeContextsByProject(source: {
+  contexts: readonly Context[];
+  contextStats: readonly ContextTimeStats[];
+}): ProjectTimeSummary[] {
+  const contextsById = new Map(source.contexts.map((context) => [context.id, context]));
   const durationsByProject = new Map<
     string,
-    Omit<DayProjectSummary, 'duration' | 'percentage'> & { duration: number }
+    Omit<ProjectTimeSummary, 'duration' | 'percentage'> & { duration: number }
   >();
 
-  for (const contextStats of dayStats.contextStats) {
+  for (const contextStats of source.contextStats) {
     if (!Number.isFinite(contextStats.duration) || contextStats.duration <= 0) {
       continue;
     }

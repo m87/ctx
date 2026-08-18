@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -18,6 +18,13 @@ import { NameComponent, NameSaveValue } from '../shared/name.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { colorHash, durationAsHM } from '../utils';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import {
+  ProjectTimeListComponent,
+  ProjectTimeListItem,
+} from '../shared/project-time-list.component';
+import { summarizeContextsByProject, UNASSIGNED_PROJECT_ID } from '../shared/project-time-summary';
+
+type SummaryView = 'contexts' | 'projects';
 
 const GROUPED_CONTEXT_ID = '__contexts_below_1_percent__';
 const GROUPED_CONTEXT_THRESHOLD = 1;
@@ -38,6 +45,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
     NameComponent,
     NgIcon,
     QueryErrorStateComponent,
+    ProjectTimeListComponent,
     HlmSkeletonImports,
   ],
   providers: [provideIcons({ lucideTrash2 })],
@@ -67,6 +75,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
               </div>
             }
           </div>
+          <hlm-skeleton class="h-8 w-44 mb-4"></hlm-skeleton>
           <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
           <hlm-skeleton class="h-2 w-full mb-6"></hlm-skeleton>
           <hlm-skeleton class="h-2.5 w-16 mb-2"></hlm-skeleton>
@@ -155,23 +164,70 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
               </div>
             </div>
 
+            <div
+              class="inline-flex rounded-lg bg-muted p-1 mb-4"
+              role="tablist"
+              aria-label="Workspace summary view"
+            >
+              <button
+                type="button"
+                id="workspace-contexts-tab"
+                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                [class.bg-background]="summaryView() === 'contexts'"
+                [class.shadow-sm]="summaryView() === 'contexts'"
+                [class.text-foreground]="summaryView() === 'contexts'"
+                [class.text-muted-foreground]="summaryView() !== 'contexts'"
+                role="tab"
+                aria-controls="workspace-summary-panel"
+                [attr.aria-selected]="summaryView() === 'contexts'"
+                (click)="selectSummaryView('contexts')"
+              >
+                Contexts
+              </button>
+              <button
+                type="button"
+                id="workspace-projects-tab"
+                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                [class.bg-background]="summaryView() === 'projects'"
+                [class.shadow-sm]="summaryView() === 'projects'"
+                [class.text-foreground]="summaryView() === 'projects'"
+                [class.text-muted-foreground]="summaryView() !== 'projects'"
+                role="tab"
+                aria-controls="workspace-summary-panel"
+                [attr.aria-selected]="summaryView() === 'projects'"
+                (click)="selectSummaryView('projects')"
+              >
+                Projects
+              </button>
+            </div>
+
             <ctx-distribution
               class="block mb-6"
-              [items]="distributionContexts()"
+              [label]="distributionLabel()"
+              [items]="activeDistribution()"
               emptyMessage="No tracked time in this workspace."
             ></ctx-distribution>
 
-            @if (largeSummaryContexts().length > 0 || groupedSummaryContext()) {
-              <div
-                class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
-              >
-                Contexts
-              </div>
-              <ctx-context-list
-                [items]="largeSummaryContexts()"
-                [group]="groupedSummaryContext()"
-              ></ctx-context-list>
-            }
+            <div
+              id="workspace-summary-panel"
+              role="tabpanel"
+              [attr.aria-labelledby]="
+                summaryView() === 'contexts' ? 'workspace-contexts-tab' : 'workspace-projects-tab'
+              "
+            >
+              @if (summaryView() === 'contexts') {
+                <ctx-context-list
+                  [items]="largeSummaryContexts()"
+                  [group]="groupedSummaryContext()"
+                  emptyMessage="No contexts tracked in this workspace."
+                ></ctx-context-list>
+              } @else {
+                <ctx-project-time-list
+                  [items]="projectSummaries()"
+                  emptyMessage="No projects tracked in this workspace."
+                ></ctx-project-time-list>
+              }
+            </div>
           </div>
         }
       }
@@ -190,6 +246,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
 export class WorkspaceComponent {
   readonly summarySkeletonItems = [0, 1, 2, 3];
   readonly contextSkeletonItems = [0, 1, 2];
+  readonly summaryView = signal<SummaryView>('contexts');
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(Store);
   private readonly workspaceQueries = inject(WorkspaceQueries);
@@ -327,10 +384,36 @@ export class WorkspaceComponent {
       ? [...this.largeSummaryContexts(), groupedContext]
       : this.allSummaryContexts();
   });
+  readonly projectSummaries = computed<ProjectTimeListItem[]>(() =>
+    summarizeContextsByProject(this.workspaceStats()).map((summary) => ({
+      ...summary,
+      duration: durationAsHM(summary.duration).trim() || '0m',
+      color: summary.id === UNASSIGNED_PROJECT_ID ? '#94a3b8' : colorHash(`project:${summary.id}`),
+    })),
+  );
+  readonly projectDistribution = computed<DistributionItem[]>(() =>
+    this.projectSummaries().map((project) => ({
+      id: project.id,
+      name: project.name,
+      duration: project.duration,
+      percentage: project.percentage,
+      color: project.color,
+    })),
+  );
+  readonly activeDistribution = computed(() =>
+    this.summaryView() === 'contexts' ? this.distributionContexts() : this.projectDistribution(),
+  );
+  readonly distributionLabel = computed(() =>
+    this.summaryView() === 'contexts' ? 'Context distribution' : 'Project distribution',
+  );
   readonly totalTracked = computed(
     () => durationAsHM(this.workspaceStats().totalDuration).trim() || '0m',
   );
   readonly topContext = computed(() => this.allSummaryContexts()[0]?.name ?? '-');
+
+  selectSummaryView(view: SummaryView): void {
+    this.summaryView.set(view);
+  }
 
   saveWorkspaceName(value: NameSaveValue): void {
     const workspace = this.workspace();

@@ -18,8 +18,11 @@ import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
 import { IntervalQueries } from '../../api/interval/interval.queries';
 import { DayStats } from '../../api/interval/interval.service';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
-import { summarizeDayByProject, UNASSIGNED_PROJECT_ID } from './day-project-summary';
-import { DayProjectListComponent, DayProjectListItem } from './day-project-list.component';
+import {
+  ProjectTimeListComponent,
+  ProjectTimeListItem,
+} from '../shared/project-time-list.component';
+import { summarizeContextsByProject, UNASSIGNED_PROJECT_ID } from '../shared/project-time-summary';
 
 type SummaryView = 'contexts' | 'projects';
 
@@ -38,7 +41,7 @@ const EMPTY_DAY_STATS: DayStats = {
     DistributionComponent,
     NgIcon,
     QueryErrorStateComponent,
-    DayProjectListComponent,
+    ProjectTimeListComponent,
     HlmSkeletonImports,
   ],
   providers: [
@@ -206,10 +209,10 @@ const EMPTY_DAY_STATS: DayStats = {
               emptyMessage="No contexts tracked for this day."
             ></ctx-context-list>
           } @else {
-            <ctx-day-project-list
+            <ctx-project-time-list
               [items]="projectSummaries()"
               emptyMessage="No projects tracked for this day."
-            ></ctx-day-project-list>
+            ></ctx-project-time-list>
           }
         </div>
       }
@@ -359,8 +362,8 @@ export class DayComponent {
     })),
   );
 
-  projectSummaries = computed<DayProjectListItem[]>(() =>
-    summarizeDayByProject(this.dayStats()).map((summary) => ({
+  projectSummaries = computed<ProjectTimeListItem[]>(() =>
+    summarizeContextsByProject(this.dayStats()).map((summary) => ({
       ...summary,
       duration: durationAsHM(summary.duration),
       color: summary.id === UNASSIGNED_PROJECT_ID ? '#94a3b8' : colorHash(`project:${summary.id}`),

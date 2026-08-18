@@ -2,10 +2,10 @@ import { Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngxs/store';
 import type { ProjectMetadata } from '../../api/context/context.service';
-import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { SelectProject } from '../sidebar/workspace.state';
+import { LinkifiedTextComponent } from './linkified-text.component';
 
-export interface DayProjectListItem {
+export interface ProjectTimeListItem {
   id: string;
   name: string;
   duration: string;
@@ -16,7 +16,7 @@ export interface DayProjectListItem {
 }
 
 @Component({
-  selector: 'ctx-day-project-list',
+  selector: 'ctx-project-time-list',
   imports: [LinkifiedTextComponent, RouterLink],
   template: `
     @if (items().length > 0) {
@@ -57,13 +57,13 @@ export interface DayProjectListItem {
     }
   `,
 })
-export class DayProjectListComponent {
+export class ProjectTimeListComponent {
   private readonly store = inject(Store);
 
-  readonly items = input<readonly DayProjectListItem[]>([]);
+  readonly items = input<readonly ProjectTimeListItem[]>([]);
   readonly emptyMessage = input('');
 
-  selectProject(item: DayProjectListItem): void {
+  selectProject(item: ProjectTimeListItem): void {
     if (item.project) {
       this.store.dispatch(new SelectProject(item.project.id));
     }
