@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs/operators';
@@ -18,6 +18,10 @@ import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
 import { IntervalQueries } from '../../api/interval/interval.queries';
 import { DayStats } from '../../api/interval/interval.service';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { summarizeDayByProject, UNASSIGNED_PROJECT_ID } from './day-project-summary';
+import { DayProjectListComponent, DayProjectListItem } from './day-project-list.component';
+
+type SummaryView = 'contexts' | 'projects';
 
 const EMPTY_DAY_STATS: DayStats = {
   date: '',
@@ -34,6 +38,7 @@ const EMPTY_DAY_STATS: DayStats = {
     DistributionComponent,
     NgIcon,
     QueryErrorStateComponent,
+    DayProjectListComponent,
     HlmSkeletonImports,
   ],
   providers: [
@@ -99,6 +104,7 @@ const EMPTY_DAY_STATS: DayStats = {
               </div>
             }
           </div>
+          <hlm-skeleton class="h-8 w-44 mb-4"></hlm-skeleton>
           <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
           <hlm-skeleton class="h-2 w-full mb-6"></hlm-skeleton>
           <hlm-skeleton class="h-2.5 w-16 mb-2"></hlm-skeleton>
@@ -144,22 +150,67 @@ const EMPTY_DAY_STATS: DayStats = {
           </div>
         </div>
 
+        <div
+          class="inline-flex self-start rounded-lg bg-muted p-1 mb-4 shrink-0"
+          role="tablist"
+          aria-label="Daily summary view"
+        >
+          <button
+            type="button"
+            id="contexts-tab"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            [class.bg-background]="summaryView() === 'contexts'"
+            [class.shadow-sm]="summaryView() === 'contexts'"
+            [class.text-foreground]="summaryView() === 'contexts'"
+            [class.text-muted-foreground]="summaryView() !== 'contexts'"
+            role="tab"
+            aria-controls="daily-summary-panel"
+            [attr.aria-selected]="summaryView() === 'contexts'"
+            (click)="selectSummaryView('contexts')"
+          >
+            Contexts
+          </button>
+          <button
+            type="button"
+            id="projects-tab"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            [class.bg-background]="summaryView() === 'projects'"
+            [class.shadow-sm]="summaryView() === 'projects'"
+            [class.text-foreground]="summaryView() === 'projects'"
+            [class.text-muted-foreground]="summaryView() !== 'projects'"
+            role="tab"
+            aria-controls="daily-summary-panel"
+            [attr.aria-selected]="summaryView() === 'projects'"
+            (click)="selectSummaryView('projects')"
+          >
+            Projects
+          </button>
+        </div>
+
         <ctx-distribution
           class="block mb-6"
-          [items]="distributionContexts()"
+          [label]="distributionLabel()"
+          [items]="activeDistribution()"
           emptyMessage="No tracked time for this day."
         ></ctx-distribution>
 
         <div
-          class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2 shrink-0"
+          id="daily-summary-panel"
+          class="flex-1 min-h-0 overflow-auto pr-1 pb-2"
+          role="tabpanel"
+          [attr.aria-labelledby]="summaryView() === 'contexts' ? 'contexts-tab' : 'projects-tab'"
         >
-          Contexts
-        </div>
-        <div class="flex-1 min-h-0 overflow-auto pr-1 pb-2">
-          <ctx-context-list
-            [items]="contexts()"
-            emptyMessage="No contexts tracked for this day."
-          ></ctx-context-list>
+          @if (summaryView() === 'contexts') {
+            <ctx-context-list
+              [items]="contexts()"
+              emptyMessage="No contexts tracked for this day."
+            ></ctx-context-list>
+          } @else {
+            <ctx-day-project-list
+              [items]="projectSummaries()"
+              emptyMessage="No projects tracked for this day."
+            ></ctx-day-project-list>
+          }
         </div>
       }
     </div>
@@ -177,6 +228,7 @@ const EMPTY_DAY_STATS: DayStats = {
 export class DayComponent {
   readonly summarySkeletonItems = [0, 1, 2, 3];
   readonly contextSkeletonItems = [0, 1, 2];
+  readonly summaryView = signal<SummaryView>('contexts');
   private intervalQueriess = inject(IntervalQueries);
   private workspaceQueries = inject(WorkspaceQueries);
   private store = inject(Store);
@@ -307,6 +359,32 @@ export class DayComponent {
     })),
   );
 
+  projectSummaries = computed<DayProjectListItem[]>(() =>
+    summarizeDayByProject(this.dayStats()).map((summary) => ({
+      ...summary,
+      duration: durationAsHM(summary.duration),
+      color: summary.id === UNASSIGNED_PROJECT_ID ? '#94a3b8' : colorHash(`project:${summary.id}`),
+    })),
+  );
+
+  projectDistribution = computed<DistributionItem[]>(() =>
+    this.projectSummaries().map((project) => ({
+      id: project.id,
+      name: project.name,
+      duration: project.duration,
+      percentage: project.percentage,
+      color: project.color,
+    })),
+  );
+
+  activeDistribution = computed(() =>
+    this.summaryView() === 'contexts' ? this.distributionContexts() : this.projectDistribution(),
+  );
+
+  distributionLabel = computed(() =>
+    this.summaryView() === 'contexts' ? 'Context distribution' : 'Project distribution',
+  );
+
   totalTracked = computed(() => {
     const duration = this.dayStats().contextStats.reduce(
       (sum, context) => sum + context.duration,
@@ -327,6 +405,10 @@ export class DayComponent {
 
   formatTime(date: string | null): string {
     return this.timeZone.formatTime(date);
+  }
+
+  selectSummaryView(view: SummaryView): void {
+    this.summaryView.set(view);
   }
 
   retryDayData(): void {
