@@ -80,6 +80,10 @@ export class IntervalService {
     );
   }
 
+  split(id: string, splitTime: string, timeZone: string): Observable<Interval[]> {
+    return this.http.post<Interval[]>(this.urlWithParams({ timeZone }, id, 'split'), { splitTime });
+  }
+
   private url(...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
     if (segments.length === 0 && !url.endsWith('/')) {

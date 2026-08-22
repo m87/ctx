@@ -11,6 +11,15 @@ import { QueryErrorStateComponent } from '../shared/query-error-state.component'
 import { TimeZoneService } from '../shared/time-zone.service';
 import { ContextIntervalItemComponent } from './context-interval-item.component';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { HlmSliderImports } from '@spartan-ng/helm/slider';
+
+interface SplitProperties {
+  start: number;
+  end: number;
+  default: number;
+  split: number;
+  step: number;
+}
 
 @Component({
   selector: 'ctx-context-interval-list',
@@ -20,6 +29,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
     HlmButtonImports,
     QueryErrorStateComponent,
     HlmSkeletonImports,
+    HlmSliderImports,
   ],
   providers: [
     provideIcons({
@@ -117,9 +127,71 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
                 (cancel)="cancelIntervalEdit()"
                 (move)="openMoveDialog($event)"
                 (delete)="deleteInterval($event)"
+                (split)="openSplitDialog($event)"
               ></ctx-context-interval-item>
             }
           }
+        </div>
+      }
+
+      @if (splitDialogIntervalId()) {
+        <div class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div class="w-full max-w-md rounded-lg border bg-card p-4 flex flex-col gap-3">
+            <div class="text-sm font-semibold">Split interval</div>
+            <div class="text-xs text-muted-foreground">Select split time</div>
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-xs text-muted-foreground">{{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.start ?? '') }}</div>
+              <div class="text-xs text-muted-foreground">{{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.end ?? '') }}</div>
+            </div>
+            <hlm-slider
+              [min]="splitProperties.start"
+              [max]="splitProperties.end"
+              [step]="splitProperties.step"
+              [value]="[splitProperties.default]"
+              (valueChange)="splitProperties.split = $event[0]"
+            ></hlm-slider>
+
+            <div class="flex justify-between gap-2">
+              <div class="text-xs text-muted-foreground">{{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <span class="text-xs text-muted-foreground">
+                Preview:</span>
+              <div class="flex justify-between gap-2">
+                <div class="flex-1 text-xs text-muted-foreground border p-2 rounded-lg">
+                  <span>Interval 1:</span>
+                  <div class="flex flex-col">
+                    <span>Start: {{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.start ?? '') }}</span>
+                    <span>End: {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span>
+                  </div>
+                </div>
+                <div class="flex-1 text-xs text-muted-foreground border p-2 rounded-lg">
+                  <span>Interval 2:</span>
+                  <div class="flex flex-col">
+                    <span>Start: {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span>
+                    <span>End: {{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.end ?? '') }}</span>
+                  </div>
+                </div>
+              </div>
+
+          </div>
+
+            <div class="flex justify-end gap-2 pt-1">
+              <button hlmBtn variant="outline" class="h-9 px-3 text-xs" (click)="closeSplitDialog()">
+                Cancel
+              </button>
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+                [disabled]="moveIntervalMutation.isPending()"
+                (click)="splitInterval()"
+              >
+                Split
+              </button>
+            </div>
+          </div>
         </div>
       }
 
@@ -175,16 +247,24 @@ export class ContextIntervalListComponent {
   readonly intervalSkeletonItems = [0, 1, 2];
   private contextQueries = inject(ContextQueries);
   private intervalMutations = inject(IntervalMutations);
-  private timeZone = inject(TimeZoneService);
+   timeZone = inject(TimeZoneService);
 
   readonly contextId = input.required<string>();
   readonly activeWorkspaceId = input<string | null>(null);
   readonly contexts = input<readonly Context[]>([]);
   readonly readonly = input(false);
+  splitProperties = {
+    start: 0,
+    end: 100,
+    default: 50,
+    split: 50,
+    step: 1,
+  }
 
   createIntervalMutation = injectMutation(() => this.intervalMutations.create());
   updateIntervalMutation = injectMutation(() => this.intervalMutations.update());
   deleteIntervalMutation = injectMutation(() => this.intervalMutations.delete());
+  splitIntervalMutation = injectMutation(() => this.intervalMutations.split());
   moveIntervalMutation = injectMutation(() => this.intervalMutations.move());
   contextIntervalsQuery = injectQuery(() => this.contextQueries.intervals(this.contextId()));
 
@@ -206,9 +286,66 @@ export class ContextIntervalListComponent {
   readonly moveDialogIntervalId = signal<string | null>(null);
   readonly moveTargetContextId = signal('');
   readonly intervalFormError = signal('');
+  readonly splitDialogIntervalId = signal<string | null>(null);
 
   constructor() {
     this.resetNewIntervalForm();
+  }
+
+  splitInterval() {
+    if (this.readonly()) {
+      return;
+    }
+
+    const interval = this.intervals().find(i => i.id === this.splitDialogIntervalId());
+    if (!interval) {
+      return;
+    }
+
+    const splitTime = this.splitAsDateTime(this.splitProperties.split);
+
+    this.splitIntervalMutation.mutate(
+      { id: interval.id, splitTime: `${splitTime}:00`, timeZone: this.timeZone.effectiveTimeZone(), contextId: this.contextId() },
+      {
+        onSuccess: () => {
+          this.closeSplitDialog();
+        },
+      },
+    );
+  }
+
+  splitAsDateTime(split: number): string {
+    const date = new Date(split);
+    return this.timeZone.toInputValue(date.toISOString());
+  }
+
+  calcSplitProperties(interval: Interval): SplitProperties {
+    const start = Date.parse(interval.start!);
+    const end = Date.parse(interval.end!);
+    const split = start + (end - start) / 2;
+    const step = 60 * 1000;
+    const defaultSplit = start + (end - start) / 2;
+    return {
+      start,
+      end,
+      default: defaultSplit,
+      split,
+      step,
+    };
+  }
+
+  openSplitDialog(interval: Interval) {
+    if (this.readonly()) {
+      return;
+    }
+
+
+    this.splitProperties = this.calcSplitProperties(interval);
+    this.splitDialogIntervalId.set(interval.id);
+  }
+
+  closeSplitDialog() {
+    this.splitDialogIntervalId.set(null);
   }
 
   addInterval() {

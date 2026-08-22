@@ -1,6 +1,6 @@
 import { Component, inject, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowRightLeft, lucidePencil, lucideTrash2 } from '@ng-icons/lucide';
+import { lucideArrowRightLeft, lucidePencil, lucideSquareSplitHorizontal, lucideTrash2 } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { Interval } from '../../api/interval/interval.service';
 import { durationAsH, durationAsM } from '../utils';
@@ -14,6 +14,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
       lucidePencil,
       lucideTrash2,
       lucideArrowRightLeft,
+      lucideSquareSplitHorizontal
     }),
   ],
   template: `
@@ -85,6 +86,15 @@ import { TimeZoneService } from '../shared/time-zone.service';
                 variant="outline"
                 class="h-7 px-2 text-xs"
                 [disabled]="!canMove()"
+                (click)="split.emit(interval())"
+              >
+                <ng-icon name="lucideSquareSplitHorizontal"></ng-icon>
+              </button>
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-7 px-2 text-xs"
+                [disabled]="!canMove()"
                 (click)="move.emit(interval())"
               >
                 <ng-icon name="lucideArrowRightLeft"></ng-icon>
@@ -123,6 +133,7 @@ export class ContextIntervalItemComponent {
   readonly cancel = output<void>();
   readonly move = output<Interval>();
   readonly delete = output<Interval>();
+  readonly split = output<Interval>();
 
   getInputValue(event: Event): string {
     return (event.target as HTMLInputElement | HTMLTextAreaElement).value;

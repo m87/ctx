@@ -17,6 +17,10 @@ type DayReport = core.DayReport
 type ContextStats = core.DayContextStats
 type DayStats = core.DayStats
 
+type SplitRequest struct {
+	SplitTime string `json:"splitTime"`
+}
+
 func registerIntervalHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	handler := &IntervalHandler{manager: manager}
 	mux.HandleFunc("GET /day/{date}", handler.listByDay)
@@ -25,6 +29,35 @@ func registerIntervalHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("PUT /{id}", handler.updateInterval)
 	mux.HandleFunc("POST /", handler.createInterval)
 	mux.HandleFunc("PATCH /{id}/move/{targetId}", handler.moveInterval)
+	mux.HandleFunc("POST /{id}/split", handler.splitInterval)
+}
+
+func (h *IntervalHandler) splitInterval(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_INTERVAL_ID", "Missing interval ID")
+		return
+	}
+
+	var req SplitRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
+		return
+	}
+	splitTime, err := pareseDateTime(r, req.SplitTime)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_SPLIT_TIME", err.Error())
+		return
+	}
+
+	err = h.manager.SplitInterval(id, splitTime)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_SPLIT_INTERVAL", err.Error())
+		return
+	}
+
+	writeJson(w, http.StatusOK, map[string]string{"message": "Interval split successfully"})
 }
 
 func (h *IntervalHandler) moveInterval(w http.ResponseWriter, r *http.Request) {

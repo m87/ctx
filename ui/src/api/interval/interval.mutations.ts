@@ -42,4 +42,12 @@ export class IntervalMutations {
         this.cache.afterIntervalChange(data.contextId ?? '', variables.targetContextId),
     });
   }
+
+  split() {
+    return mutationOptions({
+      mutationFn: ({ id, splitTime, timeZone, contextId }: { id: string; splitTime: string, timeZone: string, contextId: string }) =>
+        lastValueFrom(this.intervalService.split(id, splitTime, timeZone)),
+      onSuccess: (_, variables) => this.cache.afterIntervalChange(variables.contextId ?? ''),
+    });
+  }
 }
