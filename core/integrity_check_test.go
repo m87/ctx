@@ -42,19 +42,6 @@ func (m *ContextRepositoryMock) List() ([]*Context, error) {
 	return m.contexts, nil
 }
 
-type IntervalRepositoryMock struct {
-	IntervalRepository
-	intervals []*Interval
-	called    bool
-}
-
-func (m *IntervalRepositoryMock) List() ([]*Interval, error) {
-	m.called = true
-	if m.intervals == nil {
-		return nil, errors.New("IntervalRepository.List error")
-	}
-	return m.intervals, nil
-}
 
 func setupManagerCorrectData() *ContextManager {
 	workspaceRepo := &WorkspaceRepositoryMock{

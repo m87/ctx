@@ -6,6 +6,10 @@
 
 <!-- ## 0.8.0 - stats & labels -->
 
+## 0.8.0
+- feature: interval splitting — split an interval into two intervals at a given time
+
+
 ## 0.7.0
 - feature: projects support — create, rename, select, and delete projects to organize contexts
     - projects can be nested, allowing for a hierarchical structure of contexts

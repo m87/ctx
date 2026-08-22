@@ -6,6 +6,8 @@ import (
 	"github.com/m87/nod"
 )
 
+const IntervalStatusActive = "active"
+
 type Interval struct {
 	Id          string        `json:"id"`
 	ContextId   string        `json:"contextId"`
