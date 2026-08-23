@@ -23,8 +23,9 @@ import {
   ProjectTimeListItem,
 } from '../shared/project-time-list.component';
 import { summarizeContextsByProject, UNASSIGNED_PROJECT_ID } from '../shared/project-time-summary';
+import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
 
-type SummaryView = 'contexts' | 'projects';
+type SummaryView = 'contexts' | 'projects' | 'insights';
 
 const GROUPED_CONTEXT_ID = '__contexts_below_1_percent__';
 const GROUPED_CONTEXT_THRESHOLD = 1;
@@ -46,6 +47,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
     NgIcon,
     QueryErrorStateComponent,
     ProjectTimeListComponent,
+    InsightsEmptyStateComponent,
     HlmSkeletonImports,
   ],
   providers: [provideIcons({ lucideTrash2 })],
@@ -199,21 +201,36 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
               >
                 Projects
               </button>
+              <button
+                type="button"
+                id="workspace-insights-tab"
+                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                [class.bg-background]="summaryView() === 'insights'"
+                [class.shadow-sm]="summaryView() === 'insights'"
+                [class.text-foreground]="summaryView() === 'insights'"
+                [class.text-muted-foreground]="summaryView() !== 'insights'"
+                role="tab"
+                aria-controls="workspace-summary-panel"
+                [attr.aria-selected]="summaryView() === 'insights'"
+                (click)="selectSummaryView('insights')"
+              >
+                Insights
+              </button>
             </div>
 
-            <ctx-distribution
-              class="block mb-6"
-              [label]="distributionLabel()"
-              [items]="activeDistribution()"
-              emptyMessage="No tracked time in this workspace."
-            ></ctx-distribution>
+            @if (summaryView() !== 'insights') {
+              <ctx-distribution
+                class="block mb-6"
+                [label]="distributionLabel()"
+                [items]="activeDistribution()"
+                emptyMessage="No tracked time in this workspace."
+              ></ctx-distribution>
+            }
 
             <div
               id="workspace-summary-panel"
               role="tabpanel"
-              [attr.aria-labelledby]="
-                summaryView() === 'contexts' ? 'workspace-contexts-tab' : 'workspace-projects-tab'
-              "
+              [attr.aria-labelledby]="summaryViewTabId()"
             >
               @if (summaryView() === 'contexts') {
                 <ctx-context-list
@@ -221,11 +238,13 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
                   [group]="groupedSummaryContext()"
                   emptyMessage="No contexts tracked in this workspace."
                 ></ctx-context-list>
-              } @else {
+              } @else if (summaryView() === 'projects') {
                 <ctx-project-time-list
                   [items]="projectSummaries()"
                   emptyMessage="No projects tracked in this workspace."
                 ></ctx-project-time-list>
+              } @else {
+                <ctx-insights-empty-state />
               }
             </div>
           </div>
@@ -406,6 +425,7 @@ export class WorkspaceComponent {
   readonly distributionLabel = computed(() =>
     this.summaryView() === 'contexts' ? 'Context distribution' : 'Project distribution',
   );
+  readonly summaryViewTabId = computed(() => `workspace-${this.summaryView()}-tab`);
   readonly totalTracked = computed(
     () => durationAsHM(this.workspaceStats().totalDuration).trim() || '0m',
   );

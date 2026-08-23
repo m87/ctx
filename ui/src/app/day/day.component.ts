@@ -23,8 +23,9 @@ import {
   ProjectTimeListItem,
 } from '../shared/project-time-list.component';
 import { summarizeContextsByProject, UNASSIGNED_PROJECT_ID } from '../shared/project-time-summary';
+import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
 
-type SummaryView = 'contexts' | 'projects';
+type SummaryView = 'contexts' | 'projects' | 'insights';
 
 const EMPTY_DAY_STATS: DayStats = {
   date: '',
@@ -42,6 +43,7 @@ const EMPTY_DAY_STATS: DayStats = {
     NgIcon,
     QueryErrorStateComponent,
     ProjectTimeListComponent,
+    InsightsEmptyStateComponent,
     HlmSkeletonImports,
   ],
   providers: [
@@ -188,31 +190,50 @@ const EMPTY_DAY_STATS: DayStats = {
           >
             Projects
           </button>
+          <button
+            type="button"
+            id="insights-tab"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            [class.bg-background]="summaryView() === 'insights'"
+            [class.shadow-sm]="summaryView() === 'insights'"
+            [class.text-foreground]="summaryView() === 'insights'"
+            [class.text-muted-foreground]="summaryView() !== 'insights'"
+            role="tab"
+            aria-controls="daily-summary-panel"
+            [attr.aria-selected]="summaryView() === 'insights'"
+            (click)="selectSummaryView('insights')"
+          >
+            Insights
+          </button>
         </div>
 
-        <ctx-distribution
-          class="block mb-6"
-          [label]="distributionLabel()"
-          [items]="activeDistribution()"
-          emptyMessage="No tracked time for this day."
-        ></ctx-distribution>
+        @if (summaryView() !== 'insights') {
+          <ctx-distribution
+            class="block mb-6"
+            [label]="distributionLabel()"
+            [items]="activeDistribution()"
+            emptyMessage="No tracked time for this day."
+          ></ctx-distribution>
+        }
 
         <div
           id="daily-summary-panel"
           class="flex-1 min-h-0 overflow-auto pr-1 pb-2"
           role="tabpanel"
-          [attr.aria-labelledby]="summaryView() === 'contexts' ? 'contexts-tab' : 'projects-tab'"
+          [attr.aria-labelledby]="summaryViewTabId()"
         >
           @if (summaryView() === 'contexts') {
             <ctx-context-list
               [items]="contexts()"
               emptyMessage="No contexts tracked for this day."
             ></ctx-context-list>
-          } @else {
+          } @else if (summaryView() === 'projects') {
             <ctx-project-time-list
               [items]="projectSummaries()"
               emptyMessage="No projects tracked for this day."
             ></ctx-project-time-list>
+          } @else {
+            <ctx-insights-empty-state />
           }
         </div>
       }
@@ -387,6 +408,8 @@ export class DayComponent {
   distributionLabel = computed(() =>
     this.summaryView() === 'contexts' ? 'Context distribution' : 'Project distribution',
   );
+
+  readonly summaryViewTabId = computed(() => `${this.summaryView()}-tab`);
 
   totalTracked = computed(() => {
     const duration = this.dayStats().contextStats.reduce(

@@ -4,6 +4,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArchive,
   lucideArchiveRestore,
+  lucideChevronDown,
   lucideChevronRight,
   lucideFolder,
   lucidePause,
@@ -28,8 +29,10 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
 import { TimeZoneService } from '../shared/time-zone.service';
 import { ProjectQueries } from '../../api/project/project.queries';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
+type DetailView = 'overview' | 'insights';
 
 @Component({
   imports: [
@@ -40,12 +43,14 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
     HlmCardImports,
     QueryErrorStateComponent,
     RouterLink,
+    InsightsEmptyStateComponent,
     HlmSkeletonImports,
   ],
   providers: [
     provideIcons({
       lucideArchive,
       lucideArchiveRestore,
+      lucideChevronDown,
       lucideChevronRight,
       lucideFolder,
       lucidePause,
@@ -160,181 +165,265 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
                 hlmBtn
                 variant="outline"
                 class="h-9 px-3 text-xs bg-amber-100/70 text-amber-700"
-                [disabled]="freeContextMutation.isPending()"
+                [disabled]="contextOperationPending()"
+                [attr.aria-busy]="contextOperationPending()"
                 (click)="pauseContext()"
               >
-                <ng-icon name="lucidePause"></ng-icon>
-                <span class="font-semibold">Pause</span>
+                @if (freeContextMutation.isPending()) {
+                  <span
+                    class="size-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="font-semibold">Pausing...</span>
+                } @else {
+                  <ng-icon name="lucidePause"></ng-icon>
+                  <span class="font-semibold">Pause</span>
+                }
               </button>
             } @else {
               <button
                 hlmBtn
                 variant="outline"
                 class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-                [disabled]="currentContext.archived || switchContextMutation.isPending()"
+                [disabled]="currentContext.archived || contextOperationPending()"
+                [attr.aria-busy]="contextOperationPending()"
                 (click)="startContext()"
               >
-                <ng-icon name="lucidePlay"></ng-icon>
-                <span class="font-semibold text-blue-600">Start</span>
+                @if (switchContextMutation.isPending()) {
+                  <span
+                    class="size-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="font-semibold text-blue-600">Starting...</span>
+                } @else {
+                  <ng-icon name="lucidePlay"></ng-icon>
+                  <span class="font-semibold text-blue-600">Start</span>
+                }
               </button>
             }
           </div>
         </div>
 
-        @if (editingProjectAssignment()) {
-          <div class="w-full rounded-lg border bg-card p-3">
-            <div
-              class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
-            >
-              Project
-            </div>
-            <div class="mt-2 flex items-center gap-2">
-              <select
-                class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                [disabled]="updateContextMutation.isPending()"
-                (change)="assignContextToProject($event)"
-              >
-                <option [value]="workspaceRootValue" [selected]="!currentContext.project?.id">
-                  Workspace root
-                </option>
-                @for (project of availableProjects(); track project.id) {
-                  <option
-                    [value]="project.id"
-                    [selected]="currentContext.project?.id === project.id"
-                  >
-                    {{ project.name }}
-                  </option>
-                }
-              </select>
-              <button
-                type="button"
-                class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
-                aria-label="Cancel project assignment"
-                title="Cancel"
-                [disabled]="updateContextMutation.isPending()"
-                (click)="editingProjectAssignment.set(false)"
-              >
-                <ng-icon name="lucideX"></ng-icon>
-              </button>
-            </div>
-          </div>
-        } @else if (currentContext.project; as project) {
-          <div
-            class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
-            [routerLink]="['/project', project.id]"
-            role="link"
-            tabindex="0"
-            (click)="selectProject(project.id)"
-          >
-            <ctx-name
-              class="min-w-0 flex-1"
-              label="Project"
-              [name]="project.name"
-              [showDescription]="false"
-              [readonly]="true"
-              [compact]="true"
-              [accentColor]="projectColor(project.id)"
-            ></ctx-name>
-            <button
-              type="button"
-              class="size-8 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
-              aria-label="Change project"
-              title="Change project"
-              (click)="startProjectAssignmentEdit($event)"
-            >
-              <ng-icon name="lucidePencil"></ng-icon>
-            </button>
-            <ng-icon
-              name="lucideChevronRight"
-              class="text-sm shrink-0 text-muted-foreground/70"
-            ></ng-icon>
-          </div>
-        } @else {
+        <div
+          class="inline-flex self-start rounded-lg bg-muted p-1 shrink-0"
+          role="tablist"
+          aria-label="Context view"
+        >
           <button
             type="button"
-            class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
-            (click)="editingProjectAssignment.set(true)"
+            id="context-overview-tab"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            [class.bg-background]="detailView() === 'overview'"
+            [class.shadow-sm]="detailView() === 'overview'"
+            [class.text-foreground]="detailView() === 'overview'"
+            [class.text-muted-foreground]="detailView() !== 'overview'"
+            role="tab"
+            aria-controls="context-view-panel"
+            [attr.aria-selected]="detailView() === 'overview'"
+            (click)="detailView.set('overview')"
           >
-            <ng-icon name="lucideFolder"></ng-icon>
-            <span>Assign to project</span>
+            Overview
           </button>
-        }
+          <button
+            type="button"
+            id="context-insights-tab"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            [class.bg-background]="detailView() === 'insights'"
+            [class.shadow-sm]="detailView() === 'insights'"
+            [class.text-foreground]="detailView() === 'insights'"
+            [class.text-muted-foreground]="detailView() !== 'insights'"
+            role="tab"
+            aria-controls="context-view-panel"
+            [attr.aria-selected]="detailView() === 'insights'"
+            (click)="detailView.set('insights')"
+          >
+            Insights
+          </button>
+        </div>
 
-        @if (showContextStatsError()) {
-          <ctx-query-error-state
-            class="w-full min-h-40"
-            [error]="contextStatsQuery.error()"
-            [paused]="contextStatsQuery.isPaused()"
-            resourceName="context statistics"
-            [retrying]="contextStatsQuery.isFetching()"
-            (retry)="retryContextStats()"
-          ></ctx-query-error-state>
-        } @else if (contextStatsQuery.isLoading()) {
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full" role="status">
-            <span class="sr-only">Loading context statistics</span>
-            @for (item of statsSkeletonItems; track item) {
-              <div class="rounded-lg border bg-card p-3">
-                <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
-                <hlm-skeleton class="h-5 w-14"></hlm-skeleton>
+        <div
+          id="context-view-panel"
+          class="w-full flex-1 min-h-0 flex flex-col gap-5"
+          role="tabpanel"
+          [attr.aria-labelledby]="
+            detailView() === 'overview' ? 'context-overview-tab' : 'context-insights-tab'
+          "
+        >
+          @if (detailView() === 'overview') {
+            @if (editingProjectAssignment()) {
+              <div class="w-full rounded-lg border bg-card p-3">
+                <div
+                  class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
+                >
+                  Project
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <div class="relative min-w-0 flex-1">
+                    <select
+                      class="h-9 w-full appearance-none rounded-md border border-border bg-background pl-3 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-wait disabled:opacity-100"
+                      [disabled]="updateContextMutation.isPending()"
+                      [attr.aria-busy]="updateContextMutation.isPending()"
+                      (change)="assignContextToProject($event)"
+                    >
+                      <option [value]="workspaceRootValue" [selected]="!currentContext.project?.id">
+                        Workspace root
+                      </option>
+                      @for (project of availableProjects(); track project.id) {
+                        <option
+                          [value]="project.id"
+                          [selected]="currentContext.project?.id === project.id"
+                        >
+                          {{ project.name }}
+                        </option>
+                      }
+                    </select>
+                    <span
+                      class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground"
+                    >
+                      @if (updateContextMutation.isPending()) {
+                        <span
+                          class="size-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
+                          role="status"
+                          aria-label="Updating project assignment"
+                        ></span>
+                      } @else {
+                        <ng-icon name="lucideChevronDown" class="text-sm"></ng-icon>
+                      }
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+                    aria-label="Cancel project assignment"
+                    title="Cancel"
+                    [disabled]="updateContextMutation.isPending()"
+                    (click)="editingProjectAssignment.set(false)"
+                  >
+                    <ng-icon name="lucideX"></ng-icon>
+                  </button>
+                </div>
+              </div>
+            } @else if (currentContext.project; as project) {
+              <div
+                class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                [routerLink]="['/project', project.id]"
+                role="link"
+                tabindex="0"
+                (click)="selectProject(project.id)"
+              >
+                <ctx-name
+                  class="min-w-0 flex-1"
+                  label="Project"
+                  [name]="project.name"
+                  [showDescription]="false"
+                  [readonly]="true"
+                  [compact]="true"
+                  [accentColor]="projectColor(project.id)"
+                ></ctx-name>
+                <button
+                  type="button"
+                  class="size-8 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+                  aria-label="Change project"
+                  title="Change project"
+                  (click)="startProjectAssignmentEdit($event)"
+                >
+                  <ng-icon name="lucidePencil"></ng-icon>
+                </button>
+                <ng-icon
+                  name="lucideChevronRight"
+                  class="text-sm shrink-0 text-muted-foreground/70"
+                ></ng-icon>
+              </div>
+            } @else {
+              <button
+                type="button"
+                class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
+                (click)="editingProjectAssignment.set(true)"
+              >
+                <ng-icon name="lucideFolder"></ng-icon>
+                <span>Assign to project</span>
+              </button>
+            }
+
+            @if (showContextStatsError()) {
+              <ctx-query-error-state
+                class="w-full min-h-40"
+                [error]="contextStatsQuery.error()"
+                [paused]="contextStatsQuery.isPaused()"
+                resourceName="context statistics"
+                [retrying]="contextStatsQuery.isFetching()"
+                (retry)="retryContextStats()"
+              ></ctx-query-error-state>
+            } @else if (contextStatsQuery.isLoading()) {
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full" role="status">
+                <span class="sr-only">Loading context statistics</span>
+                @for (item of statsSkeletonItems; track item) {
+                  <div class="rounded-lg border bg-card p-3">
+                    <hlm-skeleton class="h-2.5 w-20 mb-2"></hlm-skeleton>
+                    <hlm-skeleton class="h-5 w-14"></hlm-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="flex w-full">
+                <div class="w-full flex items-center justify-center gap-4">
+                  <div hlmCard class="w-full p-3 rounded-lg border">
+                    <h3
+                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      hlmCardTitle
+                    >
+                      Total time
+                    </h3>
+                    <div class="text-lg font-semibold" hlmCardContet>
+                      {{ parseDuration(contextStats()?.totalDuration) }}
+                    </div>
+                  </div>
+                  <div hlmCard class="w-full p-3 rounded-lg border">
+                    <h3
+                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      hlmCardTitle
+                    >
+                      Today
+                    </h3>
+                    <div class="text-lg font-semibold" hlmCardContet>
+                      {{ parseDuration(contextStats()?.duration) }}
+                    </div>
+                  </div>
+                  <div hlmCard class="w-full p-3 rounded-lg border">
+                    <h3
+                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      hlmCardTitle
+                    >
+                      Sessions
+                    </h3>
+                    <div class="text-lg font-semibold" hlmCardContet>
+                      {{ contextStats()?.totalSessions }}
+                    </div>
+                  </div>
+                  <div hlmCard class="w-full p-3 rounded-lg border">
+                    <h3
+                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      hlmCardTitle
+                    >
+                      Today sessions
+                    </h3>
+                    <div class="text-lg font-semibold" hlmCardContet>
+                      {{ contextStats()?.sessions }}
+                    </div>
+                  </div>
+                </div>
               </div>
             }
-          </div>
-        } @else {
-          <div class="flex w-full">
-            <div class="w-full flex items-center justify-center gap-4">
-              <div hlmCard class="w-full p-3 rounded-lg border">
-                <h3
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                  hlmCardTitle
-                >
-                  Total time
-                </h3>
-                <div class="text-lg font-semibold" hlmCardContet>
-                  {{ parseDuration(contextStats()?.totalDuration) }}
-                </div>
-              </div>
-              <div hlmCard class="w-full p-3 rounded-lg border">
-                <h3
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                  hlmCardTitle
-                >
-                  Today
-                </h3>
-                <div class="text-lg font-semibold" hlmCardContet>
-                  {{ parseDuration(contextStats()?.duration) }}
-                </div>
-              </div>
-              <div hlmCard class="w-full p-3 rounded-lg border">
-                <h3
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                  hlmCardTitle
-                >
-                  Sessions
-                </h3>
-                <div class="text-lg font-semibold" hlmCardContet>
-                  {{ contextStats()?.totalSessions }}
-                </div>
-              </div>
-              <div hlmCard class="w-full p-3 rounded-lg border">
-                <h3
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-                  hlmCardTitle
-                >
-                  Today sessions
-                </h3>
-                <div class="text-lg font-semibold" hlmCardContet>
-                  {{ contextStats()?.sessions }}
-                </div>
-              </div>
-            </div>
-          </div>
-        }
-        <ctx-context-interval-list
-          [contextId]="contextId()"
-          [activeWorkspaceId]="activeWorkspaceId()"
-          [contexts]="contexts()"
-          [readonly]="currentContext.archived ?? false"
-        ></ctx-context-interval-list>
+            <ctx-context-interval-list
+              [contextId]="contextId()"
+              [activeWorkspaceId]="activeWorkspaceId()"
+              [contexts]="contexts()"
+              [readonly]="currentContext.archived ?? false"
+            ></ctx-context-interval-list>
+          } @else {
+            <ctx-insights-empty-state />
+          }
+        </div>
       }
     </div>
   `,
@@ -351,6 +440,7 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 export class ContextComponent {
   readonly actionSkeletonItems = [0, 1, 2];
   readonly statsSkeletonItems = [0, 1, 2, 3];
+  readonly detailView = signal<DetailView>('overview');
   private contextQueries = inject(ContextQueries);
   private contextMutations = inject(ContextMutations);
   private router = inject(Router);
@@ -382,6 +472,9 @@ export class ContextComponent {
   readonly editingProjectAssignment = signal(false);
   readonly workspaceRootValue = WORKSPACE_ROOT_VALUE;
   isActiveContext = computed(() => this.activeContextQuery.data()?.id === this.contextId());
+  readonly contextOperationPending = computed(
+    () => this.switchContextMutation.isPending() || this.freeContextMutation.isPending(),
+  );
   contextStatsQuery = injectQuery(() =>
     this.contextQueries.stats(this.contextId(), this.today(), this.timeZone.effectiveTimeZone()),
   );

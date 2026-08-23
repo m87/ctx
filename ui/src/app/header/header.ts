@@ -346,10 +346,18 @@ const firstDayKey = 'client.general.firstDay';
                 variant="outline"
                 class="h-8 w-8 px-0 sm:px-2 rounded-l-none -ml-px"
                 [disabled]="freeContextMutation.isPending()"
+                [attr.aria-busy]="freeContextMutation.isPending()"
                 (click)="stopContext()"
                 aria-label="Stop active context"
               >
-                <ng-icon name="lucidePause" class="text-xs"></ng-icon>
+                @if (freeContextMutation.isPending()) {
+                  <span
+                    class="size-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
+                    aria-hidden="true"
+                  ></span>
+                } @else {
+                  <ng-icon name="lucidePause" class="text-xs"></ng-icon>
+                }
               </button>
             </div>
           } @else {

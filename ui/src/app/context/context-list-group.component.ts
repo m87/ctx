@@ -63,7 +63,8 @@ export interface ContextListGroup {
           <ctx-context-list-group-item
             [item]="item"
             [active]="activeContextId() === item.id"
-            [startPending]="startPending()"
+            [startPending]="pendingContextId() === item.id"
+            [startDisabled]="startDisabled()"
             (start)="start.emit($event)"
           ></ctx-context-list-group-item>
         }
@@ -74,7 +75,8 @@ export interface ContextListGroup {
 export class ContextListGroupComponent {
   readonly group = input.required<ContextListGroup>();
   readonly activeContextId = input<string | null>(null);
-  readonly startPending = input(false);
+  readonly pendingContextId = input<string | null>(null);
+  readonly startDisabled = input(false);
   readonly start = output<ContextListItem>();
   readonly expanded = signal(false);
 

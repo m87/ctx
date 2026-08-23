@@ -63,15 +63,24 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
           <button
             type="button"
             class="h-6 w-6 shrink-0 rounded flex items-center justify-center text-muted-foreground opacity-60 hover:opacity-100 hover:bg-muted md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
-            [disabled]="switchContextMutation.isPending() || freeContextMutation.isPending()"
+            [disabled]="contextOperationPending()"
+            [attr.aria-busy]="pendingContextId() === context.id"
             [attr.aria-label]="(isActiveContext(context.id) ? 'Pause ' : 'Start ') + context.name"
             [title]="(isActiveContext(context.id) ? 'Pause ' : 'Start ') + context.name"
+            [style.opacity]="pendingContextId() === context.id ? 1 : null"
             (click)="toggleContext($event, context)"
           >
-            <ng-icon
-              [name]="isActiveContext(context.id) ? 'lucidePause' : 'lucidePlay'"
-              class="text-[12px] pointer-events-none"
-            ></ng-icon>
+            @if (pendingContextId() === context.id) {
+              <span
+                class="size-3 rounded-full border-2 border-current border-t-transparent animate-spin"
+                aria-hidden="true"
+              ></span>
+            } @else {
+              <ng-icon
+                [name]="isActiveContext(context.id) ? 'lucidePause' : 'lucidePlay'"
+                class="text-[12px] pointer-events-none"
+              ></ng-icon>
+            }
           </button>
         </div>
       }
@@ -99,6 +108,10 @@ export class SidebarContextListComponent {
 
   readonly contexts = computed<readonly Context[]>(() =>
     this.filterBySelectedProject(this.listContextsQuery.data() ?? []),
+  );
+  readonly pendingContextId = signal<string | null>(null);
+  readonly contextOperationPending = computed(
+    () => this.switchContextMutation.isPending() || this.freeContextMutation.isPending(),
   );
   readonly isAddingContext = signal<boolean>(false);
   readonly newContextName = signal<string>('');
@@ -162,10 +175,18 @@ export class SidebarContextListComponent {
   toggleContext(event: MouseEvent, context: Context): void {
     event.preventDefault();
     event.stopPropagation();
-    if (this.isActiveContext(context.id)) {
-      this.freeContextMutation.mutate();
+    if (this.contextOperationPending()) {
       return;
     }
-    this.switchContextMutation.mutate(context);
+    this.pendingContextId.set(context.id);
+    if (this.isActiveContext(context.id)) {
+      this.freeContextMutation.mutate(undefined, {
+        onSettled: () => this.pendingContextId.set(null),
+      });
+      return;
+    }
+    this.switchContextMutation.mutate(context, {
+      onSettled: () => this.pendingContextId.set(null),
+    });
   }
 }

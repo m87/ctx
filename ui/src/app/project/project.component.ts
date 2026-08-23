@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideChevronDown,
   lucideChevronRight,
   lucideFolder,
   lucidePencil,
@@ -21,8 +22,10 @@ import { SelectProject } from '../sidebar/workspace.state';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { colorHash } from '../utils';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
+type DetailView = 'overview' | 'insights';
 
 @Component({
   selector: 'ctx-project',
@@ -33,10 +36,18 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
     QueryErrorStateComponent,
     RouterLink,
     LinkifiedTextComponent,
+    InsightsEmptyStateComponent,
     HlmSkeletonImports,
   ],
   providers: [
-    provideIcons({ lucideTrash2, lucideFolder, lucideChevronRight, lucidePencil, lucideX }),
+    provideIcons({
+      lucideTrash2,
+      lucideFolder,
+      lucideChevronDown,
+      lucideChevronRight,
+      lucidePencil,
+      lucideX,
+    }),
   ],
   template: `
     <div
@@ -102,179 +113,248 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
           </div>
         </div>
 
-        @if (editingParentAssignment()) {
-          <div class="w-full rounded-lg border bg-card p-3">
-            <div
-              class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
-            >
-              Parent project
-            </div>
-            <div class="mt-2 flex items-center gap-2">
-              <select
-                class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                [disabled]="updateProjectMutation.isPending()"
-                (change)="assignParentProject($event)"
-              >
-                <option [value]="workspaceRootValue" [selected]="!currentProject.parentId">
-                  Workspace root
-                </option>
-                @for (project of availableParentProjects(); track project.id) {
-                  <option [value]="project.id" [selected]="currentProject.parentId === project.id">
-                    {{ project.name }}
-                  </option>
-                }
-              </select>
-              <button
-                type="button"
-                class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
-                aria-label="Cancel parent project assignment"
-                title="Cancel"
-                [disabled]="updateProjectMutation.isPending()"
-                (click)="editingParentAssignment.set(false)"
-              >
-                <ng-icon name="lucideX"></ng-icon>
-              </button>
-            </div>
-          </div>
-        } @else if (currentProject.parentId && allProjectsQuery.isLoading()) {
-          <hlm-skeleton class="h-16 w-full"></hlm-skeleton>
-        } @else if (parentProject(); as parent) {
-          <div
-            class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
-            [routerLink]="['/project', parent.id]"
-            role="link"
-            tabindex="0"
-            (click)="selectProject(parent.id)"
-          >
-            <ctx-name
-              class="min-w-0 flex-1"
-              label="Parent project"
-              [name]="parent.name"
-              [showDescription]="false"
-              [readonly]="true"
-              [compact]="true"
-              [accentColor]="itemColor(parent.id)"
-            ></ctx-name>
-            <button
-              type="button"
-              class="size-8 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
-              aria-label="Change parent project"
-              title="Change parent project"
-              (click)="startParentAssignmentEdit($event)"
-            >
-              <ng-icon name="lucidePencil"></ng-icon>
-            </button>
-            <ng-icon
-              name="lucideChevronRight"
-              class="text-sm shrink-0 text-muted-foreground/70"
-            ></ng-icon>
-          </div>
-        } @else {
+        <div
+          class="inline-flex self-start rounded-lg bg-muted p-1 shrink-0"
+          role="tablist"
+          aria-label="Project view"
+        >
           <button
             type="button"
-            class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
-            (click)="editingParentAssignment.set(true)"
+            id="project-overview-tab"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            [class.bg-background]="detailView() === 'overview'"
+            [class.shadow-sm]="detailView() === 'overview'"
+            [class.text-foreground]="detailView() === 'overview'"
+            [class.text-muted-foreground]="detailView() !== 'overview'"
+            role="tab"
+            aria-controls="project-view-panel"
+            [attr.aria-selected]="detailView() === 'overview'"
+            (click)="detailView.set('overview')"
           >
-            <ng-icon name="lucideFolder"></ng-icon>
-            <span>Assign parent project</span>
+            Overview
           </button>
-        }
+          <button
+            type="button"
+            id="project-insights-tab"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            [class.bg-background]="detailView() === 'insights'"
+            [class.shadow-sm]="detailView() === 'insights'"
+            [class.text-foreground]="detailView() === 'insights'"
+            [class.text-muted-foreground]="detailView() !== 'insights'"
+            role="tab"
+            aria-controls="project-view-panel"
+            [attr.aria-selected]="detailView() === 'insights'"
+            (click)="detailView.set('insights')"
+          >
+            Insights
+          </button>
+        </div>
 
-        <div class="w-full flex-1 min-h-0 overflow-auto pr-1 pb-2">
-          <section>
-            <div
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
-            >
-              Subprojects
-            </div>
-            @if (projectSubprojectsQuery.isLoading()) {
-              <div class="flex flex-col gap-2" role="status">
-                <span class="sr-only">Loading subprojects</span>
-                @for (item of listSkeletonItems; track item) {
-                  <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
-                }
-              </div>
-            } @else if ((projectSubprojectsQuery.data() ?? []).length > 0) {
-              <div class="flex flex-col gap-2">
-                @for (subproject of projectSubprojectsQuery.data() ?? []; track subproject.id) {
-                  <div
-                    class="block cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
-                    [routerLink]="['/project', subproject.id]"
-                    role="link"
-                    tabindex="0"
-                    (click)="selectProject(subproject.id)"
-                  >
-                    <div class="flex items-center gap-2">
-                      <ng-icon
-                        name="lucideFolder"
-                        class="text-sm shrink-0"
-                        [style.color]="itemColor(subproject.id)"
-                      ></ng-icon>
-                      <span class="text-sm font-medium min-w-0 flex-1 truncate">
-                        <ctx-linkified-text [text]="subproject.name" />
-                      </span>
-                      <ng-icon
-                        name="lucideChevronRight"
-                        class="text-sm shrink-0 text-muted-foreground/70"
-                      ></ng-icon>
-                    </div>
-                  </div>
-                }
-              </div>
-            } @else {
-              <p class="text-xs text-muted-foreground">No subprojects.</p>
-            }
-          </section>
-
-          <section class="mt-6">
-            <div
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
-            >
-              Contexts
-            </div>
-            @if (projectContextsQuery.isLoading()) {
-              <div class="flex flex-col gap-2" role="status">
-                <span class="sr-only">Loading project contexts</span>
-                @for (item of listSkeletonItems; track item) {
-                  <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
-                }
-              </div>
-            } @else if ((projectContextsQuery.data() ?? []).length > 0) {
-              <div class="flex flex-col gap-2">
-                @for (context of projectContextsQuery.data() ?? []; track context.id) {
-                  <div
-                    class="block cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
-                    [routerLink]="['/context', context.id]"
-                    role="link"
-                    tabindex="0"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="w-2 h-2 rounded-sm shrink-0"
-                        [style.background-color]="itemColor(context.id)"
-                      ></span>
-                      <span class="text-sm font-medium min-w-0 flex-1 truncate">
-                        <ctx-linkified-text [text]="context.name" />
-                      </span>
-                      @if (context.archived) {
-                        <span
-                          class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground"
+        <div
+          id="project-view-panel"
+          class="w-full flex-1 min-h-0 flex flex-col gap-5"
+          role="tabpanel"
+          [attr.aria-labelledby]="
+            detailView() === 'overview' ? 'project-overview-tab' : 'project-insights-tab'
+          "
+        >
+          @if (detailView() === 'overview') {
+            @if (editingParentAssignment()) {
+              <div class="w-full rounded-lg border bg-card p-3">
+                <div
+                  class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
+                >
+                  Parent project
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <div class="relative min-w-0 flex-1">
+                    <select
+                      class="h-9 w-full appearance-none rounded-md border border-border bg-background pl-3 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-wait disabled:opacity-100"
+                      [disabled]="updateProjectMutation.isPending()"
+                      [attr.aria-busy]="updateProjectMutation.isPending()"
+                      (change)="assignParentProject($event)"
+                    >
+                      <option [value]="workspaceRootValue" [selected]="!currentProject.parentId">
+                        Workspace root
+                      </option>
+                      @for (project of availableParentProjects(); track project.id) {
+                        <option
+                          [value]="project.id"
+                          [selected]="currentProject.parentId === project.id"
                         >
-                          Archived
-                        </span>
+                          {{ project.name }}
+                        </option>
                       }
-                      <ng-icon
-                        name="lucideChevronRight"
-                        class="text-sm shrink-0 text-muted-foreground/70"
-                      ></ng-icon>
-                    </div>
+                    </select>
+                    <span
+                      class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground"
+                    >
+                      @if (updateProjectMutation.isPending()) {
+                        <span
+                          class="size-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
+                          role="status"
+                          aria-label="Updating parent project"
+                        ></span>
+                      } @else {
+                        <ng-icon name="lucideChevronDown" class="text-sm"></ng-icon>
+                      }
+                    </span>
                   </div>
-                }
+                  <button
+                    type="button"
+                    class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+                    aria-label="Cancel parent project assignment"
+                    title="Cancel"
+                    [disabled]="updateProjectMutation.isPending()"
+                    (click)="editingParentAssignment.set(false)"
+                  >
+                    <ng-icon name="lucideX"></ng-icon>
+                  </button>
+                </div>
+              </div>
+            } @else if (currentProject.parentId && allProjectsQuery.isLoading()) {
+              <hlm-skeleton class="h-16 w-full"></hlm-skeleton>
+            } @else if (parentProject(); as parent) {
+              <div
+                class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                [routerLink]="['/project', parent.id]"
+                role="link"
+                tabindex="0"
+                (click)="selectProject(parent.id)"
+              >
+                <ctx-name
+                  class="min-w-0 flex-1"
+                  label="Parent project"
+                  [name]="parent.name"
+                  [showDescription]="false"
+                  [readonly]="true"
+                  [compact]="true"
+                  [accentColor]="itemColor(parent.id)"
+                ></ctx-name>
+                <button
+                  type="button"
+                  class="size-8 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+                  aria-label="Change parent project"
+                  title="Change parent project"
+                  (click)="startParentAssignmentEdit($event)"
+                >
+                  <ng-icon name="lucidePencil"></ng-icon>
+                </button>
+                <ng-icon
+                  name="lucideChevronRight"
+                  class="text-sm shrink-0 text-muted-foreground/70"
+                ></ng-icon>
               </div>
             } @else {
-              <p class="text-xs text-muted-foreground">No contexts.</p>
+              <button
+                type="button"
+                class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
+                (click)="editingParentAssignment.set(true)"
+              >
+                <ng-icon name="lucideFolder"></ng-icon>
+                <span>Assign parent project</span>
+              </button>
             }
-          </section>
+
+            <div class="w-full flex-1 min-h-0 overflow-auto pr-1 pb-2">
+              <section>
+                <div
+                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+                >
+                  Subprojects
+                </div>
+                @if (projectSubprojectsQuery.isLoading()) {
+                  <div class="flex flex-col gap-2" role="status">
+                    <span class="sr-only">Loading subprojects</span>
+                    @for (item of listSkeletonItems; track item) {
+                      <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
+                    }
+                  </div>
+                } @else if ((projectSubprojectsQuery.data() ?? []).length > 0) {
+                  <div class="flex flex-col gap-2">
+                    @for (subproject of projectSubprojectsQuery.data() ?? []; track subproject.id) {
+                      <div
+                        class="block cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                        [routerLink]="['/project', subproject.id]"
+                        role="link"
+                        tabindex="0"
+                        (click)="selectProject(subproject.id)"
+                      >
+                        <div class="flex items-center gap-2">
+                          <ng-icon
+                            name="lucideFolder"
+                            class="text-sm shrink-0"
+                            [style.color]="itemColor(subproject.id)"
+                          ></ng-icon>
+                          <span class="text-sm font-medium min-w-0 flex-1 truncate">
+                            <ctx-linkified-text [text]="subproject.name" />
+                          </span>
+                          <ng-icon
+                            name="lucideChevronRight"
+                            class="text-sm shrink-0 text-muted-foreground/70"
+                          ></ng-icon>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-xs text-muted-foreground">No subprojects.</p>
+                }
+              </section>
+
+              <section class="mt-6">
+                <div
+                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+                >
+                  Contexts
+                </div>
+                @if (projectContextsQuery.isLoading()) {
+                  <div class="flex flex-col gap-2" role="status">
+                    <span class="sr-only">Loading project contexts</span>
+                    @for (item of listSkeletonItems; track item) {
+                      <hlm-skeleton class="h-12 w-full"></hlm-skeleton>
+                    }
+                  </div>
+                } @else if ((projectContextsQuery.data() ?? []).length > 0) {
+                  <div class="flex flex-col gap-2">
+                    @for (context of projectContextsQuery.data() ?? []; track context.id) {
+                      <div
+                        class="block cursor-pointer rounded-lg border bg-card p-3 hover:bg-muted/30 transition-colors"
+                        [routerLink]="['/context', context.id]"
+                        role="link"
+                        tabindex="0"
+                      >
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="w-2 h-2 rounded-sm shrink-0"
+                            [style.background-color]="itemColor(context.id)"
+                          ></span>
+                          <span class="text-sm font-medium min-w-0 flex-1 truncate">
+                            <ctx-linkified-text [text]="context.name" />
+                          </span>
+                          @if (context.archived) {
+                            <span
+                              class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground"
+                            >
+                              Archived
+                            </span>
+                          }
+                          <ng-icon
+                            name="lucideChevronRight"
+                            class="text-sm shrink-0 text-muted-foreground/70"
+                          ></ng-icon>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-xs text-muted-foreground">No contexts.</p>
+                }
+              </section>
+            </div>
+          } @else {
+            <ctx-insights-empty-state />
+          }
         </div>
       }
     </div>
@@ -291,6 +371,7 @@ const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 })
 export class ProjectComponent {
   readonly listSkeletonItems = [0, 1, 2];
+  readonly detailView = signal<DetailView>('overview');
   private readonly projectQueries = inject(ProjectQueries);
   private readonly projectMutations = inject(ProjectMutations);
   private readonly activeRoute = inject(ActivatedRoute);

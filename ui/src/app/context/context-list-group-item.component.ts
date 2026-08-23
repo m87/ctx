@@ -32,15 +32,23 @@ import { ContextListProjectTagComponent } from './context-list-project-tag.compo
           <button
             type="button"
             class="h-7 w-7 -my-1 -mr-1 shrink-0 rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center"
-            [disabled]="startPending()"
+            [disabled]="startDisabled()"
+            [attr.aria-busy]="startPending()"
             [attr.aria-label]="(active() ? 'Pause ' : 'Start ') + item().name"
             [title]="(active() ? 'Pause ' : 'Start ') + item().name"
             (click)="requestStart($event)"
           >
-            <ng-icon
-              [name]="active() ? 'lucidePause' : 'lucidePlay'"
-              class="text-[13px] pointer-events-none"
-            ></ng-icon>
+            @if (startPending()) {
+              <span
+                class="size-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
+                aria-hidden="true"
+              ></span>
+            } @else {
+              <ng-icon
+                [name]="active() ? 'lucidePause' : 'lucidePlay'"
+                class="text-[13px] pointer-events-none"
+              ></ng-icon>
+            }
           </button>
         }
       </div>
@@ -67,6 +75,7 @@ export class ContextListGroupItemComponent {
   readonly item = input.required<ContextListItem>();
   readonly active = input(false);
   readonly startPending = input(false);
+  readonly startDisabled = input(false);
   readonly start = output<ContextListItem>();
 
   requestStart(event: MouseEvent): void {
