@@ -6,8 +6,10 @@
 
 <!-- ## 0.8.0 - stats & labels -->
 
-## 0.8.0
+## 0.7.1
 - feature: interval splitting — split an interval into two intervals at a given time
+<!-- - feature: postgres -->
+<!-- advanced search -->
 
 
 ## 0.7.0
