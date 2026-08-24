@@ -24,7 +24,7 @@ export class SettingsService {
 
   private url(...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
-    if(segments.length === 0 && !url.endsWith('/')) {
+    if (segments.length === 0 && !url.endsWith('/')) {
       url += '/';
     }
     return url;

@@ -1,6 +1,6 @@
-import { inject, Injectable } from "@angular/core";
-import { lastValueFrom } from "rxjs";
-import { IntegrityService } from "./integrity.service";
+import { inject, Injectable } from '@angular/core';
+import { lastValueFrom } from 'rxjs';
+import { IntegrityService } from './integrity.service';
 
 export const integrityQueryKeys = {
   all: ['integrity'] as const,
@@ -8,10 +8,9 @@ export const integrityQueryKeys = {
   integrityContexts: () => [...integrityQueryKeys.all, 'integrity-contexts'] as const,
 };
 
-
-@Injectable({ providedIn: "root" })
+@Injectable({ providedIn: 'root' })
 export class IntegrityQueries {
- private readonly integrityService = inject(IntegrityService);
+  private readonly integrityService = inject(IntegrityService);
 
   integrity() {
     return {

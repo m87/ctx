@@ -45,8 +45,17 @@ export class IntervalMutations {
 
   split() {
     return mutationOptions({
-      mutationFn: ({ id, splitTime, timeZone, contextId }: { id: string; splitTime: string, timeZone: string, contextId: string }) =>
-        lastValueFrom(this.intervalService.split(id, splitTime, timeZone)),
+      mutationFn: ({
+        id,
+        splitTime,
+        timeZone,
+        contextId,
+      }: {
+        id: string;
+        splitTime: string;
+        timeZone: string;
+        contextId: string;
+      }) => lastValueFrom(this.intervalService.split(id, splitTime, timeZone)),
       onSuccess: (_, variables) => this.cache.afterIntervalChange(variables.contextId ?? ''),
     });
   }

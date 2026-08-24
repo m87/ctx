@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs/internal/Observable';
 import { Context } from '../context/context.service';
+import { Observable } from 'rxjs';
 
 export interface Workspace {
   id: string;
@@ -67,7 +67,7 @@ export class WorkspaceService {
 
   private url(...segments: string[]): string {
     let url = [this.baseUrl, ...segments].join('/');
-    if(segments.length === 0 && !url.endsWith('/')) {
+    if (segments.length === 0 && !url.endsWith('/')) {
       url += '/';
     }
     return url;

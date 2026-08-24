@@ -9,7 +9,7 @@ import (
 
 const timeZoneQueryParameter = "timeZone"
 
-func pareseDateTime(r *http.Request, dateTime string) (time.Time, error) {
+func parseDateTime(r *http.Request, dateTime string) (time.Time, error) {
 	zoneName := strings.TrimSpace(r.URL.Query().Get(timeZoneQueryParameter))
 	location, err := parseTimeZone(zoneName)
 	if err != nil {

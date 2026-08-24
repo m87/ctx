@@ -26,5 +26,4 @@ export class SettingsQueries {
       queryFn: () => lastValueFrom(this.settingsService.getSetting(key)),
     };
   }
-
 }

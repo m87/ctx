@@ -140,8 +140,20 @@ interface SplitProperties {
             <div class="text-sm font-semibold">Split interval</div>
             <div class="text-xs text-muted-foreground">Select split time</div>
             <div class="flex items-center justify-between gap-2">
-              <div class="text-xs text-muted-foreground">{{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.start ?? '') }}</div>
-              <div class="text-xs text-muted-foreground">{{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.end ?? '') }}</div>
+              <div class="text-xs text-muted-foreground">
+                {{
+                  timeZone.formatDateTime(
+                    intervals().find((i) => i.id === splitDialogIntervalId())?.start ?? ''
+                  )
+                }}
+              </div>
+              <div class="text-xs text-muted-foreground">
+                {{
+                  timeZone.formatDateTime(
+                    intervals().find((i) => i.id === splitDialogIntervalId())?.end ?? ''
+                  )
+                }}
+              </div>
             </div>
             <hlm-slider
               [min]="splitProperties.start"
@@ -152,33 +164,58 @@ interface SplitProperties {
             ></hlm-slider>
 
             <div class="flex justify-between gap-2">
-              <div class="text-xs text-muted-foreground">{{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</div>
+              <div class="text-xs text-muted-foreground">
+                {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}
+              </div>
             </div>
 
             <div class="flex flex-col gap-2">
-              <span class="text-xs text-muted-foreground">
-                Preview:</span>
+              <span class="text-xs text-muted-foreground"> Preview:</span>
               <div class="flex justify-between gap-2">
                 <div class="flex-1 text-xs text-muted-foreground border p-2 rounded-lg">
                   <span>Interval 1:</span>
                   <div class="flex flex-col">
-                    <span>Start: {{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.start ?? '') }}</span>
-                    <span>End: {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span>
+                    <span
+                      >Start:
+                      {{
+                        timeZone.formatDateTime(
+                          intervals().find((i) => i.id === splitDialogIntervalId())?.start ?? ''
+                        )
+                      }}</span
+                    >
+                    <span
+                      >End:
+                      {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span
+                    >
                   </div>
                 </div>
                 <div class="flex-1 text-xs text-muted-foreground border p-2 rounded-lg">
                   <span>Interval 2:</span>
                   <div class="flex flex-col">
-                    <span>Start: {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span>
-                    <span>End: {{ timeZone.formatDateTime(intervals().find(i => i.id === splitDialogIntervalId())?.end ?? '') }}</span>
+                    <span
+                      >Start:
+                      {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span
+                    >
+                    <span
+                      >End:
+                      {{
+                        timeZone.formatDateTime(
+                          intervals().find((i) => i.id === splitDialogIntervalId())?.end ?? ''
+                        )
+                      }}</span
+                    >
                   </div>
                 </div>
               </div>
-
-          </div>
+            </div>
 
             <div class="flex justify-end gap-2 pt-1">
-              <button hlmBtn variant="outline" class="h-9 px-3 text-xs" (click)="closeSplitDialog()">
+              <button
+                hlmBtn
+                variant="outline"
+                class="h-9 px-3 text-xs"
+                (click)="closeSplitDialog()"
+              >
                 Cancel
               </button>
               <button
@@ -247,7 +284,7 @@ export class ContextIntervalListComponent {
   readonly intervalSkeletonItems = [0, 1, 2];
   private contextQueries = inject(ContextQueries);
   private intervalMutations = inject(IntervalMutations);
-   timeZone = inject(TimeZoneService);
+  timeZone = inject(TimeZoneService);
 
   readonly contextId = input.required<string>();
   readonly activeWorkspaceId = input<string | null>(null);
@@ -259,7 +296,7 @@ export class ContextIntervalListComponent {
     default: 50,
     split: 50,
     step: 1,
-  }
+  };
 
   createIntervalMutation = injectMutation(() => this.intervalMutations.create());
   updateIntervalMutation = injectMutation(() => this.intervalMutations.update());
@@ -297,7 +334,7 @@ export class ContextIntervalListComponent {
       return;
     }
 
-    const interval = this.intervals().find(i => i.id === this.splitDialogIntervalId());
+    const interval = this.intervals().find((i) => i.id === this.splitDialogIntervalId());
     if (!interval) {
       return;
     }
@@ -305,7 +342,12 @@ export class ContextIntervalListComponent {
     const splitTime = this.splitAsDateTime(this.splitProperties.split);
 
     this.splitIntervalMutation.mutate(
-      { id: interval.id, splitTime: `${splitTime}:00`, timeZone: this.timeZone.effectiveTimeZone(), contextId: this.contextId() },
+      {
+        id: interval.id,
+        splitTime: `${splitTime}:00`,
+        timeZone: this.timeZone.effectiveTimeZone(),
+        contextId: this.contextId(),
+      },
       {
         onSuccess: () => {
           this.closeSplitDialog();
@@ -338,7 +380,6 @@ export class ContextIntervalListComponent {
     if (this.readonly()) {
       return;
     }
-
 
     this.splitProperties = this.calcSplitProperties(interval);
     this.splitDialogIntervalId.set(interval.id);

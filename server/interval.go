@@ -45,7 +45,7 @@ func (h *IntervalHandler) splitInterval(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
-	splitTime, err := pareseDateTime(r, req.SplitTime)
+	splitTime, err := parseDateTime(r, req.SplitTime)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_SPLIT_TIME", err.Error())
 		return

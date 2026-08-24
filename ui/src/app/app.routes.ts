@@ -16,11 +16,13 @@ export const routes: Routes = [
   },
   {
     path: 'workspace',
-    loadComponent: () => import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),
+    loadComponent: () =>
+      import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),
   },
   {
     path: 'workspace/:id',
-    loadComponent: () => import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),
+    loadComponent: () =>
+      import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),
   },
   {
     path: 'project/:id',

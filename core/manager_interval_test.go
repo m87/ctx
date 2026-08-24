@@ -31,7 +31,7 @@ func TestIntervalSplit(t *testing.T) {
 
 	t.Run("SplitInterval with valid input", func(t *testing.T) {
 		manager, interval := setupSplitIntervalTest()
-	
+
 		err := manager.SplitInterval(interval.Id, splitTime)
 		assert.NoError(t, err)
 
@@ -55,7 +55,7 @@ func TestIntervalSplit(t *testing.T) {
 	})
 
 	t.Run("SplitInterval with invalid id", func(t *testing.T) {
-		manager, _ := setupSplitIntervalTest();
+		manager, _ := setupSplitIntervalTest()
 
 		err := manager.SplitInterval("invalid_id", splitTime)
 		assert.Error(t, err)
@@ -85,7 +85,7 @@ func TestIntervalSplit(t *testing.T) {
 		err = manager.SplitInterval(interval.Id, splitTime)
 		assert.Error(t, err)
 		assert.IsType(t, &IntervalSplitError{}, err)
-		assert.Equal(t, "cannot split interval \"interval1\": split time is outside the interval range", err.Error())	
+		assert.Equal(t, "cannot split interval \"interval1\": split time is outside the interval range", err.Error())
 	})
 
 	t.Run("SplitInterval with active interval", func(t *testing.T) {

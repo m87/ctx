@@ -8,16 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
 func NewEditProjectCmd() *cobra.Command {
 	var (
-		projectId		string
-		name			string
+		projectId string
+		name      string
 	)
 
 	cmd := &cobra.Command{
-		Use: "project",
+		Use:   "project",
 		Short: "Edit a project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			manager, err := bootstrap.CreateManager()
@@ -47,7 +45,7 @@ func NewEditProjectCmd() *cobra.Command {
 			if resolveRemoteAddr() != "" {
 				return remoteClient().UpdateProject(project)
 			}
-			_ , err =  manager.ProjectRepository.Save(project)
+			_, err = manager.ProjectRepository.Save(project)
 			return err
 		},
 	}
