@@ -32,8 +32,11 @@ func TestIntervalSplit(t *testing.T) {
 	t.Run("SplitInterval with valid input", func(t *testing.T) {
 		manager, interval := setupSplitIntervalTest()
 
-		err := manager.SplitInterval(interval.Id, splitTime)
+		result, err := manager.SplitInterval(interval.Id, splitTime)
 		assert.NoError(t, err)
+		assert.Equal(t, interval, result.Origin)
+		assert.NotEmpty(t, result.SplitResult[0].Id)
+		assert.NotEmpty(t, result.SplitResult[1].Id)
 
 		intervals, err := manager.IntervalRepository.ListByContextId(interval.ContextId)
 		assert.NoError(t, err)
@@ -57,7 +60,7 @@ func TestIntervalSplit(t *testing.T) {
 	t.Run("SplitInterval with invalid id", func(t *testing.T) {
 		manager, _ := setupSplitIntervalTest()
 
-		err := manager.SplitInterval("invalid_id", splitTime)
+		_, err := manager.SplitInterval("invalid_id", splitTime)
 		assert.Error(t, err)
 		assert.IsType(t, &IntervalSplitError{}, err)
 		assert.Equal(t, "cannot split interval \"invalid_id\": interval not found", err.Error())
@@ -66,7 +69,7 @@ func TestIntervalSplit(t *testing.T) {
 	t.Run("SplitInterval with invalid split time", func(t *testing.T) {
 		manager, interval := setupSplitIntervalTest()
 
-		err := manager.SplitInterval(interval.Id, time.Time{})
+		_, err := manager.SplitInterval(interval.Id, time.Time{})
 		assert.Error(t, err)
 		assert.IsType(t, &IntervalSplitError{}, err)
 		assert.Equal(t, "cannot split interval \"interval1\": split time is required", err.Error())
@@ -76,13 +79,13 @@ func TestIntervalSplit(t *testing.T) {
 		splitTime := time.Date(2024, 6, 1, 18, 0, 0, 0, time.UTC)
 		manager, interval := setupSplitIntervalTest()
 
-		err := manager.SplitInterval(interval.Id, splitTime)
+		_, err := manager.SplitInterval(interval.Id, splitTime)
 		assert.Error(t, err)
 		assert.IsType(t, &IntervalSplitError{}, err)
 		assert.Equal(t, "cannot split interval \"interval1\": split time is outside the interval range", err.Error())
 
 		splitTime = time.Date(2024, 6, 1, 8, 0, 0, 0, time.UTC)
-		err = manager.SplitInterval(interval.Id, splitTime)
+		_, err = manager.SplitInterval(interval.Id, splitTime)
 		assert.Error(t, err)
 		assert.IsType(t, &IntervalSplitError{}, err)
 		assert.Equal(t, "cannot split interval \"interval1\": split time is outside the interval range", err.Error())
@@ -93,7 +96,7 @@ func TestIntervalSplit(t *testing.T) {
 		interval.Status = IntervalStatusActive
 		manager.IntervalRepository.Save(interval)
 
-		err := manager.SplitInterval(interval.Id, splitTime)
+		_, err := manager.SplitInterval(interval.Id, splitTime)
 		assert.Error(t, err)
 		assert.IsType(t, &IntervalSplitError{}, err)
 		assert.Equal(t, "cannot split interval \"interval1\": cannot split an active interval", err.Error())
@@ -105,7 +108,7 @@ func TestIntervalSplit(t *testing.T) {
 		interval.End = nil
 		manager.IntervalRepository.Save(interval)
 
-		err := manager.SplitInterval(interval.Id, splitTime)
+		_, err := manager.SplitInterval(interval.Id, splitTime)
 		assert.Error(t, err)
 		assert.IsType(t, &IntervalSplitError{}, err)
 		assert.Equal(t, "cannot split interval \"interval1\": cannot split an interval with no end time", err.Error())

@@ -23,7 +23,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.36 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -54,8 +54,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.78 0 0);
+  --primary-foreground: oklch(0.18 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -90,5 +90,45 @@
     min-height: 100dvh;
     overflow: hidden;
     @apply bg-secondary/25 text-foreground;
+  }
+}
+
+@layer components {
+  .split-undo-toast {
+    gap: 0.75rem !important;
+    padding: 0.75rem 0.75rem 0.75rem 0.875rem !important;
+    border-radius: 0.75rem !important;
+    box-shadow:
+      0 10px 30px rgb(0 0 0 / 0.12),
+      0 2px 8px rgb(0 0 0 / 0.08) !important;
+  }
+
+  .split-undo-action {
+    height: 1.875rem !important;
+    padding: 0 0.625rem !important;
+    border: 0 !important;
+    border-radius: 0.375rem !important;
+    background: transparent !important;
+    color: var(--muted-foreground) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.01em;
+    box-shadow: none !important;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease !important;
+  }
+
+  .split-undo-action:hover {
+    background: var(--muted) !important;
+    color: var(--foreground) !important;
+  }
+
+  .split-undo-action:focus-visible {
+    background: var(--muted) !important;
+    color: var(--foreground) !important;
+    outline: 1px solid var(--ring) !important;
+    outline-offset: 1px;
+    box-shadow: none !important;
   }
 }

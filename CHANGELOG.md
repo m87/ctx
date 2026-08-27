@@ -8,6 +8,7 @@
 
 ## 0.7.1
 - feature: interval splitting — split an interval into two intervals at a given time
+- enhancement: ui tweaks
 <!-- - feature: postgres -->
 <!-- advanced search -->
 

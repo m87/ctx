@@ -20,6 +20,11 @@ export interface DayIntervalsResponse {
   intervals: Interval[];
 }
 
+export interface SplitIntervalResponse {
+  origin: Interval;
+  splitResult: [Interval, Interval];
+}
+
 export interface DayContextStats {
   contextId: string;
   duration: number;
@@ -80,8 +85,14 @@ export class IntervalService {
     );
   }
 
-  split(id: string, splitTime: string, timeZone: string): Observable<Interval[]> {
-    return this.http.post<Interval[]>(this.urlWithParams({ timeZone }, id, 'split'), { splitTime });
+  split(id: string, splitTime: string, timeZone: string): Observable<SplitIntervalResponse> {
+    return this.http.post<SplitIntervalResponse>(this.urlWithParams({ timeZone }, id, 'split'), {
+      splitTime,
+    });
+  }
+
+  undoSplit(result: SplitIntervalResponse): Observable<Interval> {
+    return this.http.post<Interval>(this.url(result.origin.id, 'split', 'undo'), result);
   }
 
   private url(...segments: string[]): string {

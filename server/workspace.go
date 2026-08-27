@@ -45,7 +45,7 @@ func (h *WorkspaceHandler) getWorkspaceStats(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_WORKSPACE_STATS", "Failed to get workspace stats")
 		return
 	}
-	writeJson(w, http.StatusOK, stats)
+	writeJSON(w, http.StatusOK, stats)
 }
 
 func (h *WorkspaceHandler) listWorkspaces(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func (h *WorkspaceHandler) listWorkspaces(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_WORKSPACES", "Failed to list workspaces")
 		return
 	}
-	writeJson(w, http.StatusOK, workspaces)
+	writeJSON(w, http.StatusOK, workspaces)
 }
 
 func (h *WorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +71,7 @@ func (h *WorkspaceHandler) createWorkspace(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	workspace.Id = id
-	writeJson(w, http.StatusCreated, &workspace)
+	writeJSON(w, http.StatusCreated, &workspace)
 }
 
 func (h *WorkspaceHandler) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +108,7 @@ func (h *WorkspaceHandler) getWorkspace(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusNotFound, "WORKSPACE_NOT_FOUND", "Workspace not found")
 		return
 	}
-	writeJson(w, http.StatusOK, workspace)
+	writeJSON(w, http.StatusOK, workspace)
 }
 
 func (h *WorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -129,5 +129,5 @@ func (h *WorkspaceHandler) updateWorkspace(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_WORKSPACE", "Failed to update workspace")
 		return
 	}
-	writeJson(w, http.StatusOK, &workspace)
+	writeJSON(w, http.StatusOK, &workspace)
 }

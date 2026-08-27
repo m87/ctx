@@ -23,7 +23,7 @@ func (h *IntegrityHandler) listContexts(w http.ResponseWriter, _ *http.Request) 
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTEGRITY_CONTEXTS", "Failed to list contexts for data integrity repair")
 		return
 	}
-	writeJson(w, http.StatusOK, contexts)
+	writeJSON(w, http.StatusOK, contexts)
 }
 
 func (h *IntegrityHandler) repairIntegrity(w http.ResponseWriter, _ *http.Request) {
@@ -32,7 +32,7 @@ func (h *IntegrityHandler) repairIntegrity(w http.ResponseWriter, _ *http.Reques
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_REPAIR_INTEGRITY", "Failed to repair data integrity")
 		return
 	}
-	writeJson(w, http.StatusOK, result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *IntegrityHandler) checkIntegrity(w http.ResponseWriter, _ *http.Request) {
@@ -41,5 +41,5 @@ func (h *IntegrityHandler) checkIntegrity(w http.ResponseWriter, _ *http.Request
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_CHECK_INTEGRITY", "Failed to check data integrity")
 		return
 	}
-	writeJson(w, http.StatusOK, report)
+	writeJSON(w, http.StatusOK, report)
 }

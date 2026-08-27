@@ -12,16 +12,16 @@ type ProjectHandler struct {
 }
 
 func registerProjectHandler(mux *http.ServeMux, manager *core.ContextManager) {
-	handlder := &ProjectHandler{manager: manager}
-	mux.HandleFunc("GET /", handlder.listProjects)
-	mux.HandleFunc("GET /all", handlder.listAllProjects)
-	mux.HandleFunc("GET /{id}", handlder.getProject)
-	mux.HandleFunc("PUT /{id}", handlder.updateProject)
-	mux.HandleFunc("POST /", handlder.createProject)
-	mux.HandleFunc("DELETE /{id}", handlder.deleteProject)
-	mux.HandleFunc("GET /projects", handlder.listRootProjects)
-	mux.HandleFunc("GET /{id}/projects", handlder.listChildren)
-	mux.HandleFunc("GET /{id}/contexts", handlder.listContexts)
+	handler := &ProjectHandler{manager: manager}
+	mux.HandleFunc("GET /", handler.listProjects)
+	mux.HandleFunc("GET /all", handler.listAllProjects)
+	mux.HandleFunc("GET /{id}", handler.getProject)
+	mux.HandleFunc("PUT /{id}", handler.updateProject)
+	mux.HandleFunc("POST /", handler.createProject)
+	mux.HandleFunc("DELETE /{id}", handler.deleteProject)
+	mux.HandleFunc("GET /projects", handler.listRootProjects)
+	mux.HandleFunc("GET /{id}/projects", handler.listChildren)
+	mux.HandleFunc("GET /{id}/contexts", handler.listContexts)
 }
 
 func (h *ProjectHandler) listRootProjects(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (h *ProjectHandler) listRootProjects(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	writeJson(w, http.StatusOK, projects)
+	writeJSON(w, http.StatusOK, projects)
 }
 
 func (h *ProjectHandler) listAllProjects(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +53,7 @@ func (h *ProjectHandler) listAllProjects(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	writeJson(w, http.StatusOK, projects)
+	writeJSON(w, http.StatusOK, projects)
 }
 
 func (h *ProjectHandler) listContexts(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +69,7 @@ func (h *ProjectHandler) listContexts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, contexts)
+	writeJSON(w, http.StatusOK, contexts)
 }
 
 func (h *ProjectHandler) listChildren(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +85,7 @@ func (h *ProjectHandler) listChildren(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, projects)
+	writeJSON(w, http.StatusOK, projects)
 }
 
 func (h *ProjectHandler) deleteProject(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +125,7 @@ func (h *ProjectHandler) getProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, project)
+	writeJSON(w, http.StatusOK, project)
 }
 
 func (h *ProjectHandler) updateProject(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +160,7 @@ func (h *ProjectHandler) updateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, project)
+	writeJSON(w, http.StatusOK, project)
 }
 
 func (h *ProjectHandler) createProject(w http.ResponseWriter, r *http.Request) {
@@ -203,7 +203,7 @@ func (h *ProjectHandler) createProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	project.Id = id
-	writeJson(w, http.StatusCreated, project)
+	writeJSON(w, http.StatusCreated, project)
 }
 
 func (h *ProjectHandler) listProjects(w http.ResponseWriter, r *http.Request) {
@@ -219,5 +219,5 @@ func (h *ProjectHandler) listProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, projects)
+	writeJSON(w, http.StatusOK, projects)
 }

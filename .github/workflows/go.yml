@@ -31,6 +31,10 @@ jobs:
         working-directory: ./ui
         run: npm ci
 
+      - name: Check UI formatting
+        working-directory: ./ui
+        run: npm run format:check
+
       - name: Build UI
         working-directory: ./ui
         run: npm run build -- --configuration production
@@ -42,6 +46,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: Check Go formatting
+        run: test -z "$(gofmt -l .)"
 
       - name: Download deps
         run: go mod download

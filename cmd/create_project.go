@@ -6,12 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-func NewCreateProjectCmd() *cobra.Command { 
+func NewCreateProjectCmd() *cobra.Command {
 
 	var (
-		name string
-		parentId string
+		name        string
+		parentId    string
 		workspaceId string
 	)
 
@@ -24,8 +23,8 @@ func NewCreateProjectCmd() *cobra.Command {
 				return err
 			}
 			project := &core.Project{
-				Name: name,
-				ParentId: parentId,
+				Name:        name,
+				ParentId:    parentId,
 				WorkspaceId: workspaceId,
 			}
 
@@ -45,14 +44,14 @@ func NewCreateProjectCmd() *cobra.Command {
 		},
 	}
 
-		cmd.Flags().StringVarP(&name, "name", "n", "", "Name of the project")
-		cmd.Flags().StringVarP(&parentId, "parent", "p", "", "Parent ID of the project")
-		cmd.Flags().StringVarP(&workspaceId, "workspace", "w", "", "Workspace ID of the project")
+	cmd.Flags().StringVarP(&name, "name", "n", "", "Name of the project")
+	cmd.Flags().StringVarP(&parentId, "parent", "p", "", "Parent ID of the project")
+	cmd.Flags().StringVarP(&workspaceId, "workspace", "w", "", "Workspace ID of the project")
 
-		cmd.MarkFlagRequired("name")
-		cmd.MarkFlagRequired("workspace")
+	cmd.MarkFlagRequired("name")
+	cmd.MarkFlagRequired("workspace")
 
-		return cmd
+	return cmd
 }
 
 func init() {

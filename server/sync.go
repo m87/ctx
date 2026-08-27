@@ -70,7 +70,7 @@ func (h *SyncHandler) GetWorkspacesToSync(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_WORKSPACES", "Failed to list workspaces")
 		return
 	}
-	writeJson(w, http.StatusOK, workspaces)
+	writeJSON(w, http.StatusOK, workspaces)
 }
 
 func (h *SyncHandler) GetContextsToSync(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +79,7 @@ func (h *SyncHandler) GetContextsToSync(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_CONTEXTS", "Failed to list contexts")
 		return
 	}
-	writeJson(w, http.StatusOK, contexts)
+	writeJSON(w, http.StatusOK, contexts)
 }
 
 func (h *SyncHandler) GetIntervalsToSync(w http.ResponseWriter, r *http.Request) {
@@ -88,5 +88,5 @@ func (h *SyncHandler) GetIntervalsToSync(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_INTERVALS", "Failed to list intervals")
 		return
 	}
-	writeJson(w, http.StatusOK, intervals)
+	writeJSON(w, http.StatusOK, intervals)
 }

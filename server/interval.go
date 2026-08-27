@@ -30,6 +30,7 @@ func registerIntervalHandler(mux *http.ServeMux, manager *core.ContextManager) {
 	mux.HandleFunc("POST /", handler.createInterval)
 	mux.HandleFunc("PATCH /{id}/move/{targetId}", handler.moveInterval)
 	mux.HandleFunc("POST /{id}/split", handler.splitInterval)
+	mux.HandleFunc("POST /{id}/split/undo", handler.undoSplitInterval)
 }
 
 func (h *IntervalHandler) splitInterval(w http.ResponseWriter, r *http.Request) {
@@ -51,13 +52,35 @@ func (h *IntervalHandler) splitInterval(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.manager.SplitInterval(id, splitTime)
+	result, err := h.manager.SplitInterval(id, splitTime)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_SPLIT_INTERVAL", err.Error())
 		return
 	}
 
-	writeJson(w, http.StatusOK, map[string]string{"message": "Interval split successfully"})
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *IntervalHandler) undoSplitInterval(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_INTERVAL_ID", "Missing interval ID")
+		return
+	}
+
+	var result core.IntervalSplitResult
+	if err := json.NewDecoder(r.Body).Decode(&result); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
+		return
+	}
+
+	origin, err := h.manager.UndoSplitInterval(id, &result)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_UNDO_INTERVAL_SPLIT", err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, origin)
 }
 
 func (h *IntervalHandler) moveInterval(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +110,7 @@ func (h *IntervalHandler) moveInterval(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, interval)
+	writeJSON(w, http.StatusOK, interval)
 }
 
 func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +134,7 @@ func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request)
 	}
 	interval.Id = id
 
-	writeJson(w, http.StatusOK, &interval)
+	writeJSON(w, http.StatusOK, &interval)
 }
 
 func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +163,7 @@ func (h *IntervalHandler) updateInterval(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	writeJson(w, http.StatusOK, &interval)
+	writeJSON(w, http.StatusOK, &interval)
 }
 
 func recalculateIntervalDuration(interval *core.Interval) {
@@ -209,7 +232,7 @@ func (h *IntervalHandler) listByDay(w http.ResponseWriter, r *http.Request) {
 		contexts = append(contexts, ctx)
 	}
 
-	writeJson(w, http.StatusOK, &DayReport{
+	writeJSON(w, http.StatusOK, &DayReport{
 		Contexts:  contexts,
 		Intervals: clippedIntervals,
 	})
@@ -298,7 +321,7 @@ func (h *IntervalHandler) statsByDay(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(contextStats, func(i, j int) bool { return contextStats[i].Duration > contextStats[j].Duration })
 
-	writeJson(w, http.StatusOK, &DayStats{
+	writeJSON(w, http.StatusOK, &DayStats{
 		Date:         date.Format("2006-01-02"),
 		ContextStats: contextStats,
 		Contexts:     contexts,

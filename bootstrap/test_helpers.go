@@ -8,7 +8,7 @@ import (
 	"github.com/m87/nod/sqlite"
 )
 
-func NewTextContextManager(current time.Time) *core.ContextManager {
+func NewTestContextManager(current time.Time) *core.ContextManager {
 	repository, _ := sqlite.NewRepository(":memory:", ctxlog.Logger, NewAdapterRegistry())
 	return core.NewContextManager(
 		NewTestTimeProvider(current),

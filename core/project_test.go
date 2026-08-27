@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 func testProjectToNode(t *testing.T) {
 	project := &Project{
 		Id:          "project1",
@@ -35,10 +34,10 @@ func testProjectFromNode(t *testing.T) {
 			Kind:        ProjectType,
 		},
 	}
-	
+
 	project := &Project{}
 	err := project.FromNode(node)
-	assert.NoError(t, err)	
+	assert.NoError(t, err)
 	assert.Equal(t, "project1", project.Id)
 	assert.Equal(t, "Project 1", project.Name)
 	assert.Equal(t, "parent1", project.ParentId)

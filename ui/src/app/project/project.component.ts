@@ -3,7 +3,6 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideChevronDown,
   lucideChevronRight,
   lucideFolder,
   lucidePencil,
@@ -23,6 +22,7 @@ import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { colorHash } from '../utils';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
+import { SearchSelectComponent, SearchSelectOption } from '../shared/search-select.component';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 type DetailView = 'overview' | 'insights';
@@ -38,12 +38,12 @@ type DetailView = 'overview' | 'insights';
     LinkifiedTextComponent,
     InsightsEmptyStateComponent,
     HlmSkeletonImports,
+    SearchSelectComponent,
   ],
   providers: [
     provideIcons({
       lucideTrash2,
       lucideFolder,
-      lucideChevronDown,
       lucideChevronRight,
       lucidePencil,
       lucideX,
@@ -161,48 +161,27 @@ type DetailView = 'overview' | 'insights';
           @if (detailView() === 'overview') {
             @if (editingParentAssignment()) {
               <div class="w-full rounded-lg border bg-card p-3">
-                <div
+                <label
+                  for="parent-project-search"
                   class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
                 >
                   Parent project
-                </div>
-                <div class="mt-2 flex items-center gap-2">
-                  <div class="relative min-w-0 flex-1">
-                    <select
-                      class="h-9 w-full appearance-none rounded-md border border-border bg-background pl-3 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-wait disabled:opacity-100"
-                      [disabled]="updateProjectMutation.isPending()"
-                      [attr.aria-busy]="updateProjectMutation.isPending()"
-                      (change)="assignParentProject($event)"
-                    >
-                      <option [value]="workspaceRootValue" [selected]="!currentProject.parentId">
-                        Workspace root
-                      </option>
-                      @for (project of availableParentProjects(); track project.id) {
-                        <option
-                          [value]="project.id"
-                          [selected]="currentProject.parentId === project.id"
-                        >
-                          {{ project.name }}
-                        </option>
-                      }
-                    </select>
-                    <span
-                      class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground"
-                    >
-                      @if (updateProjectMutation.isPending()) {
-                        <span
-                          class="size-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
-                          role="status"
-                          aria-label="Updating parent project"
-                        ></span>
-                      } @else {
-                        <ng-icon name="lucideChevronDown" class="text-sm"></ng-icon>
-                      }
-                    </span>
-                  </div>
+                </label>
+                <div class="mt-2 flex items-start gap-2">
+                  <ctx-search-select
+                    class="min-w-0 flex-1"
+                    inputId="parent-project-search"
+                    ariaLabel="Parent project"
+                    searchPlaceholder="Search projects…"
+                    emptyText="No matching projects"
+                    [options]="parentProjectSelectOptions()"
+                    [value]="currentProject.parentId ?? workspaceRootValue"
+                    [disabled]="updateProjectMutation.isPending()"
+                    (selectionChange)="assignParentProject($event)"
+                  ></ctx-search-select>
                   <button
                     type="button"
-                    class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
+                    class="flex size-9 shrink-0 items-center justify-center rounded-md border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                     aria-label="Cancel parent project assignment"
                     title="Cancel"
                     [disabled]="updateProjectMutation.isPending()"
@@ -382,19 +361,19 @@ export class ProjectComponent {
     this.activeRoute.paramMap.pipe(map((params) => params.get('id') ?? '')),
     { initialValue: '' },
   );
-  readonly selecetedWorkspaceId = this.store.selectSignal(
+  readonly selectedWorkspaceId = this.store.selectSignal(
     (state) => state.workspace.selectedWorkspaceId,
   );
   readonly projectDetailsQuery = injectQuery(() => this.projectQueries.get(this.projectId()));
   readonly projectWorkspaceId = computed(
-    () => this.projectDetailsQuery.data()?.workspaceId ?? this.selecetedWorkspaceId() ?? '',
+    () => this.projectDetailsQuery.data()?.workspaceId ?? this.selectedWorkspaceId() ?? '',
   );
   readonly allProjectsQuery = injectQuery(() => this.projectQueries.all(this.projectWorkspaceId()));
   readonly updateProjectMutation = injectMutation(() => this.projectMutations.update());
   readonly deleteProjectMutation = injectMutation(() => this.projectMutations.delete());
   readonly projectContextsQuery = injectQuery(() => this.projectQueries.contexts(this.projectId()));
   readonly projectSubprojectsQuery = injectQuery(() =>
-    this.projectQueries.subprojects(this.projectId(), this.selecetedWorkspaceId()),
+    this.projectQueries.subprojects(this.projectId(), this.selectedWorkspaceId()),
   );
   readonly project = computed(() => this.projectDetailsQuery.data() ?? null);
   readonly parentProject = computed(() => {
@@ -428,6 +407,19 @@ export class ProjectComponent {
       return true;
     });
   });
+  readonly parentProjectSelectOptions = computed<SearchSelectOption[]>(() => [
+    {
+      value: WORKSPACE_ROOT_VALUE,
+      label: 'Workspace root',
+      color: 'var(--muted-foreground)',
+      description: 'No parent project',
+    },
+    ...this.availableParentProjects().map((project) => ({
+      value: project.id,
+      label: project.name,
+      color: colorHash(project.id),
+    })),
+  ]);
   readonly editingParentAssignment = signal(false);
   readonly workspaceRootValue = WORKSPACE_ROOT_VALUE;
   readonly showProjectError = computed(
@@ -454,13 +446,12 @@ export class ProjectComponent {
     this.editingParentAssignment.set(true);
   }
 
-  assignParentProject(event: Event): void {
+  assignParentProject(selectedValue: string): void {
     const project = this.project();
     if (!project) {
       return;
     }
 
-    const selectedValue = (event.target as HTMLSelectElement).value;
     const parentId = selectedValue === WORKSPACE_ROOT_VALUE ? '' : selectedValue;
     this.updateProjectMutation.mutate(
       {

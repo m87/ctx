@@ -42,7 +42,6 @@ func (m *ContextRepositoryMock) List() ([]*Context, error) {
 	return m.contexts, nil
 }
 
-
 func setupManagerCorrectData() *ContextManager {
 	workspaceRepo := &WorkspaceRepositoryMock{
 		workspaces: []*Workspace{

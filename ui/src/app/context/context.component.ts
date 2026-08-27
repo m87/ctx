@@ -4,7 +4,6 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArchive,
   lucideArchiveRestore,
-  lucideChevronDown,
   lucideChevronRight,
   lucideFolder,
   lucidePause,
@@ -30,6 +29,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
 import { ProjectQueries } from '../../api/project/project.queries';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
+import { SearchSelectComponent, SearchSelectOption } from '../shared/search-select.component';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
 type DetailView = 'overview' | 'insights';
@@ -45,12 +45,12 @@ type DetailView = 'overview' | 'insights';
     RouterLink,
     InsightsEmptyStateComponent,
     HlmSkeletonImports,
+    SearchSelectComponent,
   ],
   providers: [
     provideIcons({
       lucideArchive,
       lucideArchiveRestore,
-      lucideChevronDown,
       lucideChevronRight,
       lucideFolder,
       lucidePause,
@@ -250,60 +250,7 @@ type DetailView = 'overview' | 'insights';
           "
         >
           @if (detailView() === 'overview') {
-            @if (editingProjectAssignment()) {
-              <div class="w-full rounded-lg border bg-card p-3">
-                <div
-                  class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
-                >
-                  Project
-                </div>
-                <div class="mt-2 flex items-center gap-2">
-                  <div class="relative min-w-0 flex-1">
-                    <select
-                      class="h-9 w-full appearance-none rounded-md border border-border bg-background pl-3 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-wait disabled:opacity-100"
-                      [disabled]="updateContextMutation.isPending()"
-                      [attr.aria-busy]="updateContextMutation.isPending()"
-                      (change)="assignContextToProject($event)"
-                    >
-                      <option [value]="workspaceRootValue" [selected]="!currentContext.project?.id">
-                        Workspace root
-                      </option>
-                      @for (project of availableProjects(); track project.id) {
-                        <option
-                          [value]="project.id"
-                          [selected]="currentContext.project?.id === project.id"
-                        >
-                          {{ project.name }}
-                        </option>
-                      }
-                    </select>
-                    <span
-                      class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground"
-                    >
-                      @if (updateContextMutation.isPending()) {
-                        <span
-                          class="size-3.5 rounded-full border-2 border-current border-t-transparent animate-spin"
-                          role="status"
-                          aria-label="Updating project assignment"
-                        ></span>
-                      } @else {
-                        <ng-icon name="lucideChevronDown" class="text-sm"></ng-icon>
-                      }
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    class="size-9 shrink-0 rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
-                    aria-label="Cancel project assignment"
-                    title="Cancel"
-                    [disabled]="updateContextMutation.isPending()"
-                    (click)="editingProjectAssignment.set(false)"
-                  >
-                    <ng-icon name="lucideX"></ng-icon>
-                  </button>
-                </div>
-              </div>
-            } @else if (currentContext.project; as project) {
+            @if (currentContext.project; as project) {
               <div
                 class="w-full flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer hover:bg-muted/30 transition-colors"
                 [routerLink]="['/project', project.id]"
@@ -338,7 +285,7 @@ type DetailView = 'overview' | 'insights';
               <button
                 type="button"
                 class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
-                (click)="editingProjectAssignment.set(true)"
+                (click)="startProjectAssignmentEdit($event)"
               >
                 <ng-icon name="lucideFolder"></ng-icon>
                 <span>Assign to project</span>
@@ -374,7 +321,7 @@ type DetailView = 'overview' | 'insights';
                     >
                       Total time
                     </h3>
-                    <div class="text-lg font-semibold" hlmCardContet>
+                    <div class="text-lg font-semibold">
                       {{ parseDuration(contextStats()?.totalDuration) }}
                     </div>
                   </div>
@@ -385,7 +332,7 @@ type DetailView = 'overview' | 'insights';
                     >
                       Today
                     </h3>
-                    <div class="text-lg font-semibold" hlmCardContet>
+                    <div class="text-lg font-semibold">
                       {{ parseDuration(contextStats()?.duration) }}
                     </div>
                   </div>
@@ -396,7 +343,7 @@ type DetailView = 'overview' | 'insights';
                     >
                       Sessions
                     </h3>
-                    <div class="text-lg font-semibold" hlmCardContet>
+                    <div class="text-lg font-semibold">
                       {{ contextStats()?.totalSessions }}
                     </div>
                   </div>
@@ -407,7 +354,7 @@ type DetailView = 'overview' | 'insights';
                     >
                       Today sessions
                     </h3>
-                    <div class="text-lg font-semibold" hlmCardContet>
+                    <div class="text-lg font-semibold">
                       {{ contextStats()?.sessions }}
                     </div>
                   </div>
@@ -424,6 +371,93 @@ type DetailView = 'overview' | 'insights';
             <ctx-insights-empty-state />
           }
         </div>
+
+        @if (editingProjectAssignment()) {
+          <div
+            class="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center"
+            (click)="closeProjectAssignmentDialog()"
+          >
+            <div class="absolute inset-0 bg-background/65 backdrop-blur-sm"></div>
+            <section
+              class="relative max-h-[92dvh] w-full overflow-hidden rounded-t-3xl border border-border/80 bg-popover text-popover-foreground shadow-2xl sm:w-[min(92vw,30rem)] sm:rounded-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="project-assignment-dialog-title"
+              (click)="$event.stopPropagation()"
+            >
+              <header class="flex items-start gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+                <div
+                  class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground"
+                >
+                  <ng-icon name="lucideFolder" class="text-lg"></ng-icon>
+                </div>
+                <div class="min-w-0 flex-1 pt-0.5">
+                  <h2
+                    id="project-assignment-dialog-title"
+                    class="text-base font-semibold tracking-tight"
+                  >
+                    Assign to project
+                  </h2>
+                  <p class="mt-0.5 truncate text-xs leading-5 text-muted-foreground">
+                    Choose a project for {{ currentContext.name }}.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  aria-label="Close project assignment dialog"
+                  [disabled]="updateContextMutation.isPending()"
+                  (click)="closeProjectAssignmentDialog()"
+                >
+                  <ng-icon name="lucideX" class="text-base"></ng-icon>
+                </button>
+              </header>
+
+              <div class="px-5 py-5 sm:px-6">
+                <label
+                  for="context-project-search"
+                  class="mb-2 block text-xs font-medium text-foreground"
+                >
+                  Project
+                </label>
+                <ctx-search-select
+                  inputId="context-project-search"
+                  ariaLabel="Project"
+                  searchPlaceholder="Search projects…"
+                  emptyText="No matching projects"
+                  [options]="projectSelectOptions()"
+                  [value]="projectAssignmentTargetId()"
+                  [disabled]="updateContextMutation.isPending()"
+                  (selectionChange)="projectAssignmentTargetId.set($event)"
+                ></ctx-search-select>
+              </div>
+
+              <footer
+                class="flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/20 px-5 py-4 sm:flex-row sm:justify-end sm:px-6"
+              >
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  class="h-10 px-4 text-xs"
+                  [disabled]="updateContextMutation.isPending()"
+                  (click)="closeProjectAssignmentDialog()"
+                >
+                  Cancel
+                </button>
+                <button
+                  hlmBtn
+                  variant="outline"
+                  class="h-10 px-5 text-xs shadow-sm"
+                  [disabled]="!projectAssignmentChanged() || updateContextMutation.isPending()"
+                  (click)="confirmProjectAssignment()"
+                >
+                  <ng-icon name="lucideFolder"></ng-icon>
+                  {{ updateContextMutation.isPending() ? 'Saving…' : 'Save assignment' }}
+                </button>
+              </footer>
+            </section>
+          </div>
+        }
       }
     </div>
   `,
@@ -469,8 +503,26 @@ export class ContextComponent {
   );
   projectsQuery = injectQuery(() => this.projectQueries.all(this.contextWorkspaceId()));
   readonly availableProjects = computed(() => this.projectsQuery.data() ?? []);
+  readonly projectSelectOptions = computed<SearchSelectOption[]>(() => [
+    {
+      value: WORKSPACE_ROOT_VALUE,
+      label: 'Workspace root',
+      color: 'var(--muted-foreground)',
+      description: 'No project',
+    },
+    ...this.availableProjects().map((project) => ({
+      value: project.id,
+      label: project.name,
+      color: colorHash(project.id),
+    })),
+  ]);
   readonly editingProjectAssignment = signal(false);
   readonly workspaceRootValue = WORKSPACE_ROOT_VALUE;
+  readonly projectAssignmentTargetId = signal(WORKSPACE_ROOT_VALUE);
+  readonly projectAssignmentChanged = computed(
+    () =>
+      this.projectAssignmentTargetId() !== (this.context()?.project?.id ?? WORKSPACE_ROOT_VALUE),
+  );
   isActiveContext = computed(() => this.activeContextQuery.data()?.id === this.contextId());
   readonly contextOperationPending = computed(
     () => this.switchContextMutation.isPending() || this.freeContextMutation.isPending(),
@@ -565,16 +617,29 @@ export class ContextComponent {
   startProjectAssignmentEdit(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
+    this.projectAssignmentTargetId.set(this.context()?.project?.id ?? WORKSPACE_ROOT_VALUE);
     this.editingProjectAssignment.set(true);
   }
 
-  assignContextToProject(event: Event): void {
+  closeProjectAssignmentDialog(): void {
+    this.editingProjectAssignment.set(false);
+    this.projectAssignmentTargetId.set(WORKSPACE_ROOT_VALUE);
+  }
+
+  confirmProjectAssignment(): void {
+    if (!this.projectAssignmentChanged() || this.updateContextMutation.isPending()) {
+      return;
+    }
+
+    this.assignContextToProject(this.projectAssignmentTargetId());
+  }
+
+  assignContextToProject(selectedValue: string): void {
     const context = this.context();
     if (!context) {
       return;
     }
 
-    const selectedValue = (event.target as HTMLSelectElement).value;
     const projectId = selectedValue === WORKSPACE_ROOT_VALUE ? '' : selectedValue;
     const project = this.availableProjects().find((candidate) => candidate.id === projectId);
     this.updateContextMutation.mutate(
@@ -586,7 +651,7 @@ export class ContextComponent {
         },
       },
       {
-        onSuccess: () => this.editingProjectAssignment.set(false),
+        onSuccess: () => this.closeProjectAssignmentDialog(),
       },
     );
   }

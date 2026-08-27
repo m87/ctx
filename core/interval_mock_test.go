@@ -5,7 +5,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 func NewIntervalRepositoryMock(intervals []*Interval) *IntervalRepositoryMock {
 	return &IntervalRepositoryMock{
 		intervals: intervals,
@@ -15,7 +14,7 @@ func NewIntervalRepositoryMock(intervals []*Interval) *IntervalRepositoryMock {
 type IntervalRepositoryMock struct {
 	IntervalRepository
 	intervals []*Interval
-	called bool
+	called    bool
 }
 
 func (m *IntervalRepositoryMock) List() ([]*Interval, error) {

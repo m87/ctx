@@ -7,8 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-func paresLocalDateTime(timeStr string) (*time.Time, error) {
+func parseLocalDateTime(timeStr string) (*time.Time, error) {
 	parsedTime, err := time.Parse("2006-01-02 15:04:05", timeStr)
 	if err != nil {
 		return nil, err
@@ -18,7 +17,7 @@ func paresLocalDateTime(timeStr string) (*time.Time, error) {
 
 func NewIntervalSplitCmd() *cobra.Command {
 	var (
-		id string
+		id        string
 		splitTime string
 	)
 
@@ -31,13 +30,12 @@ func NewIntervalSplitCmd() *cobra.Command {
 				return err
 			}
 
-
-			parsedTime, err := paresLocalDateTime(splitTime)
+			parsedTime, err := parseLocalDateTime(splitTime)
 			if err != nil {
 				return err
 			}
 
-			err = manager.SplitInterval(id, *parsedTime)
+			_, err = manager.SplitInterval(id, *parsedTime)
 			if err != nil {
 				return err
 			}

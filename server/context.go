@@ -66,7 +66,7 @@ func (h *ContextHandler) listArchiveCandidates(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	writeJson(w, http.StatusOK, preview)
+	writeJSON(w, http.StatusOK, preview)
 }
 
 func (h *ContextHandler) archiveStaleContexts(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +96,7 @@ func (h *ContextHandler) archiveStaleContexts(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	writeJson(w, http.StatusOK, result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *ContextHandler) archiveContext(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +146,7 @@ func (h *ContextHandler) getStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, stats)
+	writeJSON(w, http.StatusOK, stats)
 }
 
 func (h *ContextHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +161,7 @@ func (h *ContextHandler) listIntervals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJson(w, http.StatusOK, intervals)
+	writeJSON(w, http.StatusOK, intervals)
 }
 
 func (h *ContextHandler) getActiveContext(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +175,7 @@ func (h *ContextHandler) getActiveContext(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusNotFound, "ACTIVE_CONTEXT_NOT_FOUND", "No active context found")
 		return
 	}
-	writeJson(w, http.StatusOK, activeContext)
+	writeJSON(w, http.StatusOK, activeContext)
 }
 
 func (h *ContextHandler) switchContext(w http.ResponseWriter, r *http.Request) {
@@ -237,7 +237,7 @@ func (h *ContextHandler) listContexts(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_LIST_CONTEXTS", "Failed to list contexts")
 		return
 	}
-	writeJson(w, http.StatusOK, contexts)
+	writeJSON(w, http.StatusOK, contexts)
 }
 
 func (h *ContextHandler) createContext(w http.ResponseWriter, r *http.Request) {
@@ -264,7 +264,7 @@ func (h *ContextHandler) createContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	context.Id = id
-	writeJson(w, http.StatusCreated, &context)
+	writeJSON(w, http.StatusCreated, &context)
 }
 
 func (h *ContextHandler) deleteContext(w http.ResponseWriter, r *http.Request) {
@@ -295,7 +295,7 @@ func (h *ContextHandler) getContext(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "CONTEXT_NOT_FOUND", "Context not found")
 		return
 	}
-	writeJson(w, http.StatusOK, context)
+	writeJSON(w, http.StatusOK, context)
 }
 
 func (h *ContextHandler) updateContext(w http.ResponseWriter, r *http.Request) {
@@ -330,5 +330,5 @@ func (h *ContextHandler) updateContext(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "FAILED_TO_UPDATE_CONTEXT", "Failed to update context")
 		return
 	}
-	writeJson(w, http.StatusOK, &context)
+	writeJSON(w, http.StatusOK, &context)
 }

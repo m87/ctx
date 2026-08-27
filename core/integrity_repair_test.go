@@ -28,12 +28,12 @@ func (m *ProjectRepositoryRepairMock) Save(project *Project) (string, error) {
 	}
 	m.saved = append(m.saved, project)
 	return project.Id, nil
-}	
+}
 
 func (m *ProjectRepositoryRepairMock) ListIncludingArchived(workspaceId string) ([]*Project, error) {
 	m.called = true
 	return m.projects, m.listError
-}	
+}
 
 func (m *ProjectRepositoryRepairMock) ListToSync(limit int) ([]*Project, error) {
 	m.called = true

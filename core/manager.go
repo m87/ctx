@@ -711,7 +711,7 @@ type WorkspaceInUseError struct {
 }
 
 func (e *WorkspaceInUseError) Error() string {
-	return "Cannot delete workspace because it is in use by one or more contexts"
+	return "cannot delete workspace because it is in use by one or more contexts"
 }
 
 func (m *ContextManager) EnsureDefaultWorkspace() error {
@@ -988,6 +988,3 @@ func (m *ContextManager) DeleteProject(projectId string) error {
 
 	return m.ProjectRepository.Delete(projectId)
 }
-
-
-

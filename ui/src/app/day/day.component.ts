@@ -253,7 +253,7 @@ export class DayComponent {
   readonly summarySkeletonItems = [0, 1, 2, 3];
   readonly contextSkeletonItems = [0, 1, 2];
   readonly summaryView = signal<SummaryView>('contexts');
-  private intervalQueriess = inject(IntervalQueries);
+  private intervalQueries = inject(IntervalQueries);
   private workspaceQueries = inject(WorkspaceQueries);
   private store = inject(Store);
   private timeZone = inject(TimeZoneService);
@@ -266,7 +266,7 @@ export class DayComponent {
   readonly selectedDate = computed(() => this.routeDate() ?? this.today());
 
   dayStatsQuery = injectQuery(() =>
-    this.intervalQueriess.dayStats(
+    this.intervalQueries.dayStats(
       this.activeWorkspaceId(),
       this.selectedDate(),
       this.timeZone.effectiveTimeZone(),

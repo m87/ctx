@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 func NewListProjectCmd() *cobra.Command {
 
 	var (
@@ -33,7 +32,6 @@ func NewListProjectCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 
 			textRenderer := func() string {
 				if len(projects) == 0 {

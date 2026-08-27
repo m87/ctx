@@ -30,6 +30,6 @@ func CurrentVersion() VersionInfo {
 
 func registerVersionHandler(mux *http.ServeMux) {
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		writeJson(w, http.StatusOK, CurrentVersion())
+		writeJSON(w, http.StatusOK, CurrentVersion())
 	})
 }

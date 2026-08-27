@@ -1,6 +1,12 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucidePlus } from '@ng-icons/lucide';
+import {
+  lucideArrowRightLeft,
+  lucideClock3,
+  lucidePlus,
+  lucideScissors,
+  lucideX,
+} from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { ContextQueries } from '../../api/context/context.queries';
@@ -8,15 +14,17 @@ import { Context } from '../../api/context/context.service';
 import { IntervalMutations } from '../../api/interval/interval.mutations';
 import { Interval } from '../../api/interval/interval.service';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
+import { SearchSelectComponent, SearchSelectOption } from '../shared/search-select.component';
 import { TimeZoneService } from '../shared/time-zone.service';
 import { ContextIntervalItemComponent } from './context-interval-item.component';
+import { colorHash } from '../utils';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { HlmSliderImports } from '@spartan-ng/helm/slider';
+import { toast } from 'ngx-sonner';
 
 interface SplitProperties {
   start: number;
   end: number;
-  default: number;
   split: number;
   step: number;
 }
@@ -30,10 +38,15 @@ interface SplitProperties {
     QueryErrorStateComponent,
     HlmSkeletonImports,
     HlmSliderImports,
+    SearchSelectComponent,
   ],
   providers: [
     provideIcons({
+      lucideArrowRightLeft,
+      lucideClock3,
       lucidePlus,
+      lucideScissors,
+      lucideX,
     }),
   ],
   template: `
@@ -83,7 +96,7 @@ interface SplitProperties {
               <button
                 hlmBtn
                 variant="outline"
-                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+                class="h-9 px-3 text-xs"
                 [disabled]="createIntervalMutation.isPending()"
                 (click)="addInterval()"
               >
@@ -134,133 +147,233 @@ interface SplitProperties {
         </div>
       }
 
-      @if (splitDialogIntervalId()) {
-        <div class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div class="w-full max-w-md rounded-lg border bg-card p-4 flex flex-col gap-3">
-            <div class="text-sm font-semibold">Split interval</div>
-            <div class="text-xs text-muted-foreground">Select split time</div>
-            <div class="flex items-center justify-between gap-2">
-              <div class="text-xs text-muted-foreground">
-                {{
-                  timeZone.formatDateTime(
-                    intervals().find((i) => i.id === splitDialogIntervalId())?.start ?? ''
-                  )
-                }}
+      @if (splitDialogInterval(); as interval) {
+        <div
+          class="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center"
+          (click)="closeSplitDialog()"
+        >
+          <div class="absolute inset-0 bg-background/65 backdrop-blur-sm"></div>
+          <section
+            class="relative w-full sm:w-[min(92vw,34rem)] max-h-[92dvh] overflow-hidden rounded-t-3xl sm:rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="split-dialog-title"
+            (click)="$event.stopPropagation()"
+          >
+            <header class="flex items-start gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+              <div
+                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground"
+              >
+                <ng-icon name="lucideScissors" class="text-lg"></ng-icon>
               </div>
-              <div class="text-xs text-muted-foreground">
-                {{
-                  timeZone.formatDateTime(
-                    intervals().find((i) => i.id === splitDialogIntervalId())?.end ?? ''
-                  )
-                }}
+              <div class="min-w-0 flex-1 pt-0.5">
+                <h2 id="split-dialog-title" class="text-base font-semibold tracking-tight">
+                  Split interval
+                </h2>
+                <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  Choose where this interval should become two separate entries.
+                </p>
               </div>
-            </div>
-            <hlm-slider
-              [min]="splitProperties.start"
-              [max]="splitProperties.end"
-              [step]="splitProperties.step"
-              [value]="[splitProperties.default]"
-              (valueChange)="splitProperties.split = $event[0]"
-            ></hlm-slider>
-
-            <div class="flex justify-between gap-2">
-              <div class="text-xs text-muted-foreground">
-                {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <span class="text-xs text-muted-foreground"> Preview:</span>
-              <div class="flex justify-between gap-2">
-                <div class="flex-1 text-xs text-muted-foreground border p-2 rounded-lg">
-                  <span>Interval 1:</span>
-                  <div class="flex flex-col">
-                    <span
-                      >Start:
-                      {{
-                        timeZone.formatDateTime(
-                          intervals().find((i) => i.id === splitDialogIntervalId())?.start ?? ''
-                        )
-                      }}</span
-                    >
-                    <span
-                      >End:
-                      {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span
-                    >
-                  </div>
-                </div>
-                <div class="flex-1 text-xs text-muted-foreground border p-2 rounded-lg">
-                  <span>Interval 2:</span>
-                  <div class="flex flex-col">
-                    <span
-                      >Start:
-                      {{ timeZone.formatDateTime(splitAsDateTime(splitProperties.split)) }}</span
-                    >
-                    <span
-                      >End:
-                      {{
-                        timeZone.formatDateTime(
-                          intervals().find((i) => i.id === splitDialogIntervalId())?.end ?? ''
-                        )
-                      }}</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex justify-end gap-2 pt-1">
               <button
-                hlmBtn
-                variant="outline"
-                class="h-9 px-3 text-xs"
+                type="button"
+                class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                aria-label="Close split dialog"
                 (click)="closeSplitDialog()"
               >
+                <ng-icon name="lucideX" class="text-base"></ng-icon>
+              </button>
+            </header>
+
+            <div
+              class="flex max-h-[calc(92dvh-9rem)] flex-col gap-5 overflow-y-auto px-5 py-5 sm:px-6"
+            >
+              <div class="rounded-2xl border border-border/80 bg-muted/25 p-4">
+                <div class="flex items-start justify-between gap-4 text-xs">
+                  <div class="min-w-0">
+                    <div class="font-medium text-foreground">
+                      {{ timeZone.formatTime(interval.start) }}
+                    </div>
+                    <div class="mt-0.5 truncate text-muted-foreground">
+                      {{ timeZone.formatDate(interval.start) }}
+                    </div>
+                  </div>
+                  <div class="min-w-0 text-right">
+                    <div class="font-medium text-foreground">
+                      {{ timeZone.formatTime(interval.end) }}
+                    </div>
+                    <div class="mt-0.5 truncate text-muted-foreground">
+                      {{ timeZone.formatDate(interval.end) }}
+                    </div>
+                  </div>
+                </div>
+
+                <hlm-slider
+                  class="my-4 py-1 [&_[brnSliderTrack]]:h-2 [&_[brnSliderTrack]]:bg-muted [&_[brnSliderRange]]:bg-primary [&_[brnSliderThumb]]:size-5 [&_[brnSliderThumb]]:border-2 [&_[brnSliderThumb]]:border-primary"
+                  [min]="splitProperties.start"
+                  [max]="splitProperties.end"
+                  [step]="splitProperties.step"
+                  [value]="[splitProperties.split]"
+                  (valueChange)="splitProperties.split = $event[0]"
+                ></hlm-slider>
+
+                <div class="flex justify-center">
+                  <div
+                    class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-foreground shadow-xs"
+                  >
+                    <ng-icon name="lucideClock3" class="text-sm"></ng-icon>
+                    <span class="text-xs font-semibold tabular-nums">
+                      {{ timeZone.formatDateTime(splitAsInstant(splitProperties.split)) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="mb-2.5 flex items-center justify-between gap-3">
+                  <div
+                    class="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+                  >
+                    Result preview
+                  </div>
+                  <div class="text-[11px] text-muted-foreground">2 intervals</div>
+                </div>
+                <div class="grid gap-2.5 sm:grid-cols-2">
+                  <div class="rounded-xl border border-border/80 bg-card p-3.5 shadow-xs">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                      <span class="text-xs font-semibold text-foreground">First interval</span>
+                      <span
+                        class="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                      >
+                        {{ formatSplitDuration(splitProperties.start, splitProperties.split) }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm font-medium tabular-nums">
+                      <span>{{ timeZone.formatTime(interval.start) }}</span>
+                      <span class="h-px flex-1 bg-border"></span>
+                      <span>{{ timeZone.formatTime(splitAsInstant(splitProperties.split)) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="rounded-xl border border-border/80 bg-card p-3.5 shadow-xs">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                      <span class="text-xs font-semibold text-foreground">Second interval</span>
+                      <span
+                        class="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                      >
+                        {{ formatSplitDuration(splitProperties.split, splitProperties.end) }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm font-medium tabular-nums">
+                      <span>{{ timeZone.formatTime(splitAsInstant(splitProperties.split)) }}</span>
+                      <span class="h-px flex-1 bg-border"></span>
+                      <span>{{ timeZone.formatTime(interval.end) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <footer
+              class="flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/20 px-5 py-4 sm:flex-row sm:justify-end sm:px-6"
+            >
+              <button hlmBtn variant="ghost" class="h-10 px-4 text-xs" (click)="closeSplitDialog()">
                 Cancel
               </button>
               <button
                 hlmBtn
                 variant="outline"
-                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-                [disabled]="moveIntervalMutation.isPending()"
+                class="h-10 px-5 text-xs shadow-sm"
+                [disabled]="splitIntervalMutation.isPending()"
                 (click)="splitInterval()"
               >
-                Split
+                <ng-icon name="lucideScissors"></ng-icon>
+                {{ splitIntervalMutation.isPending() ? 'Splitting…' : 'Split interval' }}
               </button>
-            </div>
-          </div>
+            </footer>
+          </section>
         </div>
       }
 
-      @if (moveDialogIntervalId()) {
-        <div class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div class="w-full max-w-md rounded-lg border bg-card p-4 flex flex-col gap-3">
-            <div class="text-sm font-semibold">Move interval</div>
-            <div class="text-xs text-muted-foreground">Select target context</div>
-            <select
-              class="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
-              [value]="moveTargetContextId()"
-              (change)="moveTargetContextId.set(getSelectValue($event))"
+      @if (moveDialogInterval(); as interval) {
+        <div
+          class="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center"
+          (click)="closeMoveDialog()"
+        >
+          <div class="absolute inset-0 bg-background/65 backdrop-blur-sm"></div>
+          <section
+            class="relative w-full sm:w-[min(92vw,30rem)] max-h-[92dvh] overflow-hidden rounded-t-3xl sm:rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="move-dialog-title"
+            (click)="$event.stopPropagation()"
+          >
+            <header class="flex items-start gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+              <div
+                class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground"
+              >
+                <ng-icon name="lucideArrowRightLeft" class="text-lg"></ng-icon>
+              </div>
+              <div class="min-w-0 flex-1 pt-0.5">
+                <h2 id="move-dialog-title" class="text-base font-semibold tracking-tight">
+                  Move interval
+                </h2>
+                <p class="mt-0.5 text-xs leading-5 text-muted-foreground">
+                  {{ timeZone.formatDate(interval.start) }} ·
+                  {{ timeZone.formatTime(interval.start) }}–{{ timeZone.formatTime(interval.end) }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                aria-label="Close move dialog"
+                (click)="closeMoveDialog()"
+              >
+                <ng-icon name="lucideX" class="text-base"></ng-icon>
+              </button>
+            </header>
+
+            <div class="flex flex-col gap-3 px-5 py-5 sm:px-6">
+              <div>
+                <label
+                  for="move-context-search"
+                  class="mb-2 block text-xs font-medium text-foreground"
+                >
+                  Destination context
+                </label>
+                <ctx-search-select
+                  inputId="move-context-search"
+                  ariaLabel="Destination context"
+                  searchPlaceholder="Search contexts…"
+                  emptyText="No matching contexts"
+                  [options]="moveContextOptions()"
+                  [value]="moveTargetContextId()"
+                  (selectionChange)="selectMoveContext($event)"
+                ></ctx-search-select>
+              </div>
+
+              <p class="text-xs leading-5 text-muted-foreground">
+                The interval keeps its start, end and duration. Only its context changes.
+              </p>
+            </div>
+
+            <footer
+              class="flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/20 px-5 py-4 sm:flex-row sm:justify-end sm:px-6"
             >
-              @for (context of movableContexts(); track context.id) {
-                <option [value]="context.id">{{ context.name }}</option>
-              }
-            </select>
-            <div class="flex justify-end gap-2 pt-1">
-              <button hlmBtn variant="outline" class="h-9 px-3 text-xs" (click)="closeMoveDialog()">
+              <button hlmBtn variant="ghost" class="h-10 px-4 text-xs" (click)="closeMoveDialog()">
                 Cancel
               </button>
               <button
                 hlmBtn
                 variant="outline"
-                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
-                [disabled]="moveIntervalMutation.isPending()"
+                class="h-10 px-5 text-xs shadow-sm"
+                [disabled]="!moveTargetContextId() || moveIntervalMutation.isPending()"
                 (click)="confirmMoveInterval()"
               >
-                Move
+                <ng-icon name="lucideArrowRightLeft"></ng-icon>
+                {{ moveIntervalMutation.isPending() ? 'Moving…' : 'Move interval' }}
               </button>
-            </div>
-          </div>
+            </footer>
+          </section>
         </div>
       }
     </div>
@@ -290,10 +403,9 @@ export class ContextIntervalListComponent {
   readonly activeWorkspaceId = input<string | null>(null);
   readonly contexts = input<readonly Context[]>([]);
   readonly readonly = input(false);
-  splitProperties = {
+  splitProperties: SplitProperties = {
     start: 0,
     end: 100,
-    default: 50,
     split: 50,
     step: 1,
   };
@@ -302,6 +414,7 @@ export class ContextIntervalListComponent {
   updateIntervalMutation = injectMutation(() => this.intervalMutations.update());
   deleteIntervalMutation = injectMutation(() => this.intervalMutations.delete());
   splitIntervalMutation = injectMutation(() => this.intervalMutations.split());
+  undoSplitMutation = injectMutation(() => this.intervalMutations.undoSplit());
   moveIntervalMutation = injectMutation(() => this.intervalMutations.move());
   contextIntervalsQuery = injectQuery(() => this.contextQueries.intervals(this.contextId()));
 
@@ -324,6 +437,22 @@ export class ContextIntervalListComponent {
   readonly moveTargetContextId = signal('');
   readonly intervalFormError = signal('');
   readonly splitDialogIntervalId = signal<string | null>(null);
+  readonly splitDialogInterval = computed(() => {
+    const intervalId = this.splitDialogIntervalId();
+    return intervalId ? this.intervals().find((interval) => interval.id === intervalId) : undefined;
+  });
+  readonly moveDialogInterval = computed(() => {
+    const intervalId = this.moveDialogIntervalId();
+    return intervalId ? this.intervals().find((interval) => interval.id === intervalId) : undefined;
+  });
+  readonly moveContextOptions = computed<SearchSelectOption[]>(() =>
+    this.movableContexts().map((context) => ({
+      value: context.id,
+      label: context.name,
+      color: colorHash(context.id),
+      description: context.project?.name,
+    })),
+  );
 
   constructor() {
     this.resetNewIntervalForm();
@@ -346,19 +475,48 @@ export class ContextIntervalListComponent {
         id: interval.id,
         splitTime: `${splitTime}:00`,
         timeZone: this.timeZone.effectiveTimeZone(),
-        contextId: this.contextId(),
       },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           this.closeSplitDialog();
+          toast('Interval split', {
+            description: 'Two intervals were created.',
+            duration: 10_000,
+            classes: {
+              toast: 'split-undo-toast',
+              actionButton: 'split-undo-action',
+            },
+            action: {
+              label: 'Undo',
+              onClick: () => {
+                this.undoSplitMutation.mutate(result, {
+                  onSuccess: () => toast.success('Split undone'),
+                });
+              },
+            },
+          });
         },
       },
     );
   }
 
   splitAsDateTime(split: number): string {
-    const date = new Date(split);
-    return this.timeZone.toInputValue(date.toISOString());
+    return this.timeZone.toInputValue(this.splitAsInstant(split));
+  }
+
+  splitAsInstant(split: number): string {
+    return new Date(split).toISOString();
+  }
+
+  formatSplitDuration(start: number, end: number): string {
+    const totalMinutes = Math.max(0, Math.round((end - start) / 60_000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours === 0) {
+      return `${minutes}m`;
+    }
+    return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
   }
 
   calcSplitProperties(interval: Interval): SplitProperties {
@@ -366,11 +524,9 @@ export class ContextIntervalListComponent {
     const end = Date.parse(interval.end!);
     const split = start + (end - start) / 2;
     const step = 60 * 1000;
-    const defaultSplit = start + (end - start) / 2;
     return {
       start,
       end,
-      default: defaultSplit,
       split,
       step,
     };
@@ -495,12 +651,16 @@ export class ContextIntervalListComponent {
     }
 
     this.moveDialogIntervalId.set(interval.id);
-    this.moveTargetContextId.set(contexts[0]?.id ?? '');
+    this.moveTargetContextId.set('');
   }
 
   closeMoveDialog() {
     this.moveDialogIntervalId.set(null);
     this.moveTargetContextId.set('');
+  }
+
+  selectMoveContext(contextId: string) {
+    this.moveTargetContextId.set(contextId);
   }
 
   confirmMoveInterval() {
@@ -527,10 +687,6 @@ export class ContextIntervalListComponent {
 
   getInputValue(event: Event): string {
     return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
-  }
-
-  getSelectValue(event: Event): string {
-    return (event.target as HTMLSelectElement).value;
   }
 
   retryIntervals(): void {

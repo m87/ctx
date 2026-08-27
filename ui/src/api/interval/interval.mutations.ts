@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { mutationOptions } from '@tanstack/angular-query-experimental';
 import { lastValueFrom } from 'rxjs';
 import { CacheService } from '../cache/cache.service';
-import { Interval, IntervalService } from './interval.service';
+import { Interval, IntervalService, SplitIntervalResponse } from './interval.service';
 
 @Injectable({ providedIn: 'root' })
 export class IntervalMutations {
@@ -49,14 +49,20 @@ export class IntervalMutations {
         id,
         splitTime,
         timeZone,
-        contextId,
       }: {
         id: string;
         splitTime: string;
         timeZone: string;
-        contextId: string;
       }) => lastValueFrom(this.intervalService.split(id, splitTime, timeZone)),
-      onSuccess: (_, variables) => this.cache.afterIntervalChange(variables.contextId ?? ''),
+      onSuccess: (data) => this.cache.afterIntervalChange(data.origin.contextId),
+    });
+  }
+
+  undoSplit() {
+    return mutationOptions({
+      mutationFn: (result: SplitIntervalResponse) =>
+        lastValueFrom(this.intervalService.undoSplit(result)),
+      onSuccess: (origin) => this.cache.afterIntervalChange(origin.contextId),
     });
   }
 }

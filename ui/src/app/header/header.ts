@@ -13,9 +13,7 @@ import {
   lucideSearch,
   lucideX,
 } from '@ng-icons/lucide';
-import { HlmBreadCrumbImports } from '@spartan-ng/helm/breadcrumb';
 import { HlmInputImports } from '@spartan-ng/helm/input';
-import { BreadcrumbService } from '../header/breadcrumbs';
 import { SidebarStore } from '../sidebar/sidebar.store';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
@@ -47,7 +45,6 @@ const firstDayKey = 'client.general.firstDay';
 @Component({
   selector: 'ctx-header',
   imports: [
-    HlmBreadCrumbImports,
     NgIcon,
     HlmInputImports,
     HlmButtonImports,
@@ -376,7 +373,11 @@ const firstDayKey = 'client.general.firstDay';
               [weekStartsOn]="weekStartsOn()"
               (dateChange)="navigateToDate($event)"
             >
-              <hlm-date-picker-trigger buttonId="dupa" class="w-auto" aria-label="Select date">
+              <hlm-date-picker-trigger
+                buttonId="header-date-picker-trigger"
+                class="w-auto"
+                aria-label="Select date"
+              >
                 <span
                   class="h-8 px-2 sm:px-3 text-xs text-muted-foreground gap-2 flex items-center"
                 >
@@ -643,10 +644,9 @@ const firstDayKey = 'client.general.firstDay';
   styles: ``,
 })
 export class HeaderComponent {
-  breadcrumbService = inject(BreadcrumbService);
   sidebar = inject(SidebarStore);
   private contextQueries = inject(ContextQueries);
-  private inteverlaQueries = inject(IntervalQueries);
+  private intervalQueries = inject(IntervalQueries);
   private contextMutations = inject(ContextMutations);
   private projectQueries = inject(ProjectQueries);
   private contextService = inject(ContextService);
@@ -676,7 +676,7 @@ export class HeaderComponent {
   );
   selectedDate = computed(() => this.routedSelectedDate() ?? this.today());
   dayStatsQuery = injectQuery(() =>
-    this.inteverlaQueries.dayStats(
+    this.intervalQueries.dayStats(
       this.activeWorkspaceId(),
       this.selectedDate(),
       this.timeZone.effectiveTimeZone(),
