@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/m87/ctx/core"
 	ctxlog "github.com/m87/ctx/log"
+	"github.com/m87/ctx/storage"
 	"github.com/m87/nod"
 	"github.com/m87/nod/sqlite"
 	"github.com/spf13/viper"
@@ -72,11 +73,15 @@ func CreateManager() (*core.ContextManager, error) {
 }
 
 func newContextManager(repository *nod.Repository) *core.ContextManager {
+	s, err := storage.NewSqliteStorage(viper.GetString("database.path"))
+	if err != nil {
+		panic(err)
+	}
 	manager := core.NewContextManager(
 		&core.RealTimeProvider{},
 		NewContextRepository(repository),
 		NewIntervalRepository(repository),
-		NewWorkspaceRepository(repository),
+		storage.NewWorkspaceRepository(s.DB),
 		NewProjectRepository(repository),
 	)
 	manager.RunInTransaction = func(fn func(*core.ContextManager) error) error {

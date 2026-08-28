@@ -11,7 +11,6 @@ type Workspace struct {
 	Name        string             `json:"name"`
 	Description string             `json:"description,omitempty"`
 	Properties  *WorkspaceSettings `json:"properties,omitempty"`
-	Synced      bool               `json:"synced"`
 }
 
 type WorkspaceContextStats struct {
@@ -50,7 +49,6 @@ func (m *WorkspaceMapper) ToNode(workspace *Workspace) (*nod.Node, error) {
 	})
 
 	node.KV = ToKV(workspace.Properties)
-	node.KV["synced"] = &nod.NodeKV{Key: "synced", ValueBool: &workspace.Synced}
 
 	return node, nil
 }
@@ -61,7 +59,6 @@ func (m *WorkspaceMapper) FromNode(node *nod.Node) (*Workspace, error) {
 		Name:        node.Core.Name,
 		Description: ConvertFromNodContent(node.Content)["description"],
 		Properties:  FromKV(node.KV),
-		Synced:      nodBool(node.KV, "synced"),
 	}, nil
 }
 
