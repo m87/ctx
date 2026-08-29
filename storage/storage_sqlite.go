@@ -25,8 +25,8 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 	}
 
 	db, err := gorm.Open(sqlite.New(sqlite.Config{
-		DSN:                  path,
-		DriverName: 				 "sqlite",
+		DSN:        path,
+		DriverName: "sqlite",
 	}), &gorm.Config{})
 
 	if err != nil {
@@ -34,6 +34,10 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 	}
 
 	if err := configureSqlite(db, path); err != nil {
+		return nil, err
+	}
+
+	if err := db.SetupJoinTable(&ContextEntity{}, "Tags", &ContextTagEntity{}); err != nil {
 		return nil, err
 	}
 
@@ -71,7 +75,7 @@ func configureSqlite(db *gorm.DB, path string) error {
 	if err := db.Raw("PRAGMA foreign_keys").Scan(&fkEnabeld).Error; err != nil {
 		return err
 	}
-	
+
 	if fkEnabeld != 1 {
 		return NewErrForeignKeyDisabled()
 	}

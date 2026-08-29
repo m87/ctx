@@ -5,19 +5,17 @@ import (
 	"github.com/m87/ctx/core"
 )
 
-
 type TagEntity struct {
-	Id string `gorm:"primaryKey"`
+	Id   string `gorm:"primaryKey"`
 	Name string `gorm:"not null"`
 }
 
 type ContextTagEntity struct {
-	ContextId string `gorm:""`
-	TagId	string `gorm:""`
+	ContextId string `gorm:"primaryKey"`
+	TagId     string `gorm:"primaryKey"`
 }
 
-
-func (TagEntity) TableName() string{
+func (TagEntity) TableName() string {
 	return "tag"
 }
 
@@ -30,14 +28,14 @@ func NewTagEntity(tag *core.Tag) *TagEntity {
 		tag.Id = uuid.NewString()
 	}
 	return &TagEntity{
-		Id: tag.Id,
+		Id:   tag.Id,
 		Name: tag.Name,
 	}
 }
 
 func (e *TagEntity) ToModel() *core.Tag {
 	return &core.Tag{
-		Id: e.Id,
+		Id:   e.Id,
 		Name: e.Name,
 	}
 }

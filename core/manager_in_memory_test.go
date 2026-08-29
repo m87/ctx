@@ -82,7 +82,7 @@ func (r *memoryContextRepository) ListToSync(limit int) ([]*Context, error) {
 
 	result := make([]*Context, 0, len(contexts))
 	for _, context := range contexts {
-		if context == nil || context.Synced {
+		if context == nil {
 			continue
 		}
 		result = append(result, context)
