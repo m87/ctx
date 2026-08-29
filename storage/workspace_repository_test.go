@@ -100,6 +100,6 @@ func TestWorkspaceRepository(t *testing.T) {
 
 func newTestWorkspaceRepository(t *testing.T) *WorkspaceRepository {
 	t.Helper()
-	storage, _ := createTestInMemoryStorage()
+	storage, _ := CreateTestInMemoryStorage()
 	return NewWorkspaceRepository(storage.DB)
 }

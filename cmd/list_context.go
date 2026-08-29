@@ -84,7 +84,7 @@ func NewListContextCmd() *cobra.Command {
 					}
 					b.WriteString(fmt.Sprintf("ID: %s\n", c.Id))
 					b.WriteString(fmt.Sprintf("Name: %s\n", c.Name))
-					b.WriteString(fmt.Sprintf("ParentId: %s\n", c.ParentId))
+					b.WriteString(fmt.Sprintf("ParentId: %s\n", c.ProjectId))
 					b.WriteString(fmt.Sprintf("Status: %s\n", c.Status))
 					if c.Description != "" {
 						b.WriteString(fmt.Sprintf("Description: %s\n", c.Description))

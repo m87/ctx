@@ -29,7 +29,7 @@ func TestContextMapperToNodeKeepsParent(t *testing.T) {
 	node, err := mapper.ToNode(&Context{
 		Id:          "context-1",
 		Name:        "Context",
-		ParentId:    "parent-1",
+		ProjectId:    "parent-1",
 		WorkspaceId: "workspace-1",
 	})
 

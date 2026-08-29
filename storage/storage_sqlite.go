@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	_ "modernc.org/sqlite"
 )
 
 func NewSqliteStorage(path string) (*Storage, error) {
@@ -33,6 +34,18 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 	}
 
 	if err := configureSqlite(db, path); err != nil {
+		return nil, err
+	}
+
+	if err := db.AutoMigrate(
+		&TagEntity{},
+		&ContextTagEntity{},
+		&WorkspaceEntity{},
+		&Properties{},
+		&ProjectEntity{},
+		&ContextEntity{},
+		&IntervalEntity{},
+	); err != nil {
 		return nil, err
 	}
 
