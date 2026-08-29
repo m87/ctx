@@ -2,8 +2,6 @@ package core
 
 import (
 	"time"
-
-	"github.com/m87/nod"
 )
 
 type Workspace struct {
@@ -27,43 +25,3 @@ type WorkspaceStats struct {
 	TotalDuration time.Duration            `json:"totalDuration"`
 	TotalSessions int                      `json:"totalSessions"`
 }
-
-type WorkspaceMapper struct {
-}
-
-func NewWorkspaceMapper() *WorkspaceMapper {
-	return &WorkspaceMapper{}
-}
-
-func (m *WorkspaceMapper) ToNode(workspace *Workspace) (*nod.Node, error) {
-	node := &nod.Node{
-		Core: nod.NodeCore{
-			Id:   workspace.Id,
-			Name: workspace.Name,
-			Kind: WorkspaceType,
-		},
-	}
-
-	node.Content = ConvertToNodContent(map[string]string{
-		"description": workspace.Description,
-	})
-
-	node.KV = ToKV(workspace.Properties)
-
-	return node, nil
-}
-
-func (m *WorkspaceMapper) FromNode(node *nod.Node) (*Workspace, error) {
-	return &Workspace{
-		Id:          node.Core.Id,
-		Name:        node.Core.Name,
-		Description: ConvertFromNodContent(node.Content)["description"],
-		Properties:  FromKV(node.KV),
-	}, nil
-}
-
-func (m *WorkspaceMapper) IsApplicable(node *nod.Node) bool {
-	return node.Core.Kind == WorkspaceType
-}
-
-const WorkspaceType = "workspace"

@@ -84,13 +84,25 @@ func NewListContextCmd() *cobra.Command {
 					}
 					b.WriteString(fmt.Sprintf("ID: %s\n", c.Id))
 					b.WriteString(fmt.Sprintf("Name: %s\n", c.Name))
-					b.WriteString(fmt.Sprintf("ParentId: %s\n", c.ProjectId))
+					projectID := ""
+					if c.ProjectId != nil {
+						projectID = *c.ProjectId
+					}
+					b.WriteString(fmt.Sprintf("ParentId: %s\n", projectID))
 					b.WriteString(fmt.Sprintf("Status: %s\n", c.Status))
 					if c.Description != "" {
 						b.WriteString(fmt.Sprintf("Description: %s\n", c.Description))
 					}
 					if len(c.Tags) > 0 {
-						b.WriteString(fmt.Sprintf("Tags: %s\n", strings.Join(c.Tags, ", ")))
+						tagNames := make([]string, 0, len(c.Tags))
+						for _, tag := range c.Tags {
+							if tag != nil {
+								tagNames = append(tagNames, tag.Name)
+							}
+						}
+						if len(tagNames) > 0 {
+							b.WriteString(fmt.Sprintf("Tags: %s\n", strings.Join(tagNames, ", ")))
+						}
 					}
 					b.WriteString("Intervals:\n")
 					if len(item.Intervals) == 0 {

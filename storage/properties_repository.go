@@ -1,6 +1,9 @@
 package storage
 
-import "gorm.io/gorm"
+import (
+	"github.com/m87/ctx/core"
+	"gorm.io/gorm"
+)
 
 type PropertiesRepository struct {
 	db *gorm.DB
@@ -10,22 +13,32 @@ func NewPropertiesRepository(db *gorm.DB) *PropertiesRepository {
 	return &PropertiesRepository{db: db}
 }
 
-func (r *PropertiesRepository) Get(id string) (*Properties, error) {
+func (r *PropertiesRepository) Load() (*core.SystemInfo, error) {
 	var entity Properties
-	if err := r.db.First(&entity, "id = ?", id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-		return nil, err
+	result := r.db.Where("id = ?", systemPropertiesId).Limit(1).Find(&entity)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	
-	return &entity, nil
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return &core.SystemInfo{
+		DatabaseVersion: entity.DatabaseVersion,
+		ClientId:        entity.ClientId,
+	}, nil
 }
 
-func (r *PropertiesRepository) Save(properties *Properties) error {
-	if properties == nil {
+func (r *PropertiesRepository) Save(info *core.SystemInfo) error {
+	if info == nil {
 		return nil
 	}
-	return r.db.Save(properties).Error
+
+	return r.db.Save(&Properties{
+		Id:              systemPropertiesId,
+		DatabaseVersion: info.DatabaseVersion,
+		ClientId:        info.ClientId,
+	}).Error
 }
 
+var _ core.SystemInfoRepository = (*PropertiesRepository)(nil)

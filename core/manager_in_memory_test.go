@@ -263,7 +263,7 @@ func (r *memoryWorkspaceRepository) ListToSync(limit int) ([]*Workspace, error) 
 
 	result := make([]*Workspace, 0, len(workspaces))
 	for _, workspace := range workspaces {
-		if workspace == nil || workspace.Synced {
+		if workspace == nil {
 			continue
 		}
 		result = append(result, workspace)

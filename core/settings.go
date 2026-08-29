@@ -6,29 +6,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/m87/nod"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
-type GeneralSettings struct {
-	theme    string
-	firstDay string
-}
-
 type Settings struct {
-	raw     map[string]string
-	general GeneralSettings
+	raw map[string]string
 }
-
-type SettingsMapper struct{}
-
-const SettingsType = "settings"
 
 type SettingsManager struct {
-	SettingsRepository   SettingsRepository
-	SystemInfoRepository SystemInfoRepository
-	cache                *Settings
+	ClientPropertiesRepository SettingsRepository
+	cache                      *Settings
 }
 
 var defaultClientSettings = map[string]string{
@@ -37,15 +25,14 @@ var defaultClientSettings = map[string]string{
 	"client.general.timeZone": "browser",
 }
 
-func NewSettingsManager(settingsRepo SettingsRepository, systemInfoRepo SystemInfoRepository) *SettingsManager {
+func NewSettingsManager(clientPropertiesRepo SettingsRepository) *SettingsManager {
 	return &SettingsManager{
-		SettingsRepository:   settingsRepo,
-		SystemInfoRepository: systemInfoRepo,
+		ClientPropertiesRepository: clientPropertiesRepo,
 	}
 }
 
 func (m *SettingsManager) InitSettingsIfNotExists() error {
-	settings, err := m.SettingsRepository.Load()
+	settings, err := m.ClientPropertiesRepository.Load()
 	if err == nil {
 		m.cache = settings
 		return nil
@@ -56,7 +43,7 @@ func (m *SettingsManager) InitSettingsIfNotExists() error {
 	}
 
 	defaultSettings := NewSettings(defaultClientSettings)
-	if err := m.SettingsRepository.Save(defaultSettings); err != nil {
+	if err := m.ClientPropertiesRepository.Save(defaultSettings); err != nil {
 		return err
 	}
 	m.cache = defaultSettings
@@ -72,7 +59,7 @@ func (m *SettingsManager) GetClientKey(key string) (string, error) {
 
 func (m *SettingsManager) GetClient() (map[string]string, error) {
 	if m.cache == nil {
-		settings, err := m.SettingsRepository.Load()
+		settings, err := m.ClientPropertiesRepository.Load()
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +86,7 @@ func (m *SettingsManager) SaveClient(settings map[string]string) error {
 		return err
 	}
 	if m.cache == nil {
-		current, err := m.SettingsRepository.Load()
+		current, err := m.ClientPropertiesRepository.Load()
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
@@ -117,7 +104,7 @@ func (m *SettingsManager) SaveClient(settings map[string]string) error {
 	}
 
 	s := NewSettings(mergedSettings)
-	err := m.SettingsRepository.Save(s)
+	err := m.ClientPropertiesRepository.Save(s)
 	if err != nil {
 		return err
 	}
@@ -164,7 +151,7 @@ func (m *SettingsManager) filterClientSettings(settings map[string]string) map[s
 
 func (m *SettingsManager) GetKey(key string) (string, error) {
 	if m.cache == nil {
-		settings, err := m.SettingsRepository.Load()
+		settings, err := m.ClientPropertiesRepository.Load()
 		if err != nil {
 			return "", err
 		}
@@ -182,28 +169,18 @@ func (m *SettingsManager) GetKey(key string) (string, error) {
 }
 
 func (m *SettingsManager) Save(settings map[string]string) error {
-	s := NewSettings(settings)
-	err := m.SettingsRepository.Save(s)
-	if err != nil {
-		return err
-	}
-	m.cache = s
-	return nil
-}
-
-func NewSettingsMapper() *SettingsMapper {
-	return &SettingsMapper{}
+	return m.SaveClient(settings)
 }
 
 func NewSettings(raw map[string]string) *Settings {
-	settings := copySettings(raw)
-	return &Settings{
-		raw: settings,
-		general: GeneralSettings{
-			theme:    settings["client.general.theme"],
-			firstDay: settings["client.general.firstDay"],
-		},
+	return &Settings{raw: copySettings(raw)}
+}
+
+func (s *Settings) Values() map[string]string {
+	if s == nil {
+		return nil
 	}
+	return copySettings(s.raw)
 }
 
 func copySettings(settings map[string]string) map[string]string {
@@ -212,50 +189,4 @@ func copySettings(settings map[string]string) map[string]string {
 		copied[key] = value
 	}
 	return copied
-}
-
-func (m *SettingsMapper) ToNode(settings *Settings) (*nod.Node, error) {
-	raw := copySettings(settings.raw)
-	if raw["client.general.theme"] == "" {
-		raw["client.general.theme"] = settings.general.theme
-	}
-	if raw["client.general.firstDay"] == "" {
-		raw["client.general.firstDay"] = settings.general.firstDay
-	}
-
-	kv := make(map[string]*nod.NodeKV, len(raw))
-	for key, value := range raw {
-		valueText := value
-		kv[key] = &nod.NodeKV{Key: key, ValueText: &valueText}
-	}
-
-	node := &nod.Node{
-		Core: nod.NodeCore{
-			Id:   "settingsV1",
-			Name: "settingsV1",
-			Kind: SettingsType,
-		},
-		KV: kv,
-	}
-	return node, nil
-}
-
-func (m *SettingsMapper) FromNode(node *nod.Node) (*Settings, error) {
-	raw := make(map[string]string, len(node.KV))
-	for key, value := range node.KV {
-		if value.ValueText != nil {
-			raw[key] = nodString(node.KV, key)
-		}
-	}
-	return &Settings{
-		raw: raw,
-		general: GeneralSettings{
-			theme:    nodString(node.KV, "client.general.theme"),
-			firstDay: nodString(node.KV, "client.general.firstDay"),
-		},
-	}, nil
-}
-
-func (m *SettingsMapper) IsApplicable(node *nod.Node) bool {
-	return node.Core.Kind == SettingsType
 }

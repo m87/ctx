@@ -1,103 +1,58 @@
 package bootstrap
 
 import (
-	"errors"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/m87/ctx/core"
-	ctxlog "github.com/m87/ctx/log"
+	"github.com/m87/ctx/migration"
 	"github.com/m87/ctx/storage"
-	"github.com/m87/nod"
-	"github.com/m87/nod/sqlite"
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
 func CreateManager() (*core.ContextManager, error) {
-	viper.SetDefault("database.path", "ctx.db")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-	viper.ReadInConfig()
-	repository, err := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewAdapterRegistry())
+	storageDB, err := openStorage()
 	if err != nil {
 		return nil, err
 	}
-	configureRepositoryUTC(repository)
-
-	if err := repository.Transaction(func(txRepository *nod.Repository) error {
-		systemRepository := nod.NewRepositoryWithAdapters(txRepository.DB(), txRepository.Log(), NewSystemAdapterRegistry())
-		settingsManager := newSettingsManager(systemRepository)
-		systemInfo, err := settingsManager.SystemInfoRepository.Load()
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-
-		currentVersion := ""
-		clientId := uuid.NewString()
-		if systemInfo != nil {
-			currentVersion = systemInfo.DatabaseVersion
-			if strings.TrimSpace(systemInfo.ClientId) != "" {
-				clientId = systemInfo.ClientId
-			}
-		}
-		needsMigration, err := core.DatabaseVersionNeedsMigration(currentVersion, core.CurrentDatabaseVersion)
-		if err != nil {
-			return err
-		}
-		if !needsMigration {
-			return nil
-		}
-
-		startedAt := time.Now()
-		ctxlog.Logger.Info("Starting database migration", "from_version", currentVersion, "to_version", core.CurrentDatabaseVersion)
-		migrated, err := runApplicationMigrations(txRepository, currentVersion)
-		if err != nil {
-			return err
-		}
-		if err := settingsManager.SystemInfoRepository.Save(&core.SystemInfo{
-			DatabaseVersion: core.CurrentDatabaseVersion,
-			ClientId:        clientId,
-		}); err != nil {
-			return err
-		}
-		ctxlog.Logger.Info("Database migration completed", "database_version", core.CurrentDatabaseVersion, "records_updated", migrated, "duration", time.Since(startedAt))
-		return nil
-	}); err != nil {
-		ctxlog.Logger.Error("Database migration failed; transaction rolled back", "error", err)
+	if err := migration.NewNodDataMigrator(storageDB.DB).MigrateIfNeeded(); err != nil {
 		return nil, err
 	}
 
-	return newContextManager(repository), nil
+	manager := newContextManager(storageDB.DB)
+	if err := manager.EnsureDefaultWorkspace(); err != nil {
+		return nil, err
+	}
+
+	return manager, nil
 }
 
-func newContextManager(repository *nod.Repository) *core.ContextManager {
-	s, err := storage.NewSqliteStorage(viper.GetString("database.path"))
-	if err != nil {
-		panic(err)
-	}
+func newContextManager(db *gorm.DB) *core.ContextManager {
 	manager := core.NewContextManager(
 		&core.RealTimeProvider{},
-		storage.NewContextRepository(s.DB),
-		storage.NewIntervalRepository(s.DB),
-		storage.NewWorkspaceRepository(s.DB),
-		storage.NewProjectRepository(s.DB),
+		storage.NewContextRepository(db),
+		storage.NewIntervalRepository(db),
+		storage.NewWorkspaceRepository(db),
+		storage.NewProjectRepository(db),
 	)
 	manager.RunInTransaction = func(fn func(*core.ContextManager) error) error {
-		return repository.Transaction(func(txRepository *nod.Repository) error {
-			return fn(newContextManager(txRepository))
+		return db.Transaction(func(tx *gorm.DB) error {
+			return fn(newContextManager(tx))
 		})
 	}
 	return manager
 }
 
 func CreateSettingsManager() (*core.SettingsManager, error) {
-	viper.SetDefault("database.path", "ctx.db")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-	viper.ReadInConfig()
-	manager := newSettingsManager(repository)
+	storageDB, err := openStorage()
+	if err != nil {
+		return nil, err
+	}
+	if err := migration.NewNodDataMigrator(storageDB.DB).MigrateIfNeeded(); err != nil {
+		return nil, err
+	}
+
+	manager := newSettingsManager(storageDB.DB)
 	if err := manager.InitSettingsIfNotExists(); err != nil {
 		return nil, err
 	}
@@ -105,16 +60,14 @@ func CreateSettingsManager() (*core.SettingsManager, error) {
 	return manager, nil
 }
 
-func newSettingsManager(repository *nod.Repository) *core.SettingsManager {
-	return core.NewSettingsManager(
-		NewSettingsRepository(repository),
-		NewSystemInfoRepository(repository),
-	)
+func openStorage() (*storage.Storage, error) {
+	viper.SetDefault("database.path", "ctx.db")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+	viper.ReadInConfig()
+	return storage.NewSqliteStorage(viper.GetString("database.path"))
 }
 
-
-func mustRegisterNodeAdapter[T any](registry *nod.AdapterRegistry, adapter nod.NodeAdapter[T]) {
-	if err := nod.RegisterNodeAdapter(registry, adapter); err != nil {
-		panic(err)
-	}
+func newSettingsManager(db *gorm.DB) *core.SettingsManager {
+	return core.NewSettingsManager(storage.NewClientPropertiesRepository(db))
 }

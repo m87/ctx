@@ -57,7 +57,7 @@ func (r *WorkspaceRepository) ListToSync(limit int) ([]*core.Workspace, error) {
 
 func (r *WorkspaceRepository) SaveAll(workspaces []*core.Workspace) ([]string, error) {
 	ids := make([]string, len(workspaces))
-	
+
 	r.db.Transaction(func(tx *gorm.DB) error {
 		for i, workspace := range workspaces {
 			id, err := saveWorkspace(tx, workspace)
@@ -88,24 +88,3 @@ func saveWorkspace(db *gorm.DB, workspace *core.Workspace) (string, error) {
 
 	return entity.Id, nil
 }
-
-
-// func (r *WorkspaceRepository) GetProperties(workspaceId string) (core.WorkspaceSettings, error) {
-// 	workspace, err := r.scope.Query().
-// 		Where(nod.NodeFields.Id.Equals(workspaceId)).
-// 		WithKV().
-// 		FindFirst()
-//
-// 	if err != nil {
-// 		return core.WorkspaceSettings{}, err
-// 	}
-//
-// 	if workspace == nil {
-// 		return core.WorkspaceSettings{}, nil
-// 	}
-//
-// 	return *workspace.Properties, nil
-// }
-//
-
-

@@ -2,7 +2,6 @@ package core
 
 import (
 	"time"
-
 )
 
 const IntervalStatusActive = "active"
@@ -38,5 +37,3 @@ func durationBetween(start, end *time.Time) time.Duration {
 	}
 	return end.Sub(*start)
 }
-
-

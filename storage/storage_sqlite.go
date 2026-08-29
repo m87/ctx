@@ -38,19 +38,7 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if err := db.SetupJoinTable(&ContextEntity{}, "Tags", &ContextTagEntity{}); err != nil {
-		return nil, err
-	}
-
-	if err := db.AutoMigrate(
-		&TagEntity{},
-		&ContextTagEntity{},
-		&WorkspaceEntity{},
-		&Properties{},
-		&ProjectEntity{},
-		&ContextEntity{},
-		&IntervalEntity{},
-	); err != nil {
+	if err := Migrate(db); err != nil {
 		return nil, err
 	}
 
@@ -59,6 +47,29 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func Migrate(db *gorm.DB) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.SetupJoinTable(&ContextEntity{}, "Tags", &ContextTagEntity{}); err != nil {
+			return err
+		}
+
+		if err := tx.AutoMigrate(
+			&TagEntity{},
+			&ContextTagEntity{},
+			&WorkspaceEntity{},
+			&Properties{},
+			&ClientProperties{},
+			&ProjectEntity{},
+			&ContextEntity{},
+			&IntervalEntity{},
+		); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func configureSqlite(db *gorm.DB, path string) error {

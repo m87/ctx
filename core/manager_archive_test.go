@@ -148,7 +148,7 @@ func TestArchiveContext(t *testing.T) {
 		Name:        "context-to-archive",
 		Description: "keep description",
 		WorkspaceId: workspaceID,
-		Tags:        []string{"keep-tag"},
+		Tags:        []*Tag{{Name: "keep-tag"}},
 	})
 	require.NoError(t, err)
 
@@ -160,7 +160,7 @@ func TestArchiveContext(t *testing.T) {
 	require.True(t, context.Archived)
 	require.Equal(t, "archived", context.Status)
 	require.Equal(t, "keep description", context.Description)
-	require.Equal(t, []string{"keep-tag"}, context.Tags)
+	require.Equal(t, []*Tag{{Name: "keep-tag"}}, context.Tags)
 }
 
 func TestRestoreContext(t *testing.T) {
@@ -171,7 +171,7 @@ func TestRestoreContext(t *testing.T) {
 		Name:        "context-to-restore",
 		Description: "keep description",
 		WorkspaceId: workspaceID,
-		Tags:        []string{"keep-tag"},
+		Tags:        []*Tag{{Name: "keep-tag"}},
 	})
 	require.NoError(t, err)
 
@@ -186,7 +186,7 @@ func TestRestoreContext(t *testing.T) {
 	require.False(t, context.Archived)
 	require.Equal(t, "inactive", context.Status)
 	require.Equal(t, "keep description", context.Description)
-	require.Equal(t, []string{"keep-tag"}, context.Tags)
+	require.Equal(t, []*Tag{{Name: "keep-tag"}}, context.Tags)
 }
 
 func TestArchiveActiveContext(t *testing.T) {
@@ -197,7 +197,7 @@ func TestArchiveActiveContext(t *testing.T) {
 		Name:        "active-context",
 		Description: "keep description",
 		WorkspaceId: workspaceID,
-		Tags:        []string{"keep-tag"},
+		Tags:        []*Tag{{Name: "keep-tag"}},
 	})
 	require.NoError(t, err)
 

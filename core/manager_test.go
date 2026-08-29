@@ -314,7 +314,7 @@ func (r *mockWorkspaceRepository) List() ([]*Workspace, error) {
 func (r *mockWorkspaceRepository) ListToSync(limit int) ([]*Workspace, error) {
 	result := make([]*Workspace, 0, len(r.workspaces))
 	for _, workspace := range r.workspaces {
-		if workspace == nil || workspace.Synced {
+		if workspace == nil {
 			continue
 		}
 		result = append(result, workspace)
