@@ -2,6 +2,7 @@ package storage
 
 import (
 	"strings"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -51,6 +52,10 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 		&IntervalEntity{},
 	); err != nil {
 		return nil, err
+	}
+
+	db.Config.NowFunc = func() time.Time {
+		return time.Now().UTC()
 	}
 
 	return db, nil

@@ -19,7 +19,7 @@ func NewIntervalRepository(db *gorm.DB) *IntervalRepository {
 	return &IntervalRepository{db: db}
 }
 
-func (r *IntervalRepository) Get(id string) (*core.Interval, error) {
+func (r *IntervalRepository) GetById(id string) (*core.Interval, error) {
 	var entity IntervalEntity
 	if err := r.db.First(&entity, "id = ?", id).Error; err != nil {
 		return nil, err

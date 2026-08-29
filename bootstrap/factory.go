@@ -79,10 +79,10 @@ func newContextManager(repository *nod.Repository) *core.ContextManager {
 	}
 	manager := core.NewContextManager(
 		&core.RealTimeProvider{},
-		NewContextRepository(repository),
-		NewIntervalRepository(repository),
+		storage.NewContextRepository(s.DB),
+		storage.NewIntervalRepository(s.DB),
 		storage.NewWorkspaceRepository(s.DB),
-		NewProjectRepository(repository),
+		storage.NewProjectRepository(s.DB),
 	)
 	manager.RunInTransaction = func(fn func(*core.ContextManager) error) error {
 		return repository.Transaction(func(txRepository *nod.Repository) error {
@@ -97,23 +97,12 @@ func CreateSettingsManager() (*core.SettingsManager, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	viper.ReadInConfig()
-	repository, err := sqlite.NewRepository(viper.GetString("database.path"), ctxlog.Logger, NewSystemAdapterRegistry())
-	if err != nil {
-		return nil, err
-	}
-	configureRepositoryUTC(repository)
 	manager := newSettingsManager(repository)
 	if err := manager.InitSettingsIfNotExists(); err != nil {
 		return nil, err
 	}
 
 	return manager, nil
-}
-
-func configureRepositoryUTC(repository *nod.Repository) {
-	repository.DB().Config.NowFunc = func() time.Time {
-		return time.Now().UTC()
-	}
 }
 
 func newSettingsManager(repository *nod.Repository) *core.SettingsManager {
@@ -123,20 +112,6 @@ func newSettingsManager(repository *nod.Repository) *core.SettingsManager {
 	)
 }
 
-func NewSystemAdapterRegistry() *nod.AdapterRegistry {
-	registry := nod.NewAdapterRegistry()
-	mustRegisterNodeAdapter(registry, &core.SettingsMapper{})
-	mustRegisterNodeAdapter(registry, &core.SystemInfoMapper{})
-	return registry
-}
-
-func NewAdapterRegistry() *nod.AdapterRegistry {
-	registry := nod.NewAdapterRegistry()
-	mustRegisterNodeAdapter(registry, &core.IntervalMapper{})
-	mustRegisterNodeAdapter(registry, &core.ContextMapper{})
-	mustRegisterNodeAdapter(registry, &core.WorkspaceMapper{})
-	return registry
-}
 
 func mustRegisterNodeAdapter[T any](registry *nod.AdapterRegistry, adapter nod.NodeAdapter[T]) {
 	if err := nod.RegisterNodeAdapter(registry, adapter); err != nil {

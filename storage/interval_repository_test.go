@@ -28,7 +28,7 @@ func TestIntervalRepository(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, id)
 
-		retrievedInterval, err := repo.Get(id)
+		retrievedInterval, err := repo.GetById(id)
 		assert.NoError(t, err)
 		assert.NotNil(t, retrievedInterval)
 		assert.Equal(t, interval.ContextId, retrievedInterval.ContextId)
@@ -56,7 +56,7 @@ func TestIntervalRepository(t *testing.T) {
 		err = repo.Delete(id)
 		assert.NoError(t, err)
 
-		deletedInterval, err := repo.Get(id)
+		deletedInterval, err := repo.GetById(id)
 		assert.Error(t, err)
 		assert.Nil(t, deletedInterval)
 	})
