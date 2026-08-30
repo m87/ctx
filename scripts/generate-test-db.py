@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate a ctx database in the current UTC-only 0.6.0 format."""
+"""Generate a ctx test database in the current relational 0.7.1 format."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
@@ -11,7 +12,7 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from zoneinfo import ZoneInfo
 
 
-DATABASE_VERSION = "0.6.0"
+DATABASE_VERSION = "0.7.1"
 TEST_ID_NAMESPACE = "ctx2-test-database-v1"
 SEED_TIMEZONE_NAME = "UTC"
 NANOSECONDS_PER_SECOND = 1_000_000_000
@@ -43,173 +44,116 @@ def recent_day_start(now: datetime, days_back: int, hour: int, minute: int = 0) 
 def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(
         """
-        CREATE TABLE node_cores (
-          id char(36),
-          namespace_id char(36),
-          parent_id char(36),
-          kind text NOT NULL DEFAULT "",
-          status text NOT NULL DEFAULT "",
+        CREATE TABLE properties (
+          id text PRIMARY KEY,
+          database_version text,
+          client_id text
+        );
+
+        CREATE TABLE client_properties (
+          id text PRIMARY KEY,
+          theme text,
+          first_day text,
+          timezone text,
+          "values" text
+        );
+
+        CREATE TABLE workspaces (
+          id text PRIMARY KEY,
+          name text,
+          description text
+        );
+
+        CREATE TABLE workspace_link_rules (
+          workspace_id text,
+          position integer,
+          regexp text NOT NULL,
+          link text NOT NULL,
+          PRIMARY KEY (workspace_id, position),
+          CONSTRAINT fk_workspaces_link_rules FOREIGN KEY (workspace_id)
+            REFERENCES workspaces(id)
+            ON DELETE CASCADE
+        );
+
+        CREATE TABLE projects (
+          id text PRIMARY KEY,
+          name text,
+          parent_id text,
+          workspace_id text NOT NULL
+        );
+        CREATE INDEX idx_projects_workspace_id ON projects(workspace_id);
+        CREATE INDEX idx_projects_parent_id ON projects(parent_id);
+
+        CREATE TABLE contexts (
+          id text PRIMARY KEY,
           name text NOT NULL,
-          created_at datetime NOT NULL,
-          updated_at datetime NOT NULL,
-          PRIMARY KEY (id),
-          CONSTRAINT fk_node_cores_parent FOREIGN KEY (parent_id)
-            REFERENCES node_cores(id)
-            ON UPDATE CASCADE
-            ON DELETE SET NULL
+          workspace_id text NOT NULL,
+          status text NOT NULL,
+          archived numeric NOT NULL,
+          description text,
+          project_id text,
+          CONSTRAINT fk_contexts_project_metadata FOREIGN KEY (project_id)
+            REFERENCES projects(id)
         );
-        CREATE INDEX idx_node_cores_name ON node_cores(name);
-        CREATE INDEX idx_node_cores_status ON node_cores(status);
-        CREATE INDEX idx_node_cores_kind ON node_cores(kind);
-        CREATE INDEX idx_node_cores_parent_id ON node_cores(parent_id);
-        CREATE INDEX idx_parent_id ON node_cores(parent_id);
-        CREATE INDEX idx_node_cores_namespace_id ON node_cores(namespace_id);
-        CREATE INDEX idx_namespace_id ON node_cores(namespace_id);
+        CREATE INDEX idx_contexts_project_id ON contexts(project_id);
+        CREATE INDEX idx_contexts_workspace_id ON contexts(workspace_id);
 
-        CREATE TABLE tags (
-          id char(36),
-          namespace_id char(36),
-          name text NOT NULL,
-          created_at datetime NOT NULL,
-          PRIMARY KEY (id)
+        CREATE TABLE tag (
+          id text PRIMARY KEY,
+          name text NOT NULL
         );
-        CREATE INDEX idx_tags_name ON tags(name);
-        CREATE INDEX idx_tags_namespace_id ON tags(namespace_id, namespace_id);
 
-        CREATE TABLE node_tags (
-          node_id char(36),
-          tag_id char(36),
-          PRIMARY KEY (node_id, tag_id),
-          CONSTRAINT fk_node_tags_node FOREIGN KEY (node_id)
-            REFERENCES node_cores(id)
-            ON UPDATE CASCADE
-            ON DELETE CASCADE,
-          CONSTRAINT fk_node_tags_tag FOREIGN KEY (tag_id)
-            REFERENCES tags(id)
-            ON UPDATE CASCADE
-            ON DELETE CASCADE
+        CREATE TABLE context_tags (
+          context_id text,
+          tag_id text,
+          PRIMARY KEY (context_id, tag_id),
+          CONSTRAINT fk_context_tags_context_entity FOREIGN KEY (context_id)
+            REFERENCES contexts(id),
+          CONSTRAINT fk_context_tags_tag_entity FOREIGN KEY (tag_id)
+            REFERENCES tag(id)
         );
-        CREATE INDEX idx_node_tag ON node_tags(node_id, tag_id);
 
-        CREATE TABLE kvs (
-          node_id char(36),
-          key text,
-          value_text text,
-          value_number real,
-          value_int integer,
-          value_int64 bigint,
-          value_bool boolean,
-          value_time datetime,
-          PRIMARY KEY (node_id, key),
-          CONSTRAINT fk_kvs_node FOREIGN KEY (node_id)
-            REFERENCES node_cores(id)
-            ON UPDATE CASCADE
-            ON DELETE CASCADE
+        CREATE TABLE intervals (
+          id text PRIMARY KEY,
+          context_id text NOT NULL,
+          start datetime NOT NULL,
+          end datetime,
+          duration integer NOT NULL,
+          status text NOT NULL,
+          workspace_id text NOT NULL
         );
-        CREATE INDEX idx_kv_key ON kvs(key);
-        CREATE INDEX idx_kv_node_id ON kvs(node_id);
-        CREATE INDEX idx_node_kvs_key_value_time ON kvs(key, value_time, node_id);
-
-        CREATE TABLE contents (
-          node_id char(36),
-          key text,
-          value text,
-          created_at datetime NOT NULL,
-          updated_at datetime NOT NULL,
-          PRIMARY KEY (node_id, key),
-          CONSTRAINT fk_contents_node FOREIGN KEY (node_id)
-            REFERENCES node_cores(id)
-            ON UPDATE CASCADE
-            ON DELETE CASCADE
-        );
-        CREATE INDEX idx_content_key ON contents(key);
-        CREATE INDEX idx_content_node_id ON contents(node_id);
+        CREATE INDEX idx_intervals_workspace_id ON intervals(workspace_id);
+        CREATE INDEX idx_intervals_status ON intervals(status);
+        CREATE INDEX idx_intervals_context_id ON intervals(context_id);
         """
-    )
-
-
-def insert_node(
-    conn: sqlite3.Connection,
-    *,
-    node_id: str,
-    kind: str,
-    name: str,
-    namespace_id: str | None = None,
-    parent_id: str | None = None,
-    status: str = "",
-    now: datetime,
-) -> None:
-    timestamp = sql_time(now)
-    conn.execute(
-        """
-        INSERT INTO node_cores
-          (id, namespace_id, parent_id, kind, status, name, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (node_id, namespace_id, parent_id, kind, status, name, timestamp, timestamp),
-    )
-
-
-def insert_content(
-    conn: sqlite3.Connection,
-    *,
-    node_id: str,
-    key: str,
-    value: str,
-    now: datetime,
-) -> None:
-    timestamp = sql_time(now)
-    conn.execute(
-        """
-        INSERT INTO contents (node_id, key, value, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (node_id, key, value, timestamp, timestamp),
-    )
-
-
-def insert_kv_text(conn: sqlite3.Connection, node_id: str, key: str, value: str) -> None:
-    conn.execute(
-        "INSERT INTO kvs (node_id, key, value_text) VALUES (?, ?, ?)",
-        (node_id, key, value),
-    )
-
-
-def insert_kv_int64(conn: sqlite3.Connection, node_id: str, key: str, value: int) -> None:
-    conn.execute(
-        "INSERT INTO kvs (node_id, key, value_int64) VALUES (?, ?, ?)",
-        (node_id, key, value),
-    )
-
-
-def insert_kv_time(conn: sqlite3.Connection, node_id: str, key: str, value: datetime) -> None:
-    conn.execute(
-        "INSERT INTO kvs (node_id, key, value_time) VALUES (?, ?, ?)",
-        (node_id, key, sql_time(value)),
     )
 
 
 def create_system_records(conn: sqlite3.Connection, now: datetime) -> None:
     client_id = str(uuid4())
-    insert_node(
-        conn,
-        node_id=client_id,
-        kind="system_info",
-        name="systemInfoV1",
-        now=now,
+    conn.execute(
+        "INSERT INTO properties (id, database_version, client_id) VALUES (?, ?, ?)",
+        ("system", DATABASE_VERSION, client_id),
     )
-    insert_kv_text(conn, client_id, "database_version", DATABASE_VERSION)
-
-    insert_node(
-        conn,
-        node_id="settingsV1",
-        kind="settings",
-        name="settingsV1",
-        now=now,
+    client_values = {
+        "client.general.theme": "dark",
+        "client.general.firstDay": "Monday",
+        "client.general.timeZone": "browser",
+        "client.generator.sample": "preserved",
+    }
+    conn.execute(
+        """
+        INSERT INTO client_properties (id, theme, first_day, timezone, "values")
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            "client",
+            client_values["client.general.theme"],
+            client_values["client.general.firstDay"],
+            client_values["client.general.timeZone"],
+            json.dumps(client_values, sort_keys=True),
+        ),
     )
-    insert_kv_text(conn, "settingsV1", "client.general.firstDay", "Monday")
-    insert_kv_text(conn, "settingsV1", "client.general.theme", "dark")
-    insert_kv_text(conn, "settingsV1", "client.general.timeZone", "browser")
 
 
 def create_workspace(
@@ -221,13 +165,16 @@ def create_workspace(
     now: datetime,
 ) -> str:
     workspace_id = stable_id("workspace", slug)
-    insert_node(conn, node_id=workspace_id, kind="workspace", name=name, now=now)
-    insert_content(
-        conn,
-        node_id=workspace_id,
-        key="description",
-        value=description,
-        now=now,
+    conn.execute(
+        "INSERT INTO workspaces (id, name, description) VALUES (?, ?, ?)",
+        (workspace_id, name, description),
+    )
+    conn.execute(
+        """
+        INSERT INTO workspace_link_rules (workspace_id, position, regexp, link)
+        VALUES (?, 0, ?, ?)
+        """,
+        (workspace_id, r"CTX-(\d+)", "https://example.test/context/$1"),
     )
     return workspace_id
 
@@ -242,14 +189,12 @@ def create_project(
     parent_project_id: str | None = None,
 ) -> str:
     project_id = stable_id("project", slug)
-    insert_node(
-        conn,
-        node_id=project_id,
-        namespace_id=workspace_id,
-        parent_id=parent_project_id,
-        kind="project",
-        name=name,
-        now=now,
+    conn.execute(
+        """
+        INSERT INTO projects (id, name, parent_id, workspace_id)
+        VALUES (?, ?, ?, ?)
+        """,
+        (project_id, name, parent_project_id, workspace_id),
     )
     return project_id
 
@@ -264,31 +209,16 @@ def create_context(
     now: datetime,
     status: str = "inactive",
     project_id: str | None = None,
-    project_name: str | None = None,
 ) -> str:
-    if (project_id is None) != (project_name is None):
-        raise ValueError("project_id and project_name must be provided together")
-
     context_id = stable_id("context", slug)
-    insert_node(
-        conn,
-        node_id=context_id,
-        namespace_id=workspace_id,
-        kind="context",
-        status=status,
-        name=name,
-        now=now,
+    conn.execute(
+        """
+        INSERT INTO contexts
+          (id, name, workspace_id, status, archived, description, project_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (context_id, name, workspace_id, status, False, description, project_id),
     )
-    insert_content(
-        conn,
-        node_id=context_id,
-        key="description",
-        value=description,
-        now=now,
-    )
-    if project_id is not None and project_name is not None:
-        insert_kv_text(conn, context_id, "projectId", project_id)
-        insert_kv_text(conn, context_id, "projectName", project_name)
     return context_id
 
 
@@ -305,20 +235,38 @@ def create_interval(
 ) -> str:
     interval_id = stable_id("interval", slug)
     end = start + duration
-    insert_node(
-        conn,
-        node_id=interval_id,
-        namespace_id=workspace_id,
-        parent_id=context_id or None,
-        kind="interval",
-        status=status,
-        name=interval_id,
-        now=now,
+    conn.execute(
+        """
+        INSERT INTO intervals
+          (id, context_id, start, end, duration, status, workspace_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            interval_id,
+            context_id,
+            sql_time(start),
+            sql_time(end),
+            duration_ns(duration),
+            status,
+            workspace_id,
+        ),
     )
-    insert_kv_time(conn, interval_id, "start", start)
-    insert_kv_time(conn, interval_id, "end", end)
-    insert_kv_int64(conn, interval_id, "duration", duration_ns(duration))
     return interval_id
+
+
+def add_context_tag(
+    conn: sqlite3.Connection,
+    *,
+    context_id: str,
+    workspace_id: str,
+    name: str,
+) -> None:
+    tag_id = stable_id("tag", workspace_id, name)
+    conn.execute("INSERT OR IGNORE INTO tag (id, name) VALUES (?, ?)", (tag_id, name))
+    conn.execute(
+        "INSERT OR IGNORE INTO context_tags (context_id, tag_id) VALUES (?, ?)",
+        (context_id, tag_id),
+    )
 
 
 def create_interval_record(
@@ -327,30 +275,29 @@ def create_interval_record(
     slug: str,
     context_id: str,
     workspace_id: str,
-    start: datetime | None,
+    start: datetime,
     end: datetime | None,
     now: datetime,
     status: str,
 ) -> str:
     interval_id = stable_id("interval", slug)
-    insert_node(
-        conn,
-        node_id=interval_id,
-        namespace_id=workspace_id,
-        parent_id=context_id or None,
-        kind="interval",
-        status=status,
-        name=interval_id,
-        now=now,
+    duration = end - start if end is not None and end > start else timedelta(0)
+    conn.execute(
+        """
+        INSERT INTO intervals
+          (id, context_id, start, end, duration, status, workspace_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            interval_id,
+            context_id,
+            sql_time(start),
+            sql_time(end) if end is not None else None,
+            duration_ns(duration),
+            status,
+            workspace_id,
+        ),
     )
-    if start is not None:
-        insert_kv_time(conn, interval_id, "start", start)
-    if end is not None:
-        insert_kv_time(conn, interval_id, "end", end)
-    if start is not None and end is not None and end > start:
-        insert_kv_int64(conn, interval_id, "duration", duration_ns(end - start))
-    else:
-        insert_kv_int64(conn, interval_id, "duration", 0)
     return interval_id
 
 
@@ -384,7 +331,6 @@ def seed_project_hierarchy(
             name=context_name,
             workspace_id=workspace_id,
             project_id=project_ids[project_slug],
-            project_name=project_names[project_slug],
             description=f"Sample context assigned to the {project_names[project_slug]} project.",
             now=now,
         )
@@ -436,6 +382,13 @@ def seed_large_distribution_workspace(
             description="Large workspace primary context.",
             now=now,
         )
+        if context_index == 0:
+            add_context_tag(
+                conn,
+                context_id=context_id,
+                workspace_id=workspace_id,
+                name="important",
+            )
         for days_back in range(SEEDED_DAYS):
             create_interval(
                 conn,
@@ -663,16 +616,6 @@ def seed_integrity_error_workspace(
 
     create_interval_record(
         conn,
-        slug="broken-completed-interval-missing-start",
-        context_id=anchor_context_id,
-        workspace_id=workspace_id,
-        start=None,
-        end=start + timedelta(hours=6, minutes=15),
-        status="completed",
-        now=now,
-    )
-    create_interval_record(
-        conn,
         slug="broken-completed-interval-missing-end",
         context_id=anchor_context_id,
         workspace_id=workspace_id,
@@ -746,28 +689,17 @@ def seed_integrity_error_workspace(
 def validate_no_overlapping_intervals(conn: sqlite3.Connection) -> None:
     overlaps = conn.execute(
         """
-        WITH intervals AS (
-          SELECT
-            core.id,
-            core.name,
-            start_kv.value_time AS start_time,
-            end_kv.value_time AS end_time
-          FROM node_cores core
-          JOIN kvs start_kv ON start_kv.node_id = core.id AND start_kv.key = 'start'
-          JOIN kvs end_kv ON end_kv.node_id = core.id AND end_kv.key = 'end'
-          WHERE core.kind = 'interval'
-        )
         SELECT
           first_interval.id,
           second_interval.id,
-          first_interval.start_time,
-          first_interval.end_time,
-          second_interval.start_time,
-          second_interval.end_time
+          first_interval.start,
+          first_interval.end,
+          second_interval.start,
+          second_interval.end
         FROM intervals first_interval
         JOIN intervals second_interval ON first_interval.id < second_interval.id
-        WHERE first_interval.start_time < second_interval.end_time
-          AND second_interval.start_time < first_interval.end_time
+        WHERE first_interval.start < second_interval.end
+          AND second_interval.start < first_interval.end
         LIMIT 5
         """
     ).fetchall()
@@ -817,7 +749,7 @@ def generate_database(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate a current ctx 0.6.0 UTC SQLite database for testing.",
+        description="Generate a current ctx 0.7.1 relational SQLite database for testing.",
     )
     parser.add_argument(
         "-o",

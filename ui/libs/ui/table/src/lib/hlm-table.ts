@@ -1,8 +1,6 @@
-// src/app/directives/hlm-table-directives.ts
 import { computed, Directive, inject, InjectionToken, input, type ValueProvider } from '@angular/core';
 import { classes } from '@spartan-ng/helm/utils';
 
-// Configuration Interface and InjectionToken
 export const HlmTableConfigToken = new InjectionToken<HlmTableVariant>('HlmTableConfig');
 export interface HlmTableVariant {
 	tableContainer: string;
@@ -51,36 +49,22 @@ export class HlmTableContainer {
 	}
 }
 
-/**
- * Directive to apply Shadcn-like styling to a <table> element.
- * It resolves and provides base classes for its child table elements.
- * If a table has the `hlmTable` attribute, it will be styled with the provided variant.
- * The other table elements will check if a parent table has the `hlmTable` attribute and will be styled accordingly.
- */
 @Directive({
 	selector: 'table[hlmTable]',
 	host: { 'data-slot': 'table' },
 })
 export class HlmTable {
-	/** Input to configure the variant of the table, this input has the highest priority. */
 	public readonly userVariant = input<Partial<HlmTableVariant> | string>({}, { alias: 'hlmTable' });
 
-	/** Global or default configuration provided by injectHlmTableConfig() */
 	private readonly _globalOrDefaultConfig = injectHlmTableConfig();
 
-	// Protected variant that resolves user input to a full HlmTableVariant
 	protected readonly _variant = computed<HlmTableVariant>(() => {
 		const globalOrDefaultConfig = this._globalOrDefaultConfig;
 		const localInputConfig = this.userVariant();
 
-		// Priority 1: Local input object
 		if (typeof localInputConfig === 'object' && localInputConfig !== null && Object.keys(localInputConfig).length > 0) {
-			// Merge local input with the baseline provided by injectHlmTableConfig()
-			// This ensures that properties not in localInputConfig still fall back to global/default values.
 			return { ...globalOrDefaultConfig, ...localInputConfig };
 		}
-		// If localInputConfig is not a non-empty object (e.g., it's undefined, an empty object, or a string),
-		// then the globalOrDefaultConfig (which is already the result of injected OR default) is used.
 		return globalOrDefaultConfig;
 	});
 
@@ -89,12 +73,7 @@ export class HlmTable {
 	}
 }
 
-// Computed class for the host <table> element}
 
-/**
- * Directive to apply Shadcn-like styling to a <thead> element
- * within an HlmTableDirective context.
- */
 @Directive({
 	selector: 'thead[hlmTHead]',
 	host: { 'data-slot': 'table-header' },
@@ -107,10 +86,6 @@ export class HlmTHead {
 	}
 }
 
-/**
- * Directive to apply Shadcn-like styling to a <tbody> element
- * within an HlmTableDirective context.
- */
 @Directive({
 	selector: 'tbody[hlmTBody]',
 	host: { 'data-slot': 'table-body' },
@@ -122,10 +97,6 @@ export class HlmTBody {
 	}
 }
 
-/**
- * Directive to apply Shadcn-like styling to a <tfoot> element
- * within an HlmTableDirective context.
- */
 @Directive({
 	selector: 'tfoot[hlmTFoot]',
 	host: { 'data-slot': 'table-footer' },
@@ -137,10 +108,6 @@ export class HlmTFoot {
 	}
 }
 
-/**
- * Directive to apply Shadcn-like styling to a <tr> element
- * within an HlmTableDirective context.
- */
 @Directive({
 	selector: 'tr[hlmTr]',
 	host: { 'data-slot': 'table-row' },
@@ -152,10 +119,6 @@ export class HlmTr {
 	}
 }
 
-/**
- * Directive to apply Shadcn-like styling to a <th> element
- * within an HlmTableDirective context.
- */
 @Directive({
 	selector: 'th[hlmTh]',
 	host: { 'data-slot': 'table-head' },
@@ -167,10 +130,6 @@ export class HlmTh {
 	}
 }
 
-/**
- * Directive to apply Shadcn-like styling to a <td> element
- * within an HlmTableDirective context.
- */
 @Directive({
 	selector: 'td[hlmTd]',
 	host: { 'data-slot': 'table-cell' },
@@ -182,10 +141,6 @@ export class HlmTd {
 	}
 }
 
-/**
- * Directive to apply Shadcn-like styling to a <caption> element
- * within an HlmTableDirective context.
- */
 @Directive({
 	selector: 'caption[hlmCaption]',
 	host: { 'data-slot': 'table-caption' },

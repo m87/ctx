@@ -74,37 +74,24 @@ export class HlmCheckbox implements ControlValueAccessor {
 		),
 	);
 
-	/** Used to set the id on the underlying brn element. */
 	public readonly id = input<string | null>(null);
 
-	/** Used to set the aria-label attribute on the underlying brn element. */
 	public readonly ariaLabel = input<string | null>(null, { alias: 'aria-label' });
 
-	/** Used to set the aria-labelledby attribute on the underlying brn element. */
 	public readonly ariaLabelledby = input<string | null>(null, { alias: 'aria-labelledby' });
 
-	/** Used to set the aria-describedby attribute on the underlying brn element. */
 	public readonly ariaDescribedby = input<string | null>(null, { alias: 'aria-describedby' });
 
-	/** The checked state of the checkbox. */
 	public readonly checked = model<boolean>(false);
 
-	/** Emits when checked state changes. */
 	public readonly checkedChange = output<boolean>();
 
-	/**
-	 * The indeterminate state of the checkbox.
-	 * For example, a "select all/deselect all" checkbox may be in the indeterminate state when some but not all of its sub-controls are checked.
-	 */
 	public readonly indeterminate = model<boolean>(false);
 
-	/** The name attribute of the checkbox. */
 	public readonly name = input<string | null>(null);
 
-	/** Whether the checkbox is required. */
 	public readonly required = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
 
-	/** Whether the checkbox is disabled. */
 	public readonly disabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
 
 	protected readonly _disabled = linkedSignal(this.disabled);
@@ -119,7 +106,6 @@ export class HlmCheckbox implements ControlValueAccessor {
 		this._onChange?.(value);
 	}
 
-	/** CONTROL VALUE ACCESSOR */
 	writeValue(value: boolean): void {
 		this.checked.set(value);
 	}

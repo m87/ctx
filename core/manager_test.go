@@ -183,7 +183,7 @@ func (r *mockContextRepository) List() ([]*Context, error) {
 func (r *mockContextRepository) ListToSync(limit int) ([]*Context, error) {
 	result := make([]*Context, 0, len(r.contexts))
 	for _, context := range r.contexts {
-		if context == nil || context.Synced {
+		if context == nil {
 			continue
 		}
 		result = append(result, context)
@@ -314,7 +314,7 @@ func (r *mockWorkspaceRepository) List() ([]*Workspace, error) {
 func (r *mockWorkspaceRepository) ListToSync(limit int) ([]*Workspace, error) {
 	result := make([]*Workspace, 0, len(r.workspaces))
 	for _, workspace := range r.workspaces {
-		if workspace == nil || workspace.Synced {
+		if workspace == nil {
 			continue
 		}
 		result = append(result, workspace)

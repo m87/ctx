@@ -9,6 +9,7 @@
 ## 0.7.1
 - feature: interval splitting — split an interval into two intervals at a given time
 - enhancement: ui tweaks
+- dev: remove nod library
 <!-- - feature: postgres -->
 <!-- advanced search -->
 

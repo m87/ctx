@@ -6,7 +6,7 @@ import { lucidePackage } from '@ng-icons/lucide';
   selector: 'ctx-title',
   imports: [NgIcon],
   providers: [provideIcons({ lucidePackage })],
-  template: /* html */ `
+  template: `
     <div
       class="flex items-center justify-between p-4 sidebar-collapsed:justify-center sidebar-collapsed:p-2"
     >

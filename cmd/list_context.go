@@ -32,7 +32,6 @@ func NewListContextCmd() *cobra.Command {
 				return err
 			}
 
-			// Non-verbose: keep previous compact listing
 			if !Verbose {
 				return printOutput(cmd, contexts, func() string {
 					if len(contexts) == 0 {
@@ -46,7 +45,6 @@ func NewListContextCmd() *cobra.Command {
 				}, nil)
 			}
 
-			// Verbose: include full context info and list intervals for each context
 			type ctxWithIntervals struct {
 				Context   *core.Context    `json:"context"`
 				Intervals []*core.Interval `json:"intervals"`
@@ -71,7 +69,6 @@ func NewListContextCmd() *cobra.Command {
 				verboseList = append(verboseList, &ctxWithIntervals{Context: context, Intervals: intervals})
 			}
 
-			// Text renderer: detailed human-readable with indented intervals
 			textRenderer := func() string {
 				if len(verboseList) == 0 {
 					return "No contexts found"
@@ -84,13 +81,25 @@ func NewListContextCmd() *cobra.Command {
 					}
 					b.WriteString(fmt.Sprintf("ID: %s\n", c.Id))
 					b.WriteString(fmt.Sprintf("Name: %s\n", c.Name))
-					b.WriteString(fmt.Sprintf("ParentId: %s\n", c.ParentId))
+					projectID := ""
+					if c.ProjectId != nil {
+						projectID = *c.ProjectId
+					}
+					b.WriteString(fmt.Sprintf("ProjectId: %s\n", projectID))
 					b.WriteString(fmt.Sprintf("Status: %s\n", c.Status))
 					if c.Description != "" {
 						b.WriteString(fmt.Sprintf("Description: %s\n", c.Description))
 					}
 					if len(c.Tags) > 0 {
-						b.WriteString(fmt.Sprintf("Tags: %s\n", strings.Join(c.Tags, ", ")))
+						tagNames := make([]string, 0, len(c.Tags))
+						for _, tag := range c.Tags {
+							if tag != nil {
+								tagNames = append(tagNames, tag.Name)
+							}
+						}
+						if len(tagNames) > 0 {
+							b.WriteString(fmt.Sprintf("Tags: %s\n", strings.Join(tagNames, ", ")))
+						}
 					}
 					b.WriteString("Intervals:\n")
 					if len(item.Intervals) == 0 {
@@ -104,7 +113,6 @@ func NewListContextCmd() *cobra.Command {
 				return b.String()
 			}
 
-			// For structured outputs (json/yaml/shell), print the verboseList so intervals are included
 			return printOutput(cmd, verboseList, textRenderer, nil)
 		},
 	}

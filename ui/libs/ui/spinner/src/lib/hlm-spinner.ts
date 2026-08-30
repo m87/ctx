@@ -17,13 +17,8 @@ import { classes } from '@spartan-ng/helm/utils';
 	`,
 })
 export class HlmSpinner {
-	/**
-	 * The name of the icon to be used as the spinner.
-	 * Use provideIcons({ ... }) to register custom icons.
-	 */
 	public readonly icon = input<string>('lucideLoader');
 
-	/** Aria label for the spinner for accessibility. */
 	public readonly ariaLabel = input<string>('Loading', { alias: 'aria-label' });
 
 	constructor() {

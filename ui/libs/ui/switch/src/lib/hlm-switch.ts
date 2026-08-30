@@ -60,27 +60,20 @@ export class HlmSwitch implements ControlValueAccessor {
 		),
 	);
 
-	/** The checked state of the switch. */
 	public readonly checked = model<boolean>(false);
 
-	/** Emits when the checked state of the switch changes. */
 	public readonly checkedChange = output<boolean>();
 
-	/** The disabled state of the switch. */
 	public readonly disabled = input<boolean, BooleanInput>(false, {
 		transform: booleanAttribute,
 	});
 
-	/** Used to set the id on the underlying brn element. */
 	public readonly id = input<string | null>(null);
 
-	/** Used to set the aria-label attribute on the underlying brn element. */
 	public readonly ariaLabel = input<string | null>(null, { alias: 'aria-label' });
 
-	/** Used to set the aria-labelledby attribute on the underlying brn element. */
 	public readonly ariaLabelledby = input<string | null>(null, { alias: 'aria-labelledby' });
 
-	/** Used to set the aria-describedby attribute on the underlying brn element. */
 	public readonly ariaDescribedby = input<string | null>(null, { alias: 'aria-describedby' });
 
 	protected readonly _disabled = linkedSignal(this.disabled);
@@ -94,7 +87,6 @@ export class HlmSwitch implements ControlValueAccessor {
 		this.checkedChange.emit(value);
 	}
 
-	/** CONROL VALUE ACCESSOR */
 
 	writeValue(value: boolean): void {
 		this.checked.set(Boolean(value));

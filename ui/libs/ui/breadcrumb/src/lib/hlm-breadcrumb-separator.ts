@@ -4,7 +4,6 @@ import { lucideChevronRight } from '@ng-icons/lucide';
 import { classes } from '@spartan-ng/helm/utils';
 
 @Component({
-	// eslint-disable-next-line @angular-eslint/component-selector
 	selector: '[hlmBreadcrumbSeparator]',
 	imports: [NgIcon],
 	providers: [provideIcons({ lucideChevronRight })],

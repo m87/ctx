@@ -4,12 +4,13 @@ go 1.26.3
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/m87/nod v0.0.2-0.20260810204553-5743ff2c2f9c
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
+	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
+	modernc.org/sqlite v1.53.0
 )
 
 require (
@@ -36,9 +37,7 @@ require (
 	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gorm.io/driver/sqlite v1.6.0 // indirect
 	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.53.0 // indirect
 )

@@ -27,14 +27,10 @@ export class HlmDropdownMenuTrigger {
 	private readonly _menuPosition = computed(() => createMenuPosition(this.align(), this.side()));
 
 	constructor() {
-		// once the trigger opens we wait until the next tick and then grab the last position
-		// used to position the menu. we store this in our trigger which the brnMenu directive has
-		// access to through DI
 		this._cdkTrigger.opened.pipe(takeUntilDestroyed()).subscribe(() =>
 			setTimeout(
 				() =>
-					// eslint-disable-next-line
-					((this._cdkTrigger as any)._spartanLastPosition = // eslint-disable-next-line
+					((this._cdkTrigger as any)._spartanLastPosition =
 						(this._cdkTrigger as any).overlayRef._positionStrategy._lastPosition),
 			),
 		);

@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-// testManager provides a ContextManager backed only by local, in-memory data.
-// Tests can inspect the repositories directly when they need to assert persisted state.
 type testManager struct {
 	Manager    *ContextManager
 	Contexts   *memoryContextRepository
@@ -82,7 +80,7 @@ func (r *memoryContextRepository) ListToSync(limit int) ([]*Context, error) {
 
 	result := make([]*Context, 0, len(contexts))
 	for _, context := range contexts {
-		if context == nil || context.Synced {
+		if context == nil {
 			continue
 		}
 		result = append(result, context)
@@ -263,7 +261,7 @@ func (r *memoryWorkspaceRepository) ListToSync(limit int) ([]*Workspace, error) 
 
 	result := make([]*Workspace, 0, len(workspaces))
 	for _, workspace := range workspaces {
-		if workspace == nil || workspace.Synced {
+		if workspace == nil {
 			continue
 		}
 		result = append(result, workspace)

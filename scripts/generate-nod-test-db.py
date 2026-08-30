@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the frozen ctx 0.5.0 database format used by migration tests."""
+"""Generate a frozen nod-backed ctx database in the UTC-only 0.6.0 format."""
 
 from __future__ import annotations
 
@@ -11,9 +11,9 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from zoneinfo import ZoneInfo
 
 
-DATABASE_VERSION = "0.5.0"
+DATABASE_VERSION = "0.6.0"
 TEST_ID_NAMESPACE = "ctx2-test-database-v1"
-TIMEZONE_NAME = "Europe/Warsaw"
+SEED_TIMEZONE_NAME = "UTC"
 NANOSECONDS_PER_SECOND = 1_000_000_000
 SEEDED_DAYS = 7
 
@@ -32,7 +32,7 @@ def duration_ns(duration: timedelta) -> int:
 
 
 def local_zone() -> ZoneInfo:
-    return ZoneInfo(TIMEZONE_NAME)
+    return ZoneInfo(SEED_TIMEZONE_NAME)
 
 
 def recent_day_start(now: datetime, days_back: int, hour: int, minute: int = 0) -> datetime:
@@ -108,6 +108,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX idx_kv_key ON kvs(key);
         CREATE INDEX idx_kv_node_id ON kvs(node_id);
+        CREATE INDEX idx_node_kvs_key_value_time ON kvs(key, value_time, node_id);
 
         CREATE TABLE contents (
           node_id char(36),
@@ -208,6 +209,8 @@ def create_system_records(conn: sqlite3.Connection, now: datetime) -> None:
     )
     insert_kv_text(conn, "settingsV1", "client.general.firstDay", "Monday")
     insert_kv_text(conn, "settingsV1", "client.general.theme", "dark")
+    insert_kv_text(conn, "settingsV1", "client.general.timeZone", "browser")
+    insert_kv_text(conn, "settingsV1", "client.generator.sample", "preserved")
 
 
 def create_workspace(
@@ -227,7 +230,36 @@ def create_workspace(
         value=description,
         now=now,
     )
+    insert_kv_text(conn, workspace_id, "linkRule.0.regexp", r"CTX-(\d+)")
+    insert_kv_text(
+        conn,
+        workspace_id,
+        "linkRule.0.link",
+        "https://example.test/context/$1",
+    )
     return workspace_id
+
+
+def create_project(
+    conn: sqlite3.Connection,
+    *,
+    slug: str,
+    name: str,
+    workspace_id: str,
+    now: datetime,
+    parent_project_id: str | None = None,
+) -> str:
+    project_id = stable_id("project", slug)
+    insert_node(
+        conn,
+        node_id=project_id,
+        namespace_id=workspace_id,
+        parent_id=parent_project_id,
+        kind="project",
+        name=name,
+        now=now,
+    )
+    return project_id
 
 
 def create_context(
@@ -239,13 +271,17 @@ def create_context(
     description: str,
     now: datetime,
     status: str = "inactive",
+    project_id: str | None = None,
+    project_name: str | None = None,
 ) -> str:
+    if (project_id is None) != (project_name is None):
+        raise ValueError("project_id and project_name must be provided together")
+
     context_id = stable_id("context", slug)
     insert_node(
         conn,
         node_id=context_id,
         namespace_id=workspace_id,
-        parent_id=None,
         kind="context",
         status=status,
         name=name,
@@ -258,6 +294,9 @@ def create_context(
         value=description,
         now=now,
     )
+    if project_id is not None and project_name is not None:
+        insert_kv_text(conn, context_id, "projectId", project_id)
+        insert_kv_text(conn, context_id, "projectName", project_name)
     return context_id
 
 
@@ -285,11 +324,31 @@ def create_interval(
         now=now,
     )
     insert_kv_time(conn, interval_id, "start", start)
-    insert_kv_text(conn, interval_id, "start_timezone", TIMEZONE_NAME)
     insert_kv_time(conn, interval_id, "end", end)
-    insert_kv_text(conn, interval_id, "end_timezone", TIMEZONE_NAME)
     insert_kv_int64(conn, interval_id, "duration", duration_ns(duration))
     return interval_id
+
+
+def add_context_tag(
+    conn: sqlite3.Connection,
+    *,
+    context_id: str,
+    workspace_id: str,
+    name: str,
+    now: datetime,
+) -> None:
+    tag_id = stable_id("tag", workspace_id, name)
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO tags (id, namespace_id, name, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (tag_id, workspace_id, name, sql_time(now)),
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO node_tags (node_id, tag_id) VALUES (?, ?)",
+        (context_id, tag_id),
+    )
 
 
 def create_interval_record(
@@ -316,15 +375,58 @@ def create_interval_record(
     )
     if start is not None:
         insert_kv_time(conn, interval_id, "start", start)
-        insert_kv_text(conn, interval_id, "start_timezone", TIMEZONE_NAME)
     if end is not None:
         insert_kv_time(conn, interval_id, "end", end)
-        insert_kv_text(conn, interval_id, "end_timezone", TIMEZONE_NAME)
     if start is not None and end is not None and end > start:
         insert_kv_int64(conn, interval_id, "duration", duration_ns(end - start))
     else:
         insert_kv_int64(conn, interval_id, "duration", 0)
     return interval_id
+
+
+def seed_project_hierarchy(
+    conn: sqlite3.Connection,
+    *,
+    workspace_id: str,
+    slug_prefix: str,
+    projects: list[tuple[str, str, str | None]],
+    contexts: list[tuple[str, str, str]],
+    interval_hour: int,
+    now: datetime,
+) -> None:
+    project_ids: dict[str, str] = {}
+    project_names: dict[str, str] = {}
+    for project_slug, project_name, parent_slug in projects:
+        project_ids[project_slug] = create_project(
+            conn,
+            slug=f"{slug_prefix}-{project_slug}",
+            name=project_name,
+            workspace_id=workspace_id,
+            parent_project_id=project_ids[parent_slug] if parent_slug is not None else None,
+            now=now,
+        )
+        project_names[project_slug] = project_name
+
+    for index, (project_slug, context_slug, context_name) in enumerate(contexts):
+        context_id = create_context(
+            conn,
+            slug=f"{slug_prefix}-project-{context_slug}",
+            name=context_name,
+            workspace_id=workspace_id,
+            project_id=project_ids[project_slug],
+            project_name=project_names[project_slug],
+            description=f"Sample context assigned to the {project_names[project_slug]} project.",
+            now=now,
+        )
+        create_interval(
+            conn,
+            slug=f"{slug_prefix}-project-{context_slug}-interval",
+            context_id=context_id,
+            workspace_id=workspace_id,
+            start=recent_day_start(now, index % SEEDED_DAYS, interval_hour),
+            duration=timedelta(minutes=25 + (index % 3) * 5),
+            now=now,
+        )
 
 
 def seed_large_distribution_workspace(
@@ -364,6 +466,14 @@ def seed_large_distribution_workspace(
             description="Large workspace primary context.",
             now=now,
         )
+        if context_index == 0:
+            add_context_tag(
+                conn,
+                context_id=context_id,
+                workspace_id=workspace_id,
+                name="important",
+                now=now,
+            )
         for days_back in range(SEEDED_DAYS):
             create_interval(
                 conn,
@@ -406,6 +516,30 @@ def seed_large_distribution_workspace(
             now=now,
         )
 
+    seed_project_hierarchy(
+        conn,
+        workspace_id=workspace_id,
+        slug_prefix="large",
+        projects=[
+            ("atlas", "Atlas Platform", None),
+            ("atlas-web", "Web Experience", "atlas"),
+            ("atlas-web-accessibility", "Accessibility Refresh", "atlas-web"),
+            ("atlas-api", "Public API", "atlas"),
+            ("operations", "Operations Suite", None),
+            ("operations-reporting", "Reporting Dashboard", "operations"),
+        ],
+        contexts=[
+            ("atlas", "architecture", "Platform Architecture"),
+            ("atlas-web", "design-system", "Design System"),
+            ("atlas-web-accessibility", "keyboard-navigation", "Keyboard Navigation"),
+            ("atlas-api", "api-contract", "API Contract"),
+            ("operations", "operations-planning", "Operations Planning"),
+            ("operations-reporting", "metrics-dashboard", "Metrics Dashboard"),
+        ],
+        interval_hour=6,
+        now=now,
+    )
+
     return workspace_id
 
 
@@ -441,6 +575,31 @@ def seed_small_healthy_workspace(conn: sqlite3.Connection, *, now: datetime) -> 
                 duration=timedelta(minutes=minutes),
                 now=now,
             )
+
+    seed_project_hierarchy(
+        conn,
+        workspace_id=workspace_id,
+        slug_prefix="small",
+        projects=[
+            ("website", "Personal Website", None),
+            ("website-content", "Content Refresh", "website"),
+            ("website-content-portfolio", "Portfolio Case Studies", "website-content"),
+            ("website-hosting", "Hosting Migration", "website"),
+            ("home", "Home Operations", None),
+            ("home-finance", "Finance Dashboard", "home"),
+        ],
+        contexts=[
+            ("website", "website-planning", "Website Planning"),
+            ("website-content", "copywriting", "Copywriting"),
+            ("website-content-portfolio", "case-study-review", "Case Study Review"),
+            ("website-hosting", "deployment-checklist", "Deployment Checklist"),
+            ("home", "household-planning", "Household Planning"),
+            ("home-finance", "budget-review", "Budget Review"),
+        ],
+        interval_hour=7,
+        now=now,
+    )
+
     return workspace_id
 
 
@@ -674,7 +833,7 @@ def generate_database(
     if output.exists():
         output.unlink()
 
-    now = datetime.now(local_zone()).replace(microsecond=0)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
     with sqlite3.connect(output) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
         create_schema(conn)
@@ -696,7 +855,7 @@ def generate_database(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate a legacy ctx 0.5.0 SQLite database for migration testing.",
+        description="Generate a frozen nod-backed ctx 0.6.0 UTC SQLite database for migration testing.",
     )
     parser.add_argument(
         "-o",

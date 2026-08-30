@@ -24,6 +24,5 @@ export class HlmPaginationEllipsis {
 		classes(() => 'flex size-9 items-center justify-center');
 	}
 
-	/** Screen reader only text for the ellipsis */
 	public readonly srOnlyText = input<string>('More pages');
 }

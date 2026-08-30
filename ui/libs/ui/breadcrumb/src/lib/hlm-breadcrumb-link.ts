@@ -28,6 +28,5 @@ export class HlmBreadcrumbLink {
 		classes(() => 'hover:text-foreground transition-colors');
 	}
 
-	/** The link to navigate to the page. */
 	public readonly link = input<RouterLink['routerLink']>();
 }

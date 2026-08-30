@@ -1,8 +1,5 @@
 # syntax=docker/dockerfile:1.6
 
-########################
-# BUILD STAGE
-########################
 FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 
 WORKDIR /app
@@ -17,9 +14,6 @@ COPY . .
 
 RUN npm run build -- --configuration production
 
-########################
-# RUNTIME STAGE
-########################
 FROM --platform=$TARGETPLATFORM docker.io/library/nginx:1.29.4-alpine
 
 RUN rm /etc/nginx/conf.d/default.conf

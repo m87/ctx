@@ -4,18 +4,17 @@ import (
 	"time"
 
 	"github.com/m87/ctx/core"
-	ctxlog "github.com/m87/ctx/log"
-	"github.com/m87/nod/sqlite"
+	"github.com/m87/ctx/storage"
 )
 
 func NewTestContextManager(current time.Time) *core.ContextManager {
-	repository, _ := sqlite.NewRepository(":memory:", ctxlog.Logger, NewAdapterRegistry())
+	s, _ := storage.NewSqliteStorage(":memory:")
 	return core.NewContextManager(
 		NewTestTimeProvider(current),
-		NewContextRepository(repository),
-		NewIntervalRepository(repository),
-		NewWorkspaceRepository(repository),
-		NewProjectRepository(repository),
+		storage.NewContextRepository(s.DB),
+		storage.NewIntervalRepository(s.DB),
+		storage.NewWorkspaceRepository(s.DB),
+		storage.NewProjectRepository(s.DB),
 	)
 }
 

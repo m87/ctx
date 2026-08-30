@@ -10,7 +10,6 @@ import { classes } from '@spartan-ng/helm/utils';
 	},
 })
 export class HlmPagination {
-	/** The aria-label for the pagination component. */
 	public readonly ariaLabel = input<string>('pagination', { alias: 'aria-label' });
 
 	constructor() {

@@ -75,38 +75,30 @@ export class HlmDatePickerMulti<T> implements HlmDatePickerBase<T>, ControlValue
 
   private readonly _trigger = contentChild(HlmDatePickerTriggerToken);
 
-  /** Show dropdowns to navigate between months or years. */
   public readonly captionLayout = input<
     'dropdown' | 'label' | 'dropdown-months' | 'dropdown-years'
   >('label');
 
-  /** The minimum date that can be selected.*/
   public readonly min = input<T>();
 
-  /** The maximum date that can be selected. */
   public readonly max = input<T>();
 
-  /** The minimum selectable dates.  */
   public readonly minSelection = input<number, NumberInput>(undefined, {
     transform: numberAttribute,
   });
 
-  /** The maximum selectable dates.  */
   public readonly maxSelection = input<number, NumberInput>(undefined, {
     transform: numberAttribute,
   });
 
-  /** Determine if the date picker is disabled. */
   public readonly disabled = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });
 
-  /** The selected value. */
   public readonly date = input<T[]>();
 
   protected readonly _mutableDate = linkedSignal(this.date);
 
-  /** If true, the date picker will close when the max selection of dates is reached. */
   public readonly autoCloseOnMaxSelection = input<boolean, BooleanInput>(
     this._config.autoCloseOnMaxSelection,
     {
@@ -114,17 +106,14 @@ export class HlmDatePickerMulti<T> implements HlmDatePickerBase<T>, ControlValue
     },
   );
 
-  /** Defines how the date should be displayed in the UI.  */
   public readonly formatDates = input<(date: T[]) => string>(this._config.formatDates);
 
-  /** Defines how the date should be transformed before saving to model/form. */
   public readonly transformDates = input<(date: T[]) => T[]>(this._config.transformDates);
 
   protected readonly _popoverState = signal<BrnDialogState | null>(null);
 
   protected readonly _disabled = linkedSignal(this.disabled);
 
-  /** @internal The disabled state as a readonly signal */
   public readonly disabledState = this._disabled.asReadonly();
 
   public readonly formattedDate = computed(() => {
@@ -156,7 +145,6 @@ export class HlmDatePickerMulti<T> implements HlmDatePickerBase<T>, ControlValue
     }
   }
 
-  /** CONTROL VALUE ACCESSOR */
   public writeValue(value: T[] | null): void {
     this._mutableDate.set(value ? this.transformDates()(value) : undefined);
   }

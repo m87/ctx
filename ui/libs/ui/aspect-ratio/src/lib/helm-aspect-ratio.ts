@@ -15,9 +15,6 @@ const parseDividedString = (value: NumberInput): NumberInput => {
 	host: { '[style.padding-bottom.%]': '100 / ratio()' },
 })
 export class HlmAspectRatio {
-	/**
-	 * Aspect ratio of the element, defined as width / height.
-	 */
 	public readonly ratio = input<number, NumberInput>(1, {
 		alias: 'hlmAspectRatio',
 		transform: (value: NumberInput) => {
