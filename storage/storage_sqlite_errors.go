@@ -1,7 +1,5 @@
 package storage
 
-
-
 type ErrInvalidStoragePath struct{}
 
 func (e ErrInvalidStoragePath) Error() string {
@@ -21,4 +19,3 @@ func (e ErrForeignKeyDisabled) Error() string {
 func NewErrForeignKeyDisabled() error {
 	return ErrForeignKeyDisabled{}
 }
-

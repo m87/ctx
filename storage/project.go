@@ -11,7 +11,7 @@ type ProjectEntity struct {
 
 func (ProjectEntity) TableName() string {
 	return "projects"
-}	
+}
 
 func (e *ProjectEntity) ToModel() *core.Project {
 	return &core.Project{

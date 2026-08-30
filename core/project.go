@@ -1,6 +1,5 @@
 package core
 
-
 const (
 	ProjectType = "project"
 )
@@ -11,4 +10,3 @@ type Project struct {
 	ParentId    string `json:"parentId,omitempty"`
 	WorkspaceId string `json:"workspaceId"`
 }
-
