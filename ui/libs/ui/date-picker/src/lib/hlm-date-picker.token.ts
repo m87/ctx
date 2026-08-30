@@ -13,9 +13,7 @@ export interface HlmDatePickerBase<T> {
   disabledState: Signal<boolean>;
   formattedDate: Signal<string | undefined>;
   hasDate: Signal<boolean>;
-  /** Commit a date to the picker (e.g. from a parsed input). Pass `undefined` to clear. Optional. */
   updateDate?(value: T | undefined): void;
-  // used for ControlValueAccessor
   touched?(): void;
 }
 
@@ -27,41 +25,17 @@ export function provideHlmDatePicker(instance: Type<HlmDatePickerBase<unknown>>)
   return { provide: HlmDatePickerToken, useExisting: instance };
 }
 
-/**
- * Inject the date picker component.
- */
 export function injectHlmDatePicker<T>(): HlmDatePickerBase<T> {
   return inject(HlmDatePickerToken) as HlmDatePickerBase<T>;
 }
 
 export interface HlmDatePickerConfig<T> {
-  /**
-   * If true, the date picker will close when a date is selected.
-   */
   autoCloseOnSelect: boolean;
 
-  /**
-   * Defines how the date should be displayed in the UI.
-   *
-   * @param date
-   * @returns formatted date
-   */
   formatDate: (date: T) => string;
 
-  /**
-   * Defines how the date should be transformed before saving to model/form.
-   *
-   * @param date
-   * @returns transformed date
-   */
   transformDate: (date: T) => T;
 
-  /**
-   * Parse a user-entered string into a date.
-   *
-   * @param value the raw string from the input
-   * @returns the parsed date, or `undefined` when the value can't be parsed
-   */
   parseDate: (value: string) => T | undefined;
 }
 

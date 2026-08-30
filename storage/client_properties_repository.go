@@ -1,6 +1,9 @@
 package storage
 
 import (
+	"encoding/json"
+	"strings"
+
 	"github.com/m87/ctx/core"
 	"gorm.io/gorm"
 )
@@ -19,7 +22,12 @@ func (r *ClientPropertiesRepository) Load() (*core.Settings, error) {
 		return nil, err
 	}
 
-	values := make(map[string]string, 3)
+	values := make(map[string]string)
+	if strings.TrimSpace(entity.Values) != "" {
+		if err := json.Unmarshal([]byte(entity.Values), &values); err != nil {
+			return nil, err
+		}
+	}
 	if entity.Theme != "" {
 		values["client.general.theme"] = entity.Theme
 	}
@@ -39,11 +47,23 @@ func (r *ClientPropertiesRepository) Save(settings *core.Settings) error {
 	}
 
 	values := settings.Values()
+	clientValues := make(map[string]string, len(values))
+	for key, value := range values {
+		if strings.HasPrefix(key, "client.") {
+			clientValues[key] = value
+		}
+	}
+	encoded, err := json.Marshal(clientValues)
+	if err != nil {
+		return err
+	}
+
 	return r.db.Save(&ClientProperties{
 		Id:       clientPropertiesId,
-		Theme:    values["client.general.theme"],
-		FirstDay: values["client.general.firstDay"],
-		Timezone: values["client.general.timeZone"],
+		Theme:    clientValues["client.general.theme"],
+		FirstDay: clientValues["client.general.firstDay"],
+		Timezone: clientValues["client.general.timeZone"],
+		Values:   string(encoded),
 	}).Error
 }
 

@@ -21,13 +21,11 @@ func parseDay(day string) (time.Time, error) {
 
 func parseDateTime(value string) (time.Time, error) {
 	v := strings.TrimSpace(value)
-	// try RFC3339 first
 	parsed, err := time.Parse(time.RFC3339, v)
 	if err == nil {
 		return parsed.UTC(), nil
 	}
 
-	// try local "YYYY-MM-DD HH:MM:SS" format
 	parsed2, err2 := time.ParseInLocation("2006-01-02 15:04:05", v, time.Local)
 	if err2 == nil {
 		return parsed2.UTC(), nil

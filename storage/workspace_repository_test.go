@@ -96,6 +96,45 @@ func TestWorkspaceRepository(t *testing.T) {
 		require.NoError(t, err)
 		require.ElementsMatch(t, []*core.Workspace{first, second}, workspaces)
 	})
+
+	t.Run("Save and replace link rules", func(t *testing.T) {
+		repository := newTestWorkspaceRepository(t)
+		workspace := &core.Workspace{
+			Id:   "workspace-1",
+			Name: "Workspace",
+			Properties: &core.WorkspaceSettings{LinkRules: []core.LinkRule{
+				{Regexp: `CTX-(\d+)`, Link: "https://example.test/$1"},
+				{Regexp: `BUG-(\d+)`, Link: "https://bugs.test/$1"},
+			}},
+		}
+
+		_, err := repository.Save(workspace)
+		require.NoError(t, err)
+		stored, err := repository.GetById(workspace.Id)
+		require.NoError(t, err)
+		require.Equal(t, workspace.Properties, stored.Properties)
+
+		workspace.Properties.LinkRules = workspace.Properties.LinkRules[:1]
+		_, err = repository.Save(workspace)
+		require.NoError(t, err)
+		stored, err = repository.GetById(workspace.Id)
+		require.NoError(t, err)
+		require.Equal(t, workspace.Properties, stored.Properties)
+
+		var count int64
+		require.NoError(t, repository.db.Model(&WorkspaceLinkRuleEntity{}).Count(&count).Error)
+		require.Equal(t, int64(1), count)
+	})
+
+	t.Run("SaveAll returns transaction errors and rolls back", func(t *testing.T) {
+		repository := newTestWorkspaceRepository(t)
+		_, err := repository.SaveAll([]*core.Workspace{{Name: "Valid"}, nil})
+		require.EqualError(t, err, "workspace is required")
+
+		workspaces, listErr := repository.List()
+		require.NoError(t, listErr)
+		require.Empty(t, workspaces)
+	})
 }
 
 func newTestWorkspaceRepository(t *testing.T) *WorkspaceRepository {

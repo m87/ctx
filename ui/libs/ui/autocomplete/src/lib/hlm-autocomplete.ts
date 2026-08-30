@@ -172,59 +172,43 @@ export class HlmAutocomplete<T, V = T> implements ControlValueAccessor {
 
 	protected readonly _elementRef = inject(ElementRef<HTMLElement>);
 
-	/** Custom class for the autocomplete search container. */
 	public readonly autocompleteSearchClass = input<ClassValue>('');
 	protected readonly _computedAutocompleteSearchClass = computed(() => hlm(this.autocompleteSearchClass()));
 
-	/** Custom class for the autocomplete input. */
 	public readonly autocompleteInputClass = input<ClassValue>('');
 	protected readonly _computedAutocompleteInputClass = computed(() => hlm(this.autocompleteInputClass()));
 
-	/** Custom class for the autocomplete list. */
 	public readonly autocompleteListClass = input<ClassValue>('');
 	protected readonly _computedAutocompleteListClass = computed(() => hlm(this.autocompleteListClass()));
 
-	/** Custom class for each autocomplete item. */
 	public readonly autocompleteItemClass = input<ClassValue>('');
 	protected readonly _computedAutocompleteItemClass = computed(() => hlm(this.autocompleteItemClass()));
 
-	/** Custom class for the empty and loading state container. */
 	public readonly autocompleteEmptyClass = input<ClassValue>('');
 	protected readonly _computedAutocompleteEmptyClass = computed(() => hlm(this.autocompleteEmptyClass()));
 
-	/** The list of filtered options to display in the autocomplete. */
 	public readonly filteredOptions = input<T[]>([]);
 
-	/** The selected value. */
 	public readonly value = model<T | V>();
 
-	/** Debounce time in milliseconds for the search input. */
 	public readonly debounceTime = input<number>(this._config.debounceTime);
 
-	/** The search query. */
 	public readonly search = model<string>('');
 
-	/** Debounced search query. */
 	protected readonly _search = debouncedSignal(this.search, this.debounceTime());
 
-	/** Function to transform an option value to a search string. Defaults to identity function for strings. */
 	public readonly transformValueToSearch = input<(option: T) => string>(this._config.transformValueToSearch);
 
-	/** Whether selection of an option is required. */
 	public readonly requireSelection = input<boolean, BooleanInput>(this._config.requireSelection, {
 		transform: booleanAttribute,
 	});
 
-	/** Function to transform an option value to a display string. Defaults to identity function for strings. */
 	public readonly transformOptionToString = input<(option: T) => string>(this._config.transformOptionToString);
 
-	/** Function to transform the object to the value. */
 	public readonly transformOptionToValue = input<((option: T) => V) | undefined>(this._config.transformOptionToValue);
 
-	/** Function to display the selected value as a string. */
 	public readonly displayWith = input<((value: V) => string) | undefined>(undefined);
 
-	/** Computed function to get the display value for the selected option. */
 	protected readonly _displaySearchValue = computed(() => {
 		const displayWith = this.displayWith();
 		if (displayWith) {
@@ -234,41 +218,30 @@ export class HlmAutocomplete<T, V = T> implements ControlValueAccessor {
 		}
 	});
 
-	/** Optional template for rendering each option. */
 	public readonly optionTemplate = input<TemplateRef<HlmAutocompleteOption<T>>>();
 
-	/** Whether the autocomplete is in a loading state. */
 	public readonly loading = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
 
-	/** Whether to show the clear button when a option is selected. */
 	public readonly showClearBtn = input<boolean, BooleanInput>(this._config.showClearBtn, {
 		transform: booleanAttribute,
 	});
 
-	/** Placeholder text for the input field. */
 	public readonly searchPlaceholderText = input<string>('Select an option');
 
-	/** Text to display when loading options. */
 	public readonly loadingText = input<string>('Loading options...');
 
-	/** Text to display when no options are found. */
 	public readonly emptyText = input<string>('No options found');
 
-	/** Aria label for the toggle button. */
 	public readonly ariaLabelToggleButton = input<string>('Toggle options');
 
-	/** The id of the input field. */
 	public readonly inputId = input<string>(`hlm-autocomplete-input-${++HlmAutocomplete._id}`);
 
-	/** Whether the autocomplete is disabled. */
 	public readonly disabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
 
 	protected readonly _disabled = linkedSignal(() => this.disabled());
 
-	/** Emitted when the selected value changes. */
 	public readonly valueChange = output<T | V | null>();
 
-	/** Emitted when the search query changes. */
 	public readonly searchChange = output<string>();
 
 	protected _onChange?: ChangeFn<T | V | null>;
@@ -291,17 +264,14 @@ export class HlmAutocomplete<T, V = T> implements ControlValueAccessor {
 		}
 	}
 
-	/** Toggle the options panel */
 	protected _toggleOptions() {
 		if (this._search() || this.filteredOptions().length > 0) {
-			// only toggle if there's a search term or options to show
 			this._brnAutocomplete().toggle();
 		}
 
 		this._inputRef().nativeElement.focus();
 	}
 
-	/** Clear the current selection and search input */
 	protected _selectionCleared() {
 		this.value.set(undefined);
 		this._onChange?.(null);
@@ -323,7 +293,6 @@ export class HlmAutocomplete<T, V = T> implements ControlValueAccessor {
 		this._brnAutocomplete().close();
 	}
 
-	/** CONTROL VALUE ACCESSOR */
 	public writeValue(value: T | V | null): void {
 		this.value.set(value ? value : undefined);
 

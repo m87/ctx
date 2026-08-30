@@ -9,11 +9,9 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type IntervalRepository struct {
 	db *gorm.DB
-}	
-
+}
 
 func NewIntervalRepository(db *gorm.DB) *IntervalRepository {
 	return &IntervalRepository{db: db}
@@ -49,11 +47,10 @@ func saveInterval(db *gorm.DB, interval *core.Interval) (string, error) {
 
 func (r *IntervalRepository) Delete(id string) error {
 	if err := r.db.Delete(&IntervalEntity{}, "id = ?", id).Error; err != nil {
-		return err 
+		return err
 	}
 	return nil
 }
-
 
 func (r *IntervalRepository) DeleteByContextId(contextId string) error {
 	if contextId == "" {
@@ -87,9 +84,9 @@ func (r *IntervalRepository) ListByContextId(contextId string) ([]*core.Interval
 func (r *IntervalRepository) GetActiveIntervalByContextId(contextId string) (*core.Interval, error) {
 	var entity IntervalEntity
 	if err := r.db.Where("context_id = ? AND status = ?", contextId, "active").First(&entity).Error; err != nil {
-		return nil, err 
+		return nil, err
 	}
-	
+
 	return entity.ToModel(), nil
 }
 
@@ -101,7 +98,7 @@ func (r *IntervalRepository) ListByDay(date time.Time, workspaceId string) ([]*c
 	localDayStart := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, location)
 	dayStart := localDayStart.UTC()
 	dayEnd := localDayStart.AddDate(0, 0, 1).UTC()
-	
+
 	var all []IntervalEntity
 	if err := r.db.Where("workspace_id = ? AND start <= ?", workspaceId, dayEnd).Find(&all).Error; err != nil {
 		return nil, err
@@ -148,7 +145,7 @@ func (r *IntervalRepository) ListToSync(limit int) ([]*core.Interval, error) {
 func (r *IntervalRepository) SaveAll(intervals []*core.Interval) ([]string, error) {
 	ids := []string{}
 
-	r.db.Transaction(func(tx *gorm.DB) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		for _, interval := range intervals {
 			id, err := saveInterval(tx, interval)
 			if err != nil {
@@ -157,7 +154,9 @@ func (r *IntervalRepository) SaveAll(intervals []*core.Interval) ([]string, erro
 			ids = append(ids, id)
 		}
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	return ids, nil
 }

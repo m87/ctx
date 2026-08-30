@@ -34,7 +34,6 @@ export class HlmSidebarService {
 		const destroyRef = inject(DestroyRef);
 		afterNextRender(() => {
 			if (!this._window) return;
-			// Initialize from cookie
 			const cookie = this._document.cookie
 				.split('; ')
 				.find((row) => row.startsWith(`${this._config.sidebarCookieName}=`));
@@ -44,19 +43,15 @@ export class HlmSidebarService {
 				this._open.set(value === 'true');
 			}
 
-			// Initialize MediaQueryList
 			this._mediaQuery = this._window.matchMedia(`(max-width: ${this._config.mobileBreakpoint})`);
 			this._isMobile.set(this._mediaQuery.matches);
 
-			// Add media query listener
 			const mediaQueryHandler = (e: MediaQueryListEvent) => {
 				this._isMobile.set(e.matches);
-				// If switching from mobile to desktop, close mobile sidebar
 				if (!e.matches) this._openMobile.set(false);
 			};
 			this._mediaQuery.addEventListener('change', mediaQueryHandler);
 
-			// Add keyboard shortcut listener
 			const keydownHandler = (event: KeyboardEvent) => {
 				if (event.key === this._config.sidebarKeyboardShortcut && (event.ctrlKey || event.metaKey)) {
 					event.preventDefault();
@@ -65,7 +60,6 @@ export class HlmSidebarService {
 			};
 			this._window.addEventListener('keydown', keydownHandler);
 
-			// Add resize listener with debounce
 			let resizeTimeout: number;
 			const resizeHandler = () => {
 				if (!this._window) return;
@@ -77,7 +71,6 @@ export class HlmSidebarService {
 			};
 			this._window.addEventListener('resize', resizeHandler);
 
-			// Cleanup listeners on destroy
 			destroyRef.onDestroy(() => {
 				if (!this._window) return;
 

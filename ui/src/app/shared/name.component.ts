@@ -1,12 +1,29 @@
 import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucidePencil, lucideX } from '@ng-icons/lucide';
+import type { Tag } from '../../api/context/context.service';
 import { LinkifiedTextComponent } from './linkified-text.component';
 
 export interface NameSaveValue {
   name: string;
   description: string;
-  tags?: string[];
+  tags?: Tag[];
+}
+
+export function parseTagNames(value: string): string[] {
+  return [
+    ...new Set(
+      value
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0),
+    ),
+  ];
+}
+
+export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
+  const existingTags = new Map(tags.map((tag) => [tag.name, tag]));
+  return parseTagNames(value).map((name) => existingTags.get(name) ?? { id: '', name });
 }
 
 @Component({
@@ -132,11 +149,11 @@ export interface NameSaveValue {
 
             @if (showTags() && tags().length > 0) {
               <div class="flex flex-wrap items-center gap-1.5 md:gap-2 mt-2">
-                @for (tag of tags(); track tag) {
+                @for (tag of tags(); track tag.id || tag.name) {
                   <span
                     class="text-[10px] md:text-[11px] font-medium text-blue-600 bg-blue-50/80 px-2 py-1 rounded-md"
                   >
-                    #{{ tag }}
+                    #{{ tag.name }}
                   </span>
                 }
               </div>
@@ -163,7 +180,7 @@ export class NameComponent {
   readonly label = input('Name');
   readonly name = input('');
   readonly description = input<string | null>('');
-  readonly tags = input<readonly string[]>([]);
+  readonly tags = input<readonly Tag[]>([]);
   readonly showDescription = input(true);
   readonly showTags = input(false);
   readonly savePending = input(false);
@@ -181,7 +198,7 @@ export class NameComponent {
   readonly editDescription = signal('');
   readonly editTagsInput = signal('');
 
-  readonly editTagsPreview = computed(() => this.parseTags(this.editTagsInput()));
+  readonly editTagsPreview = computed(() => parseTagNames(this.editTagsInput()));
 
   constructor() {
     effect(() => {
@@ -191,7 +208,11 @@ export class NameComponent {
 
       this.editName.set(this.name());
       this.editDescription.set(this.description() ?? '');
-      this.editTagsInput.set(this.tags().join(', '));
+      this.editTagsInput.set(
+        this.tags()
+          .map((tag) => tag.name)
+          .join(', '),
+      );
     });
   }
 
@@ -202,7 +223,11 @@ export class NameComponent {
 
     this.editName.set(this.name());
     this.editDescription.set(this.description() ?? '');
-    this.editTagsInput.set(this.tags().join(', '));
+    this.editTagsInput.set(
+      this.tags()
+        .map((tag) => tag.name)
+        .join(', '),
+    );
     this.isEditing.set(true);
   }
 
@@ -223,19 +248,12 @@ export class NameComponent {
     this.save.emit({
       name,
       description: this.editDescription().trim(),
-      tags: this.showTags() ? this.parseTags(this.editTagsInput()) : undefined,
+      tags: this.showTags() ? resolveTags(this.editTagsInput(), this.tags()) : undefined,
     });
     this.isEditing.set(false);
   }
 
   getInputValue(event: Event): string {
     return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
-  }
-
-  private parseTags(value: string): string[] {
-    return value
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
   }
 }

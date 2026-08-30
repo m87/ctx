@@ -13,7 +13,6 @@ export class HlmAutocompleteTrigger {
 
 	private readonly _brnDialog = inject(BrnDialog, { optional: true });
 
-	/** Whether the trigger is disabled. */
 	public readonly disabledTrigger = input<boolean, BooleanInput>(false, {
 		transform: booleanAttribute,
 	});

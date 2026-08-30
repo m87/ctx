@@ -108,8 +108,12 @@ func (r *ContextRepository) List() ([]*core.Context, error) {
 
 func (r *ContextRepository) GetActive() (*core.Context, error) {
 	entity := &ContextEntity{}
-	if err := r.db.Preload("Tags").Preload("ProjectMetadata").Where("status = ?", "active").First(entity).Error; err != nil {
-		return nil, err
+	result := r.db.Preload("Tags").Preload("ProjectMetadata").Where("status = ?", "active").Limit(1).Find(entity)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
 	}
 
 	return entity.toModel(), nil

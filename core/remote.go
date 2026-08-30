@@ -275,9 +275,7 @@ func (c *RemoteClient) CreateContext(context *Context) error {
 	if err := c.requestJSON(http.MethodPost, "/context/", context, &created); err != nil {
 		return err
 	}
-	if created.Id != "" {
-		context.Id = created.Id
-	}
+	*context = created
 	return nil
 }
 

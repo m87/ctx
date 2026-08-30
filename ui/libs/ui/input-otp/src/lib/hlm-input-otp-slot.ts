@@ -18,7 +18,6 @@ import { HlmInputOtpFakeCaret } from './hlm-input-otp-fake-caret';
 	`,
 })
 export class HlmInputOtpSlot {
-	/** The index of the slot to render the char or a fake caret */
 	public readonly index = input.required<number, NumberInput>({ transform: numberAttribute });
 
 	constructor() {

@@ -110,12 +110,18 @@ func (m *NodDataMigrator) MigrateIfNeeded() error {
 		}
 
 		legacyTables := existingLegacyTables(tx)
-		if strings.TrimSpace(systemInfo.DatabaseVersion) != "" {
-			if err := dropLegacyTables(tx, legacyTables); err != nil {
-				return err
+		databaseVersion := strings.TrimSpace(systemInfo.DatabaseVersion)
+		if databaseVersion != "" {
+			if databaseVersion != core.CurrentDatabaseVersion {
+				return fmt.Errorf("unsupported database version %q; expected %q", databaseVersion, core.CurrentDatabaseVersion)
 			}
-			removedTables = legacyTables
+			if len(legacyTables) > 0 {
+				return fmt.Errorf("legacy nod tables remain in an initialized %s database: %s", databaseVersion, strings.Join(legacyTables, ","))
+			}
 			return nil
+		}
+		if len(legacyTables) > 0 && !tx.Migrator().HasTable(legacyNodeCoreTable) {
+			return fmt.Errorf("legacy nod schema is incomplete: missing %s", legacyNodeCoreTable)
 		}
 
 		if len(legacyTables) > 0 {
@@ -125,7 +131,11 @@ func (m *NodDataMigrator) MigrateIfNeeded() error {
 			)
 		}
 
-		if err := (&NodDataMigrator{db: tx}).migrateLegacyData(); err != nil {
+		legacyData, err := (&NodDataMigrator{db: tx}).migrateLegacyData()
+		if err != nil {
+			return err
+		}
+		if err := (&NodDataMigrator{db: tx}).verifyLegacyMigration(legacyData); err != nil {
 			return err
 		}
 		if err := dropLegacyTables(tx, legacyTables); err != nil {
@@ -161,39 +171,39 @@ func (m *NodDataMigrator) MigrateIfNeeded() error {
 	return nil
 }
 
-func (m *NodDataMigrator) migrateLegacyData() error {
+func (m *NodDataMigrator) migrateLegacyData() (*legacyData, error) {
 	if !m.db.Migrator().HasTable(legacyNodeCoreTable) {
-		return nil
+		return nil, nil
 	}
 
 	data, err := m.loadLegacyData()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := m.migrateWorkspaces(data); err != nil {
-		return err
+		return nil, err
 	}
 	if err := m.migrateProjects(data); err != nil {
-		return err
+		return nil, err
 	}
 	if err := m.migrateTags(data); err != nil {
-		return err
+		return nil, err
 	}
 	if err := m.migrateContexts(data); err != nil {
-		return err
+		return nil, err
 	}
 	if err := m.migrateContextTags(data); err != nil {
-		return err
+		return nil, err
 	}
 	if err := m.migrateIntervals(data); err != nil {
-		return err
+		return nil, err
 	}
 	if err := m.migrateClientProperties(data); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return data, nil
 }
 
 func (m *NodDataMigrator) loadLegacyData() (*legacyData, error) {
@@ -251,7 +261,6 @@ func (m *NodDataMigrator) loadLegacyData() (*legacyData, error) {
 			return nil, fmt.Errorf("load legacy node tags: %w", err)
 		}
 	}
-
 	return data, nil
 }
 
@@ -268,10 +277,47 @@ func (m *NodDataMigrator) migrateWorkspaces(data *legacyData) error {
 		})
 	}
 
-	if err := createByIdIfMissing(m.db, entities); err != nil {
-		return fmt.Errorf("migrate workspaces: %w", err)
+	if len(entities) > 0 {
+		if err := m.db.Omit("LinkRules").Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			UpdateAll: true,
+		}).Create(&entities).Error; err != nil {
+			return fmt.Errorf("migrate workspaces: %w", err)
+		}
 	}
+
+	for _, entity := range entities {
+		if err := m.db.Delete(&storage.WorkspaceLinkRuleEntity{}, "workspace_id = ?", entity.Id).Error; err != nil {
+			return fmt.Errorf("replace workspace link rules: %w", err)
+		}
+		rules := legacyWorkspaceLinkRules(data, entity.Id)
+		if len(rules) > 0 {
+			if err := m.db.Create(&rules).Error; err != nil {
+				return fmt.Errorf("migrate workspace link rules: %w", err)
+			}
+		}
+	}
+
 	return nil
+}
+
+func legacyWorkspaceLinkRules(data *legacyData, workspaceId string) []storage.WorkspaceLinkRuleEntity {
+	rules := make([]storage.WorkspaceLinkRuleEntity, 0)
+	for position := 0; ; position++ {
+		prefix := fmt.Sprintf("linkRule.%d", position)
+		regexp, hasRegexp := legacyTextValueIfPresent(data.kv, workspaceId, prefix+".regexp")
+		link, hasLink := legacyTextValueIfPresent(data.kv, workspaceId, prefix+".link")
+		if !hasRegexp || !hasLink {
+			break
+		}
+		rules = append(rules, storage.WorkspaceLinkRuleEntity{
+			WorkspaceId: workspaceId,
+			Position:    position,
+			Regexp:      regexp,
+			Link:        link,
+		})
+	}
+	return rules
 }
 
 func (m *NodDataMigrator) migrateProjects(data *legacyData) error {
@@ -288,7 +334,7 @@ func (m *NodDataMigrator) migrateProjects(data *legacyData) error {
 		})
 	}
 
-	if err := createByIdIfMissing(m.db, entities); err != nil {
+	if err := upsertById(m.db, entities); err != nil {
 		return fmt.Errorf("migrate projects: %w", err)
 	}
 	return nil
@@ -300,7 +346,7 @@ func (m *NodDataMigrator) migrateTags(data *legacyData) error {
 		entities = append(entities, storage.TagEntity{Id: tag.Id, Name: tag.Name})
 	}
 
-	if err := createByIdIfMissing(m.db, entities); err != nil {
+	if err := upsertById(m.db, entities); err != nil {
 		return fmt.Errorf("migrate tags: %w", err)
 	}
 	return nil
@@ -333,7 +379,7 @@ func (m *NodDataMigrator) migrateContexts(data *legacyData) error {
 		return nil
 	}
 	if err := m.db.Omit("Tags", "ProjectMetadata").
-		Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, DoNothing: true}).
+		Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "id"}}, UpdateAll: true}).
 		Create(&entities).Error; err != nil {
 		return fmt.Errorf("migrate contexts: %w", err)
 	}
@@ -345,6 +391,11 @@ func (m *NodDataMigrator) migrateContextTags(data *legacyData) error {
 	for _, node := range data.nodes {
 		if node.Kind == "context" {
 			contextIds[node.Id] = struct{}{}
+		}
+	}
+	for contextId := range contextIds {
+		if err := m.db.Delete(&storage.ContextTagEntity{}, "context_id = ?", contextId).Error; err != nil {
+			return fmt.Errorf("replace context tags: %w", err)
 		}
 	}
 
@@ -388,13 +439,23 @@ func (m *NodDataMigrator) migrateIntervals(data *legacyData) error {
 		})
 	}
 
-	if err := createByIdIfMissing(m.db, entities); err != nil {
+	if err := upsertById(m.db, entities); err != nil {
 		return fmt.Errorf("migrate intervals: %w", err)
 	}
 	return nil
 }
 
 func (m *NodDataMigrator) migrateClientProperties(data *legacyData) error {
+	settings, exists := legacyClientSettings(data)
+	if exists {
+		if err := storage.NewClientPropertiesRepository(m.db).Save(core.NewSettings(settings)); err != nil {
+			return fmt.Errorf("migrate client properties: %w", err)
+		}
+	}
+	return nil
+}
+
+func legacyClientSettings(data *legacyData) (map[string]string, bool) {
 	for _, node := range data.nodes {
 		if node.Kind != "settings" {
 			continue
@@ -405,28 +466,160 @@ func (m *NodDataMigrator) migrateClientProperties(data *legacyData) error {
 			"client.general.firstDay": "Monday",
 			"client.general.timeZone": "browser",
 		}
-		for key := range settings {
-			if value, ok := legacyTextValueIfPresent(data.kv, node.Id, key); ok {
-				settings[key] = value
+		for key, value := range data.kv[node.Id] {
+			if strings.HasPrefix(key, "client.") && value.ValueText != nil {
+				settings[key] = *value.ValueText
 			}
 		}
+		return settings, true
+	}
+	return nil, false
+}
 
-		if err := storage.NewClientPropertiesRepository(m.db).Save(core.NewSettings(settings)); err != nil {
-			return fmt.Errorf("migrate client properties: %w", err)
-		}
+func (m *NodDataMigrator) verifyLegacyMigration(data *legacyData) error {
+	if data == nil {
 		return nil
+	}
+
+	idsByKind := make(map[string][]string)
+	workspaceIds := make(map[string]struct{})
+	contextIds := make(map[string]struct{})
+	for _, node := range data.nodes {
+		idsByKind[node.Kind] = append(idsByKind[node.Kind], node.Id)
+		if node.Kind == "workspace" {
+			workspaceIds[node.Id] = struct{}{}
+		}
+		if node.Kind == "context" {
+			contextIds[node.Id] = struct{}{}
+		}
+	}
+
+	for _, check := range []struct {
+		kind  string
+		table string
+	}{
+		{kind: "workspace", table: "workspaces"},
+		{kind: "project", table: "projects"},
+		{kind: "context", table: "contexts"},
+		{kind: "interval", table: "intervals"},
+	} {
+		if err := verifyMigratedIds(m.db, check.table, idsByKind[check.kind]); err != nil {
+			return fmt.Errorf("verify migrated %s records: %w", check.kind, err)
+		}
+	}
+
+	tagIds := make([]string, 0, len(data.tags))
+	for id := range data.tags {
+		tagIds = append(tagIds, id)
+	}
+	if err := verifyMigratedIds(m.db, "tag", tagIds); err != nil {
+		return fmt.Errorf("verify migrated tags: %w", err)
+	}
+
+	expectedRules := make(map[string]storage.WorkspaceLinkRuleEntity)
+	for workspaceId := range workspaceIds {
+		for _, rule := range legacyWorkspaceLinkRules(data, workspaceId) {
+			expectedRules[workspaceRuleKey(rule.WorkspaceId, rule.Position)] = rule
+		}
+	}
+	var storedRules []storage.WorkspaceLinkRuleEntity
+	if err := m.db.Find(&storedRules).Error; err != nil {
+		return fmt.Errorf("verify workspace link rules: %w", err)
+	}
+	actualRuleCount := 0
+	for _, rule := range storedRules {
+		if _, migratedWorkspace := workspaceIds[rule.WorkspaceId]; !migratedWorkspace {
+			continue
+		}
+		actualRuleCount++
+		expected, exists := expectedRules[workspaceRuleKey(rule.WorkspaceId, rule.Position)]
+		if !exists || expected.Regexp != rule.Regexp || expected.Link != rule.Link {
+			return fmt.Errorf("verify workspace link rules: unexpected rule for workspace %s at position %d", rule.WorkspaceId, rule.Position)
+		}
+	}
+	if actualRuleCount != len(expectedRules) {
+		return fmt.Errorf("verify workspace link rules: expected %d, found %d", len(expectedRules), actualRuleCount)
+	}
+
+	expectedRelations := make(map[string]struct{})
+	for _, relation := range data.contextTag {
+		if _, isContext := contextIds[relation.NodeId]; !isContext {
+			continue
+		}
+		if _, tagExists := data.tags[relation.TagId]; !tagExists {
+			continue
+		}
+		expectedRelations[contextTagKey(relation.NodeId, relation.TagId)] = struct{}{}
+	}
+	var storedRelations []storage.ContextTagEntity
+	if err := m.db.Find(&storedRelations).Error; err != nil {
+		return fmt.Errorf("verify context tags: %w", err)
+	}
+	actualRelationCount := 0
+	for _, relation := range storedRelations {
+		if _, migratedContext := contextIds[relation.ContextId]; !migratedContext {
+			continue
+		}
+		actualRelationCount++
+		if _, exists := expectedRelations[contextTagKey(relation.ContextId, relation.TagId)]; !exists {
+			return fmt.Errorf("verify context tags: unexpected relation %s/%s", relation.ContextId, relation.TagId)
+		}
+	}
+	if actualRelationCount != len(expectedRelations) {
+		return fmt.Errorf("verify context tags: expected %d, found %d", len(expectedRelations), actualRelationCount)
+	}
+
+	if expectedSettings, exists := legacyClientSettings(data); exists {
+		storedSettings, err := storage.NewClientPropertiesRepository(m.db).Load()
+		if err != nil {
+			return fmt.Errorf("verify client properties: %w", err)
+		}
+		actualSettings := storedSettings.Values()
+		if len(actualSettings) != len(expectedSettings) {
+			return fmt.Errorf("verify client properties: expected %d, found %d", len(expectedSettings), len(actualSettings))
+		}
+		for key, expected := range expectedSettings {
+			if actualSettings[key] != expected {
+				return fmt.Errorf("verify client properties: unexpected value for %s", key)
+			}
+		}
 	}
 
 	return nil
 }
 
-func createByIdIfMissing[T any](db *gorm.DB, entities []T) error {
+func verifyMigratedIds(db *gorm.DB, table string, ids []string) error {
+	const batchSize = 500
+	var found int64
+	for start := 0; start < len(ids); start += batchSize {
+		end := min(start+batchSize, len(ids))
+		var count int64
+		if err := db.Table(table).Where("id IN ?", ids[start:end]).Count(&count).Error; err != nil {
+			return err
+		}
+		found += count
+	}
+	if found != int64(len(ids)) {
+		return fmt.Errorf("expected %d source IDs, found %d", len(ids), found)
+	}
+	return nil
+}
+
+func workspaceRuleKey(workspaceId string, position int) string {
+	return fmt.Sprintf("%s\x00%d", workspaceId, position)
+}
+
+func contextTagKey(contextId, tagId string) string {
+	return contextId + "\x00" + tagId
+}
+
+func upsertById[T any](db *gorm.DB, entities []T) error {
 	if len(entities) == 0 {
 		return nil
 	}
 	return db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "id"}},
-		DoNothing: true,
+		UpdateAll: true,
 	}).Create(&entities).Error
 }
 

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
@@ -53,13 +54,25 @@ def create_schema(conn: sqlite3.Connection) -> None:
           id text PRIMARY KEY,
           theme text,
           first_day text,
-          timezone text
+          timezone text,
+          "values" text
         );
 
         CREATE TABLE workspaces (
           id text PRIMARY KEY,
           name text,
           description text
+        );
+
+        CREATE TABLE workspace_link_rules (
+          workspace_id text,
+          position integer,
+          regexp text NOT NULL,
+          link text NOT NULL,
+          PRIMARY KEY (workspace_id, position),
+          CONSTRAINT fk_workspaces_link_rules FOREIGN KEY (workspace_id)
+            REFERENCES workspaces(id)
+            ON DELETE CASCADE
         );
 
         CREATE TABLE projects (
@@ -122,12 +135,24 @@ def create_system_records(conn: sqlite3.Connection, now: datetime) -> None:
         "INSERT INTO properties (id, database_version, client_id) VALUES (?, ?, ?)",
         ("system", DATABASE_VERSION, client_id),
     )
+    client_values = {
+        "client.general.theme": "dark",
+        "client.general.firstDay": "Monday",
+        "client.general.timeZone": "browser",
+        "client.generator.sample": "preserved",
+    }
     conn.execute(
         """
-        INSERT INTO client_properties (id, theme, first_day, timezone)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO client_properties (id, theme, first_day, timezone, "values")
+        VALUES (?, ?, ?, ?, ?)
         """,
-        ("client", "dark", "Monday", "browser"),
+        (
+            "client",
+            client_values["client.general.theme"],
+            client_values["client.general.firstDay"],
+            client_values["client.general.timeZone"],
+            json.dumps(client_values, sort_keys=True),
+        ),
     )
 
 
@@ -143,6 +168,13 @@ def create_workspace(
     conn.execute(
         "INSERT INTO workspaces (id, name, description) VALUES (?, ?, ?)",
         (workspace_id, name, description),
+    )
+    conn.execute(
+        """
+        INSERT INTO workspace_link_rules (workspace_id, position, regexp, link)
+        VALUES (?, 0, ?, ?)
+        """,
+        (workspace_id, r"CTX-(\d+)", "https://example.test/context/$1"),
     )
     return workspace_id
 
@@ -220,6 +252,21 @@ def create_interval(
         ),
     )
     return interval_id
+
+
+def add_context_tag(
+    conn: sqlite3.Connection,
+    *,
+    context_id: str,
+    workspace_id: str,
+    name: str,
+) -> None:
+    tag_id = stable_id("tag", workspace_id, name)
+    conn.execute("INSERT OR IGNORE INTO tag (id, name) VALUES (?, ?)", (tag_id, name))
+    conn.execute(
+        "INSERT OR IGNORE INTO context_tags (context_id, tag_id) VALUES (?, ?)",
+        (context_id, tag_id),
+    )
 
 
 def create_interval_record(
@@ -335,6 +382,13 @@ def seed_large_distribution_workspace(
             description="Large workspace primary context.",
             now=now,
         )
+        if context_index == 0:
+            add_context_tag(
+                conn,
+                context_id=context_id,
+                workspace_id=workspace_id,
+                name="important",
+            )
         for days_back in range(SEEDED_DAYS):
             create_interval(
                 conn,

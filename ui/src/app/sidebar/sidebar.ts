@@ -49,16 +49,6 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
           >
             workspace
           </a>
-          <!-- <div
-            class="uppercase flex justify-between items-center text-sm text-muted-foreground p-1 font-semibold"
-          >
-            stats
-          </div>
-          <div
-            class="uppercase flex justify-between items-center text-sm p-1 font-semibold text-blue-500 bg-blue-50 rounded-sm  "
-          >
-            overview
-          </div> -->
         </div>
       </div>
       <div class="min-h-0 overflow-auto border-b max-h-[50%]">

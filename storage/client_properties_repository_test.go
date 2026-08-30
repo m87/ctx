@@ -16,6 +16,7 @@ func TestClientPropertiesRepository(t *testing.T) {
 		"client.general.theme":    "dark",
 		"client.general.firstDay": "Sunday",
 		"client.general.timeZone": "Europe/Warsaw",
+		"client.plugin.option":    "preserved",
 		"database.path":           "/tmp/ignored.db",
 	})
 
@@ -26,6 +27,35 @@ func TestClientPropertiesRepository(t *testing.T) {
 	require.Equal(t, map[string]string{
 		"client.general.theme":    "dark",
 		"client.general.firstDay": "Sunday",
+		"client.general.timeZone": "Europe/Warsaw",
+		"client.plugin.option":    "preserved",
+	}, saved.Values())
+}
+
+func TestClientPropertiesRepositoryLoadsPreviousRelationalShape(t *testing.T) {
+	storage, err := CreateTestInMemoryStorage()
+	require.NoError(t, err)
+	require.NoError(t, storage.DB.Migrator().DropTable(&ClientProperties{}))
+	require.NoError(t, storage.DB.Exec(`
+		CREATE TABLE client_properties (
+			id TEXT PRIMARY KEY,
+			theme TEXT,
+			first_day TEXT,
+			timezone TEXT
+		)
+	`).Error)
+	require.NoError(t, storage.DB.Exec(`
+		INSERT INTO client_properties (id, theme, first_day, timezone)
+		VALUES (?, ?, ?, ?)
+	`, clientPropertiesId, "dark", "Monday", "Europe/Warsaw").Error)
+
+	require.NoError(t, Migrate(storage.DB))
+
+	saved, err := NewClientPropertiesRepository(storage.DB).Load()
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{
+		"client.general.theme":    "dark",
+		"client.general.firstDay": "Monday",
 		"client.general.timeZone": "Europe/Warsaw",
 	}, saved.Values())
 }
@@ -38,12 +68,14 @@ func TestSettingsManagerUsesClientProperties(t *testing.T) {
 	require.NoError(t, manager.InitSettingsIfNotExists())
 	require.NoError(t, manager.SaveClient(map[string]string{
 		"client.general.theme": "dark",
+		"client.plugin.option": "preserved",
 		"database.path":        "/tmp/ignored.db",
 	}))
 
 	settings, err := manager.GetClient()
 	require.NoError(t, err)
 	require.Equal(t, "dark", settings["client.general.theme"])
+	require.Equal(t, "preserved", settings["client.plugin.option"])
 	require.NotContains(t, settings, "database.path")
 
 	var count int64

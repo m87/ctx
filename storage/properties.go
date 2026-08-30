@@ -20,6 +20,7 @@ type ClientProperties struct {
 	Theme    string
 	FirstDay string
 	Timezone string
+	Values   string
 }
 
 func (ClientProperties) TableName() string {

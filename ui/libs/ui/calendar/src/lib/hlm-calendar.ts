@@ -44,7 +44,6 @@ import type { ClassValue } from 'clsx';
       [class]="_computedCalenderClass()"
     >
       <div class="inline-flex flex-col space-y-4">
-        <!-- Header -->
         <div class="space-y-4">
           <div class="relative flex items-center justify-center pt-1">
             <div class="flex w-full items-center justify-center gap-1.5">
@@ -154,49 +153,36 @@ export class HlmCalendar<T> {
     hlm('rounded-md border p-3', this.calendarClass()),
   );
 
-  /** Access the calendar i18n */
   protected readonly _i18n = injectBrnCalendarI18n();
 
-  /** Access the date time adapter */
   protected readonly _dateAdapter = injectDateAdapter<T>();
 
-  /** The days to highlight. */
   public readonly highlightDays = input<T[]>([]);
 
-  /** The minimum date that can be selected.*/
   public readonly min = input<T>();
 
-  /** The maximum date that can be selected. */
   public readonly max = input<T>();
 
-  /** Show dropdowns to navigate between months or years. */
   public readonly captionLayout = input<
     'dropdown' | 'label' | 'dropdown-months' | 'dropdown-years'
   >('label');
 
-  /** Determine if the date picker is disabled. */
   public readonly disabled = input<boolean, BooleanInput>(false, {
     transform: booleanAttribute,
   });
 
-  /** The selected value. */
   public readonly date = model<T>();
 
-  /** Whether a specific date is disabled. */
   public readonly dateDisabled = input<(date: T) => boolean>(() => false);
 
-  /** The day the week starts on */
   public readonly weekStartsOn = input<Weekday, NumberInput>(undefined, {
     transform: (v: unknown) => numberAttribute(v) as Weekday,
   });
 
-  /** The default focused date. */
   public readonly defaultFocusedDate = input<T>();
 
-  /** Access the calendar directive */
   private readonly _calendar = viewChild.required(BrnCalendar);
 
-  /** Get the heading for the current month and year */
   protected readonly _heading = computed(() => {
     const config = this._i18n.config();
     const date = this._calendar().focusedDate();

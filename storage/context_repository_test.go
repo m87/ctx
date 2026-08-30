@@ -129,4 +129,14 @@ func TestContextRepository(t *testing.T) {
 		require.Nil(t, retrievedContext.Project)
 
 	})
+
+	t.Run("GetActive returns nil when no context is active", func(t *testing.T) {
+		storage, err := CreateTestInMemoryStorage()
+		require.NoError(t, err)
+		repo := NewContextRepository(storage.DB)
+
+		active, err := repo.GetActive()
+		require.NoError(t, err)
+		require.Nil(t, active)
+	})
 }

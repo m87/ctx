@@ -45,7 +45,6 @@ import { injectHlmSidebarConfig } from './hlm-sidebar.token';
 				</hlm-sheet-content>
 			</hlm-sheet>
 		} @else {
-			<!-- Sidebar gap on desktop -->
 			<div data-slot="sidebar-gap" [class]="_sidebarGapComputedClass()"></div>
 			<div data-slot="sidebar-container" [class]="_sidebarContainerComputedClass()">
 				<div
@@ -121,7 +120,6 @@ export class HlmSidebar {
 	});
 
 	constructor() {
-		// Sync variant input with service
 		effect(() => {
 			this._sidebarService.setVariant(this.variant());
 		});

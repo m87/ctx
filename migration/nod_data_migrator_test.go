@@ -39,6 +39,9 @@ func TestNodDataMigratorMigratesLegacyTables(t *testing.T) {
 		Id:          "workspace-1",
 		Name:        "Workspace",
 		Description: "Workspace description",
+		Properties: &core.WorkspaceSettings{LinkRules: []core.LinkRule{
+			{Regexp: `CTX-(\d+)`, Link: "https://example.test/$1"},
+		}},
 	}, workspace)
 
 	project, err := storage.NewProjectRepository(storageDB.DB).GetById("project-1")
@@ -76,6 +79,7 @@ func TestNodDataMigratorMigratesLegacyTables(t *testing.T) {
 		"client.general.theme":    "dark",
 		"client.general.firstDay": "Sunday",
 		"client.general.timeZone": "Europe/Warsaw",
+		"client.plugin.option":    "preserved",
 	}, settings.Values())
 
 	for _, table := range []string{"node_cores", "node_kvs", "node_contents", "tags", "node_tags"} {
@@ -128,7 +132,7 @@ func TestNodDataMigratorUsesEmptyNewVersionAsMigrationFlag(t *testing.T) {
 		require.Equal(t, "existing-client", properties.ClientId)
 	})
 
-	t.Run("non-empty new version skips import but removes legacy tables", func(t *testing.T) {
+	t.Run("unsupported new version aborts without removing legacy tables", func(t *testing.T) {
 		storageDB, err := storage.NewSqliteStorage(":memory:")
 		require.NoError(t, err)
 		createLegacyTables(t, storageDB.DB)
@@ -142,7 +146,8 @@ func TestNodDataMigratorUsesEmptyNewVersionAsMigrationFlag(t *testing.T) {
 			ClientId:        "client-1",
 		}))
 
-		require.NoError(t, NewNodDataMigrator(storageDB.DB).MigrateIfNeeded())
+		err = NewNodDataMigrator(storageDB.DB).MigrateIfNeeded()
+		require.EqualError(t, err, `unsupported database version "0.6.0"; expected "0.7.1"`)
 
 		workspace, err := storage.NewWorkspaceRepository(storageDB.DB).GetById("legacy-workspace")
 		require.NoError(t, err)
@@ -150,8 +155,44 @@ func TestNodDataMigratorUsesEmptyNewVersionAsMigrationFlag(t *testing.T) {
 		properties, err := storage.NewPropertiesRepository(storageDB.DB).Load()
 		require.NoError(t, err)
 		require.Equal(t, "0.6.0", properties.DatabaseVersion)
-		require.False(t, storageDB.DB.Migrator().HasTable("node_cores"))
+		require.True(t, storageDB.DB.Migrator().HasTable("node_cores"))
 	})
+
+	t.Run("current version with leftover legacy tables aborts without deleting them", func(t *testing.T) {
+		storageDB, err := storage.NewSqliteStorage(":memory:")
+		require.NoError(t, err)
+		createLegacyTables(t, storageDB.DB)
+		require.NoError(t, storage.NewPropertiesRepository(storageDB.DB).Save(&core.SystemInfo{
+			DatabaseVersion: core.CurrentDatabaseVersion,
+			ClientId:        "client-1",
+		}))
+
+		err = NewNodDataMigrator(storageDB.DB).MigrateIfNeeded()
+		require.ErrorContains(t, err, "legacy nod tables remain")
+		require.True(t, storageDB.DB.Migrator().HasTable("node_cores"))
+	})
+}
+
+func TestNodDataMigratorOverwritesConflictingTargetRowsFromSource(t *testing.T) {
+	storageDB, err := storage.NewSqliteStorage(":memory:")
+	require.NoError(t, err)
+	createLegacyTables(t, storageDB.DB)
+	insertLegacyNode(t, storageDB.DB, legacyNodeCore{
+		Id:   "workspace-1",
+		Kind: "workspace",
+		Name: "Legacy source",
+	})
+	require.NoError(t, storageDB.DB.Create(&storage.WorkspaceEntity{
+		Id:   "workspace-1",
+		Name: "Stale relational value",
+	}).Error)
+
+	require.NoError(t, NewNodDataMigrator(storageDB.DB).MigrateIfNeeded())
+
+	workspace, err := storage.NewWorkspaceRepository(storageDB.DB).GetById("workspace-1")
+	require.NoError(t, err)
+	require.Equal(t, "Legacy source", workspace.Name)
+	require.False(t, storageDB.DB.Migrator().HasTable("node_cores"))
 }
 
 func TestNodDataMigratorRollsBackDataAndVersionOnFailure(t *testing.T) {
@@ -258,7 +299,12 @@ func seedLegacyData(t *testing.T, db *gorm.DB) {
 	theme := "dark"
 	firstDay := "Sunday"
 	timeZone := "Europe/Warsaw"
+	customSetting := "preserved"
+	linkRuleRegexp := `CTX-(\d+)`
+	linkRuleLink := "https://example.test/$1"
 	require.NoError(t, db.Table("node_kvs").Create(&[]legacyNodeKV{
+		{NodeId: "workspace-1", Key: "linkRule.0.regexp", ValueText: &linkRuleRegexp},
+		{NodeId: "workspace-1", Key: "linkRule.0.link", ValueText: &linkRuleLink},
 		{NodeId: "context-1", Key: "archived", ValueBool: &archived},
 		{NodeId: "context-1", Key: "projectId", ValueText: &projectId},
 		{NodeId: "interval-1", Key: "start", ValueTime: &start},
@@ -267,6 +313,7 @@ func seedLegacyData(t *testing.T, db *gorm.DB) {
 		{NodeId: "settingsV1", Key: "client.general.theme", ValueText: &theme},
 		{NodeId: "settingsV1", Key: "client.general.firstDay", ValueText: &firstDay},
 		{NodeId: "settingsV1", Key: "client.general.timeZone", ValueText: &timeZone},
+		{NodeId: "settingsV1", Key: "client.plugin.option", ValueText: &customSetting},
 	}).Error)
 
 	workspaceDescription := "Workspace description"

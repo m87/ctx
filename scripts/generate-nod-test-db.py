@@ -210,6 +210,7 @@ def create_system_records(conn: sqlite3.Connection, now: datetime) -> None:
     insert_kv_text(conn, "settingsV1", "client.general.firstDay", "Monday")
     insert_kv_text(conn, "settingsV1", "client.general.theme", "dark")
     insert_kv_text(conn, "settingsV1", "client.general.timeZone", "browser")
+    insert_kv_text(conn, "settingsV1", "client.generator.sample", "preserved")
 
 
 def create_workspace(
@@ -228,6 +229,13 @@ def create_workspace(
         key="description",
         value=description,
         now=now,
+    )
+    insert_kv_text(conn, workspace_id, "linkRule.0.regexp", r"CTX-(\d+)")
+    insert_kv_text(
+        conn,
+        workspace_id,
+        "linkRule.0.link",
+        "https://example.test/context/$1",
     )
     return workspace_id
 
@@ -319,6 +327,28 @@ def create_interval(
     insert_kv_time(conn, interval_id, "end", end)
     insert_kv_int64(conn, interval_id, "duration", duration_ns(duration))
     return interval_id
+
+
+def add_context_tag(
+    conn: sqlite3.Connection,
+    *,
+    context_id: str,
+    workspace_id: str,
+    name: str,
+    now: datetime,
+) -> None:
+    tag_id = stable_id("tag", workspace_id, name)
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO tags (id, namespace_id, name, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (tag_id, workspace_id, name, sql_time(now)),
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO node_tags (node_id, tag_id) VALUES (?, ?)",
+        (context_id, tag_id),
+    )
 
 
 def create_interval_record(
@@ -436,6 +466,14 @@ def seed_large_distribution_workspace(
             description="Large workspace primary context.",
             now=now,
         )
+        if context_index == 0:
+            add_context_tag(
+                conn,
+                context_id=context_id,
+                workspace_id=workspace_id,
+                name="important",
+                now=now,
+            )
         for days_back in range(SEEDED_DAYS):
             create_interval(
                 conn,

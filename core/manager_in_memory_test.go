@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-// testManager provides a ContextManager backed only by local, in-memory data.
-// Tests can inspect the repositories directly when they need to assert persisted state.
 type testManager struct {
 	Manager    *ContextManager
 	Contexts   *memoryContextRepository

@@ -59,6 +59,7 @@ func Migrate(db *gorm.DB) error {
 			&TagEntity{},
 			&ContextTagEntity{},
 			&WorkspaceEntity{},
+			&WorkspaceLinkRuleEntity{},
 			&Properties{},
 			&ClientProperties{},
 			&ProjectEntity{},

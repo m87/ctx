@@ -32,18 +32,12 @@ export class HlmPaginationNext {
 		classes(() => ['gap-1 px-2.5', !this.iconOnly() ? 'sm:pr-2.5' : '']);
 	}
 
-	/** The link to navigate to the next page. */
 	public readonly link = input<RouterLink['routerLink']>();
-	/** The query parameters to pass to the next page. */
 	public readonly queryParams = input<RouterLink['queryParams']>();
-	/** How to handle query parameters when navigating to the next page. */
 	public readonly queryParamsHandling = input<RouterLink['queryParamsHandling']>();
 
-	/** The aria-label for the next page link. */
 	public readonly ariaLabel = input<string>('Go to next page', { alias: 'aria-label' });
-	/** The text to display for the next page link. */
 	public readonly text = input<string>('Next');
-	/** Whether the button should only display the icon. */
 	public readonly iconOnly = input<boolean, BooleanInput>(false, {
 		transform: booleanAttribute,
 	});

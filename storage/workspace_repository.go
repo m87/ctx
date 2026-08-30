@@ -19,7 +19,7 @@ func NewWorkspaceRepository(db *gorm.DB) *WorkspaceRepository {
 
 func (r *WorkspaceRepository) GetById(id string) (*core.Workspace, error) {
 	var entity WorkspaceEntity
-	if err := r.db.First(&entity, "id = ?", id).Error; err != nil {
+	if err := preloadWorkspaceLinkRules(r.db).First(&entity, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -34,12 +34,17 @@ func (r *WorkspaceRepository) Save(workspace *core.Workspace) (string, error) {
 }
 
 func (r *WorkspaceRepository) Delete(id string) error {
-	return r.db.Delete(&WorkspaceEntity{}, "id = ?", id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&WorkspaceLinkRuleEntity{}, "workspace_id = ?", id).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&WorkspaceEntity{}, "id = ?", id).Error
+	})
 }
 
 func (r *WorkspaceRepository) List() ([]*core.Workspace, error) {
 	var entities []WorkspaceEntity
-	if err := r.db.Find(&entities).Error; err != nil {
+	if err := preloadWorkspaceLinkRules(r.db).Find(&entities).Error; err != nil {
 		return nil, err
 	}
 
@@ -58,9 +63,9 @@ func (r *WorkspaceRepository) ListToSync(limit int) ([]*core.Workspace, error) {
 func (r *WorkspaceRepository) SaveAll(workspaces []*core.Workspace) ([]string, error) {
 	ids := make([]string, len(workspaces))
 
-	r.db.Transaction(func(tx *gorm.DB) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		for i, workspace := range workspaces {
-			id, err := saveWorkspace(tx, workspace)
+			id, err := saveWorkspaceInTransaction(tx, workspace)
 			if err != nil {
 				return err
 			}
@@ -68,7 +73,9 @@ func (r *WorkspaceRepository) SaveAll(workspaces []*core.Workspace) ([]string, e
 			ids[i] = id
 		}
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	return ids, nil
 }
@@ -81,10 +88,45 @@ func saveWorkspace(db *gorm.DB, workspace *core.Workspace) (string, error) {
 		workspace.Id = uuid.NewString()
 	}
 
-	entity := NewWorkspaceEntityFromModel(workspace)
-	if err := db.Save(entity).Error; err != nil {
+	var id string
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		id, err = saveWorkspaceInTransaction(tx, workspace)
+		return err
+	}); err != nil {
 		return "", err
 	}
 
+	return id, nil
+}
+
+func saveWorkspaceInTransaction(db *gorm.DB, workspace *core.Workspace) (string, error) {
+	if workspace == nil {
+		return "", fmt.Errorf("workspace is required")
+	}
+	if workspace.Id == "" {
+		workspace.Id = uuid.NewString()
+	}
+	if workspace.Properties == nil {
+		workspace.Properties = &core.WorkspaceSettings{LinkRules: []core.LinkRule{}}
+	}
+	entity := NewWorkspaceEntityFromModel(workspace)
+	if err := db.Omit("LinkRules").Save(entity).Error; err != nil {
+		return "", err
+	}
+	if err := db.Delete(&WorkspaceLinkRuleEntity{}, "workspace_id = ?", workspace.Id).Error; err != nil {
+		return "", err
+	}
+	if len(entity.LinkRules) > 0 {
+		if err := db.Create(&entity.LinkRules).Error; err != nil {
+			return "", err
+		}
+	}
 	return entity.Id, nil
+}
+
+func preloadWorkspaceLinkRules(db *gorm.DB) *gorm.DB {
+	return db.Preload("LinkRules", func(query *gorm.DB) *gorm.DB {
+		return query.Order("position ASC")
+	})
 }

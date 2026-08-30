@@ -72,7 +72,6 @@ import { HlmPaginationPrevious } from './hlm-pagination-previous';
 				</ul>
 			</nav>
 
-			<!-- Show Page Size selector -->
 			<brn-select [(ngModel)]="itemsPerPage" class="ml-auto" placeholder="Page size">
 				<hlm-select-trigger class="w-fit">
 					<hlm-select-value />
@@ -87,50 +86,29 @@ import { HlmPaginationPrevious } from './hlm-pagination-previous';
 	`,
 })
 export class HlmNumberedPagination {
-	/**
-	 * The current (active) page.
-	 */
 	public readonly currentPage = model.required<number>();
 
-	/**
-	 * The number of items per paginated page.
-	 */
 	public readonly itemsPerPage = model.required<number>();
 
-	/**
-	 * The total number of items in the collection. Only useful when
-	 * doing server-side paging, where the collection size is limited
-	 * to a single page returned by the server API.
-	 */
 	public readonly totalItems = input.required<number, NumberInput>({
 		transform: numberAttribute,
 	});
 
-	/**
-	 * The number of page links to show.
-	 */
 	public readonly maxSize = input<number, NumberInput>(7, {
 		transform: numberAttribute,
 	});
 
-	/**
-	 * Show the first and last page buttons.
-	 */
 	public readonly showEdges = input<boolean, BooleanInput>(true, {
 		transform: booleanAttribute,
 	});
 
-	/**
-	 * The page sizes to show.
-	 * Defaults to [10, 20, 50, 100]
-	 */
 	public readonly pageSizes = input<number[]>([10, 20, 50, 100]);
 
 	protected readonly _pageSizesWithCurrent = computed(() => {
 		const pageSizes = this.pageSizes();
 		return pageSizes.includes(this.itemsPerPage())
-			? pageSizes // if current page size is included, return the same array
-			: [...pageSizes, this.itemsPerPage()].sort((a, b) => a - b); // otherwise, add current page size and sort the array
+			? pageSizes
+			: [...pageSizes, this.itemsPerPage()].sort((a, b) => a - b);
 	});
 
 	protected readonly _isFirstPageActive = computed(() => this.currentPage() === 1);
@@ -138,8 +116,6 @@ export class HlmNumberedPagination {
 
 	protected readonly _lastPageNumber = computed(() => {
 		if (this.totalItems() < 1) {
-			// when there are 0 or fewer (an error case) items, there are no "pages" as such,
-			// but it makes sense to consider a single, empty page as the last page.
 			return 1;
 		}
 		return Math.ceil(this.totalItems() / this.itemsPerPage());
@@ -149,7 +125,6 @@ export class HlmNumberedPagination {
 		const correctedCurrentPage = outOfBoundCorrection(this.totalItems(), this.itemsPerPage(), this.currentPage());
 
 		if (correctedCurrentPage !== this.currentPage()) {
-			// update the current page
 			untracked(() => this.currentPage.set(correctedCurrentPage));
 		}
 
@@ -175,12 +150,6 @@ export class HlmNumberedPagination {
 
 type Page = number | '...';
 
-/**
- * Checks that the instance.currentPage property is within bounds for the current page range.
- * If not, return a correct value for currentPage, or the current value if OK.
- *
- * Copied from 'ngx-pagination' package
- */
 export function outOfBoundCorrection(totalItems: number, itemsPerPage: number, currentPage: number): number {
 	const totalPages = Math.ceil(totalItems / itemsPerPage);
 	if (totalPages < currentPage && 0 < totalPages) {
@@ -194,23 +163,15 @@ export function outOfBoundCorrection(totalItems: number, itemsPerPage: number, c
 	return currentPage;
 }
 
-/**
- * Returns an array of Page objects to use in the pagination controls.
- *
- * Copied from 'ngx-pagination' package
- */
 export function createPageArray(
 	currentPage: number,
 	itemsPerPage: number,
 	totalItems: number,
 	paginationRange: number,
 ): Page[] {
-	// paginationRange could be a string if passed from attribute, so cast to number.
 	paginationRange = +paginationRange;
 	const pages: Page[] = [];
 
-	// Return 1 as default page number
-	// Make sense to show 1 instead of empty when there are no items
 	const totalPages = Math.max(Math.ceil(totalItems / itemsPerPage), 1);
 	const halfWay = Math.ceil(paginationRange / 2);
 
@@ -238,12 +199,6 @@ export function createPageArray(
 	return pages;
 }
 
-/**
- * Given the position in the sequence of pagination links [i],
- * figure out what page number corresponds to that position.
- *
- * Copied from 'ngx-pagination' package
- */
 function calculatePageNumber(i: number, currentPage: number, paginationRange: number, totalPages: number) {
 	const halfWay = Math.ceil(paginationRange / 2);
 	if (i === paginationRange) {

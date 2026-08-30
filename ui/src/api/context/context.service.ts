@@ -11,6 +11,11 @@ export interface ProjectMetadata {
   name: string;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+}
+
 export interface Context {
   id: string;
   name: string;
@@ -18,7 +23,7 @@ export interface Context {
   workspaceId: string;
   archived?: boolean;
   status?: string;
-  tags?: string[];
+  tags?: Tag[];
   project?: ProjectMetadata;
 }
 
