@@ -1,10 +1,11 @@
+<!-- ## 1.3.0 - autoclasable intervals/contexts, workday window e.g 8:00 - 16:00 for stats -->
+<!-- ## 1.2.0 - lenses -->
+
 <!-- ## 1.1.0 - tui -->
 
-<!-- ## 1.0.0 - bugs, refactor, review, small enhancements  -->
-
-<!-- ## 0.9.0 - postgresql support & search filters -->
-
-<!-- ## 0.8.0 - stats & labels -->
+<!-- ## 1.0.0 - stabilization, bugs, refactor, review, small enhancements  -->
+<!-- ## 0.9.0 - regex autoassigne autolabel, automerge intervals, ingoring small intervals, placeholdes in linkrules e.g for jira logging view, day separtaion in contxt view -->
+<!-- ## 0.8.0 - postgresql support & search view -->
 
 ## 0.7.1
 - feature: interval splitting — split an interval into two intervals at a given time
