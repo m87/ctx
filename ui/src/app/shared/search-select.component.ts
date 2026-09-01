@@ -7,6 +7,7 @@ export interface SearchSelectOption {
   label: string;
   color?: string;
   description?: string;
+  badge?: string;
   keywords?: readonly string[];
 }
 
@@ -19,31 +20,37 @@ export interface SearchSelectOption {
   },
   template: `
     <div
-      class="overflow-hidden rounded-xl border border-input bg-background shadow-xs transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50"
+      [class]="
+        embedded()
+          ? 'overflow-hidden bg-transparent'
+          : 'overflow-hidden rounded-xl border border-input bg-background shadow-xs transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50'
+      "
       [class.pointer-events-none]="disabled()"
       [class.opacity-60]="disabled()"
       [attr.aria-busy]="disabled()"
     >
-      <div class="flex h-11 items-center gap-2.5 border-b border-border/70 px-3">
-        <ng-icon name="lucideSearch" class="shrink-0 text-sm text-muted-foreground"></ng-icon>
-        <input
-          [id]="inputId()"
-          type="search"
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded="true"
-          autocomplete="off"
-          class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          [attr.aria-label]="ariaLabel()"
-          [attr.aria-controls]="listboxId()"
-          [attr.aria-activedescendant]="activeOptionId()"
-          [placeholder]="searchPlaceholder()"
-          [disabled]="disabled()"
-          [value]="search()"
-          (input)="updateSearch($event)"
-          (keydown)="handleSearchKeydown($event)"
-        />
-      </div>
+      @if (showSearch()) {
+        <div class="flex h-11 items-center gap-2.5 border-b border-border/70 px-3">
+          <ng-icon name="lucideSearch" class="shrink-0 text-sm text-muted-foreground"></ng-icon>
+          <input
+            [id]="inputId()"
+            type="search"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="true"
+            autocomplete="off"
+            class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            [attr.aria-label]="ariaLabel()"
+            [attr.aria-controls]="listboxId()"
+            [attr.aria-activedescendant]="activeOptionId()"
+            [placeholder]="searchPlaceholder()"
+            [disabled]="disabled()"
+            [value]="search()"
+            (input)="updateSearch($event)"
+            (keydown)="handleSearchKeydown($event)"
+          />
+        </div>
+      }
 
       <div
         [id]="listboxId()"
@@ -69,8 +76,17 @@ export interface SearchSelectOption {
               aria-hidden="true"
             ></span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm font-medium text-foreground">
-                {{ option.label }}
+              <span class="flex min-w-0 items-center gap-2">
+                <span class="min-w-0 truncate text-sm font-medium text-foreground">
+                  {{ option.label }}
+                </span>
+                @if (option.badge) {
+                  <span
+                    class="max-w-28 shrink-0 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                  >
+                    {{ option.badge }}
+                  </span>
+                }
               </span>
               @if (option.description) {
                 <span class="block truncate text-[11px] text-muted-foreground">
@@ -98,6 +114,8 @@ export class SearchSelectComponent {
   readonly ariaLabel = input('Options');
   readonly searchPlaceholder = input('Search…');
   readonly emptyText = input('No matching options');
+  readonly showSearch = input(true);
+  readonly embedded = input(false);
   readonly disabled = input(false);
   readonly selectionChange = output<string>();
 
@@ -111,7 +129,7 @@ export class SearchSelectComponent {
     }
 
     return this.options().filter((option) =>
-      [option.label, option.description, ...(option.keywords ?? [])]
+      [option.label, option.description, option.badge, ...(option.keywords ?? [])]
         .filter((value): value is string => Boolean(value))
         .some((value) => value.toLocaleLowerCase().includes(search)),
     );

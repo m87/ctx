@@ -15,6 +15,10 @@ export const routes: Routes = [
     loadComponent: () => import('./day/day.component').then((m) => m.DayComponent),
   },
   {
+    path: 'editor',
+    loadComponent: () => import('./editor/editor').then((m) => m.EditorComponent),
+  },
+  {
     path: 'workspace',
     loadComponent: () =>
       import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),
