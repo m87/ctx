@@ -180,6 +180,10 @@ func (r *mockContextRepository) List() ([]*Context, error) {
 	return r.contexts, nil
 }
 
+func (r *mockContextRepository) Query(_ *ContextSQLQuery) ([]*Context, error) {
+	return r.contexts, nil
+}
+
 func (r *mockContextRepository) ListToSync(limit int) ([]*Context, error) {
 	result := make([]*Context, 0, len(r.contexts))
 	for _, context := range r.contexts {

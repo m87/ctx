@@ -28,8 +28,9 @@ func newTestManager() *testManager {
 }
 
 type memoryContextRepository struct {
-	items  map[string]*Context
-	nextID int
+	items     map[string]*Context
+	nextID    int
+	lastQuery *ContextSQLQuery
 }
 
 func (r *memoryContextRepository) GetById(id string) (*Context, error) { return r.items[id], nil }
@@ -70,6 +71,11 @@ func (r *memoryContextRepository) List() ([]*Context, error) {
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Id < result[j].Id })
 	return result, nil
+}
+
+func (r *memoryContextRepository) Query(query *ContextSQLQuery) ([]*Context, error) {
+	r.lastQuery = query
+	return r.List()
 }
 
 func (r *memoryContextRepository) ListToSync(limit int) ([]*Context, error) {

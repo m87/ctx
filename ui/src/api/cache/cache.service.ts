@@ -3,6 +3,7 @@ import { QueryClient, QueryKey } from '@tanstack/angular-query-experimental';
 import { contextQueryKeys } from '../context/context.queries';
 import { intervalQueryKeys } from '../interval/interval.queries';
 import { projectQueryKeys } from '../project/project.queries';
+import { queryKeys as contextQueryResultKeys } from '../query/query.queries';
 import { settingsQueryKeys } from '../settings/settings.queries';
 import { workspaceQueryKeys } from '../workspace/workspace.queries';
 
@@ -13,6 +14,7 @@ export class CacheService {
   afterContextCreate() {
     return this.invalidate(
       contextQueryKeys.lists(),
+      contextQueryResultKeys.results(),
       projectQueryKeys.all,
       workspaceQueryKeys.stats(),
     );
@@ -22,6 +24,7 @@ export class CacheService {
     return this.invalidate(
       projectQueryKeys.all,
       contextQueryKeys.lists(),
+      contextQueryResultKeys.results(),
       contextQueryKeys.details(),
       intervalQueryKeys.dayStats(),
       workspaceQueryKeys.statsFor(workspaceId),
@@ -37,6 +40,7 @@ export class CacheService {
   afterActiveIntervalChange() {
     return this.invalidate(
       contextQueryKeys.lists(),
+      contextQueryResultKeys.results(),
       contextQueryKeys.active(),
       contextQueryKeys.intervals(),
       contextQueryKeys.stats(),
@@ -50,6 +54,7 @@ export class CacheService {
   afterContextMetadataChange(contextId: string, includeActive = false) {
     return this.invalidate(
       contextQueryKeys.lists(),
+      contextQueryResultKeys.results(),
       contextQueryKeys.detail(contextId),
       projectQueryKeys.all,
       intervalQueryKeys.dayStats(),
@@ -62,6 +67,7 @@ export class CacheService {
   afterBulkContextArchive() {
     return this.invalidate(
       contextQueryKeys.lists(),
+      contextQueryResultKeys.results(),
       contextQueryKeys.details(),
       contextQueryKeys.archivization(),
       projectQueryKeys.all,
@@ -80,6 +86,7 @@ export class CacheService {
 
     return this.invalidate(
       contextQueryKeys.lists(),
+      contextQueryResultKeys.results(),
       contextQueryKeys.active(),
       projectQueryKeys.all,
       intervalQueryKeys.dayStats(),

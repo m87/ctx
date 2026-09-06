@@ -129,6 +129,9 @@ return m.ContextRepository.Save(context)
 - TypeScript and Angular template checking are strict. Do not bypass them with `any`, unchecked non-null assertions, or disabled diagnostics unless the reason is documented and unavoidable.
 - Follow `.editorconfig` and Prettier: two-space indentation, single quotes in TypeScript, 100-character print width, and trailing commas where Prettier emits them.
 - Use standalone Angular components and the existing `inject(...)`, signals, and inline template/style patterns.
+- Do not build monolithic UI components. Prefer a smart/container and dumb/presentational split when a feature combines data access or orchestration with forms, lists, or substantial item rendering.
+- Smart components own injected services, queries, mutations, global state, routing coordination, and feature orchestration. Dumb components receive data through inputs, emit user intent through outputs, and must not fetch feature data or depend directly on feature-level global state.
+- Co-locate feature-specific presentational components with their container. Move them to `ui/src/app/shared/` only after they are genuinely reused. Do not split trivial markup solely to reduce line count.
 - Keep raw HTTP and DTO types in `ui/src/api/<resource>/<resource>.service.ts`.
 - Keep TanStack Query keys/options in `*.queries.ts`, mutations and cache follow-up behavior in `*.mutations.ts`, and central cache invalidation in `CacheService`.
 - Prefer derived state over duplicated component state. When state must be shared across features, follow the existing signal service or NGXS patterns already used by that feature.

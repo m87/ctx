@@ -106,6 +106,24 @@ func (r *ContextRepository) List() ([]*core.Context, error) {
 	return contexts, nil
 }
 
+func (r *ContextRepository) Query(query *core.ContextSQLQuery) ([]*core.Context, error) {
+	entities := []*ContextEntity{}
+	db := r.db.Preload("Tags").Preload("ProjectMetadata")
+	if query != nil && query.WhereClause != "" {
+		db = db.Where(query.WhereClause, query.Arguments...)
+	}
+	if err := db.Find(&entities).Error; err != nil {
+		return nil, err
+	}
+
+	contexts := []*core.Context{}
+	for _, e := range entities {
+		contexts = append(contexts, e.toModel())
+	}
+
+	return contexts, nil
+}
+
 func (r *ContextRepository) GetActive() (*core.Context, error) {
 	entity := &ContextEntity{}
 	result := r.db.Preload("Tags").Preload("ProjectMetadata").Where("status = ?", "active").Limit(1).Find(entity)

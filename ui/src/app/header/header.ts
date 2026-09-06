@@ -7,6 +7,7 @@ import {
   lucideFolder,
   lucideGanttChart,
   lucideHistory,
+  lucideListFilter,
   lucidePanelLeft,
   lucidePause,
   lucidePlus,
@@ -66,6 +67,7 @@ const firstDayKey = 'client.general.firstDay';
       lucideClock3,
       lucideHistory,
       lucideFolder,
+      lucideListFilter,
     }),
   ],
   template: `
@@ -86,12 +88,12 @@ const firstDayKey = 'client.general.firstDay';
             <span class="font-semibold tracking-tight text-primary">Ctx</span>
           </div>
 
-          <div class="hidden md:block flex-1 max-w-xl w-xl relative">
+          <div class="relative hidden md:flex flex-1 max-w-xl w-xl items-center gap-1.5">
             <input
               hlmInput
               type="text"
               placeholder="Search or create new context; use #project"
-              class="h-8 w-full text-xs"
+              class="h-8 min-w-0 flex-1 rounded-md border border-foreground/25 bg-background px-3 text-xs shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
               [value]="searchTerm()"
               (input)="onSearchInput($event)"
               (focus)="onSearchFocus()"
@@ -101,7 +103,7 @@ const firstDayKey = 'client.general.firstDay';
 
             @if (showSuggestions()) {
               <div
-                class="absolute top-9 left-0 right-0 z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
+                class="absolute top-9 left-0 right-[2.375rem] z-30 border rounded-md bg-popover text-popover-foreground shadow-sm p-1 max-h-72 overflow-auto origin-top animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
               >
                 @if (projectCreationSuggestion(); as project) {
                   <button
@@ -313,6 +315,16 @@ const firstDayKey = 'client.general.firstDay';
                 }
               </div>
             }
+            <a
+              hlmBtn
+              variant="outline"
+              class="h-8 w-8 px-0"
+              routerLink="/query"
+              aria-label="Advanced search"
+              title="Advanced search"
+            >
+              <ng-icon name="lucideListFilter"></ng-icon>
+            </a>
           </div>
         </div>
 
@@ -327,6 +339,16 @@ const firstDayKey = 'client.general.firstDay';
           >
             <ng-icon name="lucideSearch"></ng-icon>
           </button>
+          <a
+            hlmBtn
+            variant="outline"
+            class="h-8 w-8 px-0 md:hidden"
+            routerLink="/query"
+            aria-label="Advanced search"
+            title="Advanced search"
+          >
+            <ng-icon name="lucideListFilter"></ng-icon>
+          </a>
 
           @if (activeContextQuery.isLoading()) {
             <hlm-skeleton class="h-8 w-28"></hlm-skeleton>
@@ -405,7 +427,7 @@ const firstDayKey = 'client.general.firstDay';
               hlmInput
               type="text"
               placeholder="Search or create new context; use #project"
-              class="h-8 w-full text-xs pr-9"
+              class="h-8 w-full rounded-md border border-foreground/25 bg-background px-3 pr-9 text-xs shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
               [value]="searchTerm()"
               (input)="onSearchInput($event)"
               (focus)="onSearchFocus()"

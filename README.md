@@ -13,6 +13,7 @@ A lightweight time tracker with a CLI, Go server, and optional Angular web UI. I
 - **Workspaces** — create, select, rename, and delete workspaces that keep contexts and their statistics separate.
 - **Daily and workspace summaries** — inspect tracked time, session counts, time distribution, first and last session times, top contexts, and a day timeline.
 - **Fast search and creation** — search contexts in the selected workspace, see time badges for the selected day and all time, or create and start a context directly from the search box.
+- **Context query view** — submit a query and inspect matching active or archived contexts across all workspaces. The interpreter is currently a passthrough that returns every context.
 - **Context details** — manage a context's name, description, tags, intervals, and today/all-time statistics.
 - **Context archiving** — archived contexts are read-only and hidden from regular context lists, but remain available in search and historical summaries. They can be restored or permanently deleted.
 - **Per-workspace link rules** — turn matching parts of context names, such as Jira or GitHub issue keys, into links using regular expressions and capture-group templates.

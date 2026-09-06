@@ -58,6 +58,11 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 	apiMux.Handle("/context/", http.StripPrefix("/context", contextMux))
 	apiMux.Handle("/context", http.StripPrefix("/context", contextMux))
 
+	queryMux := http.NewServeMux()
+	registerQueryHandler(queryMux, manager)
+	apiMux.Handle("/query/", stripPrefixOrRoot("/query", queryMux))
+	apiMux.Handle("/query", stripPrefixOrRoot("/query", queryMux))
+
 	projectMux := http.NewServeMux()
 	registerProjectHandler(projectMux, manager)
 	apiMux.Handle("/project/", http.StripPrefix("/project", projectMux))
@@ -103,6 +108,11 @@ func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, sett
 	registerContextHandler(contextMux, manager)
 	mux.Handle("/context/", http.StripPrefix("/context", contextMux))
 	mux.Handle("/context", http.StripPrefix("/context", contextMux))
+
+	queryMux := http.NewServeMux()
+	registerQueryHandler(queryMux, manager)
+	mux.Handle("/query/", stripPrefixOrRoot("/query", queryMux))
+	mux.Handle("/query", stripPrefixOrRoot("/query", queryMux))
 
 	projectMux := http.NewServeMux()
 	registerProjectHandler(projectMux, manager)

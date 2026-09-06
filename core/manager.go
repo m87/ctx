@@ -37,6 +37,7 @@ type ContextManager struct {
 	RunInTransaction    func(func(*ContextManager) error) error
 	OnSyncProgress      SyncProgressHandler
 	ProjectRepository   ProjectRepository
+	QueryInterpreter    ContextQueryInterpreter
 }
 
 func NewContextManager(
@@ -52,6 +53,7 @@ func NewContextManager(
 		IntervalRepository:  intervalRepo,
 		WorkspaceRepository: workspaceRepo,
 		ProjectRepository:   projectRepo,
+		QueryInterpreter:    &PassthroughContextQueryInterpreter{},
 	}
 	manager.RunInTransaction = func(fn func(*ContextManager) error) error {
 		return fn(manager)

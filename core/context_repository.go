@@ -5,6 +5,7 @@ type ContextRepository interface {
 	Save(context *Context) (string, error)
 	Delete(id string) error
 	List() ([]*Context, error)
+	Query(query *ContextSQLQuery) ([]*Context, error)
 	ListByWorkspace(workspaceId string) ([]*Context, error)
 	ListByProject(projectId string) ([]*Context, error)
 	ListByWorkspaceIncludingArchived(workspaceId string) ([]*Context, error)

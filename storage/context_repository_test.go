@@ -139,4 +139,31 @@ func TestContextRepository(t *testing.T) {
 		require.NoError(t, err)
 		require.Nil(t, active)
 	})
+
+	t.Run("Query executes a parameterized SQL where clause", func(t *testing.T) {
+		storage, err := CreateTestInMemoryStorage()
+		require.NoError(t, err)
+		repo := NewContextRepository(storage.DB)
+
+		_, err = repo.Save(&core.Context{Name: "First", WorkspaceId: "workspace-1"})
+		require.NoError(t, err)
+		_, err = repo.Save(&core.Context{
+			Name:        "Second",
+			WorkspaceId: "workspace-2",
+			Archived:    true,
+		})
+		require.NoError(t, err)
+
+		all, err := repo.Query(&core.ContextSQLQuery{})
+		require.NoError(t, err)
+		require.Len(t, all, 2)
+
+		matching, err := repo.Query(&core.ContextSQLQuery{
+			WhereClause: "workspace_id = ? AND archived = ?",
+			Arguments:   []any{"workspace-2", true},
+		})
+		require.NoError(t, err)
+		require.Len(t, matching, 1)
+		require.Equal(t, "Second", matching[0].Name)
+	})
 }

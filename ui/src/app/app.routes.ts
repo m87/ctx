@@ -19,6 +19,10 @@ export const routes: Routes = [
     loadComponent: () => import('./editor/editor').then((m) => m.EditorComponent),
   },
   {
+    path: 'query',
+    loadComponent: () => import('./query/query.component').then((m) => m.QueryComponent),
+  },
+  {
     path: 'workspace',
     loadComponent: () =>
       import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),
