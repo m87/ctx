@@ -3,6 +3,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideCalendar,
+  lucideCalendarCheck,
   lucideClock3,
   lucideFolder,
   lucideGanttChart,
@@ -40,6 +41,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
 import { SearchProjectBadgeComponent } from './search-project-badge.component';
 import { parseProjectPicker } from './search-project-picker';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { formatHeaderDate, headerDateToLocalDate } from './header-date';
 
 const firstDayKey = 'client.general.firstDay';
 
@@ -60,6 +62,7 @@ const firstDayKey = 'client.general.firstDay';
       lucideGanttChart,
       lucideSearch,
       lucideCalendar,
+      lucideCalendarCheck,
       lucidePanelLeft,
       lucidePause,
       lucideX,
@@ -351,19 +354,20 @@ const firstDayKey = 'client.general.firstDay';
           </a>
 
           @if (activeContextQuery.isLoading()) {
-            <hlm-skeleton class="h-8 w-28"></hlm-skeleton>
+            <hlm-skeleton class="h-8 w-28 rounded-lg sm:w-40"></hlm-skeleton>
           } @else if (activeContextName()) {
-            <div class="flex items-center max-w-40">
-              <div
-                class="h-8 px-2 rounded-l-md border bg-muted/40 flex items-center gap-2 max-w-28"
-              >
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                <span class="text-xs font-medium truncate">{{ activeContextName() }}</span>
+            <div
+              class="flex h-8 min-w-0 max-w-28 items-stretch overflow-hidden rounded-lg border border-emerald-500/30 bg-emerald-500/10 shadow-xs sm:max-w-44"
+            >
+              <div class="flex min-w-0 flex-1 items-center gap-2 px-2.5">
+                <span class="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                <span class="truncate text-xs font-semibold text-foreground">
+                  {{ activeContextName() }}
+                </span>
               </div>
               <button
-                hlmBtn
-                variant="outline"
-                class="h-8 w-8 px-0 sm:px-2 rounded-l-none -ml-px"
+                type="button"
+                class="flex w-8 shrink-0 items-center justify-center border-l border-emerald-500/20 text-emerald-700 transition-colors hover:bg-emerald-500/10 focus-visible:bg-emerald-500/10 focus-visible:outline-none dark:text-emerald-400"
                 [disabled]="freeContextMutation.isPending()"
                 [attr.aria-busy]="freeContextMutation.isPending()"
                 (click)="stopContext()"
@@ -381,42 +385,59 @@ const firstDayKey = 'client.general.firstDay';
             </div>
           } @else {
             <div
-              class="h-8 px-2 rounded-md border bg-muted/30 flex items-center max-w-28 sm:max-w-none"
+              class="flex h-8 max-w-24 items-center gap-2 rounded-lg border border-dashed border-border/90 bg-muted/20 px-2.5 shadow-xs sm:max-w-none"
             >
-              <span class="text-xs text-muted-foreground truncate">No context</span>
+              <span
+                class="size-2 shrink-0 rounded-full border border-muted-foreground/60"
+                aria-hidden="true"
+              ></span>
+              <span class="truncate text-xs font-medium text-muted-foreground">
+                <span class="sm:hidden">No context</span>
+                <span class="hidden sm:inline">No active context</span>
+              </span>
             </div>
           }
 
-          <div class="flex items-center gap-2">
+          <div
+            class="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-border/80"
+            role="group"
+            aria-label="Date navigation"
+          >
             <hlm-date-picker
               align="end"
-              class="w-auto"
+              class="h-full w-auto"
               [autoCloseOnSelect]="true"
+              [defaultFocusedDate]="selectedDateValue()"
               [weekStartsOn]="weekStartsOn()"
               (dateChange)="navigateToDate($event)"
             >
               <hlm-date-picker-trigger
                 buttonId="header-date-picker-trigger"
-                class="w-auto"
+                variant="ghost"
+                class="h-full w-auto [&>button]:m-px [&>button]:h-7 [&>button]:w-auto [&>button]:min-w-8 [&>button]:rounded-none [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-2.5 [&>button]:text-foreground [&>button]:shadow-none [&>button:hover]:bg-muted/40 [&>button:hover]:text-foreground [&>button:focus-visible]:bg-muted/40 [&>button:focus-visible]:ring-1 [&>button:focus-visible]:ring-inset [&>button:focus-visible]:ring-offset-0 dark:[&>button]:bg-transparent dark:[&>button:hover]:bg-muted/40"
                 aria-label="Select date"
+                [showTrigger]="false"
               >
-                <span
-                  class="h-8 px-2 sm:px-3 text-xs text-muted-foreground gap-2 flex items-center"
-                >
-                  <span class="hidden sm:inline">{{ today() }}</span>
-                  <ng-icon name="lucideCalendar" class="cursor-pointer"></ng-icon>
+                <span class="flex items-center gap-2 text-xs text-foreground">
+                  <ng-icon name="lucideCalendar" class="shrink-0 text-muted-foreground"></ng-icon>
+                  <span class="hidden whitespace-nowrap sm:inline">{{ selectedDateLabel() }}</span>
                 </span>
               </hlm-date-picker-trigger>
             </hlm-date-picker>
+            @if (!isTodaySelected()) {
+              <button
+                hlmBtn
+                variant="ghost"
+                type="button"
+                class="hidden h-full w-8 rounded-none border-0 bg-transparent px-0 text-muted-foreground shadow-none hover:bg-muted/40 hover:text-muted-foreground dark:bg-transparent dark:hover:bg-muted/40 sm:inline-flex"
+                (click)="navigateToToday()"
+                aria-label="Go to today"
+                title="Today"
+              >
+                <ng-icon name="lucideCalendarCheck" class="text-xs"></ng-icon>
+              </button>
+            }
           </div>
-          <button
-            hlmBtn
-            variant="outline"
-            class="hidden sm:inline-flex h-8 px-3 text-xs"
-            [routerLink]="['/day', today()]"
-          >
-            Today
-          </button>
         </div>
       </div>
 
@@ -697,6 +718,9 @@ export class HeaderComponent {
     { initialValue: this.today() },
   );
   selectedDate = computed(() => this.routedSelectedDate() ?? this.today());
+  selectedDateLabel = computed(() => formatHeaderDate(this.selectedDate()));
+  selectedDateValue = computed(() => headerDateToLocalDate(this.selectedDate()));
+  isTodaySelected = computed(() => this.selectedDate() === this.today());
   dayStatsQuery = injectQuery(() =>
     this.intervalQueries.dayStats(
       this.activeWorkspaceId(),
@@ -1044,6 +1068,10 @@ export class HeaderComponent {
 
   navigateToDate(date: Date): void {
     this.router.navigate(['day', DateTime.fromJSDate(date).toFormat('yyyy-MM-dd')]);
+  }
+
+  navigateToToday(): void {
+    this.router.navigate(['day', this.today()]);
   }
 
   stopContext(): void {

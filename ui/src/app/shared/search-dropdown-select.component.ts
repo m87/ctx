@@ -14,6 +14,8 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideChevronDown, lucidePlus, lucideX } from '@ng-icons/lucide';
 import { SearchSelectComponent, SearchSelectOption } from './search-select.component';
 
+export type SearchDropdownSelectVariant = 'default' | 'verbose';
+
 @Component({
   selector: 'ctx-search-dropdown-select',
   imports: [NgIcon, SearchSelectComponent],
@@ -25,32 +27,61 @@ import { SearchSelectComponent, SearchSelectOption } from './search-select.compo
     <div class="relative">
       <button
         type="button"
-        class="flex h-8 w-full items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 text-left text-xs outline-none transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-muted/50 focus-visible:border-ring/70 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-60"
+        [class]="triggerClasses()"
         aria-haspopup="listbox"
         [attr.aria-expanded]="open()"
         [attr.aria-label]="ariaLabel()"
         [disabled]="disabled()"
         (click)="toggle()"
       >
-        @if (selectedOption(); as selected) {
-          <span class="flex min-w-0 items-center gap-1.5">
-            <span class="min-w-0 truncate">{{ selected.label }}</span>
-            @if (selected.badge) {
+        @if (variant() === 'verbose') {
+          <span class="flex min-w-0 flex-col gap-0.5">
+            @if (selectedOption(); as selected) {
               <span
-                class="max-w-20 shrink-0 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary"
+                class="truncate text-[13px] font-semibold leading-tight text-sidebar-foreground"
               >
-                {{ selected.badge }}
+                {{ selected.label }}
               </span>
+              <span class="truncate text-[10px] leading-tight text-muted-foreground">
+                {{ selected.description || 'Current workspace' }}
+              </span>
+            } @else {
+              <span class="truncate text-[13px] leading-tight text-muted-foreground">
+                {{ placeholder() }}
+              </span>
+              <span class="text-[10px] leading-tight text-muted-foreground/70"> Workspace </span>
             }
           </span>
+          <span
+            class="flex size-7 shrink-0 items-center justify-center rounded-lg border border-sidebar-border/80 bg-background/50 text-muted-foreground transition-colors group-hover:bg-background/80 group-hover:text-sidebar-foreground"
+          >
+            <ng-icon
+              name="lucideChevronDown"
+              class="text-xs transition-transform"
+              [class.rotate-180]="open()"
+            ></ng-icon>
+          </span>
         } @else {
-          <span class="truncate text-muted-foreground">{{ placeholder() }}</span>
+          @if (selectedOption(); as selected) {
+            <span class="flex min-w-0 items-center gap-1.5">
+              <span class="min-w-0 truncate">{{ selected.label }}</span>
+              @if (selected.badge) {
+                <span
+                  class="max-w-20 shrink-0 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary"
+                >
+                  {{ selected.badge }}
+                </span>
+              }
+            </span>
+          } @else {
+            <span class="truncate text-muted-foreground">{{ placeholder() }}</span>
+          }
+          <ng-icon
+            name="lucideChevronDown"
+            class="shrink-0 text-xs text-muted-foreground transition-transform"
+            [class.rotate-180]="open()"
+          ></ng-icon>
         }
-        <ng-icon
-          name="lucideChevronDown"
-          class="shrink-0 text-xs text-muted-foreground transition-transform"
-          [class.rotate-180]="open()"
-        ></ng-icon>
       </button>
 
       @if (open()) {
@@ -135,6 +166,7 @@ export class SearchDropdownSelectComponent {
   readonly emptyText = input('No matching options');
   readonly searchable = input(true);
   readonly disabled = input(false);
+  readonly variant = input<SearchDropdownSelectVariant>('default');
   readonly align = input<'start' | 'end'>('start');
   readonly panelWidth = input('20rem');
   readonly actionLabel = input('');
@@ -156,6 +188,11 @@ export class SearchDropdownSelectComponent {
   readonly open = signal(false);
   readonly selectedOption = computed(() =>
     this.options().find((option) => option.value === this.value()),
+  );
+  readonly triggerClasses = computed(() =>
+    this.variant() === 'verbose'
+      ? 'group flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-sidebar-border/80 bg-sidebar-accent/35 px-2.5 py-1.5 text-left outline-none shadow-xs transition-[background-color,border-color,box-shadow] hover:border-sidebar-ring/40 hover:bg-sidebar-accent/65 focus-visible:border-sidebar-ring/70 focus-visible:ring-2 focus-visible:ring-sidebar-ring/25 disabled:pointer-events-none disabled:opacity-60'
+      : 'flex h-8 w-full items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 text-left text-xs outline-none transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-muted/50 focus-visible:border-ring/70 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-60',
   );
   private readonly actionInput = viewChild<ElementRef<HTMLInputElement>>('actionInput');
   private readonly focusActionInputEffect = effect(() => {

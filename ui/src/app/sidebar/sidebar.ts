@@ -29,7 +29,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
   template: ` <div class="h-full w-full min-h-0 flex flex-col">
     <div class="flex-1 min-h-0 flex flex-col border-b bg-sidebar">
       <div class="flex flex-col gap-2.5 p-2.5 border-b">
-        <ctx-sidebar-workspace-select></ctx-sidebar-workspace-select>
+        <ctx-sidebar-workspace-select variant="verbose"></ctx-sidebar-workspace-select>
       </div>
       <div class="flex flex-col gap-2.5 p-2.5 border-b">
         <div class="flex-1 min-h-0 flex flex-col gap-1.5 p-1">

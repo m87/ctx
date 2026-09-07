@@ -1,10 +1,13 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { Store } from '@ngxs/store';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { WorkspaceMutations } from '../../api/workspace/workspace.mutations';
 import { WorkspaceQueries } from '../../api/workspace/workspace.queries';
 import { Workspace } from '../../api/workspace/workspace.service';
-import { SearchDropdownSelectComponent } from '../shared/search-dropdown-select.component';
+import {
+  SearchDropdownSelectComponent,
+  SearchDropdownSelectVariant,
+} from '../shared/search-dropdown-select.component';
 import { SearchSelectOption } from '../shared/search-select.component';
 import { colorHash } from '../utils';
 import { SelectWorkspace, WorkspaceState } from './workspace.state';
@@ -21,6 +24,7 @@ let nextWorkspaceSelectId = 0;
     <div class="relative">
       <ctx-search-dropdown-select
         [inputId]="selectInputId"
+        [variant]="variant()"
         ariaLabel="Select workspace"
         placeholder="Select workspace…"
         searchPlaceholder="Search workspaces…"
@@ -48,6 +52,7 @@ let nextWorkspaceSelectId = 0;
 })
 export class SidebarWorkspaceSelectComponent {
   readonly selectInputId = `workspace-select-${nextWorkspaceSelectId++}`;
+  readonly variant = input<SearchDropdownSelectVariant>('default');
   private readonly store = inject(Store);
   private readonly workspaceQueries = inject(WorkspaceQueries);
   private readonly workspaceMutations = inject(WorkspaceMutations);
