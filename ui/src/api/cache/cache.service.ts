@@ -4,6 +4,7 @@ import { contextQueryKeys } from '../context/context.queries';
 import { intervalQueryKeys } from '../interval/interval.queries';
 import { projectQueryKeys } from '../project/project.queries';
 import { queryKeys as contextQueryResultKeys } from '../query/query.queries';
+import { savedQueryKeys } from '../query/saved-query.queries';
 import { settingsQueryKeys } from '../settings/settings.queries';
 import { workspaceQueryKeys } from '../workspace/workspace.queries';
 
@@ -130,7 +131,11 @@ export class CacheService {
   }
 
   afterWorkspaceDelete(workspaceId: string) {
-    this.remove(workspaceQueryKeys.detail(workspaceId), workspaceQueryKeys.statsFor(workspaceId));
+    this.remove(
+      workspaceQueryKeys.detail(workspaceId),
+      workspaceQueryKeys.statsFor(workspaceId),
+      savedQueryKeys.list(workspaceId),
+    );
 
     return this.afterWorkspaceListChange();
   }
@@ -141,6 +146,15 @@ export class CacheService {
       workspaceQueryKeys.statsFor(workspaceId),
       workspaceQueryKeys.detail(workspaceId),
     );
+  }
+
+  afterSavedQueryCreate(workspaceId: string) {
+    return this.invalidate(savedQueryKeys.list(workspaceId));
+  }
+
+  afterSavedQueryDelete(queryId: string, workspaceId: string) {
+    this.remove(savedQueryKeys.detail(queryId));
+    return this.invalidate(savedQueryKeys.list(workspaceId));
   }
 
   private async invalidate(...queryKeys: QueryKey[]) {

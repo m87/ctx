@@ -65,6 +65,7 @@ func Migrate(db *gorm.DB) error {
 			&ProjectEntity{},
 			&ContextEntity{},
 			&IntervalEntity{},
+			&SavedQueryEntity{},
 		); err != nil {
 			return err
 		}

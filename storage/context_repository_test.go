@@ -165,5 +165,10 @@ func TestContextRepository(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, matching, 1)
 		require.Equal(t, "Second", matching[0].Name)
+
+		workspaceContexts, err := repo.Query(&core.ContextSQLQuery{WorkspaceId: "workspace-1"})
+		require.NoError(t, err)
+		require.Len(t, workspaceContexts, 1)
+		require.Equal(t, "First", workspaceContexts[0].Name)
 	})
 }

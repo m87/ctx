@@ -151,7 +151,7 @@ func (s *Server) Handler() http.Handler {
 			base.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") || strings.HasPrefix(r.URL.Path, "/project") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") || strings.HasPrefix(r.URL.Path, "/project") || strings.HasPrefix(r.URL.Path, "/query/saved") {
 			base.ServeHTTP(w, r)
 			return
 		}

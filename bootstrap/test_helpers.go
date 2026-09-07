@@ -9,13 +9,15 @@ import (
 
 func NewTestContextManager(current time.Time) *core.ContextManager {
 	s, _ := storage.NewSqliteStorage(":memory:")
-	return core.NewContextManager(
+	manager := core.NewContextManager(
 		NewTestTimeProvider(current),
 		storage.NewContextRepository(s.DB),
 		storage.NewIntervalRepository(s.DB),
 		storage.NewWorkspaceRepository(s.DB),
 		storage.NewProjectRepository(s.DB),
 	)
+	manager.SavedQueryRepository = storage.NewSavedQueryRepository(s.DB)
+	return manager
 }
 
 type TestTimeProvider struct {

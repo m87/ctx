@@ -75,6 +75,18 @@ def create_schema(conn: sqlite3.Connection) -> None:
             ON DELETE CASCADE
         );
 
+        CREATE TABLE saved_queries (
+          id text PRIMARY KEY,
+          workspace_id text NOT NULL,
+          name text NOT NULL,
+          query text NOT NULL,
+          CONSTRAINT fk_saved_queries_workspace FOREIGN KEY (workspace_id)
+            REFERENCES workspaces(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
+        );
+        CREATE INDEX idx_saved_queries_workspace_id ON saved_queries(workspace_id);
+
         CREATE TABLE projects (
           id text PRIMARY KEY,
           name text,
@@ -197,6 +209,42 @@ def create_project(
         (project_id, name, parent_project_id, workspace_id),
     )
     return project_id
+
+
+def create_saved_query(
+    conn: sqlite3.Connection,
+    *,
+    slug: str,
+    workspace_id: str,
+    name: str,
+    query: str,
+) -> str:
+    query_id = stable_id("saved-query", slug)
+    conn.execute(
+        """
+        INSERT INTO saved_queries (id, workspace_id, name, query)
+        VALUES (?, ?, ?, ?)
+        """,
+        (query_id, workspace_id, name, query),
+    )
+    return query_id
+
+
+def seed_saved_queries(
+    conn: sqlite3.Connection,
+    *,
+    workspace_id: str,
+    slug_prefix: str,
+    queries: list[tuple[str, str, str]],
+) -> None:
+    for slug, name, query in queries:
+        create_saved_query(
+            conn,
+            slug=f"{slug_prefix}-{slug}",
+            workspace_id=workspace_id,
+            name=name,
+            query=query,
+        )
 
 
 def create_context(
@@ -732,8 +780,50 @@ def generate_database(
         conn.execute("PRAGMA foreign_keys = ON")
         create_schema(conn)
         create_system_records(conn, now)
-        seed_large_distribution_workspace(conn, micro_contexts=micro_contexts, now=now)
+        large_workspace_id = seed_large_distribution_workspace(
+            conn,
+            micro_contexts=micro_contexts,
+            now=now,
+        )
+        seed_saved_queries(
+            conn,
+            workspace_id=large_workspace_id,
+            slug_prefix="large",
+            queries=[
+                ("today", "Today", "date = today"),
+                ("this-week", "This week", "date >= startOfWeek()"),
+                ("deep-work", "Deep work", 'name = "Deep Work"'),
+                ("meetings", "Meetings", 'name = "Meetings"'),
+                ("research", "Research", 'name = "Research"'),
+                ("important", "Important contexts", "tag = important"),
+                ("atlas", "Atlas Platform", 'project = "Atlas Platform"'),
+                ("web", "Web Experience", 'project = "Web Experience"'),
+                ("accessibility", "Accessibility refresh", 'project = "Accessibility Refresh"'),
+                ("api", "Public API work", 'project = "Public API"'),
+                ("operations", "Operations Suite", 'project = "Operations Suite"'),
+                ("reporting", "Reporting dashboard", 'project = "Reporting Dashboard"'),
+                ("support", "Engineering support", 'name = "Engineering Support"'),
+                ("planning", "Planning and architecture", 'name ~ "Planning|Architecture"'),
+                ("micro", "Small maintenance tasks", 'name ~ "Triage|Cleanup|Check|Review"'),
+                (
+                    "archived",
+                    "Archived contexts with tracked sessions",
+                    "archived = true and sessions > 0",
+                ),
+            ],
+        )
         small_workspace_id = seed_small_healthy_workspace(conn, now=now)
+        seed_saved_queries(
+            conn,
+            workspace_id=small_workspace_id,
+            slug_prefix="small",
+            queries=[
+                ("writing", "Writing sessions", 'name = "Writing"'),
+                ("website", "Personal website", 'project = "Personal Website"'),
+                ("home", "Home operations", 'project = "Home Operations"'),
+                ("recent", "Recent activity", "date >= today() - 7d"),
+            ],
+        )
         if include_integrity_errors:
             seed_integrity_error_workspace(
                 conn,

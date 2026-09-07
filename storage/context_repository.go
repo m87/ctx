@@ -109,6 +109,9 @@ func (r *ContextRepository) List() ([]*core.Context, error) {
 func (r *ContextRepository) Query(query *core.ContextSQLQuery) ([]*core.Context, error) {
 	entities := []*ContextEntity{}
 	db := r.db.Preload("Tags").Preload("ProjectMetadata")
+	if query != nil && query.WorkspaceId != "" {
+		db = db.Where("workspace_id = ?", query.WorkspaceId)
+	}
 	if query != nil && query.WhereClause != "" {
 		db = db.Where(query.WhereClause, query.Arguments...)
 	}

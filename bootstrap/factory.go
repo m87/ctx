@@ -35,6 +35,7 @@ func newContextManager(db *gorm.DB) *core.ContextManager {
 		storage.NewWorkspaceRepository(db),
 		storage.NewProjectRepository(db),
 	)
+	manager.SavedQueryRepository = storage.NewSavedQueryRepository(db)
 	manager.RunInTransaction = func(fn func(*core.ContextManager) error) error {
 		return db.Transaction(func(tx *gorm.DB) error {
 			return fn(newContextManager(tx))

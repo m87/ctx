@@ -75,7 +75,18 @@ func (r *memoryContextRepository) List() ([]*Context, error) {
 
 func (r *memoryContextRepository) Query(query *ContextSQLQuery) ([]*Context, error) {
 	r.lastQuery = query
-	return r.List()
+	contexts, err := r.List()
+	if err != nil || query == nil || query.WorkspaceId == "" {
+		return contexts, err
+	}
+
+	result := make([]*Context, 0, len(contexts))
+	for _, context := range contexts {
+		if context.WorkspaceId == query.WorkspaceId {
+			result = append(result, context)
+		}
+	}
+	return result, nil
 }
 
 func (r *memoryContextRepository) ListToSync(limit int) ([]*Context, error) {

@@ -30,14 +30,15 @@ type SyncProgress struct {
 type SyncProgressHandler func(progress SyncProgress)
 
 type ContextManager struct {
-	TimeProvider        TimeProvider
-	ContextRepository   ContextRepository
-	IntervalRepository  IntervalRepository
-	WorkspaceRepository WorkspaceRepository
-	RunInTransaction    func(func(*ContextManager) error) error
-	OnSyncProgress      SyncProgressHandler
-	ProjectRepository   ProjectRepository
-	QueryInterpreter    ContextQueryInterpreter
+	TimeProvider         TimeProvider
+	ContextRepository    ContextRepository
+	IntervalRepository   IntervalRepository
+	WorkspaceRepository  WorkspaceRepository
+	RunInTransaction     func(func(*ContextManager) error) error
+	OnSyncProgress       SyncProgressHandler
+	ProjectRepository    ProjectRepository
+	SavedQueryRepository SavedQueryRepository
+	QueryInterpreter     ContextQueryInterpreter
 }
 
 func NewContextManager(
@@ -610,6 +611,21 @@ func (m *ContextManager) GetWorkspaceStats(workspaceId string) (*WorkspaceStats,
 		return nil, err
 	}
 
+	contextStats, totalDuration, totalSessions, err := m.getContextCollectionStats(contexts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WorkspaceStats{
+		WorkspaceId:   workspaceId,
+		Contexts:      contexts,
+		ContextStats:  contextStats,
+		TotalDuration: totalDuration,
+		TotalSessions: totalSessions,
+	}, nil
+}
+
+func (m *ContextManager) getContextCollectionStats(contexts []*Context) ([]*WorkspaceContextStats, time.Duration, int, error) {
 	now := m.TimeProvider.Now().UTC()
 	contextStats := make([]*WorkspaceContextStats, 0, len(contexts))
 	var totalDuration time.Duration
@@ -622,7 +638,7 @@ func (m *ContextManager) GetWorkspaceStats(workspaceId string) (*WorkspaceStats,
 
 		intervals, err := m.IntervalRepository.ListByContextId(context.Id)
 		if err != nil {
-			return nil, err
+			return nil, 0, 0, err
 		}
 
 		stats := &WorkspaceContextStats{ContextId: context.Id}
@@ -649,13 +665,7 @@ func (m *ContextManager) GetWorkspaceStats(workspaceId string) (*WorkspaceStats,
 		return contextStats[i].Duration > contextStats[j].Duration
 	})
 
-	return &WorkspaceStats{
-		WorkspaceId:   workspaceId,
-		Contexts:      contexts,
-		ContextStats:  contextStats,
-		TotalDuration: totalDuration,
-		TotalSessions: totalSessions,
-	}, nil
+	return contextStats, totalDuration, totalSessions, nil
 }
 
 func intervalDurationAt(interval *Interval, now time.Time) time.Duration {

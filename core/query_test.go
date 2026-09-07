@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -76,6 +77,80 @@ func TestQueryContextsExecutesTheInterpretedSQLPlan(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "name = Context", interpreter.query)
 	require.Equal(t, plan, test.Contexts.lastQuery)
+}
+
+func TestQueryWorkspaceContextsScopesPassthroughResultsAndBuildsSummary(t *testing.T) {
+	test := newTestManager()
+	_, err := test.Workspaces.Save(&Workspace{Id: "workspace-1", Name: "Workspace"})
+	require.NoError(t, err)
+	_, err = test.Contexts.Save(&Context{
+		Id:          "context-1",
+		Name:        "Tracked",
+		WorkspaceId: "workspace-1",
+	})
+	require.NoError(t, err)
+	_, err = test.Contexts.Save(&Context{
+		Id:          "context-2",
+		Name:        "Untracked",
+		WorkspaceId: "workspace-1",
+		Archived:    true,
+	})
+	require.NoError(t, err)
+	_, err = test.Contexts.Save(&Context{
+		Id:          "context-3",
+		Name:        "Other workspace",
+		WorkspaceId: "workspace-2",
+	})
+	require.NoError(t, err)
+	_, err = test.Intervals.Save(&Interval{
+		Id:        "interval-1",
+		ContextId: "context-1",
+		Duration:  45 * time.Minute,
+		Status:    "completed",
+	})
+	require.NoError(t, err)
+
+	result, err := test.Manager.QueryWorkspaceContexts(" workspace-1 ", "anything")
+
+	require.NoError(t, err)
+	require.Equal(t, "workspace-1", result.WorkspaceId)
+	require.Equal(t, "anything", result.Query)
+	require.Equal(t, "workspace-1", test.Contexts.lastQuery.WorkspaceId)
+	require.ElementsMatch(t, []string{"context-1", "context-2"}, []string{
+		result.Contexts[0].Id,
+		result.Contexts[1].Id,
+	})
+	require.Equal(t, int64(45*time.Minute), result.TotalDuration)
+	require.Equal(t, 1, result.TotalSessions)
+	require.Len(t, result.ContextStats, 2)
+	require.Equal(t, "context-1", result.ContextStats[0].ContextId)
+	require.Equal(t, 45*time.Minute, result.ContextStats[0].Duration)
+	require.Equal(t, float64(100), result.ContextStats[0].Percentage)
+	require.Equal(t, 1, result.ContextStats[0].IntervalCount)
+}
+
+func TestQueryWorkspaceContextsDoesNotMutateInterpreterPlan(t *testing.T) {
+	test := newTestManager()
+	_, err := test.Workspaces.Save(&Workspace{Id: "workspace-1", Name: "Workspace"})
+	require.NoError(t, err)
+	plan := &ContextSQLQuery{WhereClause: "name = ?", Arguments: []any{"Context"}}
+	test.Manager.QueryInterpreter = &recordingContextQueryInterpreter{result: plan}
+
+	_, err = test.Manager.QueryWorkspaceContexts("workspace-1", "name = Context")
+
+	require.NoError(t, err)
+	require.Empty(t, plan.WorkspaceId)
+	require.Equal(t, "workspace-1", test.Contexts.lastQuery.WorkspaceId)
+}
+
+func TestQueryWorkspaceContextsRequiresExistingWorkspace(t *testing.T) {
+	test := newTestManager()
+
+	result, err := test.Manager.QueryWorkspaceContexts("missing", "anything")
+
+	require.Nil(t, result)
+	var notFound *WorkspaceNotFoundError
+	require.ErrorAs(t, err, &notFound)
 }
 
 type recordingContextQueryInterpreter struct {

@@ -12,6 +12,7 @@ import { Store } from '@ngxs/store';
 import { WorkspaceState } from './workspace.state';
 import { ProjectWidgetComponent } from './project-widget.component';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { SidebarSavedQueryListComponent } from './sidebar-saved-query-list.component';
 
 @Component({
   selector: 'ctx-sidebar',
@@ -19,6 +20,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
     SidebarContextListComponent,
     ProjectWidgetComponent,
     HlmSkeletonImports,
+    SidebarSavedQueryListComponent,
     SidebarWorkspaceSelectComponent,
     RouterLink,
     RouterLinkActive,
@@ -50,6 +52,9 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
             workspace
           </a>
         </div>
+      </div>
+      <div class="shrink-0 max-h-[20%] overflow-y-auto border-b">
+        <ctx-sidebar-saved-query-list></ctx-sidebar-saved-query-list>
       </div>
       <div class="min-h-0 overflow-auto border-b max-h-[50%]">
         <ctx-project-widget></ctx-project-widget>

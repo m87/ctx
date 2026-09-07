@@ -74,6 +74,65 @@ func TestQueryHandlerReturnsInvalidQueryError(t *testing.T) {
 	require.Equal(t, "invalid context query: unexpected token", body.Description)
 }
 
+func TestQueryResultReturnsWorkspaceContextsAndSummary(t *testing.T) {
+	manager := newQueryTestManager(t)
+	start := time.Date(2026, time.September, 7, 9, 0, 0, 0, time.UTC)
+	end := start.Add(30 * time.Minute)
+	_, err := manager.IntervalRepository.Save(&core.Interval{
+		Id:          "interval-1",
+		ContextId:   "context-1",
+		WorkspaceId: "workspace-1",
+		Start:       &start,
+		End:         &end,
+		Duration:    30 * time.Minute,
+		Status:      "completed",
+	})
+	require.NoError(t, err)
+	server := NewServer(manager, nil)
+
+	for _, path := range []string{"/api/query/result", "/query/result"} {
+		t.Run(path, func(t *testing.T) {
+			request := httptest.NewRequest(
+				http.MethodPost,
+				path,
+				bytes.NewBufferString(`{"workspaceId":"workspace-1","query":"ignored"}`),
+			)
+			response := httptest.NewRecorder()
+			server.Handler().ServeHTTP(response, request)
+
+			require.Equal(t, http.StatusOK, response.Code)
+			var result core.ContextQueryResult
+			require.NoError(t, json.NewDecoder(response.Body).Decode(&result))
+			require.Equal(t, "workspace-1", result.WorkspaceId)
+			require.Equal(t, "ignored", result.Query)
+			require.ElementsMatch(t, []string{"Active", "Archived"}, []string{
+				result.Contexts[0].Name,
+				result.Contexts[1].Name,
+			})
+			require.Equal(t, int64(30*time.Minute), result.TotalDuration)
+			require.Equal(t, 1, result.TotalSessions)
+		})
+	}
+}
+
+func TestQueryResultRequiresWorkspace(t *testing.T) {
+	manager := newQueryTestManager(t)
+	server := NewServer(manager, nil)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/query/result",
+		bytes.NewBufferString(`{"query":"ignored"}`),
+	)
+	response := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusBadRequest, response.Code)
+	var body ErrorResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&body))
+	require.Equal(t, "MISSING_WORKSPACE_ID", body.Code)
+}
+
 func TestQueryRoutesAreMountedAtCanonicalAndLegacyPaths(t *testing.T) {
 	manager := newQueryTestManager(t)
 	server := NewServer(manager, nil)
