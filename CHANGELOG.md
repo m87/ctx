@@ -11,6 +11,7 @@
 - feature: interval splitting — split an interval into two intervals at a given time
 - enhancement: ui tweaks
 - dev: remove nod library
+- enhancement: context placeholders in link rules
 <!-- - feature: postgres -->
 <!-- advanced search -->
 
