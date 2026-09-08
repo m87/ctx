@@ -164,6 +164,7 @@ export class QuerySummaryComponent {
       .map((context) => {
         const stats = statsByContext.get(context.id);
         return {
+          ...context,
           id: context.id,
           name: context.name,
           duration: durationAsHM(stats?.duration ?? 0).trim() || '0m',

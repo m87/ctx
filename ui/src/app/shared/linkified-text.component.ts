@@ -1,5 +1,5 @@
 import { Component, computed, inject, input } from '@angular/core';
-import { LinkRulesService } from './link-rules.service';
+import { LinkRulesService, LinkRuleValues } from './link-rules.service';
 
 @Component({
   selector: 'ctx-linkified-text',
@@ -29,5 +29,6 @@ export class LinkifiedTextComponent {
   private linkRules = inject(LinkRulesService);
 
   readonly text = input('');
-  readonly parts = computed(() => this.linkRules.linkify(this.text()));
+  readonly values = input<LinkRuleValues>({});
+  readonly parts = computed(() => this.linkRules.linkify(this.text(), this.values()));
 }

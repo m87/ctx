@@ -10,6 +10,8 @@ export type LinkifiedTextPart = {
   href?: string;
 };
 
+export type LinkRuleValues = object;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -30,8 +32,9 @@ export class LinkRulesService {
     () => this.workspaceQuery.data()?.properties?.linkRules ?? [],
   );
 
-  linkify(text: string): readonly LinkifiedTextPart[] {
+  linkify(text: string, values: LinkRuleValues = {}): readonly LinkifiedTextPart[] {
     let parts: LinkifiedTextPart[] = [{ text }];
+    const templateValues = { name: text, ...values };
 
     for (const rule of this.linkRules()) {
       const expression = this.createExpression(rule);
@@ -40,7 +43,9 @@ export class LinkRulesService {
       }
 
       parts = parts.flatMap((part) =>
-        part.href === undefined ? this.applyRule(part.text, expression, rule.link) : [part],
+        part.href === undefined
+          ? this.applyRule(part.text, expression, rule.link, templateValues)
+          : [part],
       );
     }
 
@@ -59,7 +64,12 @@ export class LinkRulesService {
     }
   }
 
-  private applyRule(text: string, expression: RegExp, linkTemplate: string): LinkifiedTextPart[] {
+  private applyRule(
+    text: string,
+    expression: RegExp,
+    linkTemplate: string,
+    values: LinkRuleValues,
+  ): LinkifiedTextPart[] {
     const parts: LinkifiedTextPart[] = [];
     let cursor = 0;
     let match: RegExpExecArray | null;
@@ -77,7 +87,7 @@ export class LinkRulesService {
 
       parts.push({
         text: match[0],
-        href: this.resolveLink(linkTemplate, match),
+        href: resolveLinkTemplate(linkTemplate, match, values),
       });
       cursor = match.index + match[0].length;
     }
@@ -88,17 +98,51 @@ export class LinkRulesService {
 
     return parts.length > 0 ? parts : [{ text }];
   }
+}
 
-  private resolveLink(template: string, match: RegExpExecArray): string {
-    return template.replace(/\$(\$|&|\d{1,2})/g, (_token, reference: string) => {
-      if (reference === '$') {
-        return '$';
-      }
-      if (reference === '&' || reference === '0') {
-        return match[0];
+export function resolveLinkTemplate(
+  template: string,
+  match: RegExpExecArray,
+  values: LinkRuleValues,
+): string {
+  const contextName = Object.prototype.hasOwnProperty.call(values, 'name')
+    ? (values as Record<string, unknown>)['name']
+    : undefined;
+  const templateValues = {
+    ...values,
+    name: typeof contextName === 'string' ? contextName.replace(match[0], '').trim() : undefined,
+  };
+  const withValues = template.replace(
+    /\$\{([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\}/g,
+    (placeholder, placeholderName: string) => {
+      const value = placeholderName.split('.').reduce<unknown>((current, segment) => {
+        if (
+          typeof current !== 'object' ||
+          current === null ||
+          !Object.prototype.hasOwnProperty.call(current, segment)
+        ) {
+          return undefined;
+        }
+
+        return (current as Record<string, unknown>)[segment];
+      }, templateValues);
+
+      if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+        return placeholder;
       }
 
-      return match[Number(reference)] ?? '';
-    });
-  }
+      return encodeURIComponent(String(value));
+    },
+  );
+
+  return withValues.replace(/\$(\$|&|\d{1,2})/g, (_token, reference: string) => {
+    if (reference === '$') {
+      return '$';
+    }
+    if (reference === '&' || reference === '0') {
+      return match[0];
+    }
+
+    return match[Number(reference)] ?? '';
+  });
 }

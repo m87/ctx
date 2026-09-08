@@ -111,6 +111,7 @@ type DetailView = 'overview' | 'insights';
             [name]="currentContext.name"
             [description]="currentContext.description ?? ''"
             [tags]="currentContext.tags ?? []"
+            [linkValues]="contextLinkValues()"
             [showTags]="true"
             [readonly]="currentContext.archived ?? false"
             namePlaceholder="Context name"
@@ -495,6 +496,7 @@ export class ContextComponent {
   archiveContextMutation = injectMutation(() => this.contextMutations.archive());
   restoreContextMutation = injectMutation(() => this.contextMutations.restore());
   contextQuery = injectQuery(() => this.contextQueries.get(this.contextId()));
+  contextIntervalsQuery = injectQuery(() => this.contextQueries.intervals(this.contextId()));
   activeContextQuery = injectQuery(() => this.contextQueries.active());
   contextsQuery = injectQuery(() => this.contextQueries.list(this.activeWorkspaceId()));
   context = computed(() => this.contextQuery.data() ?? null);
@@ -531,6 +533,34 @@ export class ContextComponent {
     this.contextQueries.stats(this.contextId(), this.today(), this.timeZone.effectiveTimeZone()),
   );
   contextStats = computed(() => this.contextStatsQuery.data());
+  readonly contextLinkIntervalBounds = computed(() => {
+    let start: string | undefined;
+    let end: string | undefined;
+
+    for (const interval of this.contextIntervalsQuery.data() ?? []) {
+      if (interval.start && this.timeZone.formatDate(interval.start) === this.today()) {
+        if (!start || Date.parse(interval.start) < Date.parse(start)) {
+          start = interval.start;
+        }
+      }
+      if (interval.end && this.timeZone.formatDate(interval.end) === this.today()) {
+        if (!end || Date.parse(interval.end) > Date.parse(end)) {
+          end = interval.end;
+        }
+      }
+    }
+
+    return { start, end };
+  });
+  readonly contextLinkValues = computed(() => ({
+    ...(this.context() ?? {}),
+    ...this.contextLinkIntervalBounds(),
+    date: this.today(),
+    duration: this.parseDuration(this.contextStats()?.duration),
+    durationValue: this.contextStats()?.duration ?? 0,
+    totalDuration: this.parseDuration(this.contextStats()?.totalDuration),
+    totalDurationValue: this.contextStats()?.totalDuration ?? 0,
+  }));
   readonly showContextError = computed(
     () =>
       this.contextQuery.data() === undefined &&

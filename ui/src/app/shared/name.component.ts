@@ -3,6 +3,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucidePencil, lucideX } from '@ng-icons/lucide';
 import type { Tag } from '../../api/context/context.service';
 import { LinkifiedTextComponent } from './linkified-text.component';
+import type { LinkRuleValues } from './link-rules.service';
 
 export interface NameSaveValue {
   name: string;
@@ -130,17 +131,17 @@ export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
           <div class="min-w-0 flex-1">
             @if (compact()) {
               <div class="text-sm font-medium truncate">
-                <ctx-linkified-text [text]="name()" />
+                <ctx-linkified-text [text]="name()" [values]="linkValues()" />
               </div>
             } @else {
               <h1 class="text-2xl font-semibold tracking-tight truncate">
-                <ctx-linkified-text [text]="name()" />
+                <ctx-linkified-text [text]="name()" [values]="linkValues()" />
               </h1>
             }
             @if (showDescription()) {
               @if (description()) {
                 <p class="mt-1 whitespace-pre-wrap text-sm text-muted-foreground/90">
-                  <ctx-linkified-text [text]="description() ?? ''" />
+                  <ctx-linkified-text [text]="description() ?? ''" [values]="linkValues()" />
                 </p>
               } @else {
                 <p class="mt-1 text-sm text-muted-foreground">{{ emptyDescription() }}</p>
@@ -181,6 +182,7 @@ export class NameComponent {
   readonly name = input('');
   readonly description = input<string | null>('');
   readonly tags = input<readonly Tag[]>([]);
+  readonly linkValues = input<LinkRuleValues>({});
   readonly showDescription = input(true);
   readonly showTags = input(false);
   readonly savePending = input(false);

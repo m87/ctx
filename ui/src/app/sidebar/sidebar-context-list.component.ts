@@ -58,7 +58,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
           tabindex="0"
         >
           <span class="min-w-0 flex-1 truncate">
-            <ctx-linkified-text [text]="context.name" />
+            <ctx-linkified-text [text]="context.name" [values]="context" />
           </span>
           <button
             type="button"

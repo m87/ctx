@@ -347,6 +347,7 @@ export class WorkspaceComponent {
         const context = contextsById.get(stats.contextId);
 
         return {
+          ...context,
           id: stats.contextId,
           name: context?.name ?? stats.contextId,
           duration: durationAsHM(stats.duration).trim() || '0m',

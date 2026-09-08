@@ -11,6 +11,9 @@ export interface ContextListItem {
   name: string;
   duration: string;
   durationValue?: number;
+  date?: string;
+  start?: string;
+  end?: string;
   percentage: number;
   color: string;
   sessions?: number;
@@ -34,7 +37,7 @@ export interface ContextListItem {
       <div class="flex items-center gap-2 mb-2">
         <span class="w-2 h-2 rounded-sm shrink-0" [style.background-color]="item().color"></span>
         <span class="text-sm font-medium flex-1 truncate">
-          <ctx-linkified-text [text]="item().name" />
+          <ctx-linkified-text [text]="item().name" [values]="item()" />
         </span>
         @if (item().archived) {
           <span class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground">

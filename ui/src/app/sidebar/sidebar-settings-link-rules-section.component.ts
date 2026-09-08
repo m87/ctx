@@ -114,7 +114,7 @@ type LinkRuleEdit = {
                 <input
                   type="text"
                   class="h-10 w-full rounded-md border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground"
-                  placeholder="http://test.pl/$1"
+                  placeholder="https://example.test/$1?name=$&#123;name&#125;"
                   [value]="getRuleFieldValue(rule, 'link')"
                   [disabled]="!isEditingRule(rule.regexp)"
                   (input)="updateDraft('link', getInputValue($event))"
@@ -123,7 +123,14 @@ type LinkRuleEdit = {
             </div>
 
             <div class="mt-3 text-[12px] text-muted-foreground">
-              Use capture groups such as <code>$1</code> in the link template.
+              Use capture groups such as <code>$1</code>. Context links also support URL-encoded
+              <code>$&#123;name&#125;</code>, <code>$&#123;id&#125;</code>,
+              <code>$&#123;duration&#125;</code>, <code>$&#123;start&#125;</code>,
+              <code>$&#123;end&#125;</code>, and <code>$&#123;date&#125;</code>.
+              <code>$&#123;name&#125;</code> is the context name without the current RegExp match;
+              use <code>$1 $&#123;name&#125;</code> to include the matched group. Time values are
+              available in summary views that provide them. Nested values such as
+              <code>$&#123;project.name&#125;</code> are supported too.
             </div>
             @if (isEditingRule(rule.regexp) && !canSaveRule()) {
               <div class="mt-2 text-[12px] text-destructive">

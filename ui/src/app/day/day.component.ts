@@ -349,20 +349,40 @@ export class DayComponent {
     const mappedContexts = this.dayStats()
       .contextStats.map((contextStats) => {
         const context = contextsById.get(contextStats.contextId);
+        const intervals = this.dayStats().intervals[contextStats.contextId] ?? [];
         const distributionValue = this.dayStats().distribution[contextStats.contextId];
         const distributionPercent = distributionValue ?? contextStats.percentage;
+        const start = intervals.reduce<string | null>(
+          (first, interval) =>
+            interval.start && (!first || Date.parse(interval.start) < Date.parse(first))
+              ? interval.start
+              : first,
+          null,
+        );
+        const end = intervals.reduce<string | null>(
+          (last, interval) =>
+            interval.end && (!last || Date.parse(interval.end) > Date.parse(last))
+              ? interval.end
+              : last,
+          null,
+        );
 
         return {
+          ...context,
           id: contextStats.contextId,
           name: context?.name ?? contextStats.contextId,
           duration: durationAsHM(contextStats.duration),
+          durationValue: contextStats.duration,
+          date: this.selectedDate(),
+          start: start ?? undefined,
+          end: end ?? undefined,
           percentage: distributionPercent,
           distributionPercentage: distributionPercent,
           color: colorHash(context?.id ?? contextStats.contextId),
           sessions: contextStats.intervalCount,
           archived: context?.archived ?? false,
           project: context?.project,
-          sessionRanges: (this.dayStats().intervals[contextStats.contextId] ?? []).map(
+          sessionRanges: intervals.map(
             (interval) =>
               `${this.timeZone.formatTime(interval.start)}–${this.timeZone.formatTime(interval.end)}`,
           ),

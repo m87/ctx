@@ -309,7 +309,7 @@ type DetailView = 'overview' | 'insights';
                             [style.background-color]="itemColor(context.id)"
                           ></span>
                           <span class="text-sm font-medium min-w-0 flex-1 truncate">
-                            <ctx-linkified-text [text]="context.name" />
+                            <ctx-linkified-text [text]="context.name" [values]="context" />
                           </span>
                           @if (context.archived) {
                             <span
