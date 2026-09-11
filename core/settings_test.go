@@ -11,32 +11,8 @@ import (
 	"gorm.io/gorm"
 )
 
-type mockSettingsRepository struct {
-	settings *Settings
-	loadErr  error
-	saveErr  error
-
-	loadCalls int
-	saveCalls int
-	saved     *Settings
-}
-
-func (r *mockSettingsRepository) Load() (*Settings, error) {
-	r.loadCalls++
-	if r.loadErr != nil {
-		return nil, r.loadErr
-	}
-	return r.settings, nil
-}
-
-func (r *mockSettingsRepository) Save(settings *Settings) error {
-	r.saveCalls++
-	r.saved = settings
-	return r.saveErr
-}
-
 func TestSettingsManagerInitSettingsIfNotExistsCreatesDefaults(t *testing.T) {
-	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+	repo := &SettingsRepositoryMock{loadError: gorm.ErrRecordNotFound}
 	manager := NewSettingsManager(repo)
 
 	err := manager.InitSettingsIfNotExists()
@@ -55,7 +31,7 @@ func TestSettingsManagerInitSettingsIfNotExistsCreatesDefaults(t *testing.T) {
 
 func TestSettingsManagerInitSettingsIfNotExistsDoesNotOverrideExisting(t *testing.T) {
 	existing := &Settings{raw: map[string]string{"client.general.theme": "dark"}}
-	repo := &mockSettingsRepository{
+	repo := &SettingsRepositoryMock{
 		settings: existing,
 	}
 	manager := NewSettingsManager(repo)
@@ -69,7 +45,7 @@ func TestSettingsManagerInitSettingsIfNotExistsDoesNotOverrideExisting(t *testin
 
 func TestSettingsManagerInitSettingsIfNotExistsReturnsLoadError(t *testing.T) {
 	wantErr := errors.New("load failed")
-	repo := &mockSettingsRepository{loadErr: wantErr}
+	repo := &SettingsRepositoryMock{loadError: wantErr}
 	manager := NewSettingsManager(repo)
 
 	err := manager.InitSettingsIfNotExists()
@@ -81,7 +57,7 @@ func TestSettingsManagerInitSettingsIfNotExistsReturnsLoadError(t *testing.T) {
 }
 
 func TestSettingsManagerGetClientLoadsFiltersAndCaches(t *testing.T) {
-	repo := &mockSettingsRepository{
+	repo := &SettingsRepositoryMock{
 		settings: &Settings{raw: map[string]string{
 			"client.general.theme":    "dark",
 			"client.general.firstDay": "Sunday",
@@ -105,7 +81,7 @@ func TestSettingsManagerGetClientLoadsFiltersAndCaches(t *testing.T) {
 
 func TestSettingsManagerGetClientReturnsLoadError(t *testing.T) {
 	wantErr := errors.New("load failed")
-	manager := NewSettingsManager(&mockSettingsRepository{loadErr: wantErr})
+	manager := NewSettingsManager(&SettingsRepositoryMock{loadError: wantErr})
 
 	got, err := manager.GetClient()
 
@@ -114,7 +90,7 @@ func TestSettingsManagerGetClientReturnsLoadError(t *testing.T) {
 }
 
 func TestSettingsManagerSaveClientSavesAndUpdatesCache(t *testing.T) {
-	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+	repo := &SettingsRepositoryMock{loadError: gorm.ErrRecordNotFound}
 	manager := NewSettingsManager(repo)
 	settings := map[string]string{
 		"client.general.theme":    "dark",
@@ -130,7 +106,7 @@ func TestSettingsManagerSaveClientSavesAndUpdatesCache(t *testing.T) {
 }
 
 func TestSettingsManagerSaveClientRejectsInvalidTimeZone(t *testing.T) {
-	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+	repo := &SettingsRepositoryMock{loadError: gorm.ErrRecordNotFound}
 	manager := NewSettingsManager(repo)
 
 	err := manager.SaveClient(map[string]string{
@@ -145,7 +121,7 @@ func TestSettingsManagerSaveClientRejectsInvalidTimeZone(t *testing.T) {
 func TestSettingsManagerSaveClientAcceptsBrowserAndIANATimeZones(t *testing.T) {
 	for _, zone := range []string{"browser", "Asia/Tokyo", "UTC"} {
 		t.Run(zone, func(t *testing.T) {
-			repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+			repo := &SettingsRepositoryMock{loadError: gorm.ErrRecordNotFound}
 			manager := NewSettingsManager(repo)
 
 			err := manager.SaveClient(map[string]string{"client.general.timeZone": zone})
@@ -157,7 +133,7 @@ func TestSettingsManagerSaveClientAcceptsBrowserAndIANATimeZones(t *testing.T) {
 }
 
 func TestSettingsManagerSaveClientMergesWithExistingSettings(t *testing.T) {
-	repo := &mockSettingsRepository{
+	repo := &SettingsRepositoryMock{
 		settings: &Settings{raw: map[string]string{
 			"client.general.theme":    "light",
 			"client.general.firstDay": "Sunday",
@@ -175,7 +151,7 @@ func TestSettingsManagerSaveClientMergesWithExistingSettings(t *testing.T) {
 }
 
 func TestSettingsManagerSaveClientIgnoresNonClientSettings(t *testing.T) {
-	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound}
+	repo := &SettingsRepositoryMock{loadError: gorm.ErrRecordNotFound}
 	manager := NewSettingsManager(repo)
 
 	err := manager.SaveClient(map[string]string{
@@ -189,7 +165,7 @@ func TestSettingsManagerSaveClientIgnoresNonClientSettings(t *testing.T) {
 
 func TestSettingsManagerSaveClientReturnsSaveError(t *testing.T) {
 	wantErr := errors.New("save failed")
-	repo := &mockSettingsRepository{loadErr: gorm.ErrRecordNotFound, saveErr: wantErr}
+	repo := &SettingsRepositoryMock{loadError: gorm.ErrRecordNotFound, saveError: wantErr}
 	manager := NewSettingsManager(repo)
 
 	err := manager.SaveClient(map[string]string{"client.general.theme": "dark"})
@@ -199,7 +175,7 @@ func TestSettingsManagerSaveClientReturnsSaveError(t *testing.T) {
 }
 
 func TestSettingsManagerGetClientKeyOnlyAllowsClientKeys(t *testing.T) {
-	repo := &mockSettingsRepository{
+	repo := &SettingsRepositoryMock{
 		settings: &Settings{raw: map[string]string{"client.general.theme": "dark"}},
 	}
 	manager := NewSettingsManager(repo)
@@ -224,7 +200,7 @@ func TestSettingsManagerGetKeyUsesCacheThenViperFallback(t *testing.T) {
 	viper.SetConfigFile(configPath)
 	require.NoError(t, viper.ReadInConfig())
 
-	repo := &mockSettingsRepository{
+	repo := &SettingsRepositoryMock{
 		settings: &Settings{raw: map[string]string{"client.general.theme": "dark"}},
 	}
 	manager := NewSettingsManager(repo)
@@ -240,7 +216,7 @@ func TestSettingsManagerGetKeyUsesCacheThenViperFallback(t *testing.T) {
 }
 
 func TestSettingsManagerSaveOnlySavesClientSettingsAndUpdatesCache(t *testing.T) {
-	repo := &mockSettingsRepository{}
+	repo := &SettingsRepositoryMock{}
 	manager := NewSettingsManager(repo)
 	settings := map[string]string{
 		"client.general.theme":    "dark",

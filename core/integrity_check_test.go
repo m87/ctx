@@ -14,67 +14,27 @@ func integrityTestTime(offset time.Duration) *time.Time {
 	return testTime(integrityTestBaseTime.Add(offset))
 }
 
-type WorkspaceRepositoryMock struct {
-	WorkspaceRepository
-	workspaces []*Workspace
-	called     bool
-}
-
-func (m *WorkspaceRepositoryMock) List() ([]*Workspace, error) {
-	m.called = true
-	if m.workspaces == nil {
-		return nil, errors.New("WorkspaceRepository.List error")
-	}
-	return m.workspaces, nil
-}
-
-type ContextRepositoryMock struct {
-	ContextRepository
-	contexts []*Context
-	called   bool
-}
-
-func (m *ContextRepositoryMock) List() ([]*Context, error) {
-	m.called = true
-	if m.contexts == nil {
-		return nil, errors.New("ContextRepository.List error")
-	}
-	return m.contexts, nil
-}
-
-func setupManagerCorrectData() *ContextManager {
-	workspaceRepo := &WorkspaceRepositoryMock{
-		workspaces: []*Workspace{
-			{Id: "workspace1"},
-			{Id: "workspace2"},
-		},
-	}
-	contextRepo := &ContextRepositoryMock{
-		contexts: []*Context{
-			{Id: "context1", Name: "Context 1", WorkspaceId: "workspace1"},
-			{Id: "context2", Name: "Context 2", WorkspaceId: "workspace2"},
-		},
-	}
-	intervalRepo := &IntervalRepositoryMock{
-		intervals: []*Interval{
-			{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1", Status: "completed", Start: integrityTestTime(0), End: integrityTestTime(time.Hour)},
-			{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2", Status: "completed", Start: integrityTestTime(2 * time.Hour), End: integrityTestTime(3 * time.Hour)},
-		},
-	}
-
-	manager := &ContextManager{
-		WorkspaceRepository: workspaceRepo,
-		ContextRepository:   contextRepo,
-		IntervalRepository:  intervalRepo,
-	}
-
-	return manager
+func newIntegrityCheckTestManager() *TestContextManager {
+	test := NewEmptyTestContextManager()
+	test.Workspaces.Seed(
+		&Workspace{Id: "workspace1"},
+		&Workspace{Id: "workspace2"},
+	)
+	test.Contexts.Seed(
+		&Context{Id: "context1", Name: "Context 1", WorkspaceId: "workspace1"},
+		&Context{Id: "context2", Name: "Context 2", WorkspaceId: "workspace2"},
+	)
+	test.Intervals.Seed(
+		&Interval{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1", Status: "completed", Start: integrityTestTime(0), End: integrityTestTime(time.Hour)},
+		&Interval{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2", Status: "completed", Start: integrityTestTime(2 * time.Hour), End: integrityTestTime(3 * time.Hour)},
+	)
+	return test
 }
 
 func TestPassIntegrityCheckTests(t *testing.T) {
-	manager := setupManagerCorrectData()
+	test := newIntegrityCheckTestManager()
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.True(t, report.Healthy)
 	require.Empty(t, report.Issues)
@@ -84,13 +44,9 @@ func TestPassIntegrityCheckTests(t *testing.T) {
 }
 
 func TestPassIntegrityCheckWithEmptyRepositories(t *testing.T) {
-	manager := &ContextManager{
-		WorkspaceRepository: &WorkspaceRepositoryMock{workspaces: []*Workspace{}},
-		ContextRepository:   &ContextRepositoryMock{contexts: []*Context{}},
-		IntervalRepository:  &IntervalRepositoryMock{intervals: []*Interval{}},
-	}
+	test := NewEmptyTestContextManager()
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.True(t, report.Healthy)
 	require.Empty(t, report.Issues)
@@ -100,11 +56,11 @@ func TestPassIntegrityCheckWithEmptyRepositories(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithContextWithoutWorkspace(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.ContextRepository.(*ContextRepositoryMock).contexts[0].WorkspaceId = ""
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals = []*Interval{}
+	test := newIntegrityCheckTestManager()
+	test.Contexts.Get("context1").WorkspaceId = ""
+	test.Intervals.Seed()
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -117,11 +73,11 @@ func TestFailIntegrityCheckWithContextWithoutWorkspace(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithContextWithNonexistentWorkspace(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.ContextRepository.(*ContextRepositoryMock).contexts[0].WorkspaceId = "nonexistent"
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals = []*Interval{}
+	test := newIntegrityCheckTestManager()
+	test.Contexts.Get("context1").WorkspaceId = "nonexistent"
+	test.Intervals.Seed()
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -132,10 +88,10 @@ func TestFailIntegrityCheckWithContextWithNonexistentWorkspace(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithIntervalWithoutContext(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].ContextId = ""
+	test := newIntegrityCheckTestManager()
+	test.Intervals.Get("interval1").ContextId = ""
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -146,10 +102,10 @@ func TestFailIntegrityCheckWithIntervalWithoutContext(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithIntervalWithNonexistentContext(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].ContextId = "nonexistent"
+	test := newIntegrityCheckTestManager()
+	test.Intervals.Get("interval1").ContextId = "nonexistent"
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -165,10 +121,10 @@ func TestFailIntegrityCheckWithIntervalWithNonexistentContext(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithIntervalWithoutWorkspace(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].WorkspaceId = ""
+	test := newIntegrityCheckTestManager()
+	test.Intervals.Get("interval1").WorkspaceId = ""
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -180,10 +136,10 @@ func TestFailIntegrityCheckWithIntervalWithoutWorkspace(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithIntervalWithNonexistentWorkspace(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].WorkspaceId = "nonexistent"
+	test := newIntegrityCheckTestManager()
+	test.Intervals.Get("interval1").WorkspaceId = "nonexistent"
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -194,10 +150,10 @@ func TestFailIntegrityCheckWithIntervalWithNonexistentWorkspace(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithIntervalWorkspaceMismatch(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].WorkspaceId = "workspace2"
+	test := newIntegrityCheckTestManager()
+	test.Intervals.Get("interval1").WorkspaceId = "workspace2"
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -209,12 +165,12 @@ func TestFailIntegrityCheckWithIntervalWorkspaceMismatch(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithInactiveIntervalMissingTime(t *testing.T) {
-	manager := setupManagerCorrectData()
-	interval := manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0]
+	test := newIntegrityCheckTestManager()
+	interval := test.Intervals.Get("interval1")
 	interval.Status = "completed"
 	interval.Start = nil
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -226,13 +182,13 @@ func TestFailIntegrityCheckWithInactiveIntervalMissingTime(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithActiveIntervalWithEnd(t *testing.T) {
-	manager := setupManagerCorrectData()
-	interval := manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0]
+	test := newIntegrityCheckTestManager()
+	interval := test.Intervals.Get("interval1")
 	interval.Status = "active"
 	interval.Start = integrityTestTime(0)
 	interval.End = integrityTestTime(time.Hour)
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -244,19 +200,21 @@ func TestFailIntegrityCheckWithActiveIntervalWithEnd(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithMultipleActiveContexts(t *testing.T) {
-	manager := setupManagerCorrectData()
-	contexts := manager.ContextRepository.(*ContextRepositoryMock).contexts
-	intervals := manager.IntervalRepository.(*IntervalRepositoryMock).intervals
-	contexts[0].Status = "active"
-	contexts[1].Status = "active"
-	intervals[0].Status = "active"
-	intervals[0].Start = integrityTestTime(0)
-	intervals[0].End = nil
-	intervals[1].Status = "active"
-	intervals[1].Start = integrityTestTime(time.Hour)
-	intervals[1].End = nil
+	test := newIntegrityCheckTestManager()
+	firstContext := test.Contexts.Get("context1")
+	secondContext := test.Contexts.Get("context2")
+	firstInterval := test.Intervals.Get("interval1")
+	secondInterval := test.Intervals.Get("interval2")
+	firstContext.Status = "active"
+	secondContext.Status = "active"
+	firstInterval.Status = "active"
+	firstInterval.Start = integrityTestTime(0)
+	firstInterval.End = nil
+	secondInterval.Status = "active"
+	secondInterval.Start = integrityTestTime(time.Hour)
+	secondInterval.End = nil
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 2)
@@ -267,15 +225,15 @@ func TestFailIntegrityCheckWithMultipleActiveContexts(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithActiveContextWithoutOpenInterval(t *testing.T) {
-	manager := setupManagerCorrectData()
-	context := manager.ContextRepository.(*ContextRepositoryMock).contexts[0]
-	interval := manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0]
+	test := newIntegrityCheckTestManager()
+	context := test.Contexts.Get("context1")
+	interval := test.Intervals.Get("interval1")
 	context.Status = "active"
 	interval.Status = "completed"
 	interval.Start = integrityTestTime(0)
 	interval.End = integrityTestTime(time.Hour)
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 1)
@@ -287,12 +245,12 @@ func TestFailIntegrityCheckWithActiveContextWithoutOpenInterval(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithMultipleIssues(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.ContextRepository.(*ContextRepositoryMock).contexts[0].WorkspaceId = ""
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].ContextId = "nonexistent"
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].WorkspaceId = "nonexistent"
+	test := newIntegrityCheckTestManager()
+	test.Contexts.Get("context1").WorkspaceId = ""
+	test.Intervals.Get("interval1").ContextId = "nonexistent"
+	test.Intervals.Get("interval1").WorkspaceId = "nonexistent"
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 3)
@@ -302,12 +260,12 @@ func TestFailIntegrityCheckWithMultipleIssues(t *testing.T) {
 }
 
 func TestFailIntegrityCheckWithAllIssues(t *testing.T) {
-	manager := setupManagerCorrectData()
-	manager.ContextRepository.(*ContextRepositoryMock).contexts[0].WorkspaceId = ""
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].ContextId = ""
-	manager.IntervalRepository.(*IntervalRepositoryMock).intervals[0].WorkspaceId = "nonexistent"
+	test := newIntegrityCheckTestManager()
+	test.Contexts.Get("context1").WorkspaceId = ""
+	test.Intervals.Get("interval1").ContextId = ""
+	test.Intervals.Get("interval1").WorkspaceId = "nonexistent"
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.False(t, report.Healthy)
 	require.Len(t, report.Issues, 3)
@@ -317,42 +275,30 @@ func TestFailIntegrityCheckWithAllIssues(t *testing.T) {
 }
 
 func TestIntegrityCheckOnRepositoryFail(t *testing.T) {
-	manager := &ContextManager{
-		WorkspaceRepository: &WorkspaceRepositoryMock{workspaces: nil},
-		ContextRepository:   &ContextRepositoryMock{contexts: nil},
-		IntervalRepository:  &IntervalRepositoryMock{intervals: nil},
-	}
+	test := NewEmptyTestContextManager()
+	test.Workspaces.listError = errors.New("WorkspaceRepository.List error")
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.Nil(t, report)
-	require.Error(t, err)
-	require.Equal(t, "WorkspaceRepository.List error", err.Error())
-	require.False(t, manager.ContextRepository.(*ContextRepositoryMock).called)
-	require.False(t, manager.IntervalRepository.(*IntervalRepositoryMock).called)
+	require.EqualError(t, err, "WorkspaceRepository.List error")
+	require.False(t, test.Contexts.listCalled)
+	require.False(t, test.Intervals.listCalled)
 
-	manager = &ContextManager{
-		WorkspaceRepository: &WorkspaceRepositoryMock{workspaces: []*Workspace{}},
-		ContextRepository:   &ContextRepositoryMock{contexts: nil},
-		IntervalRepository:  &IntervalRepositoryMock{intervals: nil},
-	}
+	test = NewEmptyTestContextManager()
+	test.Contexts.listError = errors.New("ContextRepository.List error")
 
-	report, err = manager.CheckIntegrity()
+	report, err = test.Manager.CheckIntegrity()
 	require.Nil(t, report)
-	require.Error(t, err)
-	require.Equal(t, "ContextRepository.List error", err.Error())
-	require.True(t, manager.ContextRepository.(*ContextRepositoryMock).called)
-	require.False(t, manager.IntervalRepository.(*IntervalRepositoryMock).called)
+	require.EqualError(t, err, "ContextRepository.List error")
+	require.True(t, test.Contexts.listCalled)
+	require.False(t, test.Intervals.listCalled)
 
-	manager = &ContextManager{
-		WorkspaceRepository: &WorkspaceRepositoryMock{workspaces: []*Workspace{}},
-		ContextRepository:   &ContextRepositoryMock{contexts: []*Context{}},
-		IntervalRepository:  &IntervalRepositoryMock{intervals: nil},
-	}
+	test = NewEmptyTestContextManager()
+	test.Intervals.listError = errors.New("IntervalRepository.List error")
 
-	report, err = manager.CheckIntegrity()
+	report, err = test.Manager.CheckIntegrity()
 	require.Nil(t, report)
-	require.Error(t, err)
-	require.Equal(t, "IntervalRepository.List error", err.Error())
-	require.True(t, manager.ContextRepository.(*ContextRepositoryMock).called)
-	require.True(t, manager.IntervalRepository.(*IntervalRepositoryMock).called)
+	require.EqualError(t, err, "IntervalRepository.List error")
+	require.True(t, test.Contexts.listCalled)
+	require.True(t, test.Intervals.listCalled)
 }

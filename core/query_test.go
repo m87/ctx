@@ -9,7 +9,7 @@ import (
 )
 
 func TestQueryContextsReturnsAllContextsWithPassthroughInterpreter(t *testing.T) {
-	test := newTestManager()
+	test := NewEmptyTestContextManager()
 	_, err := test.Contexts.Save(&Context{
 		Id:          "context-1",
 		Name:        "Active",
@@ -35,14 +35,14 @@ func TestQueryContextsReturnsAllContextsWithPassthroughInterpreter(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, &ContextSQLQuery{}, test.Contexts.lastQuery)
 	require.Equal(t, []*Context{
-		test.Contexts.items["context-1"],
-		test.Contexts.items["context-2"],
-		test.Contexts.items["context-3"],
+		test.Contexts.Get("context-1"),
+		test.Contexts.Get("context-2"),
+		test.Contexts.Get("context-3"),
 	}, contexts)
 }
 
 func TestQueryContextsDelegatesToConfiguredInterpreter(t *testing.T) {
-	test := newTestManager()
+	test := NewEmptyTestContextManager()
 	_, err := test.Contexts.Save(&Context{
 		Id:          "context-1",
 		Name:        "Context",
@@ -64,7 +64,7 @@ func TestQueryContextsDelegatesToConfiguredInterpreter(t *testing.T) {
 }
 
 func TestQueryContextsExecutesTheInterpretedSQLPlan(t *testing.T) {
-	test := newTestManager()
+	test := NewEmptyTestContextManager()
 	plan := &ContextSQLQuery{
 		WhereClause: "name = ?",
 		Arguments:   []any{"Context"},
@@ -80,7 +80,7 @@ func TestQueryContextsExecutesTheInterpretedSQLPlan(t *testing.T) {
 }
 
 func TestQueryWorkspaceContextsScopesPassthroughResultsAndBuildsSummary(t *testing.T) {
-	test := newTestManager()
+	test := NewEmptyTestContextManager()
 	_, err := test.Workspaces.Save(&Workspace{Id: "workspace-1", Name: "Workspace"})
 	require.NoError(t, err)
 	_, err = test.Contexts.Save(&Context{
@@ -130,7 +130,7 @@ func TestQueryWorkspaceContextsScopesPassthroughResultsAndBuildsSummary(t *testi
 }
 
 func TestQueryWorkspaceContextsDoesNotMutateInterpreterPlan(t *testing.T) {
-	test := newTestManager()
+	test := NewEmptyTestContextManager()
 	_, err := test.Workspaces.Save(&Workspace{Id: "workspace-1", Name: "Workspace"})
 	require.NoError(t, err)
 	plan := &ContextSQLQuery{WhereClause: "name = ?", Arguments: []any{"Context"}}
@@ -144,7 +144,7 @@ func TestQueryWorkspaceContextsDoesNotMutateInterpreterPlan(t *testing.T) {
 }
 
 func TestQueryWorkspaceContextsRequiresExistingWorkspace(t *testing.T) {
-	test := newTestManager()
+	test := NewEmptyTestContextManager()
 
 	result, err := test.Manager.QueryWorkspaceContexts("missing", "anything")
 

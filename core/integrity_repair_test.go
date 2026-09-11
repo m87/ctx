@@ -8,216 +8,80 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type ProjectRepositoryRepairMock struct {
-	ProjectRepository
-	projects  []*Project
-	saved     []*Project
-	listError error
-	saveError error
-	called    bool
-}
-
-func (m *ProjectRepositoryRepairMock) List(workspaceId string) ([]*Project, error) {
-	m.called = true
-	return m.projects, m.listError
-}
-
-func (m *ProjectRepositoryRepairMock) Save(project *Project) (string, error) {
-	if m.saveError != nil {
-		return "", m.saveError
-	}
-	m.saved = append(m.saved, project)
-	return project.Id, nil
-}
-
-func (m *ProjectRepositoryRepairMock) ListIncludingArchived(workspaceId string) ([]*Project, error) {
-	m.called = true
-	return m.projects, m.listError
-}
-
-func (m *ProjectRepositoryRepairMock) ListToSync(limit int) ([]*Project, error) {
-	m.called = true
-	return m.projects, m.listError
-}
-
-func (m *ProjectRepositoryRepairMock) SaveAll(projects []*Project) ([]string, error) {
-	if m.saveError != nil {
-		return nil, m.saveError
-	}
-	var ids []string
-	for _, project := range projects {
-		m.saved = append(m.saved, project)
-		ids = append(ids, project.Id)
-	}
-	return ids, nil
-}
-
-func (m *ProjectRepositoryRepairMock) Delete(id string) error {
-	return nil
-}
-
-func (m *ProjectRepositoryRepairMock) GetById(id string) (*Project, error) {
-	for _, project := range m.projects {
-		if project.Id == id {
-			return project, nil
-		}
-	}
-	return nil, nil
-}
-
-type WorkspaceRepositoryRepairMock struct {
-	WorkspaceRepository
-	workspaces []*Workspace
-	saved      []*Workspace
-	listError  error
-	saveError  error
-	called     bool
-}
-
-func (m *WorkspaceRepositoryRepairMock) List() ([]*Workspace, error) {
-	m.called = true
-	return m.workspaces, m.listError
-}
-
-func (m *WorkspaceRepositoryRepairMock) Save(workspace *Workspace) (string, error) {
-	if m.saveError != nil {
-		return "", m.saveError
-	}
-	if workspace.Id == "" {
-		workspace.Id = "default-workspace"
-	}
-	m.saved = append(m.saved, workspace)
-	m.workspaces = append(m.workspaces, workspace)
-	return workspace.Id, nil
-}
-
-type ContextRepositoryRepairMock struct {
-	ContextRepository
-	contexts  []*Context
-	saved     []*Context
-	listError error
-	saveError error
-	called    bool
-}
-
-func (m *ContextRepositoryRepairMock) List() ([]*Context, error) {
-	m.called = true
-	return m.contexts, m.listError
-}
-
-func (m *ContextRepositoryRepairMock) Save(context *Context) (string, error) {
-	if m.saveError != nil {
-		return "", m.saveError
-	}
-	m.saved = append(m.saved, context)
-	return context.Id, nil
-}
-
-type IntervalRepositoryRepairMock struct {
-	IntervalRepository
-	intervals []*Interval
-	saved     []*Interval
-	listError error
-	saveError error
-	called    bool
-}
-
-func (m *IntervalRepositoryRepairMock) List() ([]*Interval, error) {
-	m.called = true
-	return m.intervals, m.listError
-}
-
-func (m *IntervalRepositoryRepairMock) Save(interval *Interval) (string, error) {
-	if m.saveError != nil {
-		return "", m.saveError
-	}
-	m.saved = append(m.saved, interval)
-	return interval.Id, nil
-}
-
-func setupManagerCorrectDataForRepair() *ContextManager {
-	workspaceRepo := &WorkspaceRepositoryRepairMock{
-		workspaces: []*Workspace{
-			{Id: "workspace1", Name: "Default"},
-			{Id: "workspace2"},
-		},
-	}
-	contextRepo := &ContextRepositoryRepairMock{
-		contexts: []*Context{
-			{Id: "context1", WorkspaceId: "workspace1"},
-			{Id: "context2", WorkspaceId: "workspace2"},
-		},
-	}
-	intervalRepo := &IntervalRepositoryRepairMock{
-		intervals: []*Interval{
-			{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1", Status: "completed", Start: integrityTestTime(0), End: integrityTestTime(time.Hour)},
-			{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2", Status: "completed", Start: integrityTestTime(2 * time.Hour), End: integrityTestTime(3 * time.Hour)},
-		},
-	}
-
-	projectRepo := &ProjectRepositoryRepairMock{
-		projects: []*Project{
-			{Id: "project1", WorkspaceId: "workspace1"},
-			{Id: "project2", WorkspaceId: "workspace2"},
-		},
-	}
-
-	return NewContextManager(nil, contextRepo, intervalRepo, workspaceRepo, projectRepo)
+func newIntegrityRepairTestManager() *TestContextManager {
+	test := NewEmptyTestContextManager()
+	test.Workspaces.Seed(
+		&Workspace{Id: "workspace1", Name: "Default"},
+		&Workspace{Id: "workspace2"},
+	)
+	test.Contexts.Seed(
+		&Context{Id: "context1", WorkspaceId: "workspace1"},
+		&Context{Id: "context2", WorkspaceId: "workspace2"},
+	)
+	test.Intervals.Seed(
+		&Interval{Id: "interval1", ContextId: "context1", WorkspaceId: "workspace1", Status: "completed", Start: integrityTestTime(0), End: integrityTestTime(time.Hour)},
+		&Interval{Id: "interval2", ContextId: "context2", WorkspaceId: "workspace2", Status: "completed", Start: integrityTestTime(2 * time.Hour), End: integrityTestTime(3 * time.Hour)},
+	)
+	test.Projects.Seed(
+		&Project{Id: "project1", WorkspaceId: "workspace1"},
+		&Project{Id: "project2", WorkspaceId: "workspace2"},
+	)
+	return test
 }
 
 func TestPassIntegrityRepairWithCorrectData(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
+	test := newIntegrityRepairTestManager()
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 0, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
 	require.Empty(t, result.Report.Issues)
-	require.Empty(t, manager.WorkspaceRepository.(*WorkspaceRepositoryRepairMock).saved)
-	require.Empty(t, manager.ContextRepository.(*ContextRepositoryRepairMock).saved)
-	require.Empty(t, manager.IntervalRepository.(*IntervalRepositoryRepairMock).saved)
+	require.Empty(t, test.Workspaces.saved)
+	require.Empty(t, test.Contexts.saved)
+	require.Empty(t, test.Intervals.saved)
 }
 
 func TestIntegrityRepairCreatesDefaultWorkspace(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	workspaceRepo := manager.WorkspaceRepository.(*WorkspaceRepositoryRepairMock)
-	workspaceRepo.workspaces = []*Workspace{}
-	manager.ContextRepository.(*ContextRepositoryRepairMock).contexts = []*Context{}
-	manager.IntervalRepository.(*IntervalRepositoryRepairMock).intervals = []*Interval{}
+	test := newIntegrityRepairTestManager()
+	workspaceRepo := test.Workspaces
+	workspaceRepo.Seed()
+	test.Contexts.Seed()
+	test.Intervals.Seed()
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
 	require.Len(t, workspaceRepo.saved, 1)
-	require.Equal(t, "default-workspace", workspaceRepo.saved[0].Id)
+	require.NotEmpty(t, workspaceRepo.saved[0].Id)
 	require.Equal(t, "Default", workspaceRepo.saved[0].Name)
 }
 
 func TestIntegrityRepairCreatesDefaultWorkspaceForUnassignedContext(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	workspaceRepo := manager.WorkspaceRepository.(*WorkspaceRepositoryRepairMock)
-	workspaceRepo.workspaces[0].Name = "Workspace 1"
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	contextRepo.contexts[0].WorkspaceId = ""
-	intervalRepo.intervals[0].WorkspaceId = ""
+	test := newIntegrityRepairTestManager()
+	workspaceRepo := test.Workspaces
+	workspaceRepo.Get("workspace1").Name = "Workspace 1"
+	contextRepo := test.Contexts
+	intervalRepo := test.Intervals
+	contextRepo.Get("context1").WorkspaceId = ""
+	intervalRepo.Get("interval1").WorkspaceId = ""
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 3, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
 	require.Len(t, workspaceRepo.saved, 1)
-	require.Equal(t, "default-workspace", contextRepo.contexts[0].WorkspaceId)
-	require.Equal(t, "default-workspace", intervalRepo.intervals[0].WorkspaceId)
+	require.Equal(t, workspaceRepo.saved[0].Id, contextRepo.Get("context1").WorkspaceId)
+	require.Equal(t, workspaceRepo.saved[0].Id, intervalRepo.Get("interval1").WorkspaceId)
 }
 
 func TestIntegrityRepairDoesNotCreateDefaultWorkspaceWhenDataIsValid(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	workspaceRepo := manager.WorkspaceRepository.(*WorkspaceRepositoryRepairMock)
-	workspaceRepo.workspaces[0].Name = "Workspace 1"
+	test := newIntegrityRepairTestManager()
+	workspaceRepo := test.Workspaces
+	workspaceRepo.Get("workspace1").Name = "Workspace 1"
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 0, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
@@ -225,12 +89,12 @@ func TestIntegrityRepairDoesNotCreateDefaultWorkspaceWhenDataIsValid(t *testing.
 }
 
 func TestIntegrityRepairContextWithoutWorkspace(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	contextRepo.contexts[0].WorkspaceId = ""
-	manager.IntervalRepository.(*IntervalRepositoryRepairMock).intervals = []*Interval{}
+	test := newIntegrityRepairTestManager()
+	contextRepo := test.Contexts
+	contextRepo.Get("context1").WorkspaceId = ""
+	test.Intervals.Seed()
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
@@ -240,33 +104,33 @@ func TestIntegrityRepairContextWithoutWorkspace(t *testing.T) {
 }
 
 func TestIntegrityRepairContextAndItsIntervalWithoutWorkspace(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	contextRepo.contexts[0].WorkspaceId = ""
-	intervalRepo.intervals[0].WorkspaceId = ""
+	test := newIntegrityRepairTestManager()
+	contextRepo := test.Contexts
+	intervalRepo := test.Intervals
+	contextRepo.Get("context1").WorkspaceId = ""
+	intervalRepo.Get("interval1").WorkspaceId = ""
 
-	report, err := manager.CheckIntegrity()
+	report, err := test.Manager.CheckIntegrity()
 	require.NoError(t, err)
 	require.Len(t, report.Issues, 2)
 	require.True(t, report.Issues[0].Repairable)
 	require.True(t, report.Issues[1].Repairable)
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 2, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
-	require.Equal(t, "workspace1", contextRepo.contexts[0].WorkspaceId)
-	require.Equal(t, "workspace1", intervalRepo.intervals[0].WorkspaceId)
+	require.Equal(t, "workspace1", contextRepo.Get("context1").WorkspaceId)
+	require.Equal(t, "workspace1", intervalRepo.Get("interval1").WorkspaceId)
 }
 
 func TestIntegrityRepairContextWithNonexistentWorkspace(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	contextRepo.contexts[0].WorkspaceId = "nonexistent"
-	manager.IntervalRepository.(*IntervalRepositoryRepairMock).intervals = []*Interval{}
+	test := newIntegrityRepairTestManager()
+	contextRepo := test.Contexts
+	contextRepo.Get("context1").WorkspaceId = "nonexistent"
+	test.Intervals.Seed()
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
@@ -276,11 +140,11 @@ func TestIntegrityRepairContextWithNonexistentWorkspace(t *testing.T) {
 }
 
 func TestIntegrityRepairIntervalWithoutWorkspace(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	intervalRepo.intervals[0].WorkspaceId = ""
+	test := newIntegrityRepairTestManager()
+	intervalRepo := test.Intervals
+	intervalRepo.Get("interval1").WorkspaceId = ""
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
@@ -290,11 +154,11 @@ func TestIntegrityRepairIntervalWithoutWorkspace(t *testing.T) {
 }
 
 func TestIntegrityRepairIntervalWithNonexistentWorkspace(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	intervalRepo.intervals[0].WorkspaceId = "nonexistent"
+	test := newIntegrityRepairTestManager()
+	intervalRepo := test.Intervals
+	intervalRepo.Get("interval1").WorkspaceId = "nonexistent"
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
@@ -304,11 +168,11 @@ func TestIntegrityRepairIntervalWithNonexistentWorkspace(t *testing.T) {
 }
 
 func TestIntegrityRepairIntervalWorkspaceMismatch(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	intervalRepo.intervals[0].WorkspaceId = "workspace2"
+	test := newIntegrityRepairTestManager()
+	intervalRepo := test.Intervals
+	intervalRepo.Get("interval1").WorkspaceId = "workspace2"
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
@@ -318,81 +182,81 @@ func TestIntegrityRepairIntervalWorkspaceMismatch(t *testing.T) {
 }
 
 func TestIntegrityRepairCompletesActiveIntervalWithEndAndStopsContext(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	contextRepo.contexts[0].Status = "active"
-	intervalRepo.intervals[0].Status = "active"
-	intervalRepo.intervals[0].Start = integrityTestTime(0)
-	intervalRepo.intervals[0].End = integrityTestTime(time.Hour)
+	test := newIntegrityRepairTestManager()
+	contextRepo := test.Contexts
+	intervalRepo := test.Intervals
+	contextRepo.Get("context1").Status = "active"
+	intervalRepo.Get("interval1").Status = "active"
+	intervalRepo.Get("interval1").Start = integrityTestTime(0)
+	intervalRepo.Get("interval1").End = integrityTestTime(time.Hour)
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 2, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
 	require.Len(t, intervalRepo.saved, 1)
-	require.Equal(t, "completed", intervalRepo.intervals[0].Status)
-	require.Equal(t, time.Hour, intervalRepo.intervals[0].Duration)
+	require.Equal(t, "completed", intervalRepo.Get("interval1").Status)
+	require.Equal(t, time.Hour, intervalRepo.Get("interval1").Duration)
 	require.Len(t, contextRepo.saved, 1)
-	require.Equal(t, "inactive", contextRepo.contexts[0].Status)
+	require.Equal(t, "inactive", contextRepo.Get("context1").Status)
 }
 
 func TestIntegrityRepairStopsActiveContextWithCompletedIntervalsOnly(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	contextRepo.contexts[0].Status = "active"
-	intervalRepo.intervals[0].Status = "completed"
-	intervalRepo.intervals[0].Start = integrityTestTime(0)
-	intervalRepo.intervals[0].End = integrityTestTime(time.Hour)
+	test := newIntegrityRepairTestManager()
+	contextRepo := test.Contexts
+	intervalRepo := test.Intervals
+	contextRepo.Get("context1").Status = "active"
+	intervalRepo.Get("interval1").Status = "completed"
+	intervalRepo.Get("interval1").Start = integrityTestTime(0)
+	intervalRepo.Get("interval1").End = integrityTestTime(time.Hour)
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
 	require.Len(t, contextRepo.saved, 1)
-	require.Equal(t, "inactive", contextRepo.contexts[0].Status)
+	require.Equal(t, "inactive", contextRepo.Get("context1").Status)
 	require.Empty(t, intervalRepo.saved)
 }
 
 func TestIntegrityRepairLeavesOnlyNewestActiveContextRunning(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
+	test := newIntegrityRepairTestManager()
 	repairTime := integrityTestBaseTime.Add(3 * time.Hour)
-	manager.TimeProvider = fixedTimeProvider{now: repairTime}
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	contextRepo.contexts[0].Status = "active"
-	contextRepo.contexts[1].Status = "active"
-	intervalRepo.intervals[0].Status = "active"
-	intervalRepo.intervals[0].Start = integrityTestTime(time.Hour)
-	intervalRepo.intervals[0].End = nil
-	intervalRepo.intervals[1].Status = "active"
-	intervalRepo.intervals[1].Start = integrityTestTime(2 * time.Hour)
-	intervalRepo.intervals[1].End = nil
+	test.TimeProvider.Set(repairTime)
+	contextRepo := test.Contexts
+	intervalRepo := test.Intervals
+	contextRepo.Get("context1").Status = "active"
+	contextRepo.Get("context2").Status = "active"
+	intervalRepo.Get("interval1").Status = "active"
+	intervalRepo.Get("interval1").Start = integrityTestTime(time.Hour)
+	intervalRepo.Get("interval1").End = nil
+	intervalRepo.Get("interval2").Status = "active"
+	intervalRepo.Get("interval2").Start = integrityTestTime(2 * time.Hour)
+	intervalRepo.Get("interval2").End = nil
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 2, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
-	require.Equal(t, "inactive", contextRepo.contexts[0].Status)
-	require.Equal(t, "active", contextRepo.contexts[1].Status)
+	require.Equal(t, "inactive", contextRepo.Get("context1").Status)
+	require.Equal(t, "active", contextRepo.Get("context2").Status)
 	require.Len(t, contextRepo.saved, 1)
 	require.Equal(t, "context1", contextRepo.saved[0].Id)
 	require.Len(t, intervalRepo.saved, 1)
 	require.Equal(t, "interval1", intervalRepo.saved[0].Id)
-	require.Equal(t, "completed", intervalRepo.intervals[0].Status)
-	require.Equal(t, repairTime, *intervalRepo.intervals[0].End)
-	require.Equal(t, 2*time.Hour, intervalRepo.intervals[0].Duration)
-	require.Equal(t, "active", intervalRepo.intervals[1].Status)
-	require.False(t, timeIsSet(intervalRepo.intervals[1].End))
+	require.Equal(t, "completed", intervalRepo.Get("interval1").Status)
+	require.Equal(t, repairTime, *intervalRepo.Get("interval1").End)
+	require.Equal(t, 2*time.Hour, intervalRepo.Get("interval1").Duration)
+	require.Equal(t, "active", intervalRepo.Get("interval2").Status)
+	require.False(t, timeIsSet(intervalRepo.Get("interval2").End))
 }
 
 func TestIntegrityRepairLeavesIntervalWithNonexistentContext(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	intervalRepo.intervals[0].ContextId = "nonexistent"
+	test := newIntegrityRepairTestManager()
+	intervalRepo := test.Intervals
+	intervalRepo.Get("interval1").ContextId = "nonexistent"
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 0, result.RepairedCount)
 	require.False(t, result.Report.Healthy)
@@ -402,13 +266,13 @@ func TestIntegrityRepairLeavesIntervalWithNonexistentContext(t *testing.T) {
 }
 
 func TestIntegrityRepairWithMultipleIssues(t *testing.T) {
-	manager := setupManagerCorrectDataForRepair()
-	contextRepo := manager.ContextRepository.(*ContextRepositoryRepairMock)
-	intervalRepo := manager.IntervalRepository.(*IntervalRepositoryRepairMock)
-	contextRepo.contexts[0].WorkspaceId = ""
-	intervalRepo.intervals[0].WorkspaceId = "nonexistent"
+	test := newIntegrityRepairTestManager()
+	contextRepo := test.Contexts
+	intervalRepo := test.Intervals
+	contextRepo.Get("context1").WorkspaceId = ""
+	intervalRepo.Get("interval1").WorkspaceId = "nonexistent"
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.NoError(t, err)
 	require.Equal(t, 2, result.RepairedCount)
 	require.True(t, result.Report.Healthy)
@@ -420,61 +284,61 @@ func TestIntegrityRepairWithMultipleIssues(t *testing.T) {
 
 func TestIntegrityRepairOnRepositoryFail(t *testing.T) {
 	listError := errors.New("WorkspaceRepository.List error")
-	manager := setupManagerCorrectDataForRepair()
-	manager.WorkspaceRepository.(*WorkspaceRepositoryRepairMock).listError = listError
+	test := newIntegrityRepairTestManager()
+	test.Workspaces.listError = listError
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.Nil(t, result)
 	require.ErrorIs(t, err, listError)
-	require.False(t, manager.ContextRepository.(*ContextRepositoryRepairMock).called)
-	require.False(t, manager.IntervalRepository.(*IntervalRepositoryRepairMock).called)
+	require.False(t, test.Contexts.listCalled)
+	require.False(t, test.Intervals.listCalled)
 
 	listError = errors.New("ContextRepository.List error")
-	manager = setupManagerCorrectDataForRepair()
-	manager.ContextRepository.(*ContextRepositoryRepairMock).listError = listError
+	test = newIntegrityRepairTestManager()
+	test.Contexts.listError = listError
 
-	result, err = manager.RepairIntegrity()
+	result, err = test.Manager.RepairIntegrity()
 	require.Nil(t, result)
 	require.ErrorIs(t, err, listError)
-	require.False(t, manager.IntervalRepository.(*IntervalRepositoryRepairMock).called)
+	require.False(t, test.Intervals.listCalled)
 
 	listError = errors.New("IntervalRepository.List error")
-	manager = setupManagerCorrectDataForRepair()
-	manager.IntervalRepository.(*IntervalRepositoryRepairMock).listError = listError
+	test = newIntegrityRepairTestManager()
+	test.Intervals.listError = listError
 
-	result, err = manager.RepairIntegrity()
+	result, err = test.Manager.RepairIntegrity()
 	require.Nil(t, result)
 	require.ErrorIs(t, err, listError)
 }
 
 func TestIntegrityRepairOnSaveFail(t *testing.T) {
 	saveError := errors.New("WorkspaceRepository.Save error")
-	manager := setupManagerCorrectDataForRepair()
-	manager.WorkspaceRepository.(*WorkspaceRepositoryRepairMock).workspaces = []*Workspace{}
-	manager.WorkspaceRepository.(*WorkspaceRepositoryRepairMock).saveError = saveError
+	test := newIntegrityRepairTestManager()
+	test.Workspaces.Seed()
+	test.Workspaces.saveError = saveError
 
-	result, err := manager.RepairIntegrity()
+	result, err := test.Manager.RepairIntegrity()
 	require.Nil(t, result)
 	require.ErrorIs(t, err, saveError)
-	require.True(t, manager.ContextRepository.(*ContextRepositoryRepairMock).called)
-	require.False(t, manager.IntervalRepository.(*IntervalRepositoryRepairMock).called)
+	require.True(t, test.Contexts.listCalled)
+	require.False(t, test.Intervals.listCalled)
 
 	saveError = errors.New("ContextRepository.Save error")
-	manager = setupManagerCorrectDataForRepair()
-	manager.ContextRepository.(*ContextRepositoryRepairMock).contexts[0].WorkspaceId = ""
-	manager.ContextRepository.(*ContextRepositoryRepairMock).saveError = saveError
+	test = newIntegrityRepairTestManager()
+	test.Contexts.Get("context1").WorkspaceId = ""
+	test.Contexts.saveError = saveError
 
-	result, err = manager.RepairIntegrity()
+	result, err = test.Manager.RepairIntegrity()
 	require.Nil(t, result)
 	require.ErrorIs(t, err, saveError)
-	require.False(t, manager.IntervalRepository.(*IntervalRepositoryRepairMock).called)
+	require.False(t, test.Intervals.listCalled)
 
 	saveError = errors.New("IntervalRepository.Save error")
-	manager = setupManagerCorrectDataForRepair()
-	manager.IntervalRepository.(*IntervalRepositoryRepairMock).intervals[0].WorkspaceId = ""
-	manager.IntervalRepository.(*IntervalRepositoryRepairMock).saveError = saveError
+	test = newIntegrityRepairTestManager()
+	test.Intervals.Get("interval1").WorkspaceId = ""
+	test.Intervals.saveError = saveError
 
-	result, err = manager.RepairIntegrity()
+	result, err = test.Manager.RepairIntegrity()
 	require.Nil(t, result)
 	require.ErrorIs(t, err, saveError)
 }

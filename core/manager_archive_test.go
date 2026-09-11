@@ -9,8 +9,8 @@ import (
 
 func TestListArchiveCandidatesUsesLatestIntervalAndWorkspace(t *testing.T) {
 	now := time.Date(2026, time.August, 18, 12, 0, 0, 0, time.UTC)
-	tm := newTestManager()
-	tm.Manager.TimeProvider = fixedTimeProvider{now: now}
+	tm := NewEmptyTestContextManager()
+	tm.TimeProvider.Set(now)
 	workspaceID, err := tm.Workspaces.Save(&Workspace{Name: "archive-candidates"})
 	require.NoError(t, err)
 	otherWorkspaceID, err := tm.Workspaces.Save(&Workspace{Name: "other-workspace"})
@@ -52,8 +52,8 @@ func TestListArchiveCandidatesUsesLatestIntervalAndWorkspace(t *testing.T) {
 
 func TestArchiveStaleContextsArchivesPreviewedContexts(t *testing.T) {
 	now := time.Date(2026, time.August, 18, 12, 0, 0, 0, time.UTC)
-	tm := newTestManager()
-	tm.Manager.TimeProvider = fixedTimeProvider{now: now}
+	tm := NewEmptyTestContextManager()
+	tm.TimeProvider.Set(now)
 	workspaceID, err := tm.Workspaces.Save(&Workspace{Name: "bulk-archive"})
 	require.NoError(t, err)
 	staleID := saveArchiveTestContext(t, tm, workspaceID, "stale", "inactive", false)
@@ -67,15 +67,15 @@ func TestArchiveStaleContextsArchivesPreviewedContexts(t *testing.T) {
 	require.Equal(t, 1, result.ArchivedCount)
 	require.Len(t, result.Contexts, 1)
 	require.Equal(t, staleID, result.Contexts[0].Id)
-	require.True(t, tm.Contexts.items[staleID].Archived)
-	require.Equal(t, "archived", tm.Contexts.items[staleID].Status)
-	require.False(t, tm.Contexts.items[freshID].Archived)
+	require.True(t, tm.Contexts.Get(staleID).Archived)
+	require.Equal(t, "archived", tm.Contexts.Get(staleID).Status)
+	require.False(t, tm.Contexts.Get(freshID).Archived)
 }
 
 func TestArchiveStaleContextsReevaluatesCandidatesInTransaction(t *testing.T) {
 	now := time.Date(2026, time.August, 18, 12, 0, 0, 0, time.UTC)
-	tm := newTestManager()
-	tm.Manager.TimeProvider = fixedTimeProvider{now: now}
+	tm := NewEmptyTestContextManager()
+	tm.TimeProvider.Set(now)
 	workspaceID, err := tm.Workspaces.Save(&Workspace{Name: "bulk-archive-race"})
 	require.NoError(t, err)
 	contextID := saveArchiveTestContext(t, tm, workspaceID, "recently used", "inactive", false)
@@ -93,11 +93,11 @@ func TestArchiveStaleContextsReevaluatesCandidatesInTransaction(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Zero(t, result.ArchivedCount)
-	require.False(t, tm.Contexts.items[contextID].Archived)
+	require.False(t, tm.Contexts.Get(contextID).Archived)
 }
 
 func TestArchiveThresholdMustBePositive(t *testing.T) {
-	tm := newTestManager()
+	tm := NewEmptyTestContextManager()
 
 	_, err := tm.Manager.ListArchiveCandidates("workspace", 0, time.UTC)
 
@@ -106,8 +106,8 @@ func TestArchiveThresholdMustBePositive(t *testing.T) {
 
 func TestArchiveCutoffUsesStartOfDayInRequestedTimeZone(t *testing.T) {
 	now := time.Date(2026, time.August, 18, 22, 30, 0, 0, time.UTC)
-	tm := newTestManager()
-	tm.Manager.TimeProvider = fixedTimeProvider{now: now}
+	tm := NewEmptyTestContextManager()
+	tm.TimeProvider.Set(now)
 	location, err := time.LoadLocation("Europe/Warsaw")
 	require.NoError(t, err)
 
@@ -117,7 +117,7 @@ func TestArchiveCutoffUsesStartOfDayInRequestedTimeZone(t *testing.T) {
 	require.Equal(t, "2026-07-19T22:00:00Z", cutoff.Format(time.RFC3339))
 }
 
-func saveArchiveTestContext(t *testing.T, tm *testManager, workspaceID, name, status string, archived bool) string {
+func saveArchiveTestContext(t *testing.T, tm *TestContextManager, workspaceID, name, status string, archived bool) string {
 	t.Helper()
 	id, err := tm.Contexts.Save(&Context{
 		Name:        name,
@@ -129,7 +129,7 @@ func saveArchiveTestContext(t *testing.T, tm *testManager, workspaceID, name, st
 	return id
 }
 
-func saveArchiveTestInterval(t *testing.T, tm *testManager, contextID string, start, end time.Time) {
+func saveArchiveTestInterval(t *testing.T, tm *TestContextManager, contextID string, start, end time.Time) {
 	t.Helper()
 	_, err := tm.Intervals.Save(&Interval{
 		ContextId: contextID,
@@ -141,7 +141,7 @@ func saveArchiveTestInterval(t *testing.T, tm *testManager, contextID string, st
 }
 
 func TestArchiveContext(t *testing.T) {
-	tm := newTestManager()
+	tm := NewEmptyTestContextManager()
 	workspaceID, err := tm.Workspaces.Save(&Workspace{Name: "archive-test"})
 	require.NoError(t, err)
 	contextID, err := tm.Manager.CreateContext(&Context{
@@ -164,7 +164,7 @@ func TestArchiveContext(t *testing.T) {
 }
 
 func TestRestoreContext(t *testing.T) {
-	tm := newTestManager()
+	tm := NewEmptyTestContextManager()
 	workspaceID, err := tm.Workspaces.Save(&Workspace{Name: "restore-test"})
 	require.NoError(t, err)
 	contextID, err := tm.Manager.CreateContext(&Context{
@@ -190,7 +190,7 @@ func TestRestoreContext(t *testing.T) {
 }
 
 func TestArchiveActiveContext(t *testing.T) {
-	tm := newTestManager()
+	tm := NewEmptyTestContextManager()
 	workspaceID, err := tm.Workspaces.Save(&Workspace{Name: "archive-active-test"})
 	require.NoError(t, err)
 	contextID, err := tm.Manager.CreateContext(&Context{
@@ -201,7 +201,7 @@ func TestArchiveActiveContext(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = tm.Manager.SwitchContext(tm.Contexts.items[contextID])
+	err = tm.Manager.SwitchContext(tm.Contexts.Get(contextID))
 	require.NoError(t, err)
 
 	err = tm.Manager.ArchiveContext(contextID)

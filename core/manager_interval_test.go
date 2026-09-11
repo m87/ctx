@@ -12,6 +12,7 @@ func timePointer(t time.Time) *time.Time {
 }
 
 func setupSplitIntervalTest() (*ContextManager, *Interval) {
+	test := NewEmptyTestContextManager()
 	interval := &Interval{
 		Id:          "interval1",
 		ContextId:   "context1",
@@ -21,8 +22,8 @@ func setupSplitIntervalTest() (*ContextManager, *Interval) {
 		Status:      "inactive",
 		WorkspaceId: "workspace1",
 	}
-	manager := NewContextManager(nil, nil, NewIntervalRepositoryMock([]*Interval{interval}), nil, nil)
-	return manager, interval
+	test.Intervals.Seed(interval)
+	return test.Manager, interval
 }
 
 func TestIntervalSplit(t *testing.T) {
