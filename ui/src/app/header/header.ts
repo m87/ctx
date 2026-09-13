@@ -111,7 +111,7 @@ const firstDayKey = 'client.general.firstDay';
                 @if (projectCreationSuggestion(); as project) {
                   <button
                     type="button"
-                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    class="ui-add-slot rounded-sm mb-1"
                     [class.bg-muted]="activeSuggestionIndex() === 0"
                     [class.text-foreground]="activeSuggestionIndex() === 0"
                     [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
@@ -123,15 +123,15 @@ const firstDayKey = 'client.general.firstDay';
                       searchTerm().trim()
                     }}</span>
                     <span
-                      class="max-w-40 shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+                      class="max-w-40 shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-caption text-primary"
                     >
-                      <ng-icon name="lucideFolder" class="shrink-0 text-[10px]"></ng-icon>
+                      <ng-icon name="lucideFolder" class="shrink-0 text-caption"></ng-icon>
                       <span class="truncate">{{ project.name }}</span>
                     </span>
                   </button>
                   <button
                     type="button"
-                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    class="ui-add-slot rounded-sm mb-1"
                     [class.bg-muted]="activeSuggestionIndex() === 1"
                     [class.text-foreground]="activeSuggestionIndex() === 1"
                     [class.text-muted-foreground]="activeSuggestionIndex() !== 1"
@@ -142,12 +142,12 @@ const firstDayKey = 'client.general.firstDay';
                     <span class="min-w-0 flex-1 truncate font-medium">{{
                       searchTerm().trim()
                     }}</span>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                    <span class="shrink-0 text-caption text-muted-foreground">Workspace</span>
                   </button>
                 } @else if (!projectPickerMode()) {
                   <button
                     type="button"
-                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    class="ui-add-slot rounded-sm mb-1"
                     [class.bg-muted]="activeSuggestionIndex() === 0"
                     [class.text-foreground]="activeSuggestionIndex() === 0"
                     [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
@@ -158,13 +158,13 @@ const firstDayKey = 'client.general.firstDay';
                     <span class="min-w-0 flex-1 truncate font-medium">{{
                       searchTerm().trim()
                     }}</span>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                    <span class="shrink-0 text-caption text-muted-foreground">Workspace</span>
                   </button>
                 }
 
                 @if (matchedProjects().length > 0) {
                   <div
-                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                    class="px-2 pt-1 pb-1 text-caption uppercase tracking-label text-muted-foreground"
                   >
                     Project for context
                   </div>
@@ -186,16 +186,16 @@ const firstDayKey = 'client.general.firstDay';
                     (mousedown)="selectProjectSuggestion($event, project)"
                   >
                     <span class="min-w-0 flex items-center gap-1.5">
-                      <ng-icon name="lucideFolder" class="shrink-0 text-[11px]"></ng-icon>
+                      <ng-icon name="lucideFolder" class="shrink-0 text-meta"></ng-icon>
                       <span class="truncate">{{ project.name }}</span>
                     </span>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">Project</span>
+                    <span class="shrink-0 text-caption text-muted-foreground">Project</span>
                   </button>
                 }
 
                 @if (dayMatchedContexts().length > 0) {
                   <div
-                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                    class="px-2 pt-1 pb-1 text-caption uppercase tracking-label text-muted-foreground"
                   >
                     {{ daySectionLabel() }}
                   </div>
@@ -216,20 +216,20 @@ const firstDayKey = 'client.general.firstDay';
                   >
                     <span class="truncate">{{ context.name }}</span>
                     <span
-                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                      class="shrink-0 text-caption text-muted-foreground/80 flex items-center gap-2"
                     >
                       @if (context.project; as project) {
                         <ctx-search-project-badge [project]="project" />
                       }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideClock3" class="text-caption"></ng-icon>
                           {{ todayDuration }}
                         </span>
                       }
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideHistory" class="text-caption"></ng-icon>
                           {{ totalDuration }}
                         </span>
                       }
@@ -256,20 +256,20 @@ const firstDayKey = 'client.general.firstDay';
                   >
                     <span class="truncate">{{ context.name }}</span>
                     <span
-                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                      class="shrink-0 text-caption text-muted-foreground/80 flex items-center gap-2"
                     >
                       @if (context.project; as project) {
                         <ctx-search-project-badge [project]="project" />
                       }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideClock3" class="text-caption"></ng-icon>
                           {{ todayDuration }}
                         </span>
                       }
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideHistory" class="text-caption"></ng-icon>
                           {{ totalDuration }}
                         </span>
                       }
@@ -280,7 +280,7 @@ const firstDayKey = 'client.general.firstDay';
                 @if (archivedMatchedContexts().length > 0) {
                   <div class="my-1 border-t border-border/70"></div>
                   <div
-                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                    class="px-2 pt-1 pb-1 text-caption uppercase tracking-label text-muted-foreground"
                   >
                     Archived
                   </div>
@@ -301,7 +301,7 @@ const firstDayKey = 'client.general.firstDay';
                   >
                     <span class="truncate">{{ context.name }}</span>
                     <span
-                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                      class="shrink-0 text-caption text-muted-foreground/80 flex items-center gap-2"
                     >
                       @if (context.project; as project) {
                         <ctx-search-project-badge [project]="project" />
@@ -309,7 +309,7 @@ const firstDayKey = 'client.general.firstDay';
                       <span class="rounded-sm border px-1 py-0.5 leading-none">Archived</span>
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideHistory" class="text-caption"></ng-icon>
                           {{ totalDuration }}
                         </span>
                       }
@@ -357,17 +357,17 @@ const firstDayKey = 'client.general.firstDay';
             <hlm-skeleton class="h-8 w-28 rounded-lg sm:w-40"></hlm-skeleton>
           } @else if (activeContextName()) {
             <div
-              class="flex h-8 min-w-0 max-w-28 items-stretch overflow-hidden rounded-lg border border-emerald-500/30 bg-emerald-500/10 shadow-xs sm:max-w-44"
+              class="flex h-8 min-w-0 max-w-28 items-stretch overflow-hidden rounded-lg border border-success/30 bg-success/10 shadow-xs sm:max-w-44"
             >
               <div class="flex min-w-0 flex-1 items-center gap-2 px-2.5">
-                <span class="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                <span class="size-2 shrink-0 rounded-full bg-success" aria-hidden="true"></span>
                 <span class="truncate text-xs font-semibold text-foreground">
                   {{ activeContextName() }}
                 </span>
               </div>
               <button
                 type="button"
-                class="flex w-8 shrink-0 items-center justify-center border-l border-emerald-500/20 text-emerald-700 transition-colors hover:bg-emerald-500/10 focus-visible:bg-emerald-500/10 focus-visible:outline-none dark:text-emerald-400"
+                class="flex w-8 shrink-0 items-center justify-center border-l border-success/20 text-success transition-colors hover:bg-success/10 focus-visible:bg-success/10 focus-visible:outline-none"
                 [disabled]="freeContextMutation.isPending()"
                 [attr.aria-busy]="freeContextMutation.isPending()"
                 (click)="stopContext()"
@@ -472,7 +472,7 @@ const firstDayKey = 'client.general.firstDay';
                 @if (projectCreationSuggestion(); as project) {
                   <button
                     type="button"
-                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    class="ui-add-slot rounded-sm mb-1"
                     [class.bg-muted]="activeSuggestionIndex() === 0"
                     [class.text-foreground]="activeSuggestionIndex() === 0"
                     [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
@@ -484,15 +484,15 @@ const firstDayKey = 'client.general.firstDay';
                       searchTerm().trim()
                     }}</span>
                     <span
-                      class="max-w-32 shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+                      class="max-w-32 shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-caption text-primary"
                     >
-                      <ng-icon name="lucideFolder" class="shrink-0 text-[10px]"></ng-icon>
+                      <ng-icon name="lucideFolder" class="shrink-0 text-caption"></ng-icon>
                       <span class="truncate">{{ project.name }}</span>
                     </span>
                   </button>
                   <button
                     type="button"
-                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    class="ui-add-slot rounded-sm mb-1"
                     [class.bg-muted]="activeSuggestionIndex() === 1"
                     [class.text-foreground]="activeSuggestionIndex() === 1"
                     [class.text-muted-foreground]="activeSuggestionIndex() !== 1"
@@ -503,12 +503,12 @@ const firstDayKey = 'client.general.firstDay';
                     <span class="min-w-0 flex-1 truncate font-medium">{{
                       searchTerm().trim()
                     }}</span>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                    <span class="shrink-0 text-caption text-muted-foreground">Workspace</span>
                   </button>
                 } @else if (!projectPickerMode()) {
                   <button
                     type="button"
-                    class="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-xs hover:bg-muted border border-dashed border-border/80 mb-1"
+                    class="ui-add-slot rounded-sm mb-1"
                     [class.bg-muted]="activeSuggestionIndex() === 0"
                     [class.text-foreground]="activeSuggestionIndex() === 0"
                     [class.text-muted-foreground]="activeSuggestionIndex() !== 0"
@@ -519,13 +519,13 @@ const firstDayKey = 'client.general.firstDay';
                     <span class="min-w-0 flex-1 truncate font-medium">{{
                       searchTerm().trim()
                     }}</span>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">Workspace</span>
+                    <span class="shrink-0 text-caption text-muted-foreground">Workspace</span>
                   </button>
                 }
 
                 @if (matchedProjects().length > 0) {
                   <div
-                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                    class="px-2 pt-1 pb-1 text-caption uppercase tracking-label text-muted-foreground"
                   >
                     Project for context
                   </div>
@@ -547,16 +547,16 @@ const firstDayKey = 'client.general.firstDay';
                     (mousedown)="selectProjectSuggestion($event, project)"
                   >
                     <span class="min-w-0 flex items-center gap-1.5">
-                      <ng-icon name="lucideFolder" class="shrink-0 text-[11px]"></ng-icon>
+                      <ng-icon name="lucideFolder" class="shrink-0 text-meta"></ng-icon>
                       <span class="truncate">{{ project.name }}</span>
                     </span>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">Project</span>
+                    <span class="shrink-0 text-caption text-muted-foreground">Project</span>
                   </button>
                 }
 
                 @if (dayMatchedContexts().length > 0) {
                   <div
-                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                    class="px-2 pt-1 pb-1 text-caption uppercase tracking-label text-muted-foreground"
                   >
                     {{ daySectionLabel() }}
                   </div>
@@ -577,20 +577,20 @@ const firstDayKey = 'client.general.firstDay';
                   >
                     <span class="truncate">{{ context.name }}</span>
                     <span
-                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                      class="shrink-0 text-caption text-muted-foreground/80 flex items-center gap-2"
                     >
                       @if (context.project; as project) {
                         <ctx-search-project-badge [project]="project" />
                       }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideClock3" class="text-caption"></ng-icon>
                           {{ todayDuration }}
                         </span>
                       }
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideHistory" class="text-caption"></ng-icon>
                           {{ totalDuration }}
                         </span>
                       }
@@ -617,20 +617,20 @@ const firstDayKey = 'client.general.firstDay';
                   >
                     <span class="truncate">{{ context.name }}</span>
                     <span
-                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                      class="shrink-0 text-caption text-muted-foreground/80 flex items-center gap-2"
                     >
                       @if (context.project; as project) {
                         <ctx-search-project-badge [project]="project" />
                       }
                       @if (contextTodayDuration(context.id); as todayDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideClock3" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideClock3" class="text-caption"></ng-icon>
                           {{ todayDuration }}
                         </span>
                       }
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideHistory" class="text-caption"></ng-icon>
                           {{ totalDuration }}
                         </span>
                       }
@@ -641,7 +641,7 @@ const firstDayKey = 'client.general.firstDay';
                 @if (archivedMatchedContexts().length > 0) {
                   <div class="my-1 border-t border-border/70"></div>
                   <div
-                    class="px-2 pt-1 pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground"
+                    class="px-2 pt-1 pb-1 text-caption uppercase tracking-label text-muted-foreground"
                   >
                     Archived
                   </div>
@@ -662,7 +662,7 @@ const firstDayKey = 'client.general.firstDay';
                   >
                     <span class="truncate">{{ context.name }}</span>
                     <span
-                      class="shrink-0 text-[10px] text-muted-foreground/80 flex items-center gap-2"
+                      class="shrink-0 text-caption text-muted-foreground/80 flex items-center gap-2"
                     >
                       @if (context.project; as project) {
                         <ctx-search-project-badge [project]="project" />
@@ -670,7 +670,7 @@ const firstDayKey = 'client.general.firstDay';
                       <span class="rounded-sm border px-1 py-0.5 leading-none">Archived</span>
                       @if (contextTotalDuration(context.id); as totalDuration) {
                         <span class="inline-flex items-center gap-1">
-                          <ng-icon name="lucideHistory" class="text-[10px]"></ng-icon>
+                          <ng-icon name="lucideHistory" class="text-caption"></ng-icon>
                           {{ totalDuration }}
                         </span>
                       }

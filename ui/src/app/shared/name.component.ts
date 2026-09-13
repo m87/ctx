@@ -33,9 +33,7 @@ export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
   providers: [provideIcons({ lucideCheck, lucidePencil, lucideX })],
   template: `
     <div class="w-full min-w-0">
-      <div
-        class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
-      >
+      <div class="text-meta font-semibold text-muted-foreground flex items-center gap-2 uppercase">
         @if (accentColor()) {
           <span class="w-2 h-2 rounded-full" [style.background-color]="accentColor()"></span>
         }
@@ -46,8 +44,7 @@ export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
         <div class="mt-2 rounded-lg border bg-card p-3 md:p-4">
           <div class="grid gap-3">
             <label class="flex flex-col gap-1">
-              <span
-                class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+              <span class="text-meta uppercase tracking-label text-muted-foreground font-semibold"
                 >Name</span
               >
               <input
@@ -61,8 +58,7 @@ export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
 
             @if (showDescription()) {
               <label class="flex flex-col gap-1">
-                <span
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                <span class="text-meta uppercase tracking-label text-muted-foreground font-semibold"
                   >Description</span
                 >
                 <textarea
@@ -77,8 +73,7 @@ export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
 
             @if (showTags()) {
               <label class="flex flex-col gap-1">
-                <span
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                <span class="text-meta uppercase tracking-label text-muted-foreground font-semibold"
                   >Tags</span
                 >
                 <input
@@ -94,7 +89,7 @@ export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
                 @if (editTagsPreview().length > 0) {
                   @for (tag of editTagsPreview(); track tag) {
                     <span
-                      class="text-[10px] md:text-[11px] font-medium text-primary bg-primary/10 px-2 py-1 rounded-md"
+                      class="text-caption md:text-meta font-medium text-primary bg-primary/10 px-2 py-1 rounded-md"
                     >
                       #{{ tag }}
                     </span>
@@ -152,7 +147,7 @@ export function resolveTags(value: string, tags: readonly Tag[]): Tag[] {
               <div class="flex flex-wrap items-center gap-1.5 md:gap-2 mt-2">
                 @for (tag of tags(); track tag.id || tag.name) {
                   <span
-                    class="text-[10px] md:text-[11px] font-medium text-blue-600 bg-blue-50/80 px-2 py-1 rounded-md"
+                    class="text-caption md:text-meta font-medium text-info bg-info/10 px-2 py-1 rounded-md"
                   >
                     #{{ tag.name }}
                   </span>

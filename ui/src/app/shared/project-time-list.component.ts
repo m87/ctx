@@ -44,7 +44,7 @@ export interface ProjectTimeListItem {
                 [style.background-color]="item.color"
               ></div>
             </div>
-            <div class="mt-2 text-[10px] text-muted-foreground">
+            <div class="mt-2 text-caption text-muted-foreground">
               {{ item.contextCount }}
               {{ item.contextCount === 1 ? 'context' : 'contexts' }} ·
               {{ boundedPercentage(item.percentage).toFixed(1) }}%

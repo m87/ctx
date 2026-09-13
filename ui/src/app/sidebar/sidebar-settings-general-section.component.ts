@@ -18,12 +18,12 @@ const firstDayKey = 'client.general.firstDay';
   template: `
     <div class="space-y-7">
       <div class="space-y-2">
-        <div class="text-foreground font-medium text-[15px]">Theme mode</div>
-        <div class="text-[13px] sm:text-[14px]">Choose your preferred app theme.</div>
+        <div class="text-foreground font-medium text-lead">Theme mode</div>
+        <div class="text-dense sm:text-sm">Choose your preferred app theme.</div>
         <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
           <button
             type="button"
-            class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+            class="h-12 rounded-md border text-sm font-medium hover:bg-muted/50"
             [class.bg-muted]="colorMode() === 'light'"
             [class.text-foreground]="colorMode() === 'light'"
             [disabled]="saveSettingsMutation.isPending()"
@@ -33,7 +33,7 @@ const firstDayKey = 'client.general.firstDay';
           </button>
           <button
             type="button"
-            class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+            class="h-12 rounded-md border text-sm font-medium hover:bg-muted/50"
             [class.bg-muted]="colorMode() === 'dark'"
             [class.text-foreground]="colorMode() === 'dark'"
             [disabled]="saveSettingsMutation.isPending()"
@@ -45,10 +45,10 @@ const firstDayKey = 'client.general.firstDay';
       </div>
 
       <div class="space-y-2">
-        <label for="general-time-zone" class="text-foreground font-medium text-[15px]">
+        <label for="general-time-zone" class="text-foreground font-medium text-lead">
           Time zone
         </label>
-        <div class="text-[13px] sm:text-[14px]">
+        <div class="text-dense sm:text-sm">
           Display every recorded event in this time zone. Browser currently resolves to
           {{ browserZone }}.
         </div>
@@ -71,12 +71,12 @@ const firstDayKey = 'client.general.firstDay';
       </div>
 
       <div class="space-y-2">
-        <div class="text-foreground font-medium text-[15px]">First day of week</div>
-        <div class="text-[13px] sm:text-[14px]">Choose which day starts the week.</div>
+        <div class="text-foreground font-medium text-lead">First day of week</div>
+        <div class="text-dense sm:text-sm">Choose which day starts the week.</div>
         <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
           <button
             type="button"
-            class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+            class="h-12 rounded-md border text-sm font-medium hover:bg-muted/50"
             [class.bg-muted]="weekStart() === 'monday'"
             [class.text-foreground]="weekStart() === 'monday'"
             [disabled]="saveSettingsMutation.isPending()"
@@ -86,7 +86,7 @@ const firstDayKey = 'client.general.firstDay';
           </button>
           <button
             type="button"
-            class="h-12 rounded-md border text-[14px] font-medium hover:bg-muted/50"
+            class="h-12 rounded-md border text-sm font-medium hover:bg-muted/50"
             [class.bg-muted]="weekStart() === 'sunday'"
             [class.text-foreground]="weekStart() === 'sunday'"
             [disabled]="saveSettingsMutation.isPending()"

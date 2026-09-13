@@ -22,14 +22,14 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
   selector: 'ctx-timeline',
   template: `
     <div class="w-full border-t bg-background px-4 py-2">
-      <div class="text-[10px] text-muted-foreground mb-1.5 tracking-[0.08em] uppercase">
+      <div class="text-caption text-muted-foreground mb-1.5 tracking-label uppercase">
         Timeline — {{ formatDate(selectedDay()) }}
       </div>
 
       <div class="relative h-3.25 mb-1">
         @for (mark of hourMarks; track mark.hour) {
           <div
-            class="absolute text-[9px] text-muted-foreground whitespace-nowrap -translate-x-1/2 leading-none"
+            class="absolute text-label text-muted-foreground whitespace-nowrap -translate-x-1/2 leading-none"
             [style.left.%]="getHourPosition(mark.hour)"
           >
             {{ mark.label }}
@@ -74,7 +74,7 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
         } @else {
           @for (context of visibleLegendContexts(); track context.id) {
             <div
-              class="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground cursor-default"
+              class="flex items-center gap-1.5 text-caption text-muted-foreground hover:text-foreground cursor-default"
               [routerLink]="['/context', context.id]"
             >
               <span

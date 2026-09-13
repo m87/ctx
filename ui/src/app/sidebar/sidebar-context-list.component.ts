@@ -21,7 +21,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
       <input
         #newContextInput
         type="text"
-        class="h-7 px-2 rounded-md border bg-background text-[13px] outline-none focus:ring-1 focus:ring-ring"
+        class="h-7 px-2 rounded-md border bg-background text-dense outline-none focus:ring-1 focus:ring-ring"
         placeholder="Context name"
         [value]="newContextName()"
         (input)="onNewContextNameInput($event)"
@@ -30,7 +30,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
       />
     } @else {
       <button
-        class="h-7 px-2 rounded-md border border-dashed text-[11px] uppercase tracking-[0.08em] text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center justify-center gap-1.5"
+        class="ui-add-slot ui-add-slot-sm justify-center"
         (click)="startAddContext()"
         aria-label="Add new context"
       >
@@ -52,7 +52,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
     } @else {
       @for (context of contexts(); track context.id) {
         <div
-          class="group flex items-center gap-2 text-[13px] pl-2 pr-1 py-1 font-medium hover:bg-muted/60 rounded-md cursor-pointer"
+          class="group flex items-center gap-2 text-dense pl-2 pr-1 py-1 font-medium hover:bg-muted/60 rounded-md cursor-pointer"
           [routerLink]="['/context', context.id]"
           role="link"
           tabindex="0"
@@ -78,7 +78,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
             } @else {
               <ng-icon
                 [name]="isActiveContext(context.id) ? 'lucidePause' : 'lucidePlay'"
-                class="text-[12px] pointer-events-none"
+                class="text-xs pointer-events-none"
               ></ng-icon>
             }
           </button>

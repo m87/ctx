@@ -12,7 +12,7 @@ import { ContextListProjectTagComponent } from './context-list-project-tag.compo
   providers: [provideIcons({ lucidePause, lucidePlay })],
   template: `
     <div
-      class="block ml-4 cursor-pointer rounded-lg border border-dashed bg-card p-3 hover:bg-muted/30 transition-colors"
+      class="ui-add-slot ui-add-slot-lg ml-4 cursor-pointer"
       [routerLink]="['/context', item().id]"
       role="link"
       tabindex="0"
@@ -23,7 +23,7 @@ import { ContextListProjectTagComponent } from './context-list-project-tag.compo
           <ctx-linkified-text [text]="item().name" [values]="item()" />
         </span>
         @if (item().archived) {
-          <span class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground">
+          <span class="text-caption font-medium rounded border px-1.5 py-0.5 text-muted-foreground">
             Archived
           </span>
         }
@@ -46,7 +46,7 @@ import { ContextListProjectTagComponent } from './context-list-project-tag.compo
             } @else {
               <ng-icon
                 [name]="active() ? 'lucidePause' : 'lucidePlay'"
-                class="text-[13px] pointer-events-none"
+                class="text-dense pointer-events-none"
               ></ng-icon>
             }
           </button>
@@ -59,7 +59,7 @@ import { ContextListProjectTagComponent } from './context-list-project-tag.compo
           [style.background-color]="item().color"
         ></div>
       </div>
-      <div class="mt-2 flex items-start justify-between gap-2 text-[10px] text-muted-foreground">
+      <div class="mt-2 flex items-start justify-between gap-2 text-caption text-muted-foreground">
         <span>
           {{ item().sessions ?? 0 }} {{ item().sessions === 1 ? 'session' : 'sessions' }} ·
           {{ boundedPercentage(item().percentage).toFixed(1) }}%

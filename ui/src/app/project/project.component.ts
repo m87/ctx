@@ -101,8 +101,8 @@ type DetailView = 'overview' | 'insights';
           <div class="flex items-center gap-2 w-full md:w-auto flex-nowrap md:pt-5">
             <button
               hlmBtn
-              variant="outline"
-              class="size-9 p-0 text-xs bg-red-100/70 text-red-700"
+              variant="destructive"
+              class="size-9 p-0 text-xs"
               aria-label="Delete project"
               title="Delete"
               [disabled]="deleteProjectMutation.isPending()"
@@ -113,19 +113,11 @@ type DetailView = 'overview' | 'insights';
           </div>
         </div>
 
-        <div
-          class="inline-flex self-start rounded-lg bg-muted p-1 shrink-0"
-          role="tablist"
-          aria-label="Project view"
-        >
+        <div class="ui-tablist shrink-0" role="tablist" aria-label="Project view">
           <button
             type="button"
             id="project-overview-tab"
-            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-            [class.bg-background]="detailView() === 'overview'"
-            [class.shadow-sm]="detailView() === 'overview'"
-            [class.text-foreground]="detailView() === 'overview'"
-            [class.text-muted-foreground]="detailView() !== 'overview'"
+            class="ui-tab"
             role="tab"
             aria-controls="project-view-panel"
             [attr.aria-selected]="detailView() === 'overview'"
@@ -136,11 +128,7 @@ type DetailView = 'overview' | 'insights';
           <button
             type="button"
             id="project-insights-tab"
-            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-            [class.bg-background]="detailView() === 'insights'"
-            [class.shadow-sm]="detailView() === 'insights'"
-            [class.text-foreground]="detailView() === 'insights'"
-            [class.text-muted-foreground]="detailView() !== 'insights'"
+            class="ui-tab"
             role="tab"
             aria-controls="project-view-panel"
             [attr.aria-selected]="detailView() === 'insights'"
@@ -163,7 +151,7 @@ type DetailView = 'overview' | 'insights';
               <div class="w-full rounded-lg border bg-card p-3">
                 <label
                   for="parent-project-search"
-                  class="text-[11px] font-semibold text-muted-foreground flex items-center gap-2 uppercase"
+                  class="text-meta font-semibold text-muted-foreground flex items-center gap-2 uppercase"
                 >
                   Parent project
                 </label>
@@ -227,7 +215,7 @@ type DetailView = 'overview' | 'insights';
             } @else {
               <button
                 type="button"
-                class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
+                class="ui-add-slot h-9 w-auto px-3"
                 (click)="editingParentAssignment.set(true)"
               >
                 <ng-icon name="lucideFolder"></ng-icon>
@@ -238,7 +226,7 @@ type DetailView = 'overview' | 'insights';
             <div class="w-full flex-1 min-h-0 overflow-auto pr-1 pb-2">
               <section>
                 <div
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+                  class="text-meta uppercase tracking-label text-muted-foreground font-semibold mb-2"
                 >
                   Subprojects
                 </div>
@@ -283,7 +271,7 @@ type DetailView = 'overview' | 'insights';
 
               <section class="mt-6">
                 <div
-                  class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+                  class="text-meta uppercase tracking-label text-muted-foreground font-semibold mb-2"
                 >
                   Contexts
                 </div>
@@ -313,7 +301,7 @@ type DetailView = 'overview' | 'insights';
                           </span>
                           @if (context.archived) {
                             <span
-                              class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground"
+                              class="text-caption font-medium rounded border px-1.5 py-0.5 text-muted-foreground"
                             >
                               Archived
                             </span>

@@ -24,21 +24,21 @@ type LinkRuleEdit = {
     <div class="space-y-6">
       <div class="space-y-1.5">
         <div class="flex items-center gap-2">
-          <div class="text-foreground font-medium text-[15px]">Link rules</div>
+          <div class="text-foreground font-medium text-lead">Link rules</div>
           <span
-            class="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground"
+            class="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-caption font-medium uppercase tracking-label text-muted-foreground"
           >
             Workspace
           </span>
         </div>
-        <div class="text-[13px] sm:text-[14px]">
+        <div class="text-dense sm:text-sm">
           Turn matching text into links by pairing a regular expression with a link template.
         </div>
       </div>
 
       <button
         type="button"
-        class="h-10 rounded-md border px-4 text-[14px] font-medium text-foreground hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+        class="h-10 rounded-md border px-4 text-sm font-medium text-foreground hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
         [disabled]="!canAddRule()"
         (click)="addRule()"
       >
@@ -60,7 +60,7 @@ type LinkRuleEdit = {
                     [disabled]="!canSaveRule()"
                     (click)="saveRule()"
                   >
-                    <ng-icon name="lucideCheck" class="text-[14px]"></ng-icon>
+                    <ng-icon name="lucideCheck" class="text-sm"></ng-icon>
                   </button>
                   <button
                     type="button"
@@ -69,7 +69,7 @@ type LinkRuleEdit = {
                     title="Cancel"
                     (click)="cancelEdit()"
                   >
-                    <ng-icon name="lucideX" class="text-[14px]"></ng-icon>
+                    <ng-icon name="lucideX" class="text-sm"></ng-icon>
                   </button>
                 } @else {
                   <button
@@ -80,7 +80,7 @@ type LinkRuleEdit = {
                     [disabled]="editingRule() !== null || isSaving()"
                     (click)="editRule(rule)"
                   >
-                    <ng-icon name="lucidePencil" class="text-[14px]"></ng-icon>
+                    <ng-icon name="lucidePencil" class="text-sm"></ng-icon>
                   </button>
                   <button
                     type="button"
@@ -90,14 +90,14 @@ type LinkRuleEdit = {
                     [disabled]="editingRule() !== null || isSaving()"
                     (click)="removeRule(rule.regexp)"
                   >
-                    <ng-icon name="lucideTrash2" class="text-[14px]"></ng-icon>
+                    <ng-icon name="lucideTrash2" class="text-sm"></ng-icon>
                   </button>
                 }
               </div>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
-              <label class="space-y-1.5 text-[13px]">
+              <label class="space-y-1.5 text-dense">
                 <span class="font-medium text-foreground">RegExp</span>
                 <input
                   type="text"
@@ -109,7 +109,7 @@ type LinkRuleEdit = {
                 />
               </label>
 
-              <label class="space-y-1.5 text-[13px]">
+              <label class="space-y-1.5 text-dense">
                 <span class="font-medium text-foreground">Link</span>
                 <input
                   type="text"
@@ -122,7 +122,7 @@ type LinkRuleEdit = {
               </label>
             </div>
 
-            <div class="mt-3 text-[12px] text-muted-foreground">
+            <div class="mt-3 text-xs text-muted-foreground">
               Use capture groups such as <code>$1</code>. Context links also support URL-encoded
               <code>$&#123;name&#125;</code>, <code>$&#123;id&#125;</code>,
               <code>$&#123;duration&#125;</code>, <code>$&#123;start&#125;</code>,
@@ -133,15 +133,13 @@ type LinkRuleEdit = {
               <code>$&#123;project.name&#125;</code> are supported too.
             </div>
             @if (isEditingRule(rule.regexp) && !canSaveRule()) {
-              <div class="mt-2 text-[12px] text-destructive">
+              <div class="mt-2 text-xs text-destructive">
                 A rule with this RegExp already exists.
               </div>
             }
           </div>
         } @empty {
-          <div class="rounded-lg border border-dashed p-6 text-center text-[13px]">
-            No link rules yet. Add a rule to get started.
-          </div>
+          <div class="ui-placeholder p-6">No link rules yet. Add a rule to get started.</div>
         }
       </div>
     </div>

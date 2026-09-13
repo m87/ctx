@@ -54,40 +54,30 @@ type SummaryView = 'contexts' | 'projects';
     } @else {
       <div class="mb-6 grid grid-cols-2 gap-2.5 md:grid-cols-4">
         <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+          <div class="text-caption uppercase tracking-label text-muted-foreground">
             Total tracked
           </div>
           <div class="mt-1 text-base font-semibold">{{ totalTracked() }}</div>
         </div>
         <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Contexts</div>
+          <div class="text-caption uppercase tracking-label text-muted-foreground">Contexts</div>
           <div class="mt-1 text-base font-semibold">{{ contexts().length }}</div>
         </div>
         <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Sessions</div>
+          <div class="text-caption uppercase tracking-label text-muted-foreground">Sessions</div>
           <div class="mt-1 text-base font-semibold">{{ result()?.totalSessions ?? 0 }}</div>
         </div>
         <div class="rounded-lg border bg-card px-3 py-2.5">
-          <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-            Top context
-          </div>
+          <div class="text-caption uppercase tracking-label text-muted-foreground">Top context</div>
           <div class="mt-1 truncate text-sm font-medium">{{ topContext() }}</div>
         </div>
       </div>
 
-      <div
-        class="mb-4 inline-flex rounded-lg bg-muted p-1"
-        role="tablist"
-        aria-label="Query summary view"
-      >
+      <div class="ui-tablist mb-4" role="tablist" aria-label="Query summary view">
         <button
           type="button"
           id="query-contexts-tab"
-          class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-          [class.bg-background]="summaryView() === 'contexts'"
-          [class.shadow-sm]="summaryView() === 'contexts'"
-          [class.text-foreground]="summaryView() === 'contexts'"
-          [class.text-muted-foreground]="summaryView() !== 'contexts'"
+          class="ui-tab"
           role="tab"
           aria-controls="query-summary-panel"
           [attr.aria-selected]="summaryView() === 'contexts'"
@@ -98,11 +88,7 @@ type SummaryView = 'contexts' | 'projects';
         <button
           type="button"
           id="query-projects-tab"
-          class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-          [class.bg-background]="summaryView() === 'projects'"
-          [class.shadow-sm]="summaryView() === 'projects'"
-          [class.text-foreground]="summaryView() === 'projects'"
-          [class.text-muted-foreground]="summaryView() !== 'projects'"
+          class="ui-tab"
           role="tab"
           aria-controls="query-summary-panel"
           [attr.aria-selected]="summaryView() === 'projects'"

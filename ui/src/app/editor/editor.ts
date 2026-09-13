@@ -78,7 +78,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
             class="flex h-8 items-center rounded-md border border-border/60 bg-muted/30 transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-muted/50 focus-within:border-ring/70 focus-within:ring-2 focus-within:ring-ring/30"
           >
             <span
-              class="pl-2.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground"
+              class="pl-2.5 text-caption font-medium uppercase tracking-label text-muted-foreground"
             >
               Days
             </span>
@@ -102,9 +102,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
         >
           <section class="flex min-h-0 flex-1 flex-col border-b" aria-label="Query">
             <div class="border-b px-3 py-3">
-              <div
-                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-              >
+              <div class="text-meta font-semibold uppercase tracking-label text-muted-foreground">
                 Query
               </div>
             </div>
@@ -116,9 +114,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
 
           <section class="flex min-h-0 flex-1 flex-col" aria-label="Query preview">
             <div class="border-b px-3 py-3">
-              <div
-                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-              >
+              <div class="text-meta font-semibold uppercase tracking-label text-muted-foreground">
                 Preview
               </div>
             </div>
@@ -126,7 +122,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
             <div class="flex flex-1 items-center justify-center p-5">
               <div class="max-w-40 text-center">
                 <div class="text-xs font-medium text-foreground/80">No preview yet</div>
-                <div class="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                <div class="mt-1 text-meta leading-relaxed text-muted-foreground">
                   Results matching the query will appear here.
                 </div>
               </div>
@@ -149,9 +145,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
         >
           <section class="flex min-h-0 flex-1 flex-col border-b" aria-label="Widgets">
             <div class="border-b px-3 py-3">
-              <div
-                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-              >
+              <div class="text-meta font-semibold uppercase tracking-label text-muted-foreground">
                 Widgets
               </div>
             </div>
@@ -159,7 +153,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
             <div class="flex flex-1 items-center justify-center p-5">
               <div class="max-w-44 text-center">
                 <div class="text-xs font-medium text-foreground/80">No widgets yet</div>
-                <div class="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                <div class="mt-1 text-meta leading-relaxed text-muted-foreground">
                   Dashboard widgets will appear here.
                 </div>
               </div>
@@ -168,9 +162,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
 
           <section class="flex min-h-0 flex-1 flex-col" aria-label="Properties">
             <div class="border-b px-3 py-3">
-              <div
-                class="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-              >
+              <div class="text-meta font-semibold uppercase tracking-label text-muted-foreground">
                 Properties
               </div>
             </div>
@@ -178,7 +170,7 @@ type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
             <div class="flex flex-1 items-center justify-center p-5">
               <div class="max-w-44 text-center">
                 <div class="text-xs font-medium text-foreground/80">Nothing selected</div>
-                <div class="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                <div class="mt-1 text-meta leading-relaxed text-muted-foreground">
                   Select an element to view its properties.
                 </div>
               </div>

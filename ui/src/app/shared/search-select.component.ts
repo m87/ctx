@@ -82,14 +82,14 @@ export interface SearchSelectOption {
                 </span>
                 @if (option.badge) {
                   <span
-                    class="max-w-28 shrink-0 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                    class="max-w-28 shrink-0 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-caption font-medium text-primary"
                   >
                     {{ option.badge }}
                   </span>
                 }
               </span>
               @if (option.description) {
-                <span class="block truncate text-[11px] text-muted-foreground">
+                <span class="block truncate text-meta text-muted-foreground">
                   {{ option.description }}
                 </span>
               }

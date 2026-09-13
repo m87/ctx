@@ -24,9 +24,7 @@ import { QuerySummaryComponent } from './query-summary.component';
           <header>
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
-                <div
-                  class="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-                >
+                <div class="text-meta font-semibold uppercase tracking-label text-muted-foreground">
                   Saved query
                 </div>
                 <h1 class="mt-1 truncate text-2xl font-semibold tracking-tight">

@@ -40,7 +40,7 @@ import { QueryResultItemComponent } from './query-result-item.component';
           }
         </div>
       } @else if (contexts().length === 0) {
-        <div class="rounded-xl border border-dashed bg-muted/20 px-6 py-10 text-center">
+        <div class="ui-placeholder rounded-xl py-10">
           <p class="text-sm font-medium">No contexts</p>
           <p class="mt-1 text-xs text-muted-foreground">There are no contexts to display yet.</p>
         </div>

@@ -7,6 +7,8 @@ import {
   lucideScissors,
   lucideX,
 } from '@ng-icons/lucide';
+import { BrnAlertDialogImports } from '@spartan-ng/brain/alert-dialog';
+import { HlmAlertDialogImports } from '@spartan-ng/helm/alert-dialog';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { ContextQueries } from '../../api/context/context.queries';
@@ -32,6 +34,8 @@ interface SplitProperties {
 @Component({
   selector: 'ctx-context-interval-list',
   imports: [
+    BrnAlertDialogImports,
+    HlmAlertDialogImports,
     ContextIntervalItemComponent,
     NgIcon,
     HlmButtonImports,
@@ -52,7 +56,7 @@ interface SplitProperties {
   template: `
     <div class="w-full flex flex-col gap-4 md:flex-1 md:min-h-0">
       <div
-        class="w-full flex flex-wrap items-center justify-between gap-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+        class="w-full flex flex-wrap items-center justify-between gap-2 text-meta uppercase tracking-label text-muted-foreground font-semibold"
       >
         <span>Intervals</span>
       </div>
@@ -69,9 +73,7 @@ interface SplitProperties {
       } @else {
         @if (!readonly()) {
           <div class="w-full rounded-lg border bg-card p-3 flex flex-col gap-2">
-            <div
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
-            >
+            <div class="text-meta uppercase tracking-label text-muted-foreground font-semibold">
               Add interval
             </div>
             <div class="w-full flex flex-col md:flex-row items-stretch md:items-end gap-2">
@@ -105,7 +107,7 @@ interface SplitProperties {
               </button>
             </div>
             @if (intervalFormError()) {
-              <div class="text-xs text-red-600">{{ intervalFormError() }}</div>
+              <div class="text-xs text-destructive">{{ intervalFormError() }}</div>
             }
           </div>
         }
@@ -230,19 +232,17 @@ interface SplitProperties {
 
               <div>
                 <div class="mb-2.5 flex items-center justify-between gap-3">
-                  <div
-                    class="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-                  >
+                  <div class="text-xs font-semibold uppercase tracking-label text-muted-foreground">
                     Result preview
                   </div>
-                  <div class="text-[11px] text-muted-foreground">2 intervals</div>
+                  <div class="text-meta text-muted-foreground">2 intervals</div>
                 </div>
                 <div class="grid gap-2.5 sm:grid-cols-2">
                   <div class="rounded-xl border border-border/80 bg-card p-3.5 shadow-xs">
                     <div class="mb-3 flex items-center justify-between gap-2">
                       <span class="text-xs font-semibold text-foreground">First interval</span>
                       <span
-                        class="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                        class="rounded-md bg-muted px-2 py-0.5 text-caption font-semibold text-muted-foreground"
                       >
                         {{ formatSplitDuration(splitProperties.start, splitProperties.split) }}
                       </span>
@@ -258,7 +258,7 @@ interface SplitProperties {
                     <div class="mb-3 flex items-center justify-between gap-2">
                       <span class="text-xs font-semibold text-foreground">Second interval</span>
                       <span
-                        class="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                        class="rounded-md bg-muted px-2 py-0.5 text-caption font-semibold text-muted-foreground"
                       >
                         {{ formatSplitDuration(splitProperties.split, splitProperties.end) }}
                       </span>
@@ -376,6 +376,24 @@ interface SplitProperties {
           </section>
         </div>
       }
+
+      <hlm-alert-dialog
+        [state]="intervalPendingDelete() ? 'open' : 'closed'"
+        (closed)="cancelDeleteInterval()"
+      >
+        <hlm-alert-dialog-content *brnAlertDialogContent="let ctx">
+          <hlm-alert-dialog-header>
+            <h3 hlmAlertDialogTitle>Delete this interval?</h3>
+            <p hlmAlertDialogDescription>{{ deleteDialogDetails() }}</p>
+          </hlm-alert-dialog-header>
+          <hlm-alert-dialog-footer>
+            <button hlmAlertDialogCancel (click)="cancelDeleteInterval()">Cancel</button>
+            <button hlmAlertDialogAction variant="destructive" (click)="confirmDeleteInterval()">
+              Delete
+            </button>
+          </hlm-alert-dialog-footer>
+        </hlm-alert-dialog-content>
+      </hlm-alert-dialog>
     </div>
   `,
   styles: `
@@ -433,6 +451,8 @@ export class ContextIntervalListComponent {
   readonly editingIntervalId = signal<string | null>(null);
   readonly editIntervalStartInput = signal('');
   readonly editIntervalEndInput = signal('');
+  readonly intervalPendingDelete = signal<Interval | null>(null);
+  readonly deleteDialogDetails = signal('');
   readonly moveDialogIntervalId = signal<string | null>(null);
   readonly moveTargetContextId = signal('');
   readonly intervalFormError = signal('');
@@ -633,10 +653,24 @@ export class ContextIntervalListComponent {
       return;
     }
 
-    if (!window.confirm('Delete this interval?')) {
+    this.deleteDialogDetails.set(
+      `${this.timeZone.formatDate(interval.start)} · ` +
+        `${this.timeZone.formatTime(interval.start)}–${this.timeZone.formatTime(interval.end)}`,
+    );
+    this.intervalPendingDelete.set(interval);
+  }
+
+  cancelDeleteInterval() {
+    this.intervalPendingDelete.set(null);
+  }
+
+  confirmDeleteInterval() {
+    const interval = this.intervalPendingDelete();
+    if (!interval) {
       return;
     }
 
+    this.intervalPendingDelete.set(null);
     this.deleteIntervalMutation.mutate({ id: interval.id, contextId: this.contextId() });
   }
 

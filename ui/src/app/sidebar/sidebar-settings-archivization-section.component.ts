@@ -18,21 +18,21 @@ const MAX_ARCHIVE_DAYS = 365000;
     <div class="space-y-6">
       <div class="space-y-1.5">
         <div class="flex items-center gap-2">
-          <div class="text-foreground font-medium text-[15px]">Archive inactive contexts</div>
+          <div class="text-foreground font-medium text-lead">Archive inactive contexts</div>
           <span
-            class="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground"
+            class="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-caption font-medium uppercase tracking-label text-muted-foreground"
           >
             Workspace
           </span>
         </div>
-        <div class="text-[13px] sm:text-[14px]">
+        <div class="text-dense sm:text-sm">
           Archive every context whose latest interval is older than the selected threshold. Contexts
           without intervals and already archived contexts are ignored.
         </div>
       </div>
 
       <div class="space-y-2">
-        <label for="archive-older-than-days" class="text-foreground font-medium text-[14px]">
+        <label for="archive-older-than-days" class="text-foreground font-medium text-sm">
           Inactive for at least
         </label>
         <div class="flex items-center gap-2">
@@ -46,19 +46,17 @@ const MAX_ARCHIVE_DAYS = 365000;
             [attr.aria-invalid]="!validDays()"
             (input)="setDaysInput($event)"
           />
-          <span class="text-[13px]">days</span>
+          <span class="text-dense">days</span>
         </div>
         @if (!validDays()) {
-          <div class="text-[12px] text-destructive">
+          <div class="text-xs text-destructive">
             Enter a whole number between 1 and {{ maxArchiveDays }}.
           </div>
         }
       </div>
 
       @if (!activeWorkspaceId()) {
-        <div class="rounded-lg border border-dashed p-5 text-center text-[13px]">
-          Select a workspace to preview contexts.
-        </div>
+        <div class="ui-placeholder p-5">Select a workspace to preview contexts.</div>
       } @else if (validDays()) {
         @if (showPreviewError()) {
           <ctx-query-error-state
@@ -82,14 +80,14 @@ const MAX_ARCHIVE_DAYS = 365000;
           </div>
         } @else if (archiveCandidatesQuery.data(); as preview) {
           <div class="space-y-3">
-            <div class="text-[13px]">
+            <div class="text-dense">
               Cutoff:
               <span class="font-medium text-foreground">{{ formatCutoff(preview.cutoff) }}</span>
             </div>
 
             <div class="flex items-center justify-between gap-3">
-              <div class="text-foreground font-medium text-[14px]">Contexts to archive</div>
-              <span class="rounded-full border bg-muted/40 px-2 py-0.5 text-[11px] font-medium">
+              <div class="text-foreground font-medium text-sm">Contexts to archive</div>
+              <span class="rounded-full border bg-muted/40 px-2 py-0.5 text-meta font-medium">
                 {{ preview.contexts.length }}
               </span>
             </div>
@@ -102,10 +100,10 @@ const MAX_ARCHIVE_DAYS = 365000;
                       <div class="min-w-0">
                         <div class="font-medium text-foreground truncate">{{ context.name }}</div>
                         @if (context.project; as project) {
-                          <div class="mt-0.5 text-[11px] truncate">Project: {{ project.name }}</div>
+                          <div class="mt-0.5 text-meta truncate">Project: {{ project.name }}</div>
                         }
                       </div>
-                      <div class="shrink-0 text-right text-[11px]">
+                      <div class="shrink-0 text-right text-meta">
                         Latest interval<br />
                         <span class="text-foreground">{{
                           formatLastInterval(context.lastIntervalAt)
@@ -118,7 +116,7 @@ const MAX_ARCHIVE_DAYS = 365000;
 
               <button
                 type="button"
-                class="h-10 rounded-md bg-primary px-4 text-[14px] font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                class="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 [disabled]="archiveMutation.isPending() || archiveCandidatesQuery.isFetching()"
                 (click)="archiveContexts()"
               >
@@ -131,9 +129,7 @@ const MAX_ARCHIVE_DAYS = 365000;
                 }}
               </button>
             } @else {
-              <div class="rounded-lg border border-dashed p-5 text-center text-[13px]">
-                No contexts match this threshold.
-              </div>
+              <div class="ui-placeholder p-5">No contexts match this threshold.</div>
             }
           </div>
         }
@@ -141,7 +137,7 @@ const MAX_ARCHIVE_DAYS = 365000;
 
       @if (lastArchivedCount() !== null) {
         <div
-          class="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 text-[13px] text-emerald-700"
+          class="rounded-md border border-success/40 bg-success/5 p-3 text-dense text-success"
           aria-live="polite"
         >
           Archived {{ lastArchivedCount() }}

@@ -23,7 +23,7 @@ import { SelectProject } from '../sidebar/workspace.state';
     >
       <ng-icon
         name="lucideFolder"
-        class="mr-1.5 shrink-0 inline-flex items-center justify-center text-[11px]"
+        class="mr-1.5 shrink-0 inline-flex items-center justify-center text-meta"
       ></ng-icon>
       <span class="truncate">
         <ctx-linkified-text [text]="project().name" />

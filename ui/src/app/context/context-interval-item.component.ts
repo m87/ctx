@@ -51,7 +51,7 @@ import { TimeZoneService } from '../shared/time-zone.service';
             <button
               hlmBtn
               variant="outline"
-              class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+              class="h-9 px-3 text-xs bg-info/15 text-info"
               [disabled]="updatePending()"
               (click)="save.emit(interval())"
             >
@@ -106,8 +106,8 @@ import { TimeZoneService } from '../shared/time-zone.service';
               </button>
               <button
                 hlmBtn
-                variant="outline"
-                class="h-7 px-2 text-xs text-red-700 bg-red-100/60"
+                variant="destructive"
+                class="h-7 px-2 text-xs"
                 [disabled]="deletePending()"
                 (click)="delete.emit(interval())"
               >

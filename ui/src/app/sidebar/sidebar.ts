@@ -38,7 +38,7 @@ import { SidebarSavedQueryListComponent } from './sidebar-saved-query-list.compo
           <a
             routerLink="/day"
             routerLinkActive="bg-muted text-foreground"
-            class="uppercase flex justify-between items-center text-[11px] tracking-[0.08em] text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
+            class="uppercase flex justify-between items-center text-meta tracking-label text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
             (click)="sidebar.closeMobile()"
           >
             daily summary
@@ -46,7 +46,7 @@ import { SidebarSavedQueryListComponent } from './sidebar-saved-query-list.compo
           <a
             [routerLink]="workspaceLink()"
             routerLinkActive="bg-muted text-foreground"
-            class="uppercase flex justify-between items-center text-[11px] tracking-[0.08em] text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
+            class="uppercase flex justify-between items-center text-meta tracking-label text-muted-foreground px-2 py-1 font-semibold rounded-md hover:bg-muted/50 cursor-pointer"
             (click)="sidebar.closeMobile()"
           >
             workspace
@@ -66,9 +66,7 @@ import { SidebarSavedQueryListComponent } from './sidebar-saved-query-list.compo
         @if (versionQuery.isLoading()) {
           <hlm-skeleton class="h-2.5 w-10"></hlm-skeleton>
         } @else {
-          <span class="text-[11px] text-muted-foreground/70 tracking-[0.06em]"
-            >v{{ appVersion() }}</span
-          >
+          <span class="text-meta text-muted-foreground/70 tracking-label">v{{ appVersion() }}</span>
         }
         <button
           type="button"
@@ -76,7 +74,7 @@ import { SidebarSavedQueryListComponent } from './sidebar-saved-query-list.compo
           aria-label="Open settings"
           (click)="openSettings()"
         >
-          <ng-icon name="lucideSettings" class="text-[15px]"></ng-icon>
+          <ng-icon name="lucideSettings" class="text-lead"></ng-icon>
         </button>
       </div>
     </div>

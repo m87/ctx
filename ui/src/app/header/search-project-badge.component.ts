@@ -15,7 +15,7 @@ import { ProjectMetadata } from '../../api/context/context.service';
       class="inline-flex max-w-full items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-primary"
       [title]="project().name"
     >
-      <ng-icon name="lucideFolder" class="shrink-0 text-[10px]"></ng-icon>
+      <ng-icon name="lucideFolder" class="shrink-0 text-caption"></ng-icon>
       <span class="truncate">{{ project().name }}</span>
     </span>
   `,

@@ -212,7 +212,7 @@ function isInsideQuotedText(query: string, cursor: number): boolean {
                 <ng-icon name="lucideSave" class="text-xs"></ng-icon>
                 Save query
               </button>
-              <span class="hidden text-[11px] text-muted-foreground sm:inline">
+              <span class="hidden text-meta text-muted-foreground sm:inline">
                 Ctrl&nbsp;+&nbsp;Enter
               </span>
               <button hlmBtn type="submit" variant="outline" class="h-8 px-3 text-xs">Run</button>
