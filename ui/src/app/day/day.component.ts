@@ -55,7 +55,7 @@ const EMPTY_DAY_STATS: DayStats = {
   template: `
     <div class="w-full h-full overflow-hidden flex flex-col p-4 md:p-6">
       <div class="mb-5">
-        <div class="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+        <div class="text-meta uppercase tracking-widest text-muted-foreground font-semibold">
           Daily summary
         </div>
         <div class="flex justify-between items-center">
@@ -66,7 +66,7 @@ const EMPTY_DAY_STATS: DayStats = {
             <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <div class="flex items-center justify-between gap-1">
                 <span class="inline-flex items-center gap-1.5" [title]="'Start of first session'">
-                  <ng-icon name="lucidePlay" class="text-[11px]"></ng-icon>
+                  <ng-icon name="lucidePlay" class="text-meta"></ng-icon>
                 </span>
                 @if (isDayLoading()) {
                   <hlm-skeleton class="h-3 w-9"></hlm-skeleton>
@@ -76,7 +76,7 @@ const EMPTY_DAY_STATS: DayStats = {
               </div>
               <div class="flex items-center justify-between gap-1">
                 <span class="inline-flex items-center gap-1.5" [title]="'End of last session'">
-                  <ng-icon name="lucideFlag" class="text-[11px]"></ng-icon>
+                  <ng-icon name="lucideFlag" class="text-meta"></ng-icon>
                 </span>
                 @if (isDayLoading()) {
                   <hlm-skeleton class="h-3 w-9"></hlm-skeleton>
@@ -130,44 +130,32 @@ const EMPTY_DAY_STATS: DayStats = {
       } @else {
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 mb-6">
           <div class="rounded-lg border bg-card px-3 py-2.5">
-            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+            <div class="text-caption uppercase tracking-label text-muted-foreground">
               Total tracked
             </div>
             <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
           </div>
           <div class="rounded-lg border bg-card px-3 py-2.5">
-            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-              Contexts
-            </div>
+            <div class="text-caption uppercase tracking-label text-muted-foreground">Contexts</div>
             <div class="text-base font-semibold mt-1">{{ contexts().length }}</div>
           </div>
           <div class="rounded-lg border bg-card px-3 py-2.5">
-            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-              Sessions
-            </div>
+            <div class="text-caption uppercase tracking-label text-muted-foreground">Sessions</div>
             <div class="text-base font-semibold mt-1">{{ totalSessions() }}</div>
           </div>
           <div class="rounded-lg border bg-card px-3 py-2.5">
-            <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+            <div class="text-caption uppercase tracking-label text-muted-foreground">
               Top context
             </div>
             <div class="text-sm font-medium mt-1 truncate">{{ topContext() }}</div>
           </div>
         </div>
 
-        <div
-          class="inline-flex self-start rounded-lg bg-muted p-1 mb-4 shrink-0"
-          role="tablist"
-          aria-label="Daily summary view"
-        >
+        <div class="ui-tablist mb-4 shrink-0" role="tablist" aria-label="Daily summary view">
           <button
             type="button"
             id="contexts-tab"
-            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-            [class.bg-background]="summaryView() === 'contexts'"
-            [class.shadow-sm]="summaryView() === 'contexts'"
-            [class.text-foreground]="summaryView() === 'contexts'"
-            [class.text-muted-foreground]="summaryView() !== 'contexts'"
+            class="ui-tab"
             role="tab"
             aria-controls="daily-summary-panel"
             [attr.aria-selected]="summaryView() === 'contexts'"
@@ -178,11 +166,7 @@ const EMPTY_DAY_STATS: DayStats = {
           <button
             type="button"
             id="projects-tab"
-            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-            [class.bg-background]="summaryView() === 'projects'"
-            [class.shadow-sm]="summaryView() === 'projects'"
-            [class.text-foreground]="summaryView() === 'projects'"
-            [class.text-muted-foreground]="summaryView() !== 'projects'"
+            class="ui-tab"
             role="tab"
             aria-controls="daily-summary-panel"
             [attr.aria-selected]="summaryView() === 'projects'"
@@ -193,11 +177,7 @@ const EMPTY_DAY_STATS: DayStats = {
           <button
             type="button"
             id="insights-tab"
-            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-            [class.bg-background]="summaryView() === 'insights'"
-            [class.shadow-sm]="summaryView() === 'insights'"
-            [class.text-foreground]="summaryView() === 'insights'"
-            [class.text-muted-foreground]="summaryView() !== 'insights'"
+            class="ui-tab"
             role="tab"
             aria-controls="daily-summary-panel"
             [attr.aria-selected]="summaryView() === 'insights'"

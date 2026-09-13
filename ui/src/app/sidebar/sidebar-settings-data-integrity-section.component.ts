@@ -1,3 +1,4 @@
+import { HlmButton } from '@spartan-ng/helm/button';
 import { Component, computed, inject, signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTrash2 } from '@ng-icons/lucide';
@@ -25,20 +26,20 @@ type IntegrityIntervalTimeInputs = {
 
 @Component({
   selector: 'ctx-sidebar-settings-data-integrity-section',
-  imports: [NgIcon],
+  imports: [NgIcon, HlmButton],
   providers: [provideIcons({ lucideTrash2 })],
   template: `
     <div class="space-y-5">
       <div class="space-y-1.5">
-        <div class="text-foreground font-medium text-[15px]">Data integrity</div>
-        <div class="text-[13px] sm:text-[14px]">
+        <div class="text-foreground font-medium text-lead">Data integrity</div>
+        <div class="text-dense sm:text-sm">
           Check workspace assignments and references after migration.
         </div>
       </div>
 
       <button
         type="button"
-        class="h-10 px-4 mr-4 rounded-md border text-foreground text-[14px] font-medium hover:bg-muted/50 disabled:opacity-50"
+        class="h-10 px-4 mr-4 rounded-md border text-foreground text-sm font-medium hover:bg-muted/50 disabled:opacity-50"
         [disabled]="checkIntegrityMutation.isPending()"
         (click)="checkIntegrity()"
       >
@@ -49,7 +50,8 @@ type IntegrityIntervalTimeInputs = {
         @if (hasRepairableIssues(report)) {
           <button
             type="button"
-            class="h-10 px-4 rounded-md bg-primary text-primary-foreground text-[14px] font-medium hover:bg-primary/90 disabled:opacity-50"
+            hlmBtn
+            class="h-10 px-4 text-sm"
             [disabled]="repairIntegrityMutation.isPending()"
             (click)="repairIntegrity()"
           >
@@ -59,7 +61,7 @@ type IntegrityIntervalTimeInputs = {
       }
 
       @if (repairIntegrityMutation.data(); as repairResult) {
-        <div class="rounded-md border bg-muted/30 p-3 text-[13px]">
+        <div class="rounded-md border bg-muted/30 p-3 text-dense">
           Repaired {{ repairResult.repairedCount }} records. Issues that cannot be repaired safely
           remain listed below.
         </div>
@@ -68,17 +70,17 @@ type IntegrityIntervalTimeInputs = {
       @if (integrityReport(); as report) {
         <div
           class="rounded-lg border p-4"
-          [class.border-emerald-500]="report.healthy"
+          [class.border-success]="report.healthy"
           [class.border-destructive]="!report.healthy"
         >
           <div
             class="font-medium"
-            [class.text-emerald-600]="report.healthy"
+            [class.text-success]="report.healthy"
             [class.text-destructive]="!report.healthy"
           >
             {{ report.healthy ? 'Integrity check passed' : 'Integrity issues found' }}
           </div>
-          <div class="mt-2 text-[12px] text-muted-foreground">
+          <div class="mt-2 text-xs text-muted-foreground">
             {{ report.workspaceCount }} workspaces, {{ report.contextCount }} contexts,
             {{ report.intervalCount }} intervals
           </div>
@@ -88,19 +90,19 @@ type IntegrityIntervalTimeInputs = {
           <div class="space-y-2">
             @for (group of visibleIntegrityIssueGroups(); track group.key) {
               @let issue = group.issue;
-              <div class="rounded-md border p-3 text-[13px]">
+              <div class="rounded-md border p-3 text-dense">
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex flex-wrap items-center gap-2">
                     <span class="font-medium text-foreground">{{ issue.code }}</span>
-                    <span class="text-[11px] uppercase text-muted-foreground">
+                    <span class="text-meta uppercase text-muted-foreground">
                       {{ issue.entityType }}
                     </span>
                     <span
-                      class="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                      [class.bg-emerald-500/10]="issue.repairable"
-                      [class.text-emerald-600]="issue.repairable"
-                      [class.bg-amber-500/10]="!issue.repairable"
-                      [class.text-amber-700]="!issue.repairable"
+                      class="rounded-full px-2 py-0.5 text-meta font-medium"
+                      [class.bg-success/10]="issue.repairable"
+                      [class.text-success]="issue.repairable"
+                      [class.bg-warning/10]="!issue.repairable"
+                      [class.text-warning]="!issue.repairable"
                     >
                       {{ issue.repairable ? 'Auto-repairable' : 'Manual action required' }}
                     </span>
@@ -115,7 +117,7 @@ type IntegrityIntervalTimeInputs = {
                       [title]="'Delete ' + issue.entityType"
                       (click)="deleteIntegrityIssue(issue)"
                     >
-                      <ng-icon name="lucideTrash2" class="text-[15px]"></ng-icon>
+                      <ng-icon name="lucideTrash2" class="text-lead"></ng-icon>
                     </button>
                   }
                 </div>
@@ -123,7 +125,7 @@ type IntegrityIntervalTimeInputs = {
 
                 @if (group.hiddenIssueCount > 0) {
                   <div
-                    class="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-[12px] text-muted-foreground"
+                    class="mt-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground"
                   >
                     {{ group.hiddenIssueCount }} more integrity
                     {{ group.hiddenIssueCount === 1 ? 'issue was' : 'issues were' }} detected for
@@ -138,7 +140,7 @@ type IntegrityIntervalTimeInputs = {
                 }
 
                 @if (issue.entityType === 'interval') {
-                  <div class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+                  <div class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                     <span class="text-muted-foreground">Interval</span>
                     <span class="text-foreground">
                       {{ formatIntegrityTime(issue.details?.start) }} –
@@ -154,7 +156,7 @@ type IntegrityIntervalTimeInputs = {
                 @if (isContextAssignmentIssue(issue)) {
                   <div class="mt-3 flex flex-col sm:flex-row gap-2">
                     <select
-                      class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-[12px]"
+                      class="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-xs"
                       [value]="selectedIntegrityContext(issue.entityId)"
                       [disabled]="
                         availableIntegrityContexts().length === 0 ||
@@ -180,7 +182,8 @@ type IntegrityIntervalTimeInputs = {
                     </select>
                     <button
                       type="button"
-                      class="h-9 px-3 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 disabled:opacity-50"
+                      hlmBtn
+                      class="h-9 px-3 text-xs"
                       [disabled]="
                         !selectedIntegrityContext(issue.entityId) ||
                         moveIntegrityIntervalMutation.isPending()
@@ -195,16 +198,16 @@ type IntegrityIntervalTimeInputs = {
                 @if (isIntervalTimeEditIssue(issue)) {
                   <div class="mt-3 rounded-md border bg-muted/20 p-3">
                     <div
-                      class="mb-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      class="mb-2 text-meta uppercase tracking-label text-muted-foreground font-semibold"
                     >
                       Set interval time
                     </div>
                     <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
-                      <label class="flex-1 text-[12px] text-muted-foreground">
+                      <label class="flex-1 text-xs text-muted-foreground">
                         Start
                         <input
                           type="datetime-local"
-                          class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-[12px] text-foreground"
+                          class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
                           [value]="integrityIntervalTimeInput(issue, 'start')"
                           (input)="
                             setIntegrityIntervalTimeInput(
@@ -215,11 +218,11 @@ type IntegrityIntervalTimeInputs = {
                           "
                         />
                       </label>
-                      <label class="flex-1 text-[12px] text-muted-foreground">
+                      <label class="flex-1 text-xs text-muted-foreground">
                         End
                         <input
                           type="datetime-local"
-                          class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-[12px] text-foreground"
+                          class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-xs text-foreground"
                           [value]="integrityIntervalTimeInput(issue, 'end')"
                           (input)="
                             setIntegrityIntervalTimeInput(
@@ -232,7 +235,8 @@ type IntegrityIntervalTimeInputs = {
                       </label>
                       <button
                         type="button"
-                        class="h-9 px-3 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 disabled:opacity-50"
+                        hlmBtn
+                        class="h-9 px-3 text-xs"
                         [disabled]="
                           updateIntegrityIntervalMutation.isPending() || !issue.details?.contextId
                         "
@@ -244,12 +248,12 @@ type IntegrityIntervalTimeInputs = {
                       </button>
                     </div>
                     @if (integrityIntervalTimeError(issue.entityId)) {
-                      <div class="mt-2 text-[12px] text-destructive">
+                      <div class="mt-2 text-xs text-destructive">
                         {{ integrityIntervalTimeError(issue.entityId) }}
                       </div>
                     }
                     @if (!issue.details?.contextId) {
-                      <div class="mt-2 text-[12px] text-muted-foreground">
+                      <div class="mt-2 text-xs text-muted-foreground">
                         Assign a context first, then set the interval time.
                       </div>
                     }
@@ -257,7 +261,7 @@ type IntegrityIntervalTimeInputs = {
                 }
 
                 @if (issue.details?.workspaceId && !isContextAssignmentIssue(issue)) {
-                  <div class="mt-1 text-[12px]">
+                  <div class="mt-1 text-xs">
                     <span class="text-muted-foreground">Workspace:</span>
                     <span class="ml-2 font-mono break-all">
                       {{ issue.details?.workspaceId }}
@@ -265,7 +269,7 @@ type IntegrityIntervalTimeInputs = {
                   </div>
                 }
 
-                <div class="mt-2 font-mono text-[11px] break-all text-muted-foreground">
+                <div class="mt-2 font-mono text-meta break-all text-muted-foreground">
                   ID: {{ issue.entityId || '(missing id)' }}
                 </div>
               </div>

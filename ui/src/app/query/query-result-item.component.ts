@@ -24,7 +24,7 @@ import { colorHash } from '../utils';
           <span class="min-w-0 truncate text-sm font-medium">{{ context().name }}</span>
           @if (context().archived) {
             <span
-              class="rounded border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+              class="rounded border px-1.5 py-0.5 text-caption font-medium text-muted-foreground"
             >
               Archived
             </span>
@@ -39,7 +39,7 @@ import { colorHash } from '../utils';
           <div class="mt-2 flex flex-wrap items-center gap-1.5">
             @if (context().project; as project) {
               <span
-                class="inline-flex max-w-full items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                class="inline-flex max-w-full items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-caption font-medium text-primary"
                 [title]="project.name"
               >
                 <ng-icon name="lucideFolder" class="shrink-0"></ng-icon>
@@ -47,7 +47,7 @@ import { colorHash } from '../utils';
               </span>
             }
             @for (tag of context().tags ?? []; track tag.id || tag.name) {
-              <span class="rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              <span class="rounded-md bg-muted px-1.5 py-0.5 text-caption text-muted-foreground">
                 {{ tag.name }}
               </span>
             }

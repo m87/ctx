@@ -120,7 +120,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
               </button>
             </div>
           } @else {
-            <div class="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold">
+            <div class="text-meta uppercase tracking-widest text-muted-foreground font-semibold">
               Workspace
             </div>
             <h1 class="text-2xl font-semibold tracking-tight mt-1">Default workspace</h1>
@@ -130,20 +130,20 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
         @if (workspace()) {
           <div class="mt-6 flex-1 min-h-0 overflow-auto pr-1 pb-2">
             <div
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2"
+              class="text-meta uppercase tracking-label text-muted-foreground font-semibold mb-2"
             >
               Workspace summary
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
               <div class="rounded-lg border bg-card px-3 py-2.5">
-                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                <div class="text-caption uppercase tracking-label text-muted-foreground">
                   Total tracked
                 </div>
                 <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
               </div>
               <div class="rounded-lg border bg-card px-3 py-2.5">
-                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                <div class="text-caption uppercase tracking-label text-muted-foreground">
                   Contexts
                 </div>
                 <div class="text-base font-semibold mt-1">
@@ -151,7 +151,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
                 </div>
               </div>
               <div class="rounded-lg border bg-card px-3 py-2.5">
-                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                <div class="text-caption uppercase tracking-label text-muted-foreground">
                   Sessions
                 </div>
                 <div class="text-base font-semibold mt-1">
@@ -159,26 +159,18 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
                 </div>
               </div>
               <div class="rounded-lg border bg-card px-3 py-2.5">
-                <div class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                <div class="text-caption uppercase tracking-label text-muted-foreground">
                   Top context
                 </div>
                 <div class="text-sm font-medium mt-1 truncate">{{ topContext() }}</div>
               </div>
             </div>
 
-            <div
-              class="inline-flex rounded-lg bg-muted p-1 mb-4"
-              role="tablist"
-              aria-label="Workspace summary view"
-            >
+            <div class="ui-tablist mb-4" role="tablist" aria-label="Workspace summary view">
               <button
                 type="button"
                 id="workspace-contexts-tab"
-                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-                [class.bg-background]="summaryView() === 'contexts'"
-                [class.shadow-sm]="summaryView() === 'contexts'"
-                [class.text-foreground]="summaryView() === 'contexts'"
-                [class.text-muted-foreground]="summaryView() !== 'contexts'"
+                class="ui-tab"
                 role="tab"
                 aria-controls="workspace-summary-panel"
                 [attr.aria-selected]="summaryView() === 'contexts'"
@@ -189,11 +181,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
               <button
                 type="button"
                 id="workspace-projects-tab"
-                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-                [class.bg-background]="summaryView() === 'projects'"
-                [class.shadow-sm]="summaryView() === 'projects'"
-                [class.text-foreground]="summaryView() === 'projects'"
-                [class.text-muted-foreground]="summaryView() !== 'projects'"
+                class="ui-tab"
                 role="tab"
                 aria-controls="workspace-summary-panel"
                 [attr.aria-selected]="summaryView() === 'projects'"
@@ -204,11 +192,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
               <button
                 type="button"
                 id="workspace-insights-tab"
-                class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-                [class.bg-background]="summaryView() === 'insights'"
-                [class.shadow-sm]="summaryView() === 'insights'"
-                [class.text-foreground]="summaryView() === 'insights'"
-                [class.text-muted-foreground]="summaryView() !== 'insights'"
+                class="ui-tab"
                 role="tab"
                 aria-controls="workspace-summary-panel"
                 [attr.aria-selected]="summaryView() === 'insights'"

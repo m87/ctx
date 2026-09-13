@@ -12,7 +12,7 @@ export interface DistributionItem {
   selector: 'ctx-distribution',
   template: `
     <div>
-      <div class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold mb-2">
+      <div class="text-meta uppercase tracking-label text-muted-foreground font-semibold mb-2">
         {{ label() }}
       </div>
       @if (items().length > 0) {

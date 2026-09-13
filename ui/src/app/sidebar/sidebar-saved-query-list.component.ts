@@ -32,7 +32,7 @@ export function isSavedQuerySectionVisible(loading: boolean, queryCount: number)
         >
           <span
             id="saved-queries-title"
-            class="min-w-0 truncate uppercase tracking-[0.08em] sidebar-collapsed:hidden"
+            class="min-w-0 truncate uppercase tracking-label sidebar-collapsed:hidden"
             >Queries</span
           >
           <ng-icon
@@ -56,7 +56,7 @@ export function isSavedQuerySectionVisible(loading: boolean, queryCount: number)
                 <a
                   [routerLink]="['/query', query.id]"
                   routerLinkActive="bg-muted text-foreground"
-                  class="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                  class="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-dense font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                   [title]="query.name"
                   (click)="sidebar.closeMobile()"
                 >

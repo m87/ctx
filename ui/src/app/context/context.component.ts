@@ -133,7 +133,7 @@ type DetailView = 'overview' | 'insights';
               <button
                 hlmBtn
                 variant="outline"
-                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+                class="h-9 px-3 text-xs bg-info/15 text-info"
                 [disabled]="restoreContextMutation.isPending()"
                 (click)="restoreContext()"
               >
@@ -154,8 +154,8 @@ type DetailView = 'overview' | 'insights';
             }
             <button
               hlmBtn
-              variant="outline"
-              class="size-9 p-0 text-xs bg-red-100/70 text-red-700"
+              variant="destructive"
+              class="size-9 p-0 text-xs"
               [disabled]="deleteContextMutation.isPending()"
               (click)="deleteContext()"
             >
@@ -165,7 +165,7 @@ type DetailView = 'overview' | 'insights';
               <button
                 hlmBtn
                 variant="outline"
-                class="h-9 px-3 text-xs bg-amber-100/70 text-amber-700"
+                class="h-9 px-3 text-xs bg-warning/15 text-warning"
                 [disabled]="contextOperationPending()"
                 [attr.aria-busy]="contextOperationPending()"
                 (click)="pauseContext()"
@@ -185,7 +185,7 @@ type DetailView = 'overview' | 'insights';
               <button
                 hlmBtn
                 variant="outline"
-                class="h-9 px-3 text-xs bg-blue-200/70 text-blue-600"
+                class="h-9 px-3 text-xs bg-info/15 text-info"
                 [disabled]="currentContext.archived || contextOperationPending()"
                 [attr.aria-busy]="contextOperationPending()"
                 (click)="startContext()"
@@ -195,29 +195,21 @@ type DetailView = 'overview' | 'insights';
                     class="size-3.5 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin"
                     aria-hidden="true"
                   ></span>
-                  <span class="font-semibold text-blue-600">Starting...</span>
+                  <span class="font-semibold text-info">Starting...</span>
                 } @else {
                   <ng-icon name="lucidePlay"></ng-icon>
-                  <span class="font-semibold text-blue-600">Start</span>
+                  <span class="font-semibold text-info">Start</span>
                 }
               </button>
             }
           </div>
         </div>
 
-        <div
-          class="inline-flex self-start rounded-lg bg-muted p-1 shrink-0"
-          role="tablist"
-          aria-label="Context view"
-        >
+        <div class="ui-tablist shrink-0" role="tablist" aria-label="Context view">
           <button
             type="button"
             id="context-overview-tab"
-            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-            [class.bg-background]="detailView() === 'overview'"
-            [class.shadow-sm]="detailView() === 'overview'"
-            [class.text-foreground]="detailView() === 'overview'"
-            [class.text-muted-foreground]="detailView() !== 'overview'"
+            class="ui-tab"
             role="tab"
             aria-controls="context-view-panel"
             [attr.aria-selected]="detailView() === 'overview'"
@@ -228,11 +220,7 @@ type DetailView = 'overview' | 'insights';
           <button
             type="button"
             id="context-insights-tab"
-            class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-            [class.bg-background]="detailView() === 'insights'"
-            [class.shadow-sm]="detailView() === 'insights'"
-            [class.text-foreground]="detailView() === 'insights'"
-            [class.text-muted-foreground]="detailView() !== 'insights'"
+            class="ui-tab"
             role="tab"
             aria-controls="context-view-panel"
             [attr.aria-selected]="detailView() === 'insights'"
@@ -285,7 +273,7 @@ type DetailView = 'overview' | 'insights';
             } @else {
               <button
                 type="button"
-                class="h-9 px-3 rounded-md border border-dashed text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 inline-flex items-center gap-2"
+                class="ui-add-slot h-9 w-auto px-3"
                 (click)="startProjectAssignmentEdit($event)"
               >
                 <ng-icon name="lucideFolder"></ng-icon>
@@ -317,7 +305,7 @@ type DetailView = 'overview' | 'insights';
                 <div class="w-full flex items-center justify-center gap-4">
                   <div hlmCard class="w-full p-3 rounded-lg border">
                     <h3
-                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      class="text-meta uppercase tracking-label text-muted-foreground font-semibold"
                       hlmCardTitle
                     >
                       Total time
@@ -328,7 +316,7 @@ type DetailView = 'overview' | 'insights';
                   </div>
                   <div hlmCard class="w-full p-3 rounded-lg border">
                     <h3
-                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      class="text-meta uppercase tracking-label text-muted-foreground font-semibold"
                       hlmCardTitle
                     >
                       Today
@@ -339,7 +327,7 @@ type DetailView = 'overview' | 'insights';
                   </div>
                   <div hlmCard class="w-full p-3 rounded-lg border">
                     <h3
-                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      class="text-meta uppercase tracking-label text-muted-foreground font-semibold"
                       hlmCardTitle
                     >
                       Sessions
@@ -350,7 +338,7 @@ type DetailView = 'overview' | 'insights';
                   </div>
                   <div hlmCard class="w-full p-3 rounded-lg border">
                     <h3
-                      class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground font-semibold"
+                      class="text-meta uppercase tracking-label text-muted-foreground font-semibold"
                       hlmCardTitle
                     >
                       Today sessions

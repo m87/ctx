@@ -42,11 +42,11 @@ export interface ContextListGroup {
             [style.background-color]="group().color"
           ></div>
         </div>
-        <div class="mt-2 text-[10px] text-muted-foreground">
+        <div class="mt-2 text-caption text-muted-foreground">
           {{ group().sessions }} {{ group().sessions === 1 ? 'session' : 'sessions' }} ·
           {{ boundedPercentage(group().percentage).toFixed(1) }}%
         </div>
-        <div class="mt-2 text-[10px] text-muted-foreground">
+        <div class="mt-2 text-caption text-muted-foreground">
           {{
             expanded()
               ? 'Hide smaller contexts'

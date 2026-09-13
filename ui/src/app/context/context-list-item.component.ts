@@ -40,7 +40,7 @@ export interface ContextListItem {
           <ctx-linkified-text [text]="item().name" [values]="item()" />
         </span>
         @if (item().archived) {
-          <span class="text-[10px] font-medium rounded border px-1.5 py-0.5 text-muted-foreground">
+          <span class="text-caption font-medium rounded border px-1.5 py-0.5 text-muted-foreground">
             Archived
           </span>
         }
@@ -63,7 +63,7 @@ export interface ContextListItem {
             } @else {
               <ng-icon
                 [name]="active() ? 'lucidePause' : 'lucidePlay'"
-                class="text-[13px] pointer-events-none"
+                class="text-dense pointer-events-none"
               ></ng-icon>
             }
           </button>
@@ -76,7 +76,7 @@ export interface ContextListItem {
           [style.background-color]="item().color"
         ></div>
       </div>
-      <div class="mt-2 flex items-start justify-between gap-2 text-[10px] text-muted-foreground">
+      <div class="mt-2 flex items-start justify-between gap-2 text-caption text-muted-foreground">
         <div class="min-w-0 flex flex-wrap gap-x-2 gap-y-1">
           @if ((item().sessionRanges ?? []).length > 0) {
             @for (session of item().sessionRanges ?? []; track session) {

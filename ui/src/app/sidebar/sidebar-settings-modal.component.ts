@@ -33,7 +33,7 @@ type SettingsSection = (typeof settingsSections)[number];
         >
           <div class="sm:w-60 border-b sm:border-b-0 sm:border-r p-3 sm:p-4 shrink-0">
             <div
-              class="text-[11px] uppercase tracking-[0.08em] text-muted-foreground px-2 py-1 hidden sm:block"
+              class="text-meta uppercase tracking-label text-muted-foreground px-2 py-1 hidden sm:block"
             >
               Settings
             </div>
@@ -42,7 +42,7 @@ type SettingsSection = (typeof settingsSections)[number];
                 @for (section of settingsSections; track section) {
                   <button
                     type="button"
-                    class="text-left px-3 sm:px-2 py-2 sm:py-1.5 text-[14px] sm:text-[13px] rounded-md hover:bg-muted/60 whitespace-nowrap min-w-fit"
+                    class="text-left px-3 sm:px-2 py-2 sm:py-1.5 text-sm sm:text-dense rounded-md hover:bg-muted/60 whitespace-nowrap min-w-fit"
                     [class.bg-muted]="activeSettingsSection() === section"
                     [class.text-foreground]="activeSettingsSection() === section"
                     [class.text-muted-foreground]="activeSettingsSection() !== section"
@@ -58,7 +58,7 @@ type SettingsSection = (typeof settingsSections)[number];
                 aria-label="Close settings"
                 (click)="requestClose()"
               >
-                <ng-icon name="lucideX" class="text-[14px]"></ng-icon>
+                <ng-icon name="lucideX" class="text-sm"></ng-icon>
               </button>
             </div>
           </div>
@@ -66,17 +66,17 @@ type SettingsSection = (typeof settingsSections)[number];
             <div
               class="h-14 sm:h-14 border-b px-5 sm:px-7 flex items-center justify-between hidden sm:flex"
             >
-              <div class="font-semibold text-[15px]">{{ activeSettingsSection() }}</div>
+              <div class="font-semibold text-lead">{{ activeSettingsSection() }}</div>
               <button
                 type="button"
                 class="h-9 w-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center"
                 aria-label="Close settings"
                 (click)="requestClose()"
               >
-                <ng-icon name="lucideX" class="text-[14px]"></ng-icon>
+                <ng-icon name="lucideX" class="text-sm"></ng-icon>
               </button>
             </div>
-            <div class="p-5 sm:p-7 overflow-auto text-[14px] text-muted-foreground">
+            <div class="p-5 sm:p-7 overflow-auto text-sm text-muted-foreground">
               <div class="max-w-[760px] pb-5">
                 @switch (activeSettingsSection()) {
                   @case ('General') {
@@ -89,7 +89,7 @@ type SettingsSection = (typeof settingsSections)[number];
                     @defer (when activeSettingsSection() === 'Archivization') {
                       <ctx-sidebar-settings-archivization-section />
                     } @placeholder {
-                      <div class="text-[13px]">Loading archivization settings...</div>
+                      <div class="text-dense">Loading archivization settings...</div>
                     }
                   }
                   @case ('Data integrity') {

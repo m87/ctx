@@ -37,19 +37,17 @@ export type SearchDropdownSelectVariant = 'default' | 'verbose';
         @if (variant() === 'verbose') {
           <span class="flex min-w-0 flex-col gap-0.5">
             @if (selectedOption(); as selected) {
-              <span
-                class="truncate text-[13px] font-semibold leading-tight text-sidebar-foreground"
-              >
+              <span class="truncate text-dense font-semibold leading-tight text-sidebar-foreground">
                 {{ selected.label }}
               </span>
-              <span class="truncate text-[10px] leading-tight text-muted-foreground">
+              <span class="truncate text-caption leading-tight text-muted-foreground">
                 {{ selected.description || 'Current workspace' }}
               </span>
             } @else {
-              <span class="truncate text-[13px] leading-tight text-muted-foreground">
+              <span class="truncate text-dense leading-tight text-muted-foreground">
                 {{ placeholder() }}
               </span>
-              <span class="text-[10px] leading-tight text-muted-foreground/70"> Workspace </span>
+              <span class="text-caption leading-tight text-muted-foreground/70"> Workspace </span>
             }
           </span>
           <span
@@ -67,7 +65,7 @@ export type SearchDropdownSelectVariant = 'default' | 'verbose';
               <span class="min-w-0 truncate">{{ selected.label }}</span>
               @if (selected.badge) {
                 <span
-                  class="max-w-20 shrink-0 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary"
+                  class="max-w-20 shrink-0 truncate rounded-md bg-primary/10 px-1.5 py-0.5 text-label font-medium text-primary"
                 >
                   {{ selected.badge }}
                 </span>
@@ -109,7 +107,7 @@ export type SearchDropdownSelectVariant = 'default' | 'verbose';
               <div class="flex min-w-0 items-center gap-1">
                 <input
                   type="text"
-                  class="h-8 min-w-0 flex-1 rounded-md border border-border/70 bg-background/70 px-2 text-[13px] outline-none focus:border-ring/70 focus:ring-2 focus:ring-ring/30"
+                  class="h-8 min-w-0 flex-1 rounded-md border border-border/70 bg-background/70 px-2 text-dense outline-none focus:border-ring/70 focus:ring-2 focus:ring-ring/30"
                   [placeholder]="actionInputPlaceholder()"
                   [attr.aria-label]="actionInputAriaLabel()"
                   [value]="actionValue()"
@@ -142,7 +140,7 @@ export type SearchDropdownSelectVariant = 'default' | 'verbose';
           } @else if (actionLabel()) {
             <button
               type="button"
-              class="flex h-9 w-full items-center justify-center gap-1.5 border-t border-border/70 bg-muted/20 px-3 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              class="flex h-9 w-full items-center justify-center gap-1.5 border-t border-border/70 bg-muted/20 px-3 text-meta font-medium uppercase tracking-label text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               (click)="triggerAction()"
             >
               <ng-icon name="lucidePlus" class="text-xs"></ng-icon>

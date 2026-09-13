@@ -82,7 +82,7 @@ import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
             <input
               type="text"
               placeholder="New project name"
-              class="w-full px-2 py-1 focus:outline-none focus:ring focus:border-blue-300 outline-none bg-transparent text-sm"
+              class="w-full px-2 py-1 focus:outline-none focus:ring focus:border-ring outline-none bg-transparent text-sm"
               [value]="newProjectName()"
               (input)="onNewProjectNameInput($event)"
               (keydown.enter)="createProject()"
