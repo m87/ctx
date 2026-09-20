@@ -159,3 +159,42 @@ func (m *ContextManager) UndoSplitInterval(intervalId string, result *IntervalSp
 
 	return origin, nil
 }
+
+type IntervalCreationError struct {
+	Reason string
+}
+
+func (e *IntervalCreationError) Error() string {
+	return fmt.Sprintf("cannot create interval: %s", e.Reason)
+}
+
+func NewIntervalCreationError(reason string) *IntervalCreationError {
+	return &IntervalCreationError{
+		Reason: reason,
+	}
+}
+
+func (m *ContextManager) CreateInterval(interval *Interval) (string, error) {
+	if interval == nil {
+		return "", fmt.Errorf("interval is required")
+	}
+	if interval.ContextId == "" {
+		return "", fmt.Errorf("context id is required")
+	}
+	if !timeIsSet(interval.Start) {
+		return "", fmt.Errorf("start time is required")
+	}
+	if !timeIsSet(interval.End) {
+		return "", fmt.Errorf("end time is required")
+	}
+	if interval.End.Before(*interval.Start) {
+		return "", fmt.Errorf("end time must be after start time")
+	}
+
+	interval.Duration = durationBetween(interval.Start, interval.End)
+	id, err := m.SaveInterval(interval)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}

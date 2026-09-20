@@ -121,9 +121,7 @@ func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	recalculateIntervalDuration(&interval)
-
-	id, err := h.manager.SaveInterval(&interval)
+	id, err := h.manager.CreateInterval(&interval)
 	if err != nil {
 		if _, ok := err.(*core.ContextNotFoundError); ok {
 			writeError(w, http.StatusBadRequest, "CONTEXT_NOT_FOUND", "Context not found")
