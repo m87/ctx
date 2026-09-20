@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func timePointer(t time.Time) *time.Time {
@@ -21,7 +22,7 @@ func setupSplitIntervalTest() (*ContextManager, *Interval) {
 		Duration:    8 * time.Hour,
 		Status:      "inactive",
 		WorkspaceId: "workspace1",
-}
+	}
 	test.Intervals.Seed(interval)
 	return test.Manager, interval
 }
@@ -124,11 +125,11 @@ func copyInterval(interval *Interval) *Interval {
 	return &copy
 }
 
-func TextIntervalCreationWithError(t *testing.T) {
+func TestIntervalCreationWithError(t *testing.T) {
 	t.Helper()
 	manager := NewEmptyTestContextManager().Manager
 
-  interval := &Interval{
+	interval := &Interval{
 		Id:          "interval1",
 		ContextId:   "context1",
 		Start:       timePointer(time.Date(2024, 6, 1, 9, 0, 0, 0, time.UTC)),
@@ -138,13 +139,19 @@ func TextIntervalCreationWithError(t *testing.T) {
 		WorkspaceId: "workspace1",
 	}
 
-	
+	t.Run("CreateInterval with nil interval", func(t *testing.T) {
+		_, err := manager.CreateInterval(nil)
+		require.Error(t, err)
+		assert.IsType(t, &IntervalCreationError{}, err)
+		assert.Equal(t, "cannot create interval: interval is required", err.Error())
+	})
+
 	t.Run("CreateInterval with invalid start", func(t *testing.T) {
 		invalidInterval := copyInterval(interval)
 		invalidInterval.Start = nil
 
 		_, err := manager.CreateInterval(invalidInterval)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.IsType(t, &IntervalCreationError{}, err)
 		assert.Equal(t, "cannot create interval: start time is required", err.Error())
 	})
@@ -154,7 +161,7 @@ func TextIntervalCreationWithError(t *testing.T) {
 		invalidInterval.End = nil
 
 		_, err := manager.CreateInterval(invalidInterval)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.IsType(t, &IntervalCreationError{}, err)
 		assert.Equal(t, "cannot create interval: end time is required", err.Error())
 	})
@@ -164,7 +171,7 @@ func TextIntervalCreationWithError(t *testing.T) {
 		invalidInterval.ContextId = ""
 
 		_, err := manager.CreateInterval(invalidInterval)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.IsType(t, &IntervalCreationError{}, err)
 		assert.Equal(t, "cannot create interval: context id is required", err.Error())
 	})
@@ -174,9 +181,56 @@ func TextIntervalCreationWithError(t *testing.T) {
 		invalidInterval.End = timePointer(time.Date(2024, 6, 1, 8, 0, 0, 0, time.UTC))
 
 		_, err := manager.CreateInterval(invalidInterval)
-		assert.Error(t, err)
+		require.Error(t, err)
+		assert.IsType(t, &IntervalCreationError{}, err)
+		assert.Equal(t, "cannot create interval: end time must be after start time", err.Error())
+	})
+
+	t.Run("CreateInterval with end equal to start", func(t *testing.T) {
+		invalidInterval := copyInterval(interval)
+		invalidInterval.End = invalidInterval.Start
+
+		_, err := manager.CreateInterval(invalidInterval)
+		require.Error(t, err)
 		assert.IsType(t, &IntervalCreationError{}, err)
 		assert.Equal(t, "cannot create interval: end time must be after start time", err.Error())
 	})
 }
 
+func TestCreateInterval(t *testing.T) {
+	test := NewEmptyTestContextManager()
+	test.Contexts.Seed(&Context{Id: "context1", WorkspaceId: "workspace1"})
+	start := time.Date(2024, 6, 1, 9, 0, 0, 0, time.UTC)
+	end := start.Add(8 * time.Hour)
+	interval := &Interval{
+		ContextId: "context1",
+		Start:     &start,
+		End:       &end,
+		Status:    "completed",
+	}
+
+	id, err := test.Manager.CreateInterval(interval)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, id)
+	assert.Equal(t, 8*time.Hour, interval.Duration)
+	assert.Equal(t, "workspace1", interval.WorkspaceId)
+}
+
+func TestCreateActiveIntervalWithoutEnd(t *testing.T) {
+	test := NewEmptyTestContextManager()
+	test.Contexts.Seed(&Context{Id: "context1", WorkspaceId: "workspace1"})
+	start := time.Date(2024, 6, 1, 9, 0, 0, 0, time.UTC)
+	interval := &Interval{
+		ContextId: "context1",
+		Start:     &start,
+		Status:    IntervalStatusActive,
+	}
+
+	id, err := test.Manager.CreateInterval(interval)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, id)
+	assert.Nil(t, interval.End)
+	assert.Zero(t, interval.Duration)
+}

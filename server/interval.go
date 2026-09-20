@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"sort"
 	"time"
@@ -123,7 +124,13 @@ func (h *IntervalHandler) createInterval(w http.ResponseWriter, r *http.Request)
 
 	id, err := h.manager.CreateInterval(&interval)
 	if err != nil {
-		if _, ok := err.(*core.ContextNotFoundError); ok {
+		var intervalCreationError *core.IntervalCreationError
+		if errors.As(err, &intervalCreationError) {
+			writeError(w, http.StatusBadRequest, "INVALID_INTERVAL", intervalCreationError.Error())
+			return
+		}
+		var contextNotFoundError *core.ContextNotFoundError
+		if errors.As(err, &contextNotFoundError) {
 			writeError(w, http.StatusBadRequest, "CONTEXT_NOT_FOUND", "Context not found")
 			return
 		}

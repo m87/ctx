@@ -176,19 +176,19 @@ func NewIntervalCreationError(reason string) *IntervalCreationError {
 
 func (m *ContextManager) CreateInterval(interval *Interval) (string, error) {
 	if interval == nil {
-		return "", fmt.Errorf("interval is required")
+		return "", NewIntervalCreationError("interval is required")
 	}
 	if interval.ContextId == "" {
-		return "", fmt.Errorf("context id is required")
+		return "", NewIntervalCreationError("context id is required")
 	}
 	if !timeIsSet(interval.Start) {
-		return "", fmt.Errorf("start time is required")
+		return "", NewIntervalCreationError("start time is required")
 	}
-	if !timeIsSet(interval.End) {
-		return "", fmt.Errorf("end time is required")
+	if interval.Status != IntervalStatusActive && !timeIsSet(interval.End) {
+		return "", NewIntervalCreationError("end time is required")
 	}
-	if interval.End.Before(*interval.Start) {
-		return "", fmt.Errorf("end time must be after start time")
+	if timeIsSet(interval.End) && !interval.End.After(*interval.Start) {
+		return "", NewIntervalCreationError("end time must be after start time")
 	}
 
 	interval.Duration = durationBetween(interval.Start, interval.End)

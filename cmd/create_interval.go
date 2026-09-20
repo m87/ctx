@@ -75,7 +75,7 @@ func NewCreateIntervalCmd() *cobra.Command {
 					return err
 				}
 			} else {
-				id, err := manager.SaveInterval(interval)
+				id, err := manager.CreateInterval(interval)
 				if err != nil {
 					return err
 				}

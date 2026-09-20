@@ -58,6 +58,60 @@ func TestSplitIntervalResponse(t *testing.T) {
 	assert.Equal(t, end, *result.SplitResult[1].End)
 }
 
+func TestCreateIntervalReturnsBadRequestForInvalidInterval(t *testing.T) {
+	manager := core.NewContextManager(
+		nil,
+		&splitContextRepository{context: &core.Context{Id: "context-1", WorkspaceId: "workspace-1"}},
+		&splitIntervalRepository{intervals: make(map[string]*core.Interval)},
+		nil,
+		nil,
+	)
+	mux := http.NewServeMux()
+	registerIntervalHandler(mux, manager)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/",
+		bytes.NewBufferString(`{"contextId":"context-1","end":"2026-08-14T09:00:00Z","status":"completed"}`),
+	)
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusBadRequest, response.Code)
+	var body ErrorResponse
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&body))
+	assert.Equal(t, "INVALID_INTERVAL", body.Code)
+	assert.Equal(t, "cannot create interval: start time is required", body.Description)
+}
+
+func TestCreateActiveIntervalWithoutEnd(t *testing.T) {
+	manager := core.NewContextManager(
+		nil,
+		&splitContextRepository{context: &core.Context{Id: "context-1", WorkspaceId: "workspace-1"}},
+		&splitIntervalRepository{intervals: make(map[string]*core.Interval)},
+		nil,
+		nil,
+	)
+	mux := http.NewServeMux()
+	registerIntervalHandler(mux, manager)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/",
+		bytes.NewBufferString(`{"contextId":"context-1","start":"2026-08-14T08:00:00Z","status":"active"}`),
+	)
+	response := httptest.NewRecorder()
+
+	mux.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	var interval core.Interval
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&interval))
+	assert.Equal(t, "split-1", interval.Id)
+	assert.Nil(t, interval.End)
+	assert.Zero(t, interval.Duration)
+	assert.Equal(t, "workspace-1", interval.WorkspaceId)
+}
+
 func TestUndoSplitIntervalRestoresOriginAfterPartialClientUndo(t *testing.T) {
 	result := intervalSplitResultFixture()
 	repository := &splitIntervalRepository{
