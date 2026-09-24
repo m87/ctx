@@ -11,6 +11,16 @@ import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { TimeZoneService } from '../shared/time-zone.service';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { SettingsQueries } from '../../api/settings/settings.queries';
+import {
+  createTimelineMarks,
+  minuteWithinDay,
+  normalizeTimelineRangeMode,
+  resolveTimelineRange,
+  timelinePosition,
+  timelineRangeSettingKey,
+  timelineWidth,
+} from '../shared/timeline-range';
 
 const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
   contexts: [],
@@ -27,10 +37,12 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
       </div>
 
       <div class="relative h-3.25 mb-1">
-        @for (mark of hourMarks; track mark.hour) {
+        @for (mark of hourMarks(); track mark.minute; let first = $first; let last = $last) {
           <div
-            class="absolute text-label text-muted-foreground whitespace-nowrap -translate-x-1/2 leading-none"
-            [style.left.%]="getHourPosition(mark.hour)"
+            class="absolute text-label text-muted-foreground whitespace-nowrap leading-none"
+            [class.-translate-x-1/2]="!first && !last"
+            [class.-translate-x-full]="last"
+            [style.left.%]="getHourPosition(mark.minute)"
           >
             {{ mark.label }}
           </div>
@@ -38,10 +50,10 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
       </div>
 
       <div class="relative h-3.5">
-        @for (mark of hourMarks; track mark.hour) {
+        @for (mark of hourMarks(); track mark.minute) {
           <div
             class="absolute top-0 bottom-0 border-l border-border pointer-events-none"
-            [style.left.%]="getHourPosition(mark.hour)"
+            [style.left.%]="getHourPosition(mark.minute)"
           ></div>
         }
 
@@ -51,15 +63,16 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
           <div class="absolute inset-0 bg-muted/30 rounded-lg"></div>
 
           @for (interval of intervals(); track interval.id) {
-            @if (getWidth(interval.from, interval.to) > 0) {
-              <div
-                class="absolute top-0 h-full rounded-[3px] opacity-85 hover:opacity-100 hover:scale-y-110 transition-all duration-100 origin-center cursor-pointer"
+            @if (getWidth(interval.startMinutes, interval.endMinutes) > 0) {
+              <button
+                type="button"
+                class="absolute top-0 h-full rounded-md opacity-85 hover:opacity-100 hover:scale-y-110 transition-all duration-100 origin-center cursor-pointer focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
                 [style.background-color]="interval.color"
-                [style.left.%]="getLeft(interval.from)"
-                [style.width.%]="getWidth(interval.from, interval.to)"
-                [attr.aria-label]="'Interwał od ' + interval.from + ' do ' + interval.to"
+                [style.left.%]="getLeft(interval.startMinutes)"
+                [style.width.%]="getWidth(interval.startMinutes, interval.endMinutes)"
+                [attr.aria-label]="'Interval from ' + interval.from + ' to ' + interval.to"
                 (click)="selectLegendContext(interval.contextId)"
-              ></div>
+              ></button>
             }
           }
         }
@@ -73,8 +86,8 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
           }
         } @else {
           @for (context of visibleLegendContexts(); track context.id) {
-            <div
-              class="flex items-center gap-1.5 text-caption text-muted-foreground hover:text-foreground cursor-default"
+            <a
+              class="flex items-center gap-1.5 text-caption text-muted-foreground hover:text-foreground cursor-pointer"
               [routerLink]="['/context', context.id]"
             >
               <span
@@ -82,7 +95,7 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
                 [style.background-color]="context.color"
               ></span>
               {{ context.name }}
-            </div>
+            </a>
           }
         }
       </div>
@@ -92,6 +105,7 @@ const EMPTY_DAY_INTERVALS: DayIntervalsResponse = {
 export class TimelineComponent {
   readonly legendSkeletonItems = [0, 1, 2];
   private intervalQueries = inject(IntervalQueries);
+  private settingsQueries = inject(SettingsQueries);
   private router = inject(Router);
   private store = inject(Store);
   private timeZone = inject(TimeZoneService);
@@ -116,6 +130,7 @@ export class TimelineComponent {
     ),
   );
   dayIntervals = computed(() => this.dayIntervalsQuery.data() ?? EMPTY_DAY_INTERVALS);
+  settingsQuery = injectQuery(() => this.settingsQueries.settings());
   private selectedLegendContextId = signal<string | null>(null);
 
   intervals = computed(() => {
@@ -128,6 +143,19 @@ export class TimelineComponent {
         const contextId = interval.contextId ?? '';
         const context = contextsById.get(contextId);
         const colorKey = context?.id || contextId || interval.id;
+        const startMinutes = minuteWithinDay(
+          interval.start,
+          this.selectedDay(),
+          this.timeZone.effectiveTimeZone(),
+        );
+        const endMinutes = minuteWithinDay(
+          interval.end,
+          this.selectedDay(),
+          this.timeZone.effectiveTimeZone(),
+        );
+        if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+          return null;
+        }
         const durationMinutes = Math.max(
           interval.duration > 0
             ? interval.duration / 60_000_000_000
@@ -142,12 +170,23 @@ export class TimelineComponent {
           contextId,
           from: this.timeZone.formatTime(interval.start),
           to: this.timeZone.formatTime(interval.end),
+          startMinutes,
+          endMinutes,
           durationMinutes,
           color: colorHash(colorKey),
         };
       })
-      .filter((interval) => interval.contextId !== '' && interval.durationMinutes > 0);
+      .filter(
+        (interval): interval is NonNullable<typeof interval> =>
+          interval !== null && interval.contextId !== '' && interval.durationMinutes > 0,
+      );
   });
+
+  timelineRangeMode = computed(() =>
+    normalizeTimelineRangeMode(this.settingsQuery.data()?.[timelineRangeSettingKey]),
+  );
+  timelineRange = computed(() => resolveTimelineRange(this.intervals(), this.timelineRangeMode()));
+  hourMarks = computed(() => createTimelineMarks(this.timelineRange()));
 
   todayContexts = computed(() => {
     const durationsByContextId = this.intervals().reduce((result, interval) => {
@@ -182,19 +221,6 @@ export class TimelineComponent {
     return selectedContext ? [...defaultContexts, selectedContext] : defaultContexts;
   });
 
-  dayStartHour = 0;
-  dayEndHour = 24;
-
-  hourMarks = [
-    { hour: 0, label: '0:00' },
-    { hour: 6, label: '6:00' },
-    { hour: 12, label: '12:00' },
-    { hour: 18, label: '18:00' },
-    { hour: 24, label: '24:00' },
-  ];
-
-  private readonly totalDayMinutes = 24 * 60;
-
   private extractDayFromUrl(url: string): string | null {
     const normalizedUrl = url.split('?')[0].split('#')[0];
     const dayMatch = normalizedUrl.match(/\/day\/([^/]+)/);
@@ -211,27 +237,16 @@ export class TimelineComponent {
     return DateTime.fromFormat(date, 'yyyy-MM-dd').toFormat('dd.MM.yyyy');
   }
 
-  getHourPosition(hour: number): number {
-    return ((hour - this.dayStartHour) / (this.dayEndHour - this.dayStartHour)) * 100;
+  getHourPosition(minute: number): number {
+    return timelinePosition(minute, this.timelineRange());
   }
 
-  private toMinutes(time: string): number {
-    const [hour, minute] = time.split(':').map(Number);
-    if (Number.isNaN(hour) || Number.isNaN(minute)) {
-      return 0;
-    }
-
-    return hour * 60 + minute;
+  getLeft(startMinutes: number): number {
+    return timelinePosition(startMinutes, this.timelineRange());
   }
 
-  getLeft(from: string): number {
-    return (this.toMinutes(from) / this.totalDayMinutes) * 100;
-  }
-
-  getWidth(from: string, to: string): number {
-    const start = this.toMinutes(from);
-    const end = this.toMinutes(to);
-    return (Math.max(end - start, 1) / this.totalDayMinutes) * 100;
+  getWidth(startMinutes: number, endMinutes: number): number {
+    return timelineWidth(startMinutes, endMinutes, this.timelineRange());
   }
 
   selectLegendContext(contextId: string): void {

@@ -21,9 +21,10 @@ func TestSettingsManagerInitSettingsIfNotExistsCreatesDefaults(t *testing.T) {
 	require.Equal(t, 1, repo.loadCalls)
 	require.Equal(t, 1, repo.saveCalls)
 	want := map[string]string{
-		"client.general.theme":    "light",
-		"client.general.firstDay": "Monday",
-		"client.general.timeZone": "browser",
+		"client.general.theme":         "light",
+		"client.general.firstDay":      "Monday",
+		"client.general.timeZone":      "browser",
+		"client.general.timelineRange": "full-day",
 	}
 	require.Equal(t, want, repo.saved.raw)
 	require.Same(t, repo.saved, manager.cache)

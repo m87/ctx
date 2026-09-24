@@ -9,6 +9,11 @@ import {
   timeZoneSettingKey,
   TimeZoneService,
 } from '../shared/time-zone.service';
+import {
+  normalizeTimelineRangeMode,
+  timelineRangeSettingKey,
+  TimelineRangeMode,
+} from '../shared/timeline-range';
 
 const themeKey = 'client.general.theme';
 const firstDayKey = 'client.general.firstDay';
@@ -96,6 +101,35 @@ const firstDayKey = 'client.general.firstDay';
           </button>
         </div>
       </div>
+
+      <div class="space-y-2">
+        <div class="text-foreground font-medium text-lead">Timeline range</div>
+        <div class="text-dense sm:text-sm">
+          Show the entire day or fit the timeline to the day's recorded intervals.
+        </div>
+        <div class="ui-tablist mt-1" role="radiogroup" aria-label="Timeline range">
+          <button
+            type="button"
+            class="ui-tab disabled:pointer-events-none disabled:opacity-50"
+            role="radio"
+            [attr.aria-checked]="timelineRangeMode() === 'full-day'"
+            [disabled]="saveSettingsMutation.isPending()"
+            (click)="setTimelineRangeMode('full-day')"
+          >
+            Full day
+          </button>
+          <button
+            type="button"
+            class="ui-tab disabled:pointer-events-none disabled:opacity-50"
+            role="radio"
+            [attr.aria-checked]="timelineRangeMode() === 'intervals'"
+            [disabled]="saveSettingsMutation.isPending()"
+            (click)="setTimelineRangeMode('intervals')"
+          >
+            Fit to intervals
+          </button>
+        </div>
+      </div>
     </div>
   `,
 })
@@ -106,6 +140,7 @@ export class SidebarSettingsGeneralSectionComponent {
 
   readonly colorMode = signal<'light' | 'dark'>('light');
   readonly weekStart = signal<'monday' | 'sunday'>('monday');
+  readonly timelineRangeMode = signal<TimelineRangeMode>('full-day');
   readonly selectedTimeZone = this.timeZone.preference;
   readonly browserTimeZonePreference = browserTimeZonePreference;
   readonly browserZone = browserTimeZone();
@@ -127,6 +162,7 @@ export class SidebarSettingsGeneralSectionComponent {
     const theme = settings[themeKey];
     const firstDay = settings[firstDayKey];
     const selectedTimeZone = settings[timeZoneSettingKey];
+    const timelineRangeMode = settings[timelineRangeSettingKey];
 
     if (theme === 'light' || theme === 'dark') {
       this.colorMode.set(theme);
@@ -143,6 +179,8 @@ export class SidebarSettingsGeneralSectionComponent {
     if (selectedTimeZone) {
       this.timeZone.setPreference(selectedTimeZone);
     }
+
+    this.timelineRangeMode.set(normalizeTimelineRangeMode(timelineRangeMode));
   });
 
   setColorMode(mode: 'light' | 'dark'): void {
@@ -160,6 +198,11 @@ export class SidebarSettingsGeneralSectionComponent {
     this.saveSettings();
   }
 
+  setTimelineRangeMode(mode: TimelineRangeMode): void {
+    this.timelineRangeMode.set(mode);
+    this.saveSettings();
+  }
+
   getSelectValue(event: Event): string {
     return (event.target as HTMLSelectElement).value;
   }
@@ -170,6 +213,7 @@ export class SidebarSettingsGeneralSectionComponent {
       [themeKey]: this.colorMode(),
       [firstDayKey]: this.weekStart() === 'monday' ? 'Monday' : 'Sunday',
       [timeZoneSettingKey]: this.selectedTimeZone(),
+      [timelineRangeSettingKey]: this.timelineRangeMode(),
     });
   }
 }

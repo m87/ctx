@@ -20,9 +20,10 @@ type SettingsManager struct {
 }
 
 var defaultClientSettings = map[string]string{
-	"client.general.theme":    "light",
-	"client.general.firstDay": "Monday",
-	"client.general.timeZone": "browser",
+	"client.general.theme":         "light",
+	"client.general.firstDay":      "Monday",
+	"client.general.timeZone":      "browser",
+	"client.general.timelineRange": "full-day",
 }
 
 func NewSettingsManager(clientPropertiesRepo SettingsRepository) *SettingsManager {

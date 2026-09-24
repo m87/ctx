@@ -17,7 +17,7 @@ A lightweight time tracker with a CLI, Go server, and optional Angular web UI. I
 - **Context details** — manage a context's name, description, tags, intervals, and today/all-time statistics.
 - **Context archiving** — archived contexts are read-only and hidden from regular context lists, but remain available in search and historical summaries. They can be restored or permanently deleted.
 - **Per-workspace link rules** — turn matching parts of context names, such as Jira or GitHub issue keys, into links using regular expressions and templates. Links support capture groups such as `$1` and URL-encoded context placeholders such as `${name}`, `${id}`, `${duration}`, `${start}`, `${end}`, `${date}`, and `${project.name}`. `${name}` contains the context name without the current RegExp match, so `$1 ${name}` can reconstruct a name that starts with the matched issue key; time-related values are available in summary views that provide them.
-- **Application settings** — select a light or dark theme and choose Monday or Sunday as the first day of the week.
+- **Application settings** — select a light or dark theme, choose the first day of the week and display the timeline as a full day or fitted to the day's intervals.
 - **Data integrity tools** — inspect workspaces, contexts, and intervals for broken references or invalid state, then automatically repair supported issues.
 - **Local and remote CLI** — use the same resource commands against a local database or a remote HTTP API.
 - **Structured output** — render CLI results as `text`, `json`, `yaml`, or shell variables.
