@@ -14,6 +14,36 @@ import { colorHash, durationAsHM } from '../utils';
 
 type SummaryView = 'contexts' | 'projects';
 
+export function contextQueryResultAsListItems(
+  result: ContextQueryResult | null | undefined,
+): ContextListItem[] {
+  const statsByContext = new Map(
+    (result?.contextStats ?? []).map((stats) => [stats.contextId, stats]),
+  );
+
+  return (result?.contexts ?? [])
+    .map((context) => {
+      const stats = statsByContext.get(context.id);
+      return {
+        ...context,
+        id: context.id,
+        name: context.name,
+        duration: durationAsHM(stats?.duration ?? 0).trim() || '0m',
+        durationValue: stats?.duration ?? 0,
+        percentage: stats?.percentage ?? 0,
+        color: colorHash(context.id),
+        sessions: stats?.intervalCount ?? 0,
+        archived: context.archived ?? false,
+        project: context.project,
+      };
+    })
+    .sort(
+      (left, right) =>
+        (right.durationValue ?? 0) - (left.durationValue ?? 0) ||
+        left.name.localeCompare(right.name),
+    );
+}
+
 @Component({
   selector: 'ctx-query-summary',
   imports: [
@@ -140,34 +170,9 @@ export class QuerySummaryComponent {
   readonly resourceName = input('query result');
   readonly retry = output<void>();
 
-  readonly contexts = computed<ContextListItem[]>(() => {
-    const result = this.result();
-    const statsByContext = new Map(
-      (result?.contextStats ?? []).map((stats) => [stats.contextId, stats]),
-    );
-
-    return (result?.contexts ?? [])
-      .map((context) => {
-        const stats = statsByContext.get(context.id);
-        return {
-          ...context,
-          id: context.id,
-          name: context.name,
-          duration: durationAsHM(stats?.duration ?? 0).trim() || '0m',
-          durationValue: stats?.duration ?? 0,
-          percentage: stats?.percentage ?? 0,
-          color: colorHash(context.id),
-          sessions: stats?.intervalCount ?? 0,
-          archived: context.archived ?? false,
-          project: context.project,
-        };
-      })
-      .sort(
-        (left, right) =>
-          (right.durationValue ?? 0) - (left.durationValue ?? 0) ||
-          left.name.localeCompare(right.name),
-      );
-  });
+  readonly contexts = computed<ContextListItem[]>(() =>
+    contextQueryResultAsListItems(this.result()),
+  );
 
   readonly contextDistribution = computed<DistributionItem[]>(() =>
     this.contexts()

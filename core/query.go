@@ -13,8 +13,6 @@ import (
 // label | [] | ("label1", "label2") | in, not in
 // project | string, [] | pr , ("pr1", "pr2")  | ~ = ~= in not in
 
-
- 
 type ContextSQLQuery struct {
 	WorkspaceId string
 	WhereClause string
@@ -34,7 +32,7 @@ type ContextQueryInterpreter interface {
 	Interpret(query string) (*ContextSQLQuery, error)
 }
 
-type DefaultContextQueryInterpreter struct{} 
+type DefaultContextQueryInterpreter struct{}
 
 func (i *DefaultContextQueryInterpreter) Interpret(query string) (*ContextSQLQuery, error) {
 	var s scanner.Scanner
@@ -42,7 +40,7 @@ func (i *DefaultContextQueryInterpreter) Interpret(query string) (*ContextSQLQue
 	s.Mode = scanner.ScanIdents | scanner.ScanStrings | scanner.ScanRawStrings | scanner.ScanInts | scanner.ScanFloats | scanner.SkipComments
 
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
-		fmt.Printf("token: %s\n", s.TokenText()
+		fmt.Printf("token: %s\n", s.TokenText())
 	}
 
 	return &ContextSQLQuery{}, nil
