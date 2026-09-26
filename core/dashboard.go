@@ -167,6 +167,9 @@ func (m *ContextManager) validateDashboard(dashboard *Dashboard) error {
 	if !json.Valid(dashboard.Definition) {
 		return &InvalidDashboardError{Description: "dashboard definition must be valid JSON"}
 	}
+	if err := validateDashboardDefinition(dashboard.Definition); err != nil {
+		return err
+	}
 
 	workspace, err := m.WorkspaceRepository.GetById(dashboard.WorkspaceId)
 	if err != nil {

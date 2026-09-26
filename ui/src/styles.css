@@ -22,6 +22,159 @@
 }
 
 @layer components {
+  .dashboard-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  }
+
+  .dashboard-widget-slot {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--dashboard-widget-inset);
+  }
+
+  .dashboard-widget-surface {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0.5rem;
+    border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--card-foreground);
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-widget-editable,
+  .dashboard-palette-item {
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .dashboard-widget-selected,
+  .dashboard-widget-editable:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .dashboard-widget-dragging {
+    opacity: 0;
+  }
+
+  .dashboard-widget-preview {
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .dashboard-widget-invalid {
+    outline-color: var(--destructive);
+    background: color-mix(in oklab, var(--destructive) 10%, var(--card));
+  }
+
+  .dashboard-resize-handles {
+    position: absolute;
+    inset: var(--dashboard-widget-inset);
+    pointer-events: none;
+  }
+
+  .dashboard-resize-handle {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  .dashboard-resize-handle span {
+    width: 6px;
+    height: 6px;
+    border: 1px solid var(--ring);
+    border-radius: 2px;
+    background: var(--card);
+  }
+
+  .dashboard-resize-handle:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .dashboard-resize-handle:is([data-edge='n'], [data-edge='s']) {
+    left: 6px;
+    right: 6px;
+    height: 10px;
+    cursor: ns-resize;
+  }
+
+  .dashboard-resize-handle:is([data-edge='e'], [data-edge='w']) {
+    top: 6px;
+    bottom: 6px;
+    width: 10px;
+    cursor: ew-resize;
+  }
+
+  .dashboard-resize-handle[data-edge='n'] {
+    top: -5px;
+  }
+  .dashboard-resize-handle[data-edge='s'] {
+    bottom: -5px;
+  }
+  .dashboard-resize-handle[data-edge='e'] {
+    right: -5px;
+  }
+  .dashboard-resize-handle[data-edge='w'] {
+    left: -5px;
+  }
+
+  .dashboard-resize-handle:is(
+    [data-edge='ne'],
+    [data-edge='se'],
+    [data-edge='sw'],
+    [data-edge='nw']
+  ) {
+    z-index: 3;
+    width: 12px;
+    height: 12px;
+  }
+
+  .dashboard-resize-handle:is([data-edge='ne'], [data-edge='nw']) {
+    top: -6px;
+  }
+  .dashboard-resize-handle:is([data-edge='se'], [data-edge='sw']) {
+    bottom: -6px;
+  }
+  .dashboard-resize-handle:is([data-edge='nw'], [data-edge='sw']) {
+    left: -6px;
+  }
+  .dashboard-resize-handle:is([data-edge='ne'], [data-edge='se']) {
+    right: -6px;
+  }
+  .dashboard-resize-handle:is([data-edge='nw'], [data-edge='se']) {
+    cursor: nwse-resize;
+  }
+  .dashboard-resize-handle:is([data-edge='ne'], [data-edge='sw']) {
+    cursor: nesw-resize;
+  }
+
+  .dashboard-palette-preview {
+    cursor: grabbing;
+    pointer-events: none;
+  }
+
   .split-undo-toast {
     gap: 0.75rem !important;
     padding: 0.75rem 0.75rem 0.75rem 0.875rem !important;

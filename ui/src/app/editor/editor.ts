@@ -20,6 +20,7 @@ import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
+import { HlmTextareaImports } from '@spartan-ng/helm/textarea';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { Store } from '@ngxs/store';
 import { ContextQueries } from '../../api/context/context.queries';
@@ -36,6 +37,20 @@ import { ContextQueryResult } from '../../api/query/query.service';
 import { SavedQueryQueries } from '../../api/query/saved-query.queries';
 import { SavedQuery } from '../../api/query/saved-query.service';
 import { ContextListComponent } from '../context/context-list.component';
+import {
+  addTextWidget,
+  deleteTextWidget,
+  normalizeDashboardDefinition,
+  moveTextWidget,
+  resizeTextWidget,
+  TextWidgetDefinition,
+  updateTextWidget,
+  updateTextWidgetLayout,
+  DashboardWidgetLayout,
+} from './dashboard/dashboard-definition';
+import { DashboardCanvasComponent } from './dashboard/dashboard-canvas.component';
+import { GridPoint } from './dashboard/dashboard-layout';
+import { WidgetPaletteComponent } from './dashboard/widget-palette.component';
 import { contextQueryResultAsListItems } from '../query/query-summary.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { SearchDropdownSelectComponent } from '../shared/search-dropdown-select.component';
@@ -146,6 +161,9 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
     HlmInputImports,
     HlmLabelImports,
     HlmSkeletonImports,
+    HlmTextareaImports,
+    DashboardCanvasComponent,
+    WidgetPaletteComponent,
     NgIcon,
     ContextListComponent,
     QueryErrorStateComponent,
@@ -373,7 +391,17 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               <div
                 class="min-w-0 whitespace-pre-wrap break-words font-mono text-xs text-foreground"
               >
-                {{ queryText() }}
+                @if (dashboardEditing()) {
+                  <textarea
+                    hlmTextarea
+                    class="min-h-32 w-full resize-y font-mono text-xs"
+                    aria-label="Dashboard query"
+                    [value]="dashboardQueryText()"
+                    (input)="updateDashboardQuery($event)"
+                  ></textarea>
+                } @else {
+                  {{ queryText() }}
+                }
               </div>
             </div>
           </section>
@@ -398,21 +426,23 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
           </section>
         </aside>
 
-        <main
-          class="editor-canvas flex min-w-0 flex-1 items-start justify-center overflow-auto p-6"
-        >
-          <div
-            class="dashboard-grid w-full max-w-[1000px] shrink-0 rounded-lg border bg-card shadow-sm"
-            [style.--dashboard-column-count]="dashboardColumnCount"
-            [style.--dashboard-row-count]="dashboardRowCount()"
-            [attr.aria-label]="
-              'Dashboard grid, ' +
-              dashboardColumnCount +
-              ' columns by ' +
-              dashboardRowCount() +
-              ' rows'
-            "
-          ></div>
+        <main class="editor-canvas flex min-w-0 flex-1 flex-col items-center overflow-auto p-6">
+          @if (dashboardDefinitionError()) {
+            <div class="ui-notice ui-notice-destructive mb-3" role="alert">
+              {{ dashboardDefinitionError() }}
+            </div>
+          }
+          <ctx-dashboard-canvas
+            #dashboardCanvas
+            [widgets]="dashboardWidgets()"
+            [editing]="dashboardEditing() && !updateDashboardMutation.isPending()"
+            [selectedWidgetId]="selectedWidgetId()"
+            (widgetSelected)="selectWidget($event)"
+            (widgetAdded)="addWidget($event)"
+            (widgetMoved)="moveWidgetTo($event.id, $event.layout)"
+            (widgetResized)="applyWidgetLayout($event.id, $event.layout)"
+            (widgetKeydown)="handleWidgetKeydown($event.event, $event.widget)"
+          ></ctx-dashboard-canvas>
         </main>
 
         <aside
@@ -426,14 +456,25 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               </div>
             </div>
 
-            <div class="flex flex-1 items-center justify-center p-5">
-              <div class="max-w-44 text-center">
-                <div class="text-xs font-medium text-foreground/80">No widgets yet</div>
-                <div class="mt-1 text-meta leading-relaxed text-muted-foreground">
-                  Dashboard widgets will appear here.
+            @if (dashboardEditing()) {
+              <ctx-widget-palette
+                [overCanvas]="dashboardCanvas.palettePreviewVisible()"
+                (widgetAdded)="addWidget()"
+                (dragStarted)="dashboardCanvas.startPaletteDrag()"
+                (dragMoved)="dashboardCanvas.movePaletteDrag($event)"
+                (dragEnded)="dashboardCanvas.finishPaletteDrag($event)"
+              ></ctx-widget-palette>
+            } @else {
+              <div class="flex flex-1 items-center justify-center p-5">
+                <div class="text-center text-xs text-muted-foreground">
+                  {{
+                    dashboardWidgets().length
+                      ? 'Widget catalog is available in edit mode.'
+                      : 'No widgets yet'
+                  }}
                 </div>
               </div>
-            </div>
+            }
           </section>
 
           <section class="flex min-h-0 flex-1 flex-col" aria-label="Properties">
@@ -443,14 +484,44 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               </div>
             </div>
 
-            <div class="flex flex-1 items-center justify-center p-5">
-              <div class="max-w-44 text-center">
-                <div class="text-xs font-medium text-foreground/80">Nothing selected</div>
-                <div class="mt-1 text-meta leading-relaxed text-muted-foreground">
-                  Select an element to view its properties.
+            @if (selectedWidget(); as widget) {
+              <div class="flex flex-col gap-4 overflow-y-auto p-3">
+                <div class="ui-field">
+                  <label hlmLabel>Type</label>
+                  <div class="ui-field-value">Text</div>
                 </div>
+                <div class="ui-field">
+                  <label hlmLabel [for]="'widget-query-' + widget.id">Widget query</label
+                  ><textarea
+                    hlmTextarea
+                    [id]="'widget-query-' + widget.id"
+                    [value]="widget.query"
+                    (input)="updateWidgetQuery(widget.id, $event)"
+                  ></textarea>
+                </div>
+                <div class="ui-field">
+                  <label hlmLabel [for]="'widget-text-' + widget.id">Text</label
+                  ><textarea
+                    hlmTextarea
+                    [id]="'widget-text-' + widget.id"
+                    [value]="widget.properties.text"
+                    (input)="updateWidgetText(widget.id, $event)"
+                  ></textarea>
+                </div>
+                <button
+                  hlmBtn
+                  type="button"
+                  variant="destructive"
+                  (click)="deleteWidget(widget.id)"
+                >
+                  Delete widget
+                </button>
               </div>
-            </div>
+            } @else {
+              <div class="flex flex-1 items-center justify-center p-5">
+                <div class="text-center text-xs text-muted-foreground">Nothing selected</div>
+              </div>
+            }
           </section>
         </aside>
       </div>
@@ -607,15 +678,6 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
       background-size: 20px 20px;
     }
 
-    .dashboard-grid {
-      aspect-ratio: var(--dashboard-column-count) / var(--dashboard-row-count);
-      background-image:
-        linear-gradient(to right, var(--border) 1px, transparent 1px),
-        linear-gradient(to bottom, var(--border) 1px, transparent 1px);
-      background-size: calc(100% / var(--dashboard-column-count))
-        calc(100% / var(--dashboard-row-count));
-    }
-
     .editor-preview-dialog {
       width: calc(100vw - 2rem);
       max-width: 72rem;
@@ -624,9 +686,16 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
 })
 export class EditorComponent {
   readonly previewSkeletonItems = [0, 1, 2];
-  readonly dashboardColumnCount = DASHBOARD_COLUMN_COUNT;
-  readonly dashboardWidgets = signal<readonly DashboardWidgetPlacement[]>([]);
-  readonly dashboardRowCount = computed(() => dashboardGridRowCount(this.dashboardWidgets()));
+  readonly selectedWidgetId = signal<string | null>(null);
+  readonly dashboardWidgets = computed<readonly TextWidgetDefinition[]>(() => {
+    const dashboard = this.dashboardDraft() ?? this.activeDashboard();
+    if (!dashboard) return [];
+    try {
+      return normalizeDashboardDefinition(dashboard.definition).widgets;
+    } catch {
+      return [];
+    }
+  });
   private readonly projectQueries = inject(ProjectQueries);
   private readonly contextQueries = inject(ContextQueries);
   private readonly dashboardQueries = inject(DashboardQueries);
@@ -669,6 +738,28 @@ export class EditorComponent {
     dashboardsAsOptions(this.dashboards()),
   );
   readonly dashboardEditing = computed(() => this.dashboardDraft() !== null);
+  readonly dashboardDefinitionError = computed(() => {
+    const dashboard = this.activeDashboard();
+    if (!dashboard) return '';
+    try {
+      normalizeDashboardDefinition(dashboard.definition);
+      return '';
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Dashboard definition is invalid.';
+    }
+  });
+  readonly selectedWidget = computed(
+    () => this.dashboardWidgets().find((widget) => widget.id === this.selectedWidgetId()) ?? null,
+  );
+  readonly dashboardQueryText = computed(() => {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard) return this.queryText();
+    try {
+      return normalizeDashboardDefinition(dashboard.definition).query;
+    } catch {
+      return '';
+    }
+  });
 
   private readonly resetEditorOnWorkspaceChange = effect(() => {
     this.selectedWorkspaceId();
@@ -830,10 +921,16 @@ export class EditorComponent {
       return;
     }
     this.resetDashboardMutations();
+    try {
+      normalizeDashboardDefinition(dashboard.definition);
+    } catch {
+      return;
+    }
     this.dashboardDraft.set({
       ...dashboard,
-      definition: structuredClone(dashboard.definition),
+      definition: normalizeDashboardDefinition(dashboard.definition),
     });
+    this.selectedWidgetId.set(null);
   }
 
   openDashboardPropertiesDialog(): void {
@@ -855,6 +952,7 @@ export class EditorComponent {
     }
     this.dashboardDialogMode.set(null);
     this.dashboardDraft.set(null);
+    this.selectedWidgetId.set(null);
     this.updateDashboardMutation.reset();
   }
 
@@ -930,7 +1028,7 @@ export class EditorComponent {
       type,
       targetId,
       name,
-      definition: {},
+      definition: { version: 1, query: '', widgets: [] },
     };
 
     this.createDashboardMutation.mutate(input, {
@@ -970,5 +1068,118 @@ export class EditorComponent {
   private resetDashboardMutations(): void {
     this.createDashboardMutation.reset();
     this.updateDashboardMutation.reset();
+  }
+
+  addWidget(position?: GridPoint): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard || this.updateDashboardMutation.isPending()) return;
+    const definition = normalizeDashboardDefinition(dashboard.definition);
+    const next = addTextWidget(definition, crypto.randomUUID(), position);
+    if (next === definition) return;
+    const widget = next.widgets.at(-1);
+    if (widget) {
+      this.dashboardDraft.set({ ...dashboard, definition: next });
+      this.selectedWidgetId.set(widget.id);
+    }
+  }
+
+  selectWidget(widgetId: string | null): void {
+    this.selectedWidgetId.set(widgetId);
+  }
+
+  updateDashboardQuery(event: Event): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard) return;
+    const definition = normalizeDashboardDefinition(dashboard.definition);
+    this.dashboardDraft.set({
+      ...dashboard,
+      definition: { ...definition, query: (event.target as HTMLTextAreaElement).value },
+    });
+  }
+
+  moveWidgetTo(widgetId: string, target: GridPoint): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard || this.updateDashboardMutation.isPending()) return;
+    const definition = normalizeDashboardDefinition(dashboard.definition);
+    this.dashboardDraft.set({
+      ...dashboard,
+      definition: moveTextWidget(definition, widgetId, target.x, target.y),
+    });
+  }
+
+  applyWidgetLayout(widgetId: string, layout: DashboardWidgetLayout): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard || this.updateDashboardMutation.isPending()) return;
+    const definition = normalizeDashboardDefinition(dashboard.definition);
+    this.dashboardDraft.set({
+      ...dashboard,
+      definition: updateTextWidgetLayout(definition, widgetId, layout),
+    });
+  }
+
+  updateWidgetQuery(widgetId: string, event: Event): void {
+    this.updateWidget(widgetId, { query: (event.target as HTMLTextAreaElement).value });
+  }
+
+  updateWidgetText(widgetId: string, event: Event): void {
+    const widget = this.dashboardWidgets().find((item) => item.id === widgetId);
+    if (!widget) return;
+    this.updateWidget(widgetId, {
+      properties: { ...widget.properties, text: (event.target as HTMLTextAreaElement).value },
+    });
+  }
+
+  deleteWidget(widgetId: string): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard) return;
+    this.dashboardDraft.set({
+      ...dashboard,
+      definition: deleteTextWidget(normalizeDashboardDefinition(dashboard.definition), widgetId),
+    });
+    this.selectedWidgetId.set(null);
+  }
+
+  handleWidgetKeydown(event: KeyboardEvent, widget: TextWidgetDefinition): void {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      this.selectedWidgetId.set(null);
+      return;
+    }
+    if (
+      !this.dashboardEditing() ||
+      !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
+    )
+      return;
+    event.preventDefault();
+    const selected = this.selectedWidgetId() === widget.id;
+    if (!selected) {
+      this.selectedWidgetId.set(widget.id);
+      return;
+    }
+    const dashboard = this.dashboardDraft();
+    if (!dashboard) return;
+    const definition = normalizeDashboardDefinition(dashboard.definition);
+    const dx = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+    const dy = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+    const next = event.shiftKey
+      ? resizeTextWidget(definition, widget.id, widget.layout.width + dx, widget.layout.height + dy)
+      : moveTextWidget(definition, widget.id, widget.layout.x + dx, widget.layout.y + dy);
+    this.dashboardDraft.set({ ...dashboard, definition: next });
+  }
+
+  private updateWidget(
+    widgetId: string,
+    update: Partial<Pick<TextWidgetDefinition, 'query' | 'properties'>>,
+  ): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard) return;
+    this.dashboardDraft.set({
+      ...dashboard,
+      definition: updateTextWidget(
+        normalizeDashboardDefinition(dashboard.definition),
+        widgetId,
+        update,
+      ),
+    });
   }
 }
