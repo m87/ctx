@@ -17,7 +17,7 @@ export class DashboardQueries {
   list(workspaceId: string | null) {
     return {
       queryKey: dashboardQueryKeys.list(workspaceId),
-      queryFn: () => lastValueFrom(this.service.list(workspaceId!)),
+      queryFn: () => lastValueFrom(this.service.list(workspaceId ?? '')),
       enabled: workspaceId !== null && workspaceId.length > 0,
     };
   }

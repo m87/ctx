@@ -3,7 +3,6 @@ import {
   DASHBOARD_MINIMUM_ROW_COUNT,
   DASHBOARD_TYPE_OPTIONS,
   dashboardTargetId,
-  dashboardTypeRequiresTarget,
   dashboardsAsOptions,
   dashboardGridRowCount,
   queryPreviewSummary,
@@ -25,7 +24,7 @@ describe('editor helpers', () => {
     ).toBe(37);
   });
 
-  it('defines custom and insight dashboard types with the required targets', () => {
+  it('defines workspace-wide custom and insight dashboard types', () => {
     expect(DASHBOARD_TYPE_OPTIONS.map((option) => option.value)).toEqual([
       'custom',
       'workspace',
@@ -33,14 +32,11 @@ describe('editor helpers', () => {
       'context',
       'daily',
     ]);
-    expect(dashboardTypeRequiresTarget('project')).toBe(true);
-    expect(dashboardTypeRequiresTarget('context')).toBe(true);
-    expect(dashboardTypeRequiresTarget('daily')).toBe(false);
-    expect(dashboardTypeRequiresTarget('custom')).toBe(false);
-    expect(dashboardTargetId('workspace', 'workspace-1', '')).toBe('workspace-1');
-    expect(dashboardTargetId('daily', 'workspace-1', '')).toBe('workspace-1');
-    expect(dashboardTargetId('project', 'workspace-1', 'project-1')).toBe('project-1');
-    expect(dashboardTargetId('custom', 'workspace-1', '')).toBeUndefined();
+    expect(dashboardTargetId('workspace', 'workspace-1')).toBe('workspace-1');
+    expect(dashboardTargetId('daily', 'workspace-1')).toBe('workspace-1');
+    expect(dashboardTargetId('project', 'workspace-1')).toBeUndefined();
+    expect(dashboardTargetId('context', 'workspace-1')).toBeUndefined();
+    expect(dashboardTargetId('custom', 'workspace-1')).toBeUndefined();
   });
 
   it('maps saved dashboards to the dashboard selector', () => {
@@ -51,6 +47,7 @@ describe('editor helpers', () => {
           workspaceId: 'workspace-1',
           type: 'custom',
           name: 'Focus',
+          active: true,
           definition: {},
         },
         {
@@ -59,6 +56,7 @@ describe('editor helpers', () => {
           type: 'project',
           targetId: 'project-1',
           name: 'Project overview',
+          active: true,
           definition: {},
         },
       ]),

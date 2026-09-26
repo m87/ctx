@@ -161,14 +161,11 @@ export class CacheService {
   }
 
   afterDashboardCreate(workspaceId: string) {
-    return this.invalidate(dashboardQueryKeys.list(workspaceId));
+    return this.invalidate(dashboardQueryKeys.list(workspaceId), dashboardQueryKeys.details());
   }
 
   afterDashboardUpdate(dashboard: Dashboard) {
-    return this.invalidate(
-      dashboardQueryKeys.list(dashboard.workspaceId),
-      dashboardQueryKeys.detail(dashboard.id),
-    );
+    return this.invalidate(dashboardQueryKeys.lists(), dashboardQueryKeys.details());
   }
 
   afterDashboardDelete(dashboard: Dashboard) {

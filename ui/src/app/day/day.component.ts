@@ -23,7 +23,7 @@ import {
   ProjectTimeListItem,
 } from '../shared/project-time-list.component';
 import { summarizeContextsByProject, UNASSIGNED_PROJECT_ID } from '../shared/project-time-summary';
-import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
+import { DashboardSlotComponent } from '../dashboard/dashboard-slot.component';
 
 type SummaryView = 'contexts' | 'projects' | 'insights';
 
@@ -43,7 +43,7 @@ const EMPTY_DAY_STATS: DayStats = {
     NgIcon,
     QueryErrorStateComponent,
     ProjectTimeListComponent,
-    InsightsEmptyStateComponent,
+    DashboardSlotComponent,
     HlmSkeletonImports,
   ],
   providers: [
@@ -213,7 +213,7 @@ const EMPTY_DAY_STATS: DayStats = {
               emptyMessage="No projects tracked for this day."
             ></ctx-project-time-list>
           } @else {
-            <ctx-insights-empty-state />
+            <ctx-dashboard-slot [workspaceId]="activeWorkspaceId()" type="daily" />
           }
         </div>
       }
@@ -237,7 +237,7 @@ export class DayComponent {
   private workspaceQueries = inject(WorkspaceQueries);
   private store = inject(Store);
   private timeZone = inject(TimeZoneService);
-  private activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  readonly activeWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
   route = inject(ActivatedRoute);
   today = computed(() => this.timeZone.today());
   private readonly routeDate = toSignal(this.route.paramMap.pipe(map((pm) => pm.get('date'))), {

@@ -19,6 +19,7 @@ func TestDashboardLifecycle(t *testing.T) {
 	id, err := test.Manager.CreateDashboard(dashboard)
 	require.NoError(t, err)
 	require.Equal(t, "dashboard-1", id)
+	require.True(t, dashboard.Active)
 	require.JSONEq(t, `{}`, string(dashboard.Definition))
 
 	dashboard.Name = "Updated insight"
@@ -86,7 +87,6 @@ func TestDashboardValidation(t *testing.T) {
 		{name: "invalid type", dashboard: &Dashboard{WorkspaceId: TestWorkspaceID, Name: "Dashboard", Type: "invalid"}},
 		{name: "invalid definition", dashboard: &Dashboard{WorkspaceId: TestWorkspaceID, Name: "Dashboard", Type: DashboardTypeCustom, Definition: json.RawMessage(`{`)}},
 		{name: "custom target", dashboard: &Dashboard{WorkspaceId: TestWorkspaceID, Name: "Dashboard", Type: DashboardTypeCustom, TargetId: TestProjectID}},
-		{name: "missing project target", dashboard: &Dashboard{WorkspaceId: TestWorkspaceID, Name: "Dashboard", Type: DashboardTypeProject}},
 		{name: "workspace target mismatch", dashboard: &Dashboard{WorkspaceId: TestWorkspaceID, Name: "Dashboard", Type: DashboardTypeWorkspace, TargetId: "other"}},
 	}
 
@@ -98,7 +98,7 @@ func TestDashboardValidation(t *testing.T) {
 	}
 }
 
-func TestDashboardRejectsDuplicateSpecialTarget(t *testing.T) {
+func TestDashboardReplacesActiveDashboardOfSameType(t *testing.T) {
 	test := NewTestContextManager()
 	first := &Dashboard{
 		WorkspaceId: TestWorkspaceID,
@@ -109,14 +109,22 @@ func TestDashboardRejectsDuplicateSpecialTarget(t *testing.T) {
 	_, err := test.Manager.CreateDashboard(first)
 	require.NoError(t, err)
 
-	_, err = test.Manager.CreateDashboard(&Dashboard{
+	second := &Dashboard{
 		WorkspaceId: TestWorkspaceID,
 		Type:        DashboardTypeWorkspace,
 		TargetId:    TestWorkspaceID,
-		Name:        "Duplicate",
-	})
-	var duplicate *DashboardAlreadyExistsError
-	require.ErrorAs(t, err, &duplicate)
+		Name:        "Replacement",
+	}
+	_, err = test.Manager.CreateDashboard(second)
+	require.NoError(t, err)
+	require.True(t, second.Active)
+	require.False(t, first.Active)
+	first.Active = true
+	require.NoError(t, test.Manager.UpdateDashboard(first))
+	require.False(t, second.Active)
+	first.Active = false
+	require.NoError(t, test.Manager.UpdateDashboard(first))
+	require.False(t, first.Active)
 
 	_, err = test.Manager.CreateDashboard(&Dashboard{
 		WorkspaceId: TestWorkspaceID,

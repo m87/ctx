@@ -40,6 +40,7 @@ func TestDashboardRoutesSupportLifecycleAtCanonicalAndLegacyPaths(t *testing.T) 
 			require.NoError(t, json.NewDecoder(createResponse.Body).Decode(&created))
 			require.NotEmpty(t, created.Id)
 			require.Equal(t, core.DashboardTypeWorkspace, created.Type)
+			require.True(t, created.Active)
 			require.JSONEq(t, `{}`, string(created.Definition))
 
 			listRequest := httptest.NewRequest(
@@ -100,7 +101,7 @@ func TestDashboardRoutesSupportLifecycleAtCanonicalAndLegacyPaths(t *testing.T) 
 	}
 }
 
-func TestDashboardHandlerRejectsDuplicateSpecialDashboard(t *testing.T) {
+func TestDashboardHandlerReplacesActiveSpecialDashboard(t *testing.T) {
 	manager := bootstrap.NewTestContextManager(time.Now())
 	_, err := manager.WorkspaceRepository.Save(&core.Workspace{Id: "workspace-1", Name: "Workspace"})
 	require.NoError(t, err)
@@ -119,8 +120,12 @@ func TestDashboardHandlerRejectsDuplicateSpecialDashboard(t *testing.T) {
 		secondResponse,
 		httptest.NewRequest(http.MethodPost, "/api/dashboard/", bytes.NewBufferString(body)),
 	)
-	require.Equal(t, http.StatusConflict, secondResponse.Code)
-	var response ErrorResponse
-	require.NoError(t, json.NewDecoder(secondResponse.Body).Decode(&response))
-	require.Equal(t, "DASHBOARD_ALREADY_EXISTS", response.Code)
+	require.Equal(t, http.StatusCreated, secondResponse.Code)
+	var first, second core.Dashboard
+	require.NoError(t, json.NewDecoder(firstResponse.Body).Decode(&first))
+	require.NoError(t, json.NewDecoder(secondResponse.Body).Decode(&second))
+	require.True(t, second.Active)
+	stored, err := manager.GetDashboard(first.Id)
+	require.NoError(t, err)
+	require.False(t, stored.Active)
 }

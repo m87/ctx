@@ -10,10 +10,11 @@ export interface Dashboard {
   type: DashboardType;
   targetId?: string;
   name: string;
+  active: boolean;
   definition: Record<string, unknown>;
 }
 
-export type CreateDashboardInput = Omit<Dashboard, 'id'>;
+export type CreateDashboardInput = Omit<Dashboard, 'id' | 'active'>;
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {

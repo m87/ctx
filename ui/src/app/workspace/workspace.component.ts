@@ -23,7 +23,7 @@ import {
   ProjectTimeListItem,
 } from '../shared/project-time-list.component';
 import { summarizeContextsByProject, UNASSIGNED_PROJECT_ID } from '../shared/project-time-summary';
-import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
+import { DashboardSlotComponent } from '../dashboard/dashboard-slot.component';
 
 type SummaryView = 'contexts' | 'projects' | 'insights';
 
@@ -47,7 +47,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
     NgIcon,
     QueryErrorStateComponent,
     ProjectTimeListComponent,
-    InsightsEmptyStateComponent,
+    DashboardSlotComponent,
     HlmSkeletonImports,
   ],
   providers: [provideIcons({ lucideTrash2 })],
@@ -228,7 +228,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
                   emptyMessage="No projects tracked in this workspace."
                 ></ctx-project-time-list>
               } @else {
-                <ctx-insights-empty-state />
+                <ctx-dashboard-slot [workspaceId]="activeWorkspaceId()" type="workspace" />
               }
             </div>
           </div>

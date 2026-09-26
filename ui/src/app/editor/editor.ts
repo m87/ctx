@@ -1,5 +1,7 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideArrowLeft,
@@ -58,7 +60,7 @@ import { QueryErrorStateComponent } from '../shared/query-error-state.component'
 import { SearchDropdownSelectComponent } from '../shared/search-dropdown-select.component';
 import { SearchSelectComponent, SearchSelectOption } from '../shared/search-select.component';
 import { SidebarWorkspaceSelectComponent } from '../sidebar/sidebar-workspace-select.component';
-import { WorkspaceState } from '../sidebar/workspace.state';
+import { SelectWorkspace, WorkspaceState } from '../sidebar/workspace.state';
 import { colorHash, durationAsHM } from '../utils';
 
 export interface DashboardWidgetPlacement {
@@ -79,10 +81,6 @@ export const DASHBOARD_TYPE_OPTIONS: readonly SearchSelectOption[] = [
   { value: 'daily', label: 'Daily insight' },
 ];
 
-export function dashboardTypeRequiresTarget(type: DashboardType): boolean {
-  return type === 'project' || type === 'context';
-}
-
 export function isDashboardType(value: string): value is DashboardType {
   return (
     value === 'workspace' ||
@@ -93,16 +91,9 @@ export function isDashboardType(value: string): value is DashboardType {
   );
 }
 
-export function dashboardTargetId(
-  type: DashboardType,
-  workspaceId: string,
-  selectedTargetId: string,
-): string | undefined {
+export function dashboardTargetId(type: DashboardType, workspaceId: string): string | undefined {
   if (type === 'workspace' || type === 'daily') {
     return workspaceId;
-  }
-  if (dashboardTypeRequiresTarget(type)) {
-    return selectedTargetId || undefined;
   }
   return undefined;
 }
@@ -604,30 +595,45 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               ></ctx-search-dropdown-select>
             </div>
 
-            @if (dashboardFormRequiresTarget()) {
+            <div class="rounded-lg border bg-muted/25 px-3 py-2.5 text-xs text-muted-foreground">
+              {{ dashboardTypeDescription() }}
+            </div>
+
+            @if (dashboardDialogContentMode() === 'properties') {
               <div class="ui-field">
-                <label hlmLabel for="dashboard-target">Target</label>
-                <ctx-search-dropdown-select
-                  inputId="dashboard-target"
-                  [ariaLabel]="dashboardTargetAriaLabel()"
-                  [placeholder]="dashboardTargetPlaceholder()"
-                  [searchPlaceholder]="dashboardTargetSearchPlaceholder()"
-                  [emptyText]="dashboardTargetEmptyText()"
-                  [disabled]="dashboardMutationPending()"
-                  [options]="dashboardTargetOptions()"
-                  [value]="dashboardFormTargetId()"
-                  (selectionChange)="dashboardFormTargetId.set($event)"
-                ></ctx-search-dropdown-select>
+                <label hlmLabel for="dashboard-active" class="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="dashboard-active"
+                    class="size-4 shrink-0 accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                    aria-describedby="dashboard-active-hint"
+                    [checked]="dashboardFormActive()"
+                    [disabled]="dashboardMutationPending()"
+                    (change)="setDashboardFormActive($event)"
+                  />
+                  Active
+                </label>
+                <p id="dashboard-active-hint" class="text-xs text-muted-foreground">
+                  @if (dashboardFormType() === 'custom') {
+                    Show this dashboard in Lenses.
+                  } @else {
+                    Use this dashboard in Insights. Activating it replaces the active dashboard of
+                    this type in this workspace.
+                  }
+                </p>
               </div>
             } @else {
-              <div class="rounded-lg border bg-muted/25 px-3 py-2.5 text-xs text-muted-foreground">
-                {{ dashboardTypeDescription() }}
-              </div>
+              <p class="text-xs text-muted-foreground">
+                New dashboards are active automatically.
+                @if (dashboardFormType() !== 'custom') {
+                  This replaces the active dashboard of this type in this workspace.
+                }
+              </p>
             }
 
             @if (dashboardMutationError()) {
               <p class="text-xs text-destructive" role="alert">
-                Could not save the dashboard. Check the selected type and target, then try again.
+                Could not save the dashboard. Please try again.
               </p>
             }
           </div>
@@ -723,6 +729,15 @@ export class EditorComponent {
   private readonly queryQueries = inject(QueryQueries);
   private readonly savedQueryQueries = inject(SavedQueryQueries);
   private readonly store = inject(Store);
+  private readonly route = inject(ActivatedRoute);
+  private openedDashboardId = '';
+  readonly requestedDashboardId = toSignal(
+    this.route.queryParamMap.pipe(map((params) => params.get('dashboard') ?? '')),
+    { initialValue: '' },
+  );
+  readonly requestedDashboardQuery = injectQuery(() =>
+    this.dashboardQueries.get(this.requestedDashboardId()),
+  );
 
   readonly dashboardTypeOptions = DASHBOARD_TYPE_OPTIONS;
   readonly activeDashboardId = signal('');
@@ -731,7 +746,7 @@ export class EditorComponent {
   readonly dashboardDialogContentMode = signal<DashboardDialogMode>('create');
   readonly dashboardFormName = signal('');
   readonly dashboardFormType = signal<DashboardType>('custom');
-  readonly dashboardFormTargetId = signal('');
+  readonly dashboardFormActive = signal(true);
   readonly pendingDashboardDelete = signal<Dashboard | null>(null);
   readonly pendingWidgetDelete = signal<string | null>(null);
   readonly selectedSavedQueryId = signal('');
@@ -792,11 +807,29 @@ export class EditorComponent {
     this.pendingWidgetDelete.set(null);
   });
 
+  private readonly openRequestedDashboard = effect(() => {
+    const dashboard = this.requestedDashboardQuery.data();
+    if (
+      !dashboard ||
+      dashboard.id !== this.requestedDashboardId() ||
+      this.openedDashboardId === dashboard.id
+    )
+      return;
+    this.openedDashboardId = dashboard.id;
+    if (dashboard.workspaceId !== untracked(this.selectedWorkspaceId)) {
+      this.store.dispatch(new SelectWorkspace(dashboard.workspaceId));
+    }
+    this.activeDashboardId.set(dashboard.id);
+  });
+
   private readonly selectAvailableDashboard = effect(() => {
     const dashboards = this.dashboards();
     const activeDashboardId = this.activeDashboardId();
     if (!dashboards.some((dashboard) => dashboard.id === activeDashboardId)) {
-      this.activeDashboardId.set(dashboards[0]?.id ?? '');
+      const requested = dashboards.find(
+        (dashboard) => dashboard.id === this.requestedDashboardId(),
+      );
+      this.activeDashboardId.set(requested?.id ?? dashboards[0]?.id ?? '');
     }
   });
 
@@ -853,49 +886,18 @@ export class EditorComponent {
     }
     return 'No dashboards';
   });
-  readonly dashboardFormRequiresTarget = computed(() =>
-    dashboardTypeRequiresTarget(this.dashboardFormType()),
-  );
-  readonly dashboardTargetOptions = computed<SearchSelectOption[]>(() => {
-    switch (this.dashboardFormType()) {
-      case 'project':
-        return this.projectOptions();
-      case 'context':
-        return this.contextOptions();
-      default:
-        return [];
-    }
-  });
-  readonly dashboardTargetLoading = computed(() => {
-    switch (this.dashboardFormType()) {
-      case 'project':
-        return this.projectsQuery.isLoading();
-      case 'context':
-        return this.contextsQuery.isLoading();
-      default:
-        return false;
-    }
-  });
-  readonly dashboardTargetName = computed(() => this.dashboardFormType());
-  readonly dashboardTargetPluralName = computed(() => `${this.dashboardTargetName()}s`);
-  readonly dashboardTargetAriaLabel = computed(() => `Select ${this.dashboardTargetName()}`);
-  readonly dashboardTargetPlaceholder = computed(() => `Select ${this.dashboardTargetName()}…`);
-  readonly dashboardTargetSearchPlaceholder = computed(
-    () => `Search ${this.dashboardTargetPluralName()}…`,
-  );
-  readonly dashboardTargetEmptyText = computed(() =>
-    this.dashboardTargetLoading()
-      ? `Loading ${this.dashboardTargetPluralName()}…`
-      : `No matching ${this.dashboardTargetPluralName()}`,
-  );
   readonly dashboardTypeDescription = computed(() => {
     switch (this.dashboardFormType()) {
       case 'workspace':
         return 'This dashboard is used for the selected workspace insight.';
       case 'daily':
-        return 'This dashboard is used for daily insights in the selected workspace.';
+        return 'This dashboard appears in Daily Summary. Its query will automatically be limited to the selected day in this workspace.';
+      case 'project':
+        return 'This dashboard is shared by all projects in this workspace. Its query will automatically be limited to the project being viewed.';
+      case 'context':
+        return 'This dashboard is shared by all contexts in this workspace. Its query will automatically be limited to the context being viewed.';
       case 'custom':
-        return 'This dashboard is available as a custom dashboard in the selected workspace.';
+        return 'Active custom dashboards appear in Lenses in the sidebar.';
       default:
         return '';
     }
@@ -910,9 +912,7 @@ export class EditorComponent {
   readonly dashboardFormValid = computed(() => {
     const workspaceId = this.selectedWorkspaceId();
     const name = this.dashboardFormName().trim();
-    const targetValid =
-      !this.dashboardFormRequiresTarget() || this.dashboardFormTargetId().length > 0;
-    return Boolean(workspaceId && name && targetValid);
+    return Boolean(workspaceId && name);
   });
 
   openCreateDashboardDialog(): void {
@@ -922,7 +922,7 @@ export class EditorComponent {
     this.resetDashboardMutations();
     this.dashboardFormName.set('');
     this.dashboardFormType.set('custom');
-    this.dashboardFormTargetId.set('');
+    this.dashboardFormActive.set(true);
     this.dashboardDialogContentMode.set('create');
     this.dashboardDialogMode.set('create');
   }
@@ -963,7 +963,7 @@ export class EditorComponent {
     this.updateDashboardMutation.reset();
     this.dashboardFormName.set(dashboard.name);
     this.dashboardFormType.set(dashboard.type);
-    this.dashboardFormTargetId.set(dashboard.targetId ?? '');
+    this.dashboardFormActive.set(dashboard.active);
     this.dashboardDialogContentMode.set('properties');
     this.dashboardDialogMode.set('properties');
   }
@@ -1011,6 +1011,10 @@ export class EditorComponent {
     this.dashboardFormName.set((event.target as HTMLInputElement).value);
   }
 
+  setDashboardFormActive(event: Event): void {
+    this.dashboardFormActive.set((event.target as HTMLInputElement).checked);
+  }
+
   setDashboardFormType(value: string): void {
     if (!isDashboardType(value)) {
       return;
@@ -1019,7 +1023,6 @@ export class EditorComponent {
       return;
     }
     this.dashboardFormType.set(value);
-    this.dashboardFormTargetId.set('');
   }
 
   saveDashboard(): void {
@@ -1033,7 +1036,7 @@ export class EditorComponent {
       return;
     }
     const type = this.dashboardFormType();
-    const targetId = dashboardTargetId(type, workspaceId, this.dashboardFormTargetId());
+    const targetId = dashboardTargetId(type, workspaceId);
     const name = this.dashboardFormName().trim();
 
     if (mode === 'properties') {
@@ -1041,7 +1044,13 @@ export class EditorComponent {
       if (!dashboard) {
         return;
       }
-      this.dashboardDraft.set({ ...dashboard, type, targetId, name });
+      this.dashboardDraft.set({
+        ...dashboard,
+        type,
+        targetId,
+        name,
+        active: this.dashboardFormActive(),
+      });
       this.dashboardDialogMode.set(null);
       return;
     }

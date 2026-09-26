@@ -39,7 +39,7 @@ func (r *DashboardRepository) GetByTarget(
 		workspaceId,
 		dashboardType,
 		targetId,
-	).Limit(1).Find(&entity)
+	).Order("active DESC, id ASC").Limit(1).Find(&entity)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -62,6 +62,24 @@ func (r *DashboardRepository) Save(dashboard *core.Dashboard) (string, error) {
 		return "", err
 	}
 	return entity.Id, nil
+}
+
+func (r *DashboardRepository) SaveActive(dashboard *core.Dashboard) (string, error) {
+	if dashboard == nil {
+		return "", fmt.Errorf("dashboard is required")
+	}
+	var id string
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&DashboardEntity{}).
+			Where("workspace_id = ? AND type = ? AND id <> ? AND active = ?", dashboard.WorkspaceId, dashboard.Type, dashboard.Id, true).
+			Update("active", false).Error; err != nil {
+			return err
+		}
+		var err error
+		id, err = NewDashboardRepository(tx).Save(dashboard)
+		return err
+	})
+	return id, err
 }
 
 func (r *DashboardRepository) ListByWorkspace(workspaceId string) ([]*core.Dashboard, error) {

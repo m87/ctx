@@ -8,12 +8,13 @@ import (
 
 type DashboardEntity struct {
 	Id          string             `gorm:"primaryKey"`
-	WorkspaceId string             `gorm:"not null;index;uniqueIndex:idx_dashboard_target,priority:1"`
-	Type        core.DashboardType `gorm:"not null;uniqueIndex:idx_dashboard_target,priority:2"`
-	TargetId    *string            `gorm:"uniqueIndex:idx_dashboard_target,priority:3"`
-	Name        string             `gorm:"not null"`
-	Definition  string             `gorm:"not null;type:text"`
-	Workspace   WorkspaceEntity    `gorm:"foreignKey:WorkspaceId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	WorkspaceId string             `gorm:"not null;index"`
+	Type        core.DashboardType `gorm:"not null"`
+	TargetId    *string
+	Name        string          `gorm:"not null"`
+	Active      bool            `gorm:"not null;default:false"`
+	Definition  string          `gorm:"not null;type:text"`
+	Workspace   WorkspaceEntity `gorm:"foreignKey:WorkspaceId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 func (DashboardEntity) TableName() string {
@@ -32,6 +33,7 @@ func NewDashboardEntity(dashboard *core.Dashboard) *DashboardEntity {
 		Type:        dashboard.Type,
 		TargetId:    targetId,
 		Name:        dashboard.Name,
+		Active:      dashboard.Active,
 		Definition:  string(dashboard.Definition),
 	}
 }
@@ -48,6 +50,7 @@ func (e *DashboardEntity) ToModel() *core.Dashboard {
 		Type:        e.Type,
 		TargetId:    targetId,
 		Name:        e.Name,
+		Active:      e.Active,
 		Definition:  definition,
 	}
 }

@@ -63,12 +63,26 @@ func (h *DashboardHandler) getDashboard(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *DashboardHandler) updateDashboard(w http.ResponseWriter, r *http.Request) {
-	var dashboard core.Dashboard
-	if err := json.NewDecoder(r.Body).Decode(&dashboard); err != nil {
+	var request struct {
+		core.Dashboard
+		Active *bool `json:"active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid request body")
 		return
 	}
+	dashboard := request.Dashboard
 	dashboard.Id = strings.TrimSpace(r.PathValue("id"))
+	if request.Active == nil {
+		existing, err := h.manager.GetDashboard(dashboard.Id)
+		if err != nil {
+			writeDashboardError(w, err, "FAILED_TO_UPDATE_DASHBOARD", "Failed to update dashboard")
+			return
+		}
+		dashboard.Active = existing.Active
+	} else {
+		dashboard.Active = *request.Active
+	}
 	if err := h.manager.UpdateDashboard(&dashboard); err != nil {
 		writeDashboardError(w, err, "FAILED_TO_UPDATE_DASHBOARD", "Failed to update dashboard")
 		return
@@ -88,11 +102,6 @@ func writeDashboardError(w http.ResponseWriter, err error, fallbackCode string, 
 	var invalid *core.InvalidDashboardError
 	if errors.As(err, &invalid) {
 		writeError(w, http.StatusBadRequest, "INVALID_DASHBOARD", invalid.Error())
-		return
-	}
-	var duplicate *core.DashboardAlreadyExistsError
-	if errors.As(err, &duplicate) {
-		writeError(w, http.StatusConflict, "DASHBOARD_ALREADY_EXISTS", duplicate.Error())
 		return
 	}
 	var notFound *core.DashboardNotFoundError

@@ -22,6 +22,7 @@ type Dashboard struct {
 	Type        DashboardType   `json:"type"`
 	TargetId    string          `json:"targetId,omitempty"`
 	Name        string          `json:"name"`
+	Active      bool            `json:"active"`
 	Definition  json.RawMessage `json:"definition"`
 }
 
@@ -29,6 +30,7 @@ type DashboardRepository interface {
 	GetById(id string) (*Dashboard, error)
 	GetByTarget(workspaceId string, dashboardType DashboardType, targetId string) (*Dashboard, error)
 	Save(dashboard *Dashboard) (string, error)
+	SaveActive(dashboard *Dashboard) (string, error)
 	ListByWorkspace(workspaceId string) ([]*Dashboard, error)
 	Delete(id string) error
 }
@@ -49,15 +51,6 @@ func (e *InvalidDashboardError) Error() string {
 	return e.Description
 }
 
-type DashboardAlreadyExistsError struct {
-	Type     DashboardType
-	TargetId string
-}
-
-func (e *DashboardAlreadyExistsError) Error() string {
-	return fmt.Sprintf("dashboard for %s %q already exists", e.Type, e.TargetId)
-}
-
 func (m *ContextManager) CreateDashboard(dashboard *Dashboard) (string, error) {
 	if dashboard == nil {
 		return "", &InvalidDashboardError{Description: "dashboard is required"}
@@ -67,13 +60,11 @@ func (m *ContextManager) CreateDashboard(dashboard *Dashboard) (string, error) {
 	}
 
 	dashboard.Id = ""
+	dashboard.Active = true
 	if err := m.validateDashboard(dashboard); err != nil {
 		return "", err
 	}
-	if err := m.ensureDashboardTargetAvailable(dashboard); err != nil {
-		return "", err
-	}
-	return m.DashboardRepository.Save(dashboard)
+	return m.saveDashboard(dashboard)
 }
 
 func (m *ContextManager) UpdateDashboard(dashboard *Dashboard) error {
@@ -98,10 +89,7 @@ func (m *ContextManager) UpdateDashboard(dashboard *Dashboard) error {
 	if err := m.validateDashboard(dashboard); err != nil {
 		return err
 	}
-	if err := m.ensureDashboardTargetAvailable(dashboard); err != nil {
-		return err
-	}
-	_, err = m.DashboardRepository.Save(dashboard)
+	_, err = m.saveDashboard(dashboard)
 	return err
 }
 
@@ -181,41 +169,14 @@ func (m *ContextManager) validateDashboard(dashboard *Dashboard) error {
 
 	switch dashboard.Type {
 	case DashboardTypeWorkspace, DashboardTypeDaily:
+		if dashboard.TargetId == "" {
+			dashboard.TargetId = dashboard.WorkspaceId
+		}
 		if dashboard.TargetId != dashboard.WorkspaceId {
 			return &InvalidDashboardError{Description: "dashboard target must match its workspace"}
 		}
-	case DashboardTypeProject:
-		if dashboard.TargetId == "" {
-			return &InvalidDashboardError{Description: "project dashboard target is required"}
-		}
-		project, err := m.ProjectRepository.GetById(dashboard.TargetId)
-		if err != nil {
-			return err
-		}
-		if project == nil {
-			return &ProjectNotFoundError{ProjectId: dashboard.TargetId}
-		}
-		if project.WorkspaceId != dashboard.WorkspaceId {
-			return &ProjectWorkspaceMismatchError{
-				ProjectId:          project.Id,
-				ProjectWorkspaceId: project.WorkspaceId,
-				WorkspaceId:        dashboard.WorkspaceId,
-			}
-		}
-	case DashboardTypeContext:
-		if dashboard.TargetId == "" {
-			return &InvalidDashboardError{Description: "context dashboard target is required"}
-		}
-		context, err := m.ContextRepository.GetById(dashboard.TargetId)
-		if err != nil {
-			return err
-		}
-		if context == nil {
-			return &ContextNotFoundError{ContextId: dashboard.TargetId}
-		}
-		if context.WorkspaceId != dashboard.WorkspaceId {
-			return &InvalidDashboardError{Description: "context does not belong to dashboard workspace"}
-		}
+	case DashboardTypeProject, DashboardTypeContext:
+		dashboard.TargetId = ""
 	case DashboardTypeCustom:
 		if dashboard.TargetId != "" {
 			return &InvalidDashboardError{Description: "custom dashboard cannot have a target"}
@@ -227,20 +188,9 @@ func (m *ContextManager) validateDashboard(dashboard *Dashboard) error {
 	return nil
 }
 
-func (m *ContextManager) ensureDashboardTargetAvailable(dashboard *Dashboard) error {
-	if dashboard.Type == DashboardTypeCustom {
-		return nil
+func (m *ContextManager) saveDashboard(dashboard *Dashboard) (string, error) {
+	if dashboard.Active && dashboard.Type != DashboardTypeCustom {
+		return m.DashboardRepository.SaveActive(dashboard)
 	}
-	existing, err := m.DashboardRepository.GetByTarget(
-		dashboard.WorkspaceId,
-		dashboard.Type,
-		dashboard.TargetId,
-	)
-	if err != nil {
-		return err
-	}
-	if existing != nil && existing.Id != dashboard.Id {
-		return &DashboardAlreadyExistsError{Type: dashboard.Type, TargetId: dashboard.TargetId}
-	}
-	return nil
+	return m.DashboardRepository.Save(dashboard)
 }

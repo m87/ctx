@@ -27,6 +27,11 @@ export const routes: Routes = [
     loadComponent: () => import('./query/query.component').then((m) => m.QueryComponent),
   },
   {
+    path: 'dashboard/:id',
+    loadComponent: () =>
+      import('./dashboard/dashboard-page.component').then((m) => m.DashboardPageComponent),
+  },
+  {
     path: 'workspace',
     loadComponent: () =>
       import('./workspace/workspace.component').then((m) => m.WorkspaceComponent),

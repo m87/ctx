@@ -36,7 +36,7 @@ describe('DashboardService', () => {
       name: 'Focus',
       definition: {},
     };
-    const dashboard = { id: 'dashboard-1', ...input };
+    const dashboard = { id: 'dashboard-1', active: true, ...input };
 
     service.create(input).subscribe();
     const createRequest = http.expectOne('/api/dashboard/');

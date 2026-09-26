@@ -28,7 +28,7 @@ import { ContextIntervalListComponent } from './context-interval-list.component'
 import { TimeZoneService } from '../shared/time-zone.service';
 import { ProjectQueries } from '../../api/project/project.queries';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
-import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
+import { DashboardSlotComponent } from '../dashboard/dashboard-slot.component';
 import { SearchSelectComponent, SearchSelectOption } from '../shared/search-select.component';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
@@ -43,7 +43,7 @@ type DetailView = 'overview' | 'insights';
     HlmCardImports,
     QueryErrorStateComponent,
     RouterLink,
-    InsightsEmptyStateComponent,
+    DashboardSlotComponent,
     HlmSkeletonImports,
     SearchSelectComponent,
   ],
@@ -357,7 +357,7 @@ type DetailView = 'overview' | 'insights';
               [readonly]="currentContext.archived ?? false"
             ></ctx-context-interval-list>
           } @else {
-            <ctx-insights-empty-state />
+            <ctx-dashboard-slot [workspaceId]="currentContext.workspaceId" type="context" />
           }
         </div>
 

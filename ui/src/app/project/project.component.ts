@@ -21,7 +21,7 @@ import { SelectProject } from '../sidebar/workspace.state';
 import { LinkifiedTextComponent } from '../shared/linkified-text.component';
 import { colorHash } from '../utils';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
-import { InsightsEmptyStateComponent } from '../shared/insights-empty-state.component';
+import { DashboardSlotComponent } from '../dashboard/dashboard-slot.component';
 import { SearchSelectComponent, SearchSelectOption } from '../shared/search-select.component';
 
 const WORKSPACE_ROOT_VALUE = '__workspace_root__';
@@ -36,7 +36,7 @@ type DetailView = 'overview' | 'insights';
     QueryErrorStateComponent,
     RouterLink,
     LinkifiedTextComponent,
-    InsightsEmptyStateComponent,
+    DashboardSlotComponent,
     HlmSkeletonImports,
     SearchSelectComponent,
   ],
@@ -320,7 +320,7 @@ type DetailView = 'overview' | 'insights';
               </section>
             </div>
           } @else {
-            <ctx-insights-empty-state />
+            <ctx-dashboard-slot [workspaceId]="currentProject.workspaceId" type="project" />
           }
         </div>
       }

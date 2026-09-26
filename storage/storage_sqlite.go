@@ -51,6 +51,7 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 
 func Migrate(db *gorm.DB) error {
 	return db.Transaction(func(tx *gorm.DB) error {
+		hadDashboardActive := tx.Migrator().HasColumn(&DashboardEntity{}, "Active")
 		if err := tx.SetupJoinTable(&ContextEntity{}, "Tags", &ContextTagEntity{}); err != nil {
 			return err
 		}
@@ -71,8 +72,26 @@ func Migrate(db *gorm.DB) error {
 			return err
 		}
 
-		return nil
+		return migrateDashboardActivation(tx, hadDashboardActive)
 	})
+}
+
+func migrateDashboardActivation(db *gorm.DB, hadActive bool) error {
+	if db.Migrator().HasIndex(&DashboardEntity{}, "idx_dashboard_target") {
+		if err := db.Migrator().DropIndex(&DashboardEntity{}, "idx_dashboard_target"); err != nil {
+			return err
+		}
+	}
+	if !hadActive {
+		if err := db.Exec(`UPDATE dashboards SET active = 1
+			WHERE type = 'custom' OR id IN (
+				SELECT MIN(id) FROM dashboards WHERE type <> 'custom' GROUP BY workspace_id, type
+			)`).Error; err != nil {
+			return err
+		}
+	}
+	return db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_dashboard_active_type
+		ON dashboards (workspace_id, type) WHERE active = 1 AND type <> 'custom'`).Error
 }
 
 func configureSqlite(db *gorm.DB, path string) error {

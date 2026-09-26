@@ -48,6 +48,15 @@ func (m *DashboardRepositoryMock) Save(dashboard *Dashboard) (string, error) {
 	return dashboard.Id, nil
 }
 
+func (m *DashboardRepositoryMock) SaveActive(dashboard *Dashboard) (string, error) {
+	for _, existing := range m.dashboards {
+		if existing.Id != dashboard.Id && existing.WorkspaceId == dashboard.WorkspaceId && existing.Type == dashboard.Type {
+			existing.Active = false
+		}
+	}
+	return m.Save(dashboard)
+}
+
 func (m *DashboardRepositoryMock) ListByWorkspace(workspaceId string) ([]*Dashboard, error) {
 	dashboards := make([]*Dashboard, 0)
 	for _, dashboard := range m.dashboards {
