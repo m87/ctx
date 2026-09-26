@@ -68,6 +68,11 @@ func registerApiRoutes(mux *http.ServeMux, manager *core.ContextManager, setting
 	apiMux.Handle("/project/", http.StripPrefix("/project", projectMux))
 	apiMux.Handle("/project", http.StripPrefix("/project", projectMux))
 
+	dashboardMux := http.NewServeMux()
+	registerDashboardHandler(dashboardMux, manager)
+	apiMux.Handle("/dashboard/", stripPrefixOrRoot("/dashboard", dashboardMux))
+	apiMux.Handle("/dashboard", stripPrefixOrRoot("/dashboard", dashboardMux))
+
 	workspaceMux := http.NewServeMux()
 	registerWorkspaceHandler(workspaceMux, manager)
 	apiMux.Handle("/workspace/", http.StripPrefix("/workspace", workspaceMux))
@@ -119,6 +124,11 @@ func registerLegacyRoutes(mux *http.ServeMux, manager *core.ContextManager, sett
 	mux.Handle("/project/", http.StripPrefix("/project", projectMux))
 	mux.Handle("/project", http.StripPrefix("/project", projectMux))
 
+	dashboardMux := http.NewServeMux()
+	registerDashboardHandler(dashboardMux, manager)
+	mux.Handle("/dashboard/", stripPrefixOrRoot("/dashboard", dashboardMux))
+	mux.Handle("/dashboard", stripPrefixOrRoot("/dashboard", dashboardMux))
+
 	workspaceMux := http.NewServeMux()
 	registerWorkspaceHandler(workspaceMux, manager)
 	mux.Handle("/workspace/", http.StripPrefix("/workspace", workspaceMux))
@@ -151,7 +161,7 @@ func (s *Server) Handler() http.Handler {
 			base.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") || strings.HasPrefix(r.URL.Path, "/project") || strings.HasPrefix(r.URL.Path, "/query/saved") {
+		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") || strings.HasPrefix(r.URL.Path, "/project") || strings.HasPrefix(r.URL.Path, "/query/saved") || strings.HasPrefix(r.URL.Path, "/dashboard") {
 			base.ServeHTTP(w, r)
 			return
 		}

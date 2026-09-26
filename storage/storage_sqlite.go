@@ -66,6 +66,7 @@ func Migrate(db *gorm.DB) error {
 			&ContextEntity{},
 			&IntervalEntity{},
 			&SavedQueryEntity{},
+			&DashboardEntity{},
 		); err != nil {
 			return err
 		}

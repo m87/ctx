@@ -1,17 +1,81 @@
 import {
-  EDITOR_QUERY_SCOPE_OPTIONS,
+  DASHBOARD_COLUMN_COUNT,
+  DASHBOARD_MINIMUM_ROW_COUNT,
+  DASHBOARD_TYPE_OPTIONS,
+  dashboardTargetId,
+  dashboardTypeRequiresTarget,
+  dashboardsAsOptions,
+  dashboardGridRowCount,
   queryPreviewSummary,
-  queryScopeHasEntity,
   savedQueriesAsOptions,
   selectedSavedQueryText,
 } from './editor';
 import { contextQueryResultAsListItems } from '../query/query-summary.component';
 
-describe('editor query filters', () => {
-  it('keeps saved queries separate from the main query scope filter', () => {
-    expect(EDITOR_QUERY_SCOPE_OPTIONS.map((option) => option.value)).not.toContain('saved-query');
-    expect(queryScopeHasEntity('project')).toBe(true);
-    expect(queryScopeHasEntity('daily')).toBe(false);
+describe('editor helpers', () => {
+  it('uses a 16 by 32 minimum dashboard grid and expands for widgets', () => {
+    expect(DASHBOARD_COLUMN_COUNT).toBe(16);
+    expect(DASHBOARD_MINIMUM_ROW_COUNT).toBe(32);
+    expect(dashboardGridRowCount([])).toBe(32);
+    expect(
+      dashboardGridRowCount([
+        { y: 4, height: 8 },
+        { y: 30, height: 7 },
+      ]),
+    ).toBe(37);
+  });
+
+  it('defines custom and insight dashboard types with the required targets', () => {
+    expect(DASHBOARD_TYPE_OPTIONS.map((option) => option.value)).toEqual([
+      'custom',
+      'workspace',
+      'project',
+      'context',
+      'daily',
+    ]);
+    expect(dashboardTypeRequiresTarget('project')).toBe(true);
+    expect(dashboardTypeRequiresTarget('context')).toBe(true);
+    expect(dashboardTypeRequiresTarget('daily')).toBe(false);
+    expect(dashboardTypeRequiresTarget('custom')).toBe(false);
+    expect(dashboardTargetId('workspace', 'workspace-1', '')).toBe('workspace-1');
+    expect(dashboardTargetId('daily', 'workspace-1', '')).toBe('workspace-1');
+    expect(dashboardTargetId('project', 'workspace-1', 'project-1')).toBe('project-1');
+    expect(dashboardTargetId('custom', 'workspace-1', '')).toBeUndefined();
+  });
+
+  it('maps saved dashboards to the dashboard selector', () => {
+    expect(
+      dashboardsAsOptions([
+        {
+          id: 'dashboard-1',
+          workspaceId: 'workspace-1',
+          type: 'custom',
+          name: 'Focus',
+          definition: {},
+        },
+        {
+          id: 'dashboard-2',
+          workspaceId: 'workspace-1',
+          type: 'project',
+          targetId: 'project-1',
+          name: 'Project overview',
+          definition: {},
+        },
+      ]),
+    ).toEqual([
+      {
+        value: 'dashboard-1',
+        label: 'Focus',
+        description: 'Custom',
+        keywords: ['custom'],
+      },
+      {
+        value: 'dashboard-2',
+        label: 'Project overview',
+        description: 'Project insight',
+        keywords: ['project'],
+      },
+    ]);
   });
 
   it('maps saved queries to side-panel options and resolves the selected query text', () => {

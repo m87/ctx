@@ -17,6 +17,7 @@ func NewTestContextManager(current time.Time) *core.ContextManager {
 		storage.NewProjectRepository(s.DB),
 	)
 	manager.SavedQueryRepository = storage.NewSavedQueryRepository(s.DB)
+	manager.DashboardRepository = storage.NewDashboardRepository(s.DB)
 	return manager
 }
 

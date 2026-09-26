@@ -1,14 +1,35 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowLeft, lucideEye, lucideGanttChart } from '@ng-icons/lucide';
+import {
+  lucideArrowLeft,
+  lucideCheck,
+  lucideEye,
+  lucideGanttChart,
+  lucidePencil,
+  lucidePlus,
+  lucideSettings2,
+  lucideTrash2,
+  lucideX,
+} from '@ng-icons/lucide';
+import { BrnAlertDialogImports } from '@spartan-ng/brain/alert-dialog';
 import { BrnDialogImports } from '@spartan-ng/brain/dialog';
+import { HlmAlertDialogImports } from '@spartan-ng/helm/alert-dialog';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
+import { HlmInputImports } from '@spartan-ng/helm/input';
+import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
-import { injectQuery } from '@tanstack/angular-query-experimental';
+import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { Store } from '@ngxs/store';
 import { ContextQueries } from '../../api/context/context.queries';
+import { DashboardMutations } from '../../api/dashboard/dashboard.mutations';
+import { DashboardQueries } from '../../api/dashboard/dashboard.queries';
+import {
+  CreateDashboardInput,
+  Dashboard,
+  DashboardType,
+} from '../../api/dashboard/dashboard.service';
 import { ProjectQueries } from '../../api/project/project.queries';
 import { QueryQueries } from '../../api/query/query.queries';
 import { ContextQueryResult } from '../../api/query/query.service';
@@ -23,17 +44,68 @@ import { SidebarWorkspaceSelectComponent } from '../sidebar/sidebar-workspace-se
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { colorHash, durationAsHM } from '../utils';
 
-export type QueryScope = 'workspace' | 'project' | 'context' | 'daily';
+export interface DashboardWidgetPlacement {
+  y: number;
+  height: number;
+}
 
-export const EDITOR_QUERY_SCOPE_OPTIONS: readonly SearchSelectOption[] = [
-  { value: 'workspace', label: 'Workspace' },
-  { value: 'project', label: 'Project' },
-  { value: 'context', label: 'Context' },
-  { value: 'daily', label: 'Daily' },
+type DashboardDialogMode = 'create' | 'properties';
+
+export const DASHBOARD_COLUMN_COUNT = 16;
+export const DASHBOARD_MINIMUM_ROW_COUNT = 32;
+
+export const DASHBOARD_TYPE_OPTIONS: readonly SearchSelectOption[] = [
+  { value: 'custom', label: 'Custom' },
+  { value: 'workspace', label: 'Workspace insight' },
+  { value: 'project', label: 'Project insight' },
+  { value: 'context', label: 'Context insight' },
+  { value: 'daily', label: 'Daily insight' },
 ];
 
-export function queryScopeHasEntity(scope: QueryScope): boolean {
-  return scope === 'project' || scope === 'context';
+export function dashboardTypeRequiresTarget(type: DashboardType): boolean {
+  return type === 'project' || type === 'context';
+}
+
+export function isDashboardType(value: string): value is DashboardType {
+  return (
+    value === 'workspace' ||
+    value === 'project' ||
+    value === 'context' ||
+    value === 'daily' ||
+    value === 'custom'
+  );
+}
+
+export function dashboardTargetId(
+  type: DashboardType,
+  workspaceId: string,
+  selectedTargetId: string,
+): string | undefined {
+  if (type === 'workspace' || type === 'daily') {
+    return workspaceId;
+  }
+  if (dashboardTypeRequiresTarget(type)) {
+    return selectedTargetId || undefined;
+  }
+  return undefined;
+}
+
+export function dashboardsAsOptions(dashboards: readonly Dashboard[]): SearchSelectOption[] {
+  return dashboards.map((dashboard) => ({
+    value: dashboard.id,
+    label: dashboard.name,
+    description:
+      DASHBOARD_TYPE_OPTIONS.find((option) => option.value === dashboard.type)?.label ??
+      dashboard.type,
+    keywords: [dashboard.type],
+  }));
+}
+
+export function dashboardGridRowCount(widgets: readonly DashboardWidgetPlacement[]): number {
+  return widgets.reduce(
+    (rowCount, widget) => Math.max(rowCount, widget.y + widget.height),
+    DASHBOARD_MINIMUM_ROW_COUNT,
+  );
 }
 
 export function savedQueriesAsOptions(queries: readonly SavedQuery[]): SearchSelectOption[] {
@@ -66,9 +138,13 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
 @Component({
   selector: 'ctx-editor',
   imports: [
+    BrnAlertDialogImports,
     BrnDialogImports,
+    HlmAlertDialogImports,
     HlmButtonImports,
     HlmDialogImports,
+    HlmInputImports,
+    HlmLabelImports,
     HlmSkeletonImports,
     NgIcon,
     ContextListComponent,
@@ -78,7 +154,19 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
     SearchSelectComponent,
     SidebarWorkspaceSelectComponent,
   ],
-  providers: [provideIcons({ lucideArrowLeft, lucideEye, lucideGanttChart })],
+  providers: [
+    provideIcons({
+      lucideArrowLeft,
+      lucideCheck,
+      lucideEye,
+      lucideGanttChart,
+      lucidePencil,
+      lucidePlus,
+      lucideSettings2,
+      lucideTrash2,
+      lucideX,
+    }),
+  ],
   template: `
     <div class="fixed inset-0 z-50 flex h-dvh min-h-0 flex-col bg-background text-foreground">
       <header class="flex h-12 shrink-0 items-center border-b bg-card/70 px-3">
@@ -108,51 +196,103 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
 
         <div class="ml-auto flex shrink-0 items-center gap-2 pl-4">
           <ctx-search-dropdown-select
-            class="w-32"
-            inputId="editor-query-scope"
-            ariaLabel="Query scope"
-            actionLabel="Add custom"
-            panelWidth="100%"
-            align="end"
-            [searchable]="false"
-            [options]="queryScopeOptions"
-            [value]="queryScope()"
-            (selectionChange)="setQueryScope($event)"
+            class="w-44 sm:w-56"
+            inputId="editor-dashboard"
+            ariaLabel="Dashboard"
+            placeholder="Select dashboard…"
+            searchPlaceholder="Search dashboards…"
+            [emptyText]="dashboardListEmptyText()"
+            [disabled]="dashboardEditing() || dashboardsQuery.isLoading()"
+            [options]="dashboardOptions()"
+            [value]="activeDashboardId()"
+            (selectionChange)="selectDashboard($event)"
           ></ctx-search-dropdown-select>
 
-          @if (showEntitySelect()) {
-            <ctx-search-dropdown-select
-              class="w-52"
-              inputId="editor-entity-select"
-              align="end"
-              [ariaLabel]="entitySelectAriaLabel()"
-              [placeholder]="entitySelectPlaceholder()"
-              [searchPlaceholder]="entitySearchPlaceholder()"
-              [emptyText]="entityEmptyText()"
-              [options]="entityOptions()"
-              [value]="selectedEntityId()"
-              (selectionChange)="selectEntity($event)"
-            ></ctx-search-dropdown-select>
+          <button
+            hlmBtn
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Create dashboard"
+            title="Create dashboard"
+            [disabled]="!selectedWorkspaceId() || dashboardEditing()"
+            (click)="openCreateDashboardDialog()"
+          >
+            <ng-icon name="lucidePlus"></ng-icon>
+          </button>
+
+          @if (activeDashboard()) {
+            @if (dashboardEditing()) {
+              <div class="ui-action-bar">
+                <button
+                  hlmBtn
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Edit dashboard properties"
+                  title="Edit dashboard properties"
+                  [disabled]="updateDashboardMutation.isPending()"
+                  (click)="openDashboardPropertiesDialog()"
+                >
+                  <ng-icon name="lucideSettings2"></ng-icon>
+                </button>
+                <button
+                  hlmBtn
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-destructive"
+                  aria-label="Delete dashboard"
+                  title="Delete dashboard"
+                  [disabled]="updateDashboardMutation.isPending()"
+                  (click)="requestDashboardDelete()"
+                >
+                  <ng-icon name="lucideTrash2"></ng-icon>
+                </button>
+                <button
+                  hlmBtn
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Cancel dashboard changes"
+                  title="Cancel dashboard changes"
+                  [disabled]="updateDashboardMutation.isPending()"
+                  (click)="cancelDashboardEditing()"
+                >
+                  <ng-icon name="lucideX"></ng-icon>
+                </button>
+                <button
+                  hlmBtn
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  class="text-success"
+                  aria-label="Save dashboard changes"
+                  title="Save dashboard changes"
+                  [disabled]="updateDashboardMutation.isPending()"
+                  (click)="confirmDashboardEditing()"
+                >
+                  <ng-icon name="lucideCheck"></ng-icon>
+                </button>
+              </div>
+            } @else {
+              <button
+                hlmBtn
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Enter dashboard edit mode"
+                title="Edit dashboard"
+                (click)="startDashboardEditing()"
+              >
+                <ng-icon name="lucidePencil"></ng-icon>
+              </button>
+            }
           }
 
-          <label
-            class="flex h-8 items-center rounded-md border border-border/60 bg-muted/30 transition-[background-color,border-color,box-shadow] hover:border-border hover:bg-muted/50 focus-within:border-ring/70 focus-within:ring-2 focus-within:ring-ring/30"
-          >
-            <span
-              class="pl-2.5 text-caption font-medium uppercase tracking-label text-muted-foreground"
-            >
-              Days
-            </span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              class="days-input h-full w-14 bg-transparent px-2 text-right text-xs outline-none"
-              aria-label="Number of days"
-              [value]="days()"
-              (input)="setDays($event)"
-            />
-          </label>
+          @if (updateDashboardMutation.isError()) {
+            <span class="hidden text-xs text-destructive xl:inline" role="alert">Save failed</span>
+          }
         </div>
       </header>
 
@@ -259,11 +399,19 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
         </aside>
 
         <main
-          class="editor-canvas flex min-w-0 flex-1 items-center justify-center overflow-auto p-6"
+          class="editor-canvas flex min-w-0 flex-1 items-start justify-center overflow-auto p-6"
         >
           <div
-            class="aspect-[16/10] w-full max-w-[1000px] rounded-lg border bg-card shadow-sm"
-            aria-label="Empty editor canvas"
+            class="dashboard-grid w-full max-w-[1000px] shrink-0 rounded-lg border bg-card shadow-sm"
+            [style.--dashboard-column-count]="dashboardColumnCount"
+            [style.--dashboard-row-count]="dashboardRowCount()"
+            [attr.aria-label]="
+              'Dashboard grid, ' +
+              dashboardColumnCount +
+              ' columns by ' +
+              dashboardRowCount() +
+              ' rows'
+            "
           ></div>
         </main>
 
@@ -306,6 +454,142 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
           </section>
         </aside>
       </div>
+
+      <hlm-dialog
+        [state]="dashboardDialogMode() ? 'open' : 'closed'"
+        [disableClose]="dashboardMutationPending()"
+        (closed)="closeDashboardDialog()"
+      >
+        <hlm-dialog-content *brnDialogContent>
+          <div hlmDialogHeader>
+            <h2 hlmDialogTitle>{{ dashboardDialogTitle() }}</h2>
+            <p hlmDialogDescription>
+              @if (dashboardDialogContentMode() === 'properties') {
+                Change the dashboard name and where it is used. Confirm all editor changes with the
+                checkmark in the toolbar.
+              } @else {
+                Choose where this dashboard is used. Custom dashboards are stored for this
+                workspace.
+              }
+            </p>
+          </div>
+
+          <div class="grid gap-4 py-2">
+            <div class="ui-field">
+              <label hlmLabel for="dashboard-name">Name</label>
+              <input
+                hlmInput
+                id="dashboard-name"
+                type="text"
+                autocomplete="off"
+                placeholder="Dashboard name"
+                [value]="dashboardFormName()"
+                [disabled]="dashboardMutationPending()"
+                (input)="setDashboardFormName($event)"
+              />
+            </div>
+
+            <div class="ui-field">
+              <label hlmLabel for="dashboard-type">Type</label>
+              <ctx-search-dropdown-select
+                inputId="dashboard-type"
+                ariaLabel="Dashboard type"
+                panelWidth="100%"
+                [searchable]="false"
+                [disabled]="dashboardMutationPending()"
+                [options]="dashboardTypeOptions"
+                [value]="dashboardFormType()"
+                (selectionChange)="setDashboardFormType($event)"
+              ></ctx-search-dropdown-select>
+            </div>
+
+            @if (dashboardFormRequiresTarget()) {
+              <div class="ui-field">
+                <label hlmLabel for="dashboard-target">Target</label>
+                <ctx-search-dropdown-select
+                  inputId="dashboard-target"
+                  [ariaLabel]="dashboardTargetAriaLabel()"
+                  [placeholder]="dashboardTargetPlaceholder()"
+                  [searchPlaceholder]="dashboardTargetSearchPlaceholder()"
+                  [emptyText]="dashboardTargetEmptyText()"
+                  [disabled]="dashboardMutationPending()"
+                  [options]="dashboardTargetOptions()"
+                  [value]="dashboardFormTargetId()"
+                  (selectionChange)="dashboardFormTargetId.set($event)"
+                ></ctx-search-dropdown-select>
+              </div>
+            } @else {
+              <div class="rounded-lg border bg-muted/25 px-3 py-2.5 text-xs text-muted-foreground">
+                {{ dashboardTypeDescription() }}
+              </div>
+            }
+
+            @if (dashboardMutationError()) {
+              <p class="text-xs text-destructive" role="alert">
+                Could not save the dashboard. Check the selected type and target, then try again.
+              </p>
+            }
+          </div>
+
+          <div hlmDialogFooter>
+            <button
+              hlmBtn
+              type="button"
+              variant="ghost"
+              [disabled]="dashboardMutationPending()"
+              (click)="closeDashboardDialog()"
+            >
+              Cancel
+            </button>
+            <button
+              hlmBtn
+              type="button"
+              variant="outline"
+              [disabled]="!dashboardFormValid() || dashboardMutationPending()"
+              (click)="saveDashboard()"
+            >
+              @if (dashboardMutationPending()) {
+                Saving…
+              } @else if (dashboardDialogContentMode() === 'properties') {
+                Apply properties
+              } @else {
+                Create dashboard
+              }
+            </button>
+          </div>
+        </hlm-dialog-content>
+      </hlm-dialog>
+
+      <hlm-alert-dialog
+        [state]="pendingDashboardDelete() ? 'open' : 'closed'"
+        (closed)="pendingDashboardDelete.set(null)"
+      >
+        <hlm-alert-dialog-content *brnAlertDialogContent>
+          <hlm-alert-dialog-header>
+            <h3 hlmAlertDialogTitle>Delete this dashboard?</h3>
+            <p hlmAlertDialogDescription>
+              The dashboard definition and its saved layout will be permanently removed.
+            </p>
+          </hlm-alert-dialog-header>
+          <hlm-alert-dialog-footer>
+            <button
+              hlmAlertDialogCancel
+              [disabled]="deleteDashboardMutation.isPending()"
+              (click)="pendingDashboardDelete.set(null)"
+            >
+              Cancel
+            </button>
+            <button
+              hlmAlertDialogAction
+              variant="destructive"
+              [disabled]="deleteDashboardMutation.isPending()"
+              (click)="confirmDeleteDashboard()"
+            >
+              {{ deleteDashboardMutation.isPending() ? 'Deleting…' : 'Delete' }}
+            </button>
+          </hlm-alert-dialog-footer>
+        </hlm-alert-dialog-content>
+      </hlm-alert-dialog>
     </div>
   `,
   styles: `
@@ -323,37 +607,44 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
       background-size: 20px 20px;
     }
 
+    .dashboard-grid {
+      aspect-ratio: var(--dashboard-column-count) / var(--dashboard-row-count);
+      background-image:
+        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+      background-size: calc(100% / var(--dashboard-column-count))
+        calc(100% / var(--dashboard-row-count));
+    }
+
     .editor-preview-dialog {
       width: calc(100vw - 2rem);
       max-width: 72rem;
-    }
-
-    .days-input {
-      appearance: textfield;
-      -moz-appearance: textfield;
-    }
-
-    .days-input::-webkit-inner-spin-button,
-    .days-input::-webkit-outer-spin-button {
-      margin: 0;
-      appearance: none;
-      -webkit-appearance: none;
     }
   `,
 })
 export class EditorComponent {
   readonly previewSkeletonItems = [0, 1, 2];
+  readonly dashboardColumnCount = DASHBOARD_COLUMN_COUNT;
+  readonly dashboardWidgets = signal<readonly DashboardWidgetPlacement[]>([]);
+  readonly dashboardRowCount = computed(() => dashboardGridRowCount(this.dashboardWidgets()));
   private readonly projectQueries = inject(ProjectQueries);
   private readonly contextQueries = inject(ContextQueries);
+  private readonly dashboardQueries = inject(DashboardQueries);
+  private readonly dashboardMutations = inject(DashboardMutations);
   private readonly queryQueries = inject(QueryQueries);
   private readonly savedQueryQueries = inject(SavedQueryQueries);
   private readonly store = inject(Store);
 
-  readonly queryScopeOptions = EDITOR_QUERY_SCOPE_OPTIONS;
-  readonly queryScope = signal<QueryScope>('workspace');
-  readonly selectedEntityId = signal('');
+  readonly dashboardTypeOptions = DASHBOARD_TYPE_OPTIONS;
+  readonly activeDashboardId = signal('');
+  readonly dashboardDraft = signal<Dashboard | null>(null);
+  readonly dashboardDialogMode = signal<DashboardDialogMode | null>(null);
+  readonly dashboardDialogContentMode = signal<DashboardDialogMode>('create');
+  readonly dashboardFormName = signal('');
+  readonly dashboardFormType = signal<DashboardType>('custom');
+  readonly dashboardFormTargetId = signal('');
+  readonly pendingDashboardDelete = signal<Dashboard | null>(null);
   readonly selectedSavedQueryId = signal('');
-  readonly days = signal(30);
   readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
 
   readonly projectsQuery = injectQuery(() =>
@@ -363,11 +654,37 @@ export class EditorComponent {
   readonly savedQueriesQuery = injectQuery(() =>
     this.savedQueryQueries.list(this.selectedWorkspaceId()),
   );
+  readonly dashboardsQuery = injectQuery(() =>
+    this.dashboardQueries.list(this.selectedWorkspaceId()),
+  );
+  readonly createDashboardMutation = injectMutation(() => this.dashboardMutations.create());
+  readonly updateDashboardMutation = injectMutation(() => this.dashboardMutations.update());
+  readonly deleteDashboardMutation = injectMutation(() => this.dashboardMutations.delete());
 
-  private readonly resetEntityOnWorkspaceChange = effect(() => {
+  readonly dashboards = computed(() => this.dashboardsQuery.data() ?? []);
+  readonly activeDashboard = computed(
+    () => this.dashboards().find((dashboard) => dashboard.id === this.activeDashboardId()) ?? null,
+  );
+  readonly dashboardOptions = computed<SearchSelectOption[]>(() =>
+    dashboardsAsOptions(this.dashboards()),
+  );
+  readonly dashboardEditing = computed(() => this.dashboardDraft() !== null);
+
+  private readonly resetEditorOnWorkspaceChange = effect(() => {
     this.selectedWorkspaceId();
-    this.selectedEntityId.set('');
+    this.activeDashboardId.set('');
+    this.dashboardDraft.set(null);
     this.selectedSavedQueryId.set('');
+    this.dashboardDialogMode.set(null);
+    this.pendingDashboardDelete.set(null);
+  });
+
+  private readonly selectAvailableDashboard = effect(() => {
+    const dashboards = this.dashboards();
+    const activeDashboardId = this.activeDashboardId();
+    if (!dashboards.some((dashboard) => dashboard.id === activeDashboardId)) {
+      this.activeDashboardId.set(dashboards[0]?.id ?? '');
+    }
   });
 
   readonly projectOptions = computed<SearchSelectOption[]>(() =>
@@ -414,49 +731,230 @@ export class EditorComponent {
     }
     return 'No saved queries';
   });
-  readonly showEntitySelect = computed(() => queryScopeHasEntity(this.queryScope()));
-  readonly entityOptions = computed<SearchSelectOption[]>(() => {
-    switch (this.queryScope()) {
-      case 'workspace':
-        return [];
+  readonly dashboardListEmptyText = computed(() => {
+    if (this.dashboardsQuery.isLoading()) {
+      return 'Loading dashboards…';
+    }
+    if (this.dashboardsQuery.isError()) {
+      return 'Unable to load dashboards';
+    }
+    return 'No dashboards';
+  });
+  readonly dashboardFormRequiresTarget = computed(() =>
+    dashboardTypeRequiresTarget(this.dashboardFormType()),
+  );
+  readonly dashboardTargetOptions = computed<SearchSelectOption[]>(() => {
+    switch (this.dashboardFormType()) {
       case 'project':
         return this.projectOptions();
       case 'context':
         return this.contextOptions();
-      case 'daily':
+      default:
         return [];
     }
   });
-  readonly entityOptionsLoading = computed(() => {
-    switch (this.queryScope()) {
-      case 'workspace':
-        return false;
+  readonly dashboardTargetLoading = computed(() => {
+    switch (this.dashboardFormType()) {
       case 'project':
         return this.projectsQuery.isLoading();
       case 'context':
         return this.contextsQuery.isLoading();
-      case 'daily':
+      default:
         return false;
     }
   });
-
-  readonly entityName = computed(() => this.queryScope());
-  readonly entityPluralName = computed(() => `${this.entityName()}s`);
-  readonly entitySelectAriaLabel = computed(() => `Select ${this.entityName()}`);
-  readonly entitySelectPlaceholder = computed(() => `Select ${this.entityName()}…`);
-  readonly entitySearchPlaceholder = computed(() => `Search ${this.entityPluralName()}…`);
-  readonly entityEmptyText = computed(() =>
-    this.entityOptionsLoading()
-      ? `Loading ${this.entityPluralName()}…`
-      : `No matching ${this.entityPluralName()}`,
+  readonly dashboardTargetName = computed(() => this.dashboardFormType());
+  readonly dashboardTargetPluralName = computed(() => `${this.dashboardTargetName()}s`);
+  readonly dashboardTargetAriaLabel = computed(() => `Select ${this.dashboardTargetName()}`);
+  readonly dashboardTargetPlaceholder = computed(() => `Select ${this.dashboardTargetName()}…`);
+  readonly dashboardTargetSearchPlaceholder = computed(
+    () => `Search ${this.dashboardTargetPluralName()}…`,
   );
-  setQueryScope(scope: string): void {
-    this.queryScope.set(scope as QueryScope);
-    this.selectedEntityId.set('');
+  readonly dashboardTargetEmptyText = computed(() =>
+    this.dashboardTargetLoading()
+      ? `Loading ${this.dashboardTargetPluralName()}…`
+      : `No matching ${this.dashboardTargetPluralName()}`,
+  );
+  readonly dashboardTypeDescription = computed(() => {
+    switch (this.dashboardFormType()) {
+      case 'workspace':
+        return 'This dashboard is used for the selected workspace insight.';
+      case 'daily':
+        return 'This dashboard is used for daily insights in the selected workspace.';
+      case 'custom':
+        return 'This dashboard is available as a custom dashboard in the selected workspace.';
+      default:
+        return '';
+    }
+  });
+  readonly dashboardDialogTitle = computed(() =>
+    this.dashboardDialogContentMode() === 'properties'
+      ? 'Dashboard properties'
+      : 'Create dashboard',
+  );
+  readonly dashboardMutationPending = computed(() => this.createDashboardMutation.isPending());
+  readonly dashboardMutationError = computed(() => this.createDashboardMutation.isError());
+  readonly dashboardFormValid = computed(() => {
+    const workspaceId = this.selectedWorkspaceId();
+    const name = this.dashboardFormName().trim();
+    const targetValid =
+      !this.dashboardFormRequiresTarget() || this.dashboardFormTargetId().length > 0;
+    return Boolean(workspaceId && name && targetValid);
+  });
+
+  openCreateDashboardDialog(): void {
+    if (!this.selectedWorkspaceId() || this.dashboardEditing()) {
+      return;
+    }
+    this.resetDashboardMutations();
+    this.dashboardFormName.set('');
+    this.dashboardFormType.set('custom');
+    this.dashboardFormTargetId.set('');
+    this.dashboardDialogContentMode.set('create');
+    this.dashboardDialogMode.set('create');
   }
 
-  selectEntity(entityId: string): void {
-    this.selectedEntityId.set(entityId);
+  selectDashboard(dashboardId: string): void {
+    if (
+      this.dashboardEditing() ||
+      !this.dashboards().some((dashboard) => dashboard.id === dashboardId)
+    ) {
+      return;
+    }
+    this.activeDashboardId.set(dashboardId);
+  }
+
+  startDashboardEditing(): void {
+    const dashboard = this.activeDashboard();
+    if (!dashboard) {
+      return;
+    }
+    this.resetDashboardMutations();
+    this.dashboardDraft.set({
+      ...dashboard,
+      definition: structuredClone(dashboard.definition),
+    });
+  }
+
+  openDashboardPropertiesDialog(): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard || this.updateDashboardMutation.isPending()) {
+      return;
+    }
+    this.updateDashboardMutation.reset();
+    this.dashboardFormName.set(dashboard.name);
+    this.dashboardFormType.set(dashboard.type);
+    this.dashboardFormTargetId.set(dashboard.targetId ?? '');
+    this.dashboardDialogContentMode.set('properties');
+    this.dashboardDialogMode.set('properties');
+  }
+
+  cancelDashboardEditing(): void {
+    if (this.updateDashboardMutation.isPending()) {
+      return;
+    }
+    this.dashboardDialogMode.set(null);
+    this.dashboardDraft.set(null);
+    this.updateDashboardMutation.reset();
+  }
+
+  confirmDashboardEditing(): void {
+    const dashboard = this.dashboardDraft();
+    if (!dashboard || this.updateDashboardMutation.isPending()) {
+      return;
+    }
+    this.updateDashboardMutation.mutate(dashboard, {
+      onSuccess: (savedDashboard) => {
+        this.activeDashboardId.set(savedDashboard.id);
+        this.dashboardDialogMode.set(null);
+        this.dashboardDraft.set(null);
+      },
+    });
+  }
+
+  requestDashboardDelete(): void {
+    const dashboard = this.activeDashboard();
+    if (dashboard && this.dashboardEditing()) {
+      this.pendingDashboardDelete.set(dashboard);
+    }
+  }
+
+  closeDashboardDialog(): void {
+    if (this.dashboardMutationPending()) {
+      return;
+    }
+    this.dashboardDialogMode.set(null);
+  }
+
+  setDashboardFormName(event: Event): void {
+    this.dashboardFormName.set((event.target as HTMLInputElement).value);
+  }
+
+  setDashboardFormType(value: string): void {
+    if (!isDashboardType(value)) {
+      return;
+    }
+    if (this.dashboardFormType() === value) {
+      return;
+    }
+    this.dashboardFormType.set(value);
+    this.dashboardFormTargetId.set('');
+  }
+
+  saveDashboard(): void {
+    const workspaceId = this.selectedWorkspaceId();
+    const mode = this.dashboardDialogMode();
+    if (!workspaceId || !this.dashboardFormValid() || this.dashboardMutationPending()) {
+      return;
+    }
+
+    if (!mode) {
+      return;
+    }
+    const type = this.dashboardFormType();
+    const targetId = dashboardTargetId(type, workspaceId, this.dashboardFormTargetId());
+    const name = this.dashboardFormName().trim();
+
+    if (mode === 'properties') {
+      const dashboard = this.dashboardDraft();
+      if (!dashboard) {
+        return;
+      }
+      this.dashboardDraft.set({ ...dashboard, type, targetId, name });
+      this.dashboardDialogMode.set(null);
+      return;
+    }
+
+    const input: CreateDashboardInput = {
+      workspaceId,
+      type,
+      targetId,
+      name,
+      definition: {},
+    };
+
+    this.createDashboardMutation.mutate(input, {
+      onSuccess: (dashboard) => {
+        this.activeDashboardId.set(dashboard.id);
+        this.dashboardDialogMode.set(null);
+      },
+    });
+  }
+
+  confirmDeleteDashboard(): void {
+    const dashboard = this.pendingDashboardDelete();
+    if (!dashboard || this.deleteDashboardMutation.isPending()) {
+      return;
+    }
+    this.deleteDashboardMutation.mutate(dashboard, {
+      onSuccess: () => {
+        if (this.activeDashboardId() === dashboard.id) {
+          this.activeDashboardId.set('');
+        }
+        this.dashboardDraft.set(null);
+        this.pendingDashboardDelete.set(null);
+      },
+    });
   }
 
   selectSavedQuery(queryId: string): void {
@@ -469,8 +967,8 @@ export class EditorComponent {
     }
   }
 
-  setDays(event: Event): void {
-    const value = (event.target as HTMLInputElement).valueAsNumber;
-    this.days.set(Number.isFinite(value) && value > 0 ? Math.floor(value) : 30);
+  private resetDashboardMutations(): void {
+    this.createDashboardMutation.reset();
+    this.updateDashboardMutation.reset();
   }
 }

@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { QueryClient, QueryKey } from '@tanstack/angular-query-experimental';
 import { contextQueryKeys } from '../context/context.queries';
+import { dashboardQueryKeys } from '../dashboard/dashboard.queries';
+import { Dashboard } from '../dashboard/dashboard.service';
 import { intervalQueryKeys } from '../interval/interval.queries';
 import { projectQueryKeys } from '../project/project.queries';
 import { queryKeys as contextQueryResultKeys } from '../query/query.queries';
@@ -135,6 +137,7 @@ export class CacheService {
       workspaceQueryKeys.detail(workspaceId),
       workspaceQueryKeys.statsFor(workspaceId),
       savedQueryKeys.list(workspaceId),
+      dashboardQueryKeys.list(workspaceId),
     );
 
     return this.afterWorkspaceListChange();
@@ -155,6 +158,22 @@ export class CacheService {
   afterSavedQueryDelete(queryId: string, workspaceId: string) {
     this.remove(savedQueryKeys.detail(queryId));
     return this.invalidate(savedQueryKeys.list(workspaceId));
+  }
+
+  afterDashboardCreate(workspaceId: string) {
+    return this.invalidate(dashboardQueryKeys.list(workspaceId));
+  }
+
+  afterDashboardUpdate(dashboard: Dashboard) {
+    return this.invalidate(
+      dashboardQueryKeys.list(dashboard.workspaceId),
+      dashboardQueryKeys.detail(dashboard.id),
+    );
+  }
+
+  afterDashboardDelete(dashboard: Dashboard) {
+    this.remove(dashboardQueryKeys.detail(dashboard.id));
+    return this.invalidate(dashboardQueryKeys.list(dashboard.workspaceId));
   }
 
   private async invalidate(...queryKeys: QueryKey[]) {

@@ -40,6 +40,7 @@ type TestContextManager struct {
 	Intervals    *IntervalRepositoryMock
 	Projects     *ProjectRepositoryMock
 	SavedQueries *SavedQueryRepositoryMock
+	Dashboards   *DashboardRepositoryMock
 	Workspaces   *WorkspaceRepositoryMock
 }
 
@@ -80,9 +81,11 @@ func NewEmptyTestContextManager() *TestContextManager {
 	intervals := NewIntervalRepositoryMock()
 	projects := NewProjectRepositoryMock()
 	savedQueries := NewSavedQueryRepositoryMock()
+	dashboards := NewDashboardRepositoryMock()
 	workspaces := NewWorkspaceRepositoryMock()
 	manager := NewContextManager(timeProvider, contexts, intervals, workspaces, projects)
 	manager.SavedQueryRepository = savedQueries
+	manager.DashboardRepository = dashboards
 
 	return &TestContextManager{
 		Manager:      manager,
@@ -91,6 +94,7 @@ func NewEmptyTestContextManager() *TestContextManager {
 		Intervals:    intervals,
 		Projects:     projects,
 		SavedQueries: savedQueries,
+		Dashboards:   dashboards,
 		Workspaces:   workspaces,
 	}
 }

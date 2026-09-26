@@ -33,6 +33,7 @@ type ContextManager struct {
 	OnSyncProgress       SyncProgressHandler
 	ProjectRepository    ProjectRepository
 	SavedQueryRepository SavedQueryRepository
+	DashboardRepository  DashboardRepository
 	QueryInterpreter     ContextQueryInterpreter
 }
 

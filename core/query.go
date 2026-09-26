@@ -9,7 +9,7 @@ import (
 // CQL
 // text | string | "search text" | ~ = !=
 // duration | string | 2h30 | > < >= <= =
-// start, end | datetime | 2023-01-01T00:00:00Z | > <	>= <=
+// start, end | datetime | 2023-01-01T00:00:00Z | > <	>= <= | relative time: -30d -1y -1m - 1h now -2w ...
 // label | [] | ("label1", "label2") | in, not in
 // project | string, [] | pr , ("pr1", "pr2")  | ~ = ~= in not in
 
