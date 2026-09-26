@@ -26,9 +26,14 @@
     position: relative;
     display: grid;
     grid-template-columns: repeat(16, minmax(0, 1fr));
-    background-image:
-      linear-gradient(to right, var(--border) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  }
+
+  .dashboard-grid-editing {
+    background-image: radial-gradient(
+      circle,
+      color-mix(in oklab, var(--muted-foreground) 22%, transparent) 1px,
+      transparent 1px
+    );
   }
 
   .dashboard-widget-slot {
@@ -55,6 +60,31 @@
     overflow-wrap: anywhere;
   }
 
+  .dashboard-text-surface {
+    padding: 0.5rem;
+    border-color: transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--foreground);
+    box-shadow: none;
+    white-space: normal;
+  }
+
+  .dashboard-text-surface.dashboard-widget-editable,
+  .dashboard-widget-preview .dashboard-text-surface {
+    border-style: dashed;
+    border-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
+  }
+
+  .dashboard-field-control {
+    @apply w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground
+      transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50;
+  }
+
+  .dashboard-field-control[aria-invalid='true'] {
+    @apply border-destructive focus-visible:ring-destructive/50;
+  }
+
   .dashboard-widget-editable,
   .dashboard-palette-item {
     cursor: grab;
@@ -67,6 +97,16 @@
     outline-offset: -2px;
   }
 
+  .dashboard-text-surface.dashboard-widget-selected {
+    border-color: var(--primary);
+    outline: none;
+  }
+
+  .dashboard-text-surface.dashboard-widget-editable:focus-visible {
+    outline: 2px dashed var(--ring);
+    outline-offset: 3px;
+  }
+
   .dashboard-widget-dragging {
     opacity: 0;
   }
@@ -76,7 +116,9 @@
     pointer-events: none;
   }
 
-  .dashboard-widget-invalid {
+  .dashboard-widget-invalid,
+  .dashboard-text-surface.dashboard-widget-invalid {
+    border-color: var(--destructive);
     outline-color: var(--destructive);
     background: color-mix(in oklab, var(--destructive) 10%, var(--card));
   }

@@ -55,6 +55,30 @@ describe('dashboard definition', () => {
     expect(deleteTextWidget(updated, 'one').widgets.map(({ id }) => id)).toEqual(['two']);
   });
 
+  it('keeps text styling in a serialized draft while cancel leaves saved settings intact', () => {
+    const original = addTextWidget(normalizeDashboardDefinition({}), 'note');
+    const draft = updateTextWidget(normalizeDashboardDefinition(original), 'note', {
+      properties: {
+        text: 'Centered note',
+        horizontalAlign: 'center',
+        verticalAlign: 'center',
+        fontSize: 32,
+      },
+    });
+    const saved = normalizeDashboardDefinition(JSON.parse(JSON.stringify(draft)));
+    expect(saved.widgets[0].properties).toEqual(draft.widgets[0].properties);
+    expect(original.widgets[0].properties).toEqual({ text: 'Text' });
+    expect(() =>
+      normalizeDashboardDefinition({ ...draft, widgets: [{ ...draft.widgets[0], type: 'radar' }] }),
+    ).toThrow(/unsupported/);
+    expect(() =>
+      normalizeDashboardDefinition({
+        ...draft,
+        widgets: [{ ...draft.widgets[0], properties: { text: 'Invalid', fontSize: 1000 } }],
+      }),
+    ).toThrow(/invalid/);
+  });
+
   it('moves and resizes widgets by cells while enforcing boundaries and collisions', () => {
     const initial = addTextWidget(addTextWidget(normalizeDashboardDefinition({}), 'one'), 'two');
     const moved = moveTextWidget(initial, 'two', 4, 4);

@@ -55,6 +55,7 @@ func TestDashboardRoutesSupportLifecycleAtCanonicalAndLegacyPaths(t *testing.T) 
 			require.Equal(t, []*core.Dashboard{&created}, dashboards)
 
 			created.Name = "Updated insight"
+			created.Definition = json.RawMessage(`{"version":1,"query":"","widgets":[{"id":"text-1","type":"text","query":"","layout":{"x":0,"y":0,"width":4,"height":3},"properties":{"text":"Focus","horizontalAlign":"center","verticalAlign":"bottom","fontSize":32}}]}`)
 			created.Type = core.DashboardTypeCustom
 			created.TargetId = ""
 			updateBody, err := json.Marshal(created)
@@ -81,6 +82,7 @@ func TestDashboardRoutesSupportLifecycleAtCanonicalAndLegacyPaths(t *testing.T) 
 			require.Equal(t, "Updated insight", retrieved.Name)
 			require.Equal(t, core.DashboardTypeCustom, retrieved.Type)
 			require.Empty(t, retrieved.TargetId)
+			require.JSONEq(t, string(created.Definition), string(retrieved.Definition))
 
 			deleteRequest := httptest.NewRequest(
 				http.MethodDelete,

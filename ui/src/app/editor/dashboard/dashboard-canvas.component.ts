@@ -16,6 +16,7 @@ import {
   DashboardWidgetLayout,
   dashboardGridRowCount,
   TextWidgetDefinition,
+  TextWidgetProperties,
   TEXT_WIDGET_CATALOG_ENTRY,
 } from './dashboard-definition';
 import {
@@ -27,30 +28,34 @@ import {
   widgetDropLayout,
 } from './dashboard-layout';
 import { DashboardResizeHandlesComponent } from './dashboard-resize-handles.component';
+import { TextWidgetComponent } from './widgets/text-widget.component';
 
 interface WidgetDragPreview {
   widgetId: string | null;
   layout: DashboardWidgetLayout;
-  text: string;
+  properties: TextWidgetProperties;
   valid: boolean;
 }
 
 @Component({
   selector: 'ctx-dashboard-canvas',
-  imports: [CdkDrag, DashboardResizeHandlesComponent],
+  imports: [CdkDrag, DashboardResizeHandlesComponent, TextWidgetComponent],
   host: {
-    class: 'block w-full max-w-[1000px] shrink-0 rounded-lg border bg-card shadow-xs',
+    class: 'block w-full max-w-[1000px] shrink-0',
     '(document:keydown.escape)': 'cancelDrag()',
   },
   template: `
     <div
       #grid
       class="dashboard-grid"
+      [class.dashboard-grid-editing]="editing()"
       [style.--dashboard-widget-inset.px]="widgetInset"
       [style.grid-auto-rows.px]="cellSize()"
       [style.min-height.px]="rowCount() * cellSize()"
       [style.background-size]="cellSize() + 'px ' + cellSize() + 'px'"
-      [attr.aria-label]="'Dashboard grid, 16 columns by ' + rowCount() + ' rows'"
+      [attr.aria-label]="
+        editing() ? 'Dashboard grid, 16 columns by ' + rowCount() + ' rows' : 'Dashboard content'
+      "
       (pointerdown)="clearSelection($event)"
     >
       @for (widget of widgets(); track widget.id) {
@@ -63,7 +68,7 @@ interface WidgetDragPreview {
             <button
               cdkDrag
               type="button"
-              class="dashboard-widget-surface dashboard-widget-editable"
+              class="dashboard-widget-surface dashboard-text-surface dashboard-widget-editable"
               [class.dashboard-widget-selected]="selectedWidgetId() === widget.id"
               [class.dashboard-widget-dragging]="
                 (draggedWidget()?.id === widget.id && !cancelled) ||
@@ -78,7 +83,7 @@ interface WidgetDragPreview {
               (cdkDragMoved)="moveWidgetDrag($event)"
               (cdkDragEnded)="finishWidgetDrag($event)"
             >
-              {{ widget.properties.text || 'Empty text widget' }}
+              <ctx-text-widget [properties]="widget.properties" [editing]="true"></ctx-text-widget>
             </button>
             @if (selectedWidgetId() === widget.id) {
               <ctx-dashboard-resize-handles
@@ -92,7 +97,9 @@ interface WidgetDragPreview {
               ></ctx-dashboard-resize-handles>
             }
           } @else {
-            <div class="dashboard-widget-surface">{{ widget.properties.text }}</div>
+            <div class="dashboard-widget-surface dashboard-text-surface">
+              <ctx-text-widget [properties]="widget.properties"></ctx-text-widget>
+            </div>
           }
         </div>
       }
@@ -104,10 +111,10 @@ interface WidgetDragPreview {
           aria-hidden="true"
         >
           <div
-            class="dashboard-widget-surface dashboard-widget-selected"
+            class="dashboard-widget-surface dashboard-text-surface dashboard-widget-selected"
             [class.dashboard-widget-invalid]="!target.valid"
           >
-            {{ target.text || 'Empty text widget' }}
+            <ctx-text-widget [properties]="target.properties" [editing]="true"></ctx-text-widget>
           </div>
         </div>
       }
@@ -131,6 +138,12 @@ export class DashboardCanvasComponent {
   readonly preview = signal<WidgetDragPreview | null>(null);
   readonly palettePreviewVisible = computed(() => this.preview()?.widgetId === null);
   readonly rowCount = computed(() => {
+    if (!this.editing()) {
+      return this.widgets().reduce(
+        (rows, widget) => Math.max(rows, widget.layout.y + widget.layout.height),
+        0,
+      );
+    }
     const layout = this.preview()?.layout;
     return Math.max(dashboardGridRowCount(this.widgets()), layout ? layout.y + layout.height : 0);
   });
@@ -174,7 +187,7 @@ export class DashboardCanvasComponent {
     this.preview.set({
       widgetId: widget.id,
       layout: widget.layout,
-      text: widget.properties.text,
+      properties: widget.properties,
       valid: true,
     });
   }
@@ -216,7 +229,7 @@ export class DashboardCanvasComponent {
     this.preview.set({
       widgetId: null,
       layout,
-      text: TEXT_WIDGET_CATALOG_ENTRY.createProperties().text,
+      properties: TEXT_WIDGET_CATALOG_ENTRY.createProperties(),
       valid: this.widgets().length < 200 && canPlaceWidget(this.widgets(), layout),
     });
   }
@@ -247,7 +260,7 @@ export class DashboardCanvasComponent {
     this.preview.set({
       widgetId: widget.id,
       layout,
-      text: widget.properties.text,
+      properties: widget.properties,
       valid: canPlaceWidget(this.widgets(), layout, widget.id),
     });
   }
@@ -266,7 +279,8 @@ export class DashboardCanvasComponent {
   }
 
   clearSelection(event: PointerEvent): void {
-    if (event.target === this.grid().nativeElement) this.widgetSelected.emit(null);
+    if (this.editing() && event.target === this.grid().nativeElement)
+      this.widgetSelected.emit(null);
   }
 
   private updateWidgetPreview(pointer: GridPoint): void {
@@ -281,7 +295,7 @@ export class DashboardCanvasComponent {
     this.preview.set({
       widgetId: widget.id,
       layout,
-      text: widget.properties.text,
+      properties: widget.properties,
       valid: canPlaceWidget(this.widgets(), layout, widget.id),
     });
   }

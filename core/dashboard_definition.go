@@ -107,10 +107,40 @@ func validateDashboardDefinition(raw json.RawMessage) error {
 		if len(text) > dashboardMaxTextLength {
 			return invalidDefinition("text widget text exceeds 20000 characters")
 		}
+		if err := validateTextWidgetPresentation(widget.Properties); err != nil {
+			return err
+		}
 		for j := 0; j < i; j++ {
 			if dashboardLayoutsOverlap(layout, definition.Widgets[j].Layout) {
 				return invalidDefinition("widgets cannot overlap")
 			}
+		}
+	}
+	return nil
+}
+
+func validateTextWidgetPresentation(properties map[string]interface{}) error {
+	for key, options := range map[string][]string{
+		"horizontalAlign": {"left", "center", "right"},
+		"verticalAlign":   {"top", "center", "bottom"},
+	} {
+		if raw, exists := properties[key]; exists {
+			value, ok := raw.(string)
+			valid := false
+			for _, option := range options {
+				if ok && value == option {
+					valid = true
+				}
+			}
+			if !valid {
+				return invalidDefinition("text widget " + key + " is invalid")
+			}
+		}
+	}
+	if raw, exists := properties["fontSize"]; exists {
+		size, ok := raw.(float64)
+		if !ok || size < 8 || size > 96 || size != float64(int(size)) {
+			return invalidDefinition("text widget fontSize must be a whole number between 8 and 96 pixels")
 		}
 	}
 	return nil

@@ -7,7 +7,12 @@ export interface DashboardWidgetLayout {
 
 export interface TextWidgetProperties {
   text: string;
+  horizontalAlign?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'center' | 'bottom';
+  fontSize?: number;
 }
+
+export const TEXT_WIDGET_FONT_SIZE = { minimum: 8, maximum: 96, default: 14 };
 
 export interface TextWidgetDefinition {
   id: string;
@@ -48,7 +53,41 @@ export function normalizeDashboardDefinition(value: unknown): DashboardDefinitio
   if (typeof definition['query'] !== 'string' || !Array.isArray(definition['widgets'])) {
     throw new Error('Dashboard definition is invalid.');
   }
+  const widgets: unknown[] = definition['widgets'];
+  for (const value of widgets) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Dashboard widget is invalid.');
+    }
+    const widget = value as Record<string, unknown>;
+    if (widget['type'] !== 'text') {
+      throw new Error('This dashboard contains an unsupported widget type.');
+    }
+    const properties: unknown = widget['properties'];
+    if (!isTextWidgetProperties(properties)) {
+      throw new Error('Text widget settings are invalid.');
+    }
+  }
   return structuredClone(value) as DashboardDefinition;
+}
+
+export function isTextWidgetProperties(value: unknown): value is TextWidgetProperties {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const properties = value as Record<string, unknown>;
+  return (
+    typeof properties['text'] === 'string' &&
+    properties['text'].length <= 20_000 &&
+    (properties['horizontalAlign'] === undefined ||
+      (typeof properties['horizontalAlign'] === 'string' &&
+        ['left', 'center', 'right'].includes(properties['horizontalAlign']))) &&
+    (properties['verticalAlign'] === undefined ||
+      (typeof properties['verticalAlign'] === 'string' &&
+        ['top', 'center', 'bottom'].includes(properties['verticalAlign']))) &&
+    (properties['fontSize'] === undefined ||
+      (typeof properties['fontSize'] === 'number' &&
+        Number.isInteger(properties['fontSize']) &&
+        properties['fontSize'] >= TEXT_WIDGET_FONT_SIZE.minimum &&
+        properties['fontSize'] <= TEXT_WIDGET_FONT_SIZE.maximum))
+  );
 }
 
 export function dashboardDefinitionWithWidgets(

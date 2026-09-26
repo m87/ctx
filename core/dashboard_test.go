@@ -131,3 +131,31 @@ func TestDashboardRejectsDuplicateSpecialTarget(t *testing.T) {
 	})
 	require.NoError(t, err)
 }
+
+func TestTextWidgetPresentationValidation(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		properties string
+		valid      bool
+	}{
+		{"legacy", `{"text":"Note"}`, true},
+		{"centered", `{"text":"Note","horizontalAlign":"center","verticalAlign":"center","fontSize":32}`, true},
+		{"right bottom", `{"text":"Note","horizontalAlign":"right","verticalAlign":"bottom","fontSize":96}`, true},
+		{"bad horizontal", `{"text":"Note","horizontalAlign":"middle"}`, false},
+		{"bad vertical", `{"text":"Note","verticalAlign":null}`, false},
+		{"too small", `{"text":"Note","fontSize":7}`, false},
+		{"too big", `{"text":"Note","fontSize":97}`, false},
+		{"fraction", `{"text":"Note","fontSize":14.5}`, false},
+		{"string size", `{"text":"Note","fontSize":"24px"}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			definition := json.RawMessage(`{"version":1,"query":"","widgets":[{"id":"note","type":"text","query":"","layout":{"x":0,"y":0,"width":4,"height":3},"properties":` + tc.properties + `}]}`)
+			err := validateDashboardDefinition(definition)
+			if tc.valid {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}

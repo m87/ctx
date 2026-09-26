@@ -44,6 +44,7 @@ import {
   moveTextWidget,
   resizeTextWidget,
   TextWidgetDefinition,
+  TextWidgetProperties,
   updateTextWidget,
   updateTextWidgetLayout,
   DashboardWidgetLayout,
@@ -51,6 +52,7 @@ import {
 import { DashboardCanvasComponent } from './dashboard/dashboard-canvas.component';
 import { GridPoint } from './dashboard/dashboard-layout';
 import { WidgetPaletteComponent } from './dashboard/widget-palette.component';
+import { TextWidgetPropertiesComponent } from './dashboard/widgets/text-widget-properties.component';
 import { contextQueryResultAsListItems } from '../query/query-summary.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { SearchDropdownSelectComponent } from '../shared/search-dropdown-select.component';
@@ -164,6 +166,7 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
     HlmTextareaImports,
     DashboardCanvasComponent,
     WidgetPaletteComponent,
+    TextWidgetPropertiesComponent,
     NgIcon,
     ContextListComponent,
     QueryErrorStateComponent,
@@ -187,7 +190,9 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
   ],
   template: `
     <div class="fixed inset-0 z-50 flex h-dvh min-h-0 flex-col bg-background text-foreground">
-      <header class="flex h-12 shrink-0 items-center border-b bg-card/70 px-3">
+      <header
+        class="flex min-h-12 shrink-0 flex-wrap items-center gap-y-2 border-b bg-card/70 px-3 py-2 sm:flex-nowrap"
+      >
         <div class="flex min-w-0 items-center gap-2">
           <a
             routerLink="/"
@@ -209,12 +214,14 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
 
           <div class="ml-1 h-5 w-px bg-border"></div>
 
-          <ctx-sidebar-workspace-select class="ml-1 w-48"></ctx-sidebar-workspace-select>
+          <ctx-sidebar-workspace-select
+            class="ml-1 hidden w-48 md:block"
+          ></ctx-sidebar-workspace-select>
         </div>
 
-        <div class="ml-auto flex shrink-0 items-center gap-2 pl-4">
+        <div class="ml-auto flex min-w-0 items-center gap-2 sm:shrink-0 sm:pl-4">
           <ctx-search-dropdown-select
-            class="w-44 sm:w-56"
+            class="w-36 sm:w-56"
             inputId="editor-dashboard"
             ariaLabel="Dashboard"
             placeholder="Select dashboard…"
@@ -394,7 +401,7 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
                 @if (dashboardEditing()) {
                   <textarea
                     hlmTextarea
-                    class="min-h-32 w-full resize-y font-mono text-xs"
+                    class="dashboard-field-control min-h-32 w-full resize-y font-mono text-xs"
                     aria-label="Dashboard query"
                     [value]="dashboardQueryText()"
                     (input)="updateDashboardQuery($event)"
@@ -426,7 +433,9 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
           </section>
         </aside>
 
-        <main class="editor-canvas flex min-w-0 flex-1 flex-col items-center overflow-auto p-6">
+        <main
+          class="flex min-w-0 flex-1 flex-col items-center overflow-auto bg-muted p-3 dark:bg-background sm:p-6"
+        >
           @if (dashboardDefinitionError()) {
             <div class="ui-notice ui-notice-destructive mb-3" role="alert">
               {{ dashboardDefinitionError() }}
@@ -443,13 +452,35 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
             (widgetResized)="applyWidgetLayout($event.id, $event.layout)"
             (widgetKeydown)="handleWidgetKeydown($event.event, $event.widget)"
           ></ctx-dashboard-canvas>
+          @if (dashboardEditing()) {
+            <section
+              class="mt-4 w-full max-w-[1000px] rounded-xl border border-border/65 bg-sidebar lg:hidden"
+              aria-label="Text widget tools"
+            >
+              <ctx-widget-palette
+                [disabled]="updateDashboardMutation.isPending()"
+                [draggable]="false"
+                (widgetAdded)="addWidget()"
+              ></ctx-widget-palette>
+              @if (selectedWidget(); as widget) {
+                <ctx-text-widget-properties
+                  [widget]="widget"
+                  idSuffix="-mobile"
+                  [disabled]="updateDashboardMutation.isPending()"
+                  (queryChange)="updateWidgetQuery(widget.id, $event)"
+                  (propertiesChange)="updateWidgetProperties(widget.id, $event)"
+                  (deleteRequested)="deleteWidget(widget.id)"
+                ></ctx-text-widget-properties>
+              }
+            </section>
+          }
         </main>
 
         <aside
           class="hidden w-72 shrink-0 flex-col border-l bg-sidebar lg:flex"
           aria-label="Widget tools"
         >
-          <section class="flex min-h-0 flex-1 flex-col border-b" aria-label="Widgets">
+          <section class="flex shrink-0 flex-col border-b" aria-label="Widgets">
             <div class="border-b px-3 py-3">
               <div class="text-meta font-semibold uppercase tracking-label text-muted-foreground">
                 Widgets
@@ -459,6 +490,7 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
             @if (dashboardEditing()) {
               <ctx-widget-palette
                 [overCanvas]="dashboardCanvas.palettePreviewVisible()"
+                [disabled]="updateDashboardMutation.isPending()"
                 (widgetAdded)="addWidget()"
                 (dragStarted)="dashboardCanvas.startPaletteDrag()"
                 (dragMoved)="dashboardCanvas.movePaletteDrag($event)"
@@ -485,38 +517,13 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
             </div>
 
             @if (selectedWidget(); as widget) {
-              <div class="flex flex-col gap-4 overflow-y-auto p-3">
-                <div class="ui-field">
-                  <label hlmLabel>Type</label>
-                  <div class="ui-field-value">Text</div>
-                </div>
-                <div class="ui-field">
-                  <label hlmLabel [for]="'widget-query-' + widget.id">Widget query</label
-                  ><textarea
-                    hlmTextarea
-                    [id]="'widget-query-' + widget.id"
-                    [value]="widget.query"
-                    (input)="updateWidgetQuery(widget.id, $event)"
-                  ></textarea>
-                </div>
-                <div class="ui-field">
-                  <label hlmLabel [for]="'widget-text-' + widget.id">Text</label
-                  ><textarea
-                    hlmTextarea
-                    [id]="'widget-text-' + widget.id"
-                    [value]="widget.properties.text"
-                    (input)="updateWidgetText(widget.id, $event)"
-                  ></textarea>
-                </div>
-                <button
-                  hlmBtn
-                  type="button"
-                  variant="destructive"
-                  (click)="deleteWidget(widget.id)"
-                >
-                  Delete widget
-                </button>
-              </div>
+              <ctx-text-widget-properties
+                [widget]="widget"
+                [disabled]="updateDashboardMutation.isPending()"
+                (queryChange)="updateWidgetQuery(widget.id, $event)"
+                (propertiesChange)="updateWidgetProperties(widget.id, $event)"
+                (deleteRequested)="deleteWidget(widget.id)"
+              ></ctx-text-widget-properties>
             } @else {
               <div class="flex flex-1 items-center justify-center p-5">
                 <div class="text-center text-xs text-muted-foreground">Nothing selected</div>
@@ -525,6 +532,28 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
           </section>
         </aside>
       </div>
+
+      <hlm-alert-dialog
+        [state]="pendingWidgetDelete() ? 'open' : 'closed'"
+        (closed)="pendingWidgetDelete.set(null)"
+      >
+        <hlm-alert-dialog-content *brnAlertDialogContent>
+          <hlm-alert-dialog-header>
+            <h3 hlmAlertDialogTitle>Delete this text widget?</h3>
+            <p hlmAlertDialogDescription>
+              The widget will be removed from this draft. Save the dashboard to keep the change.
+            </p>
+          </hlm-alert-dialog-header>
+          <hlm-alert-dialog-footer>
+            <button hlmBtn type="button" variant="outline" (click)="pendingWidgetDelete.set(null)">
+              Cancel
+            </button>
+            <button hlmBtn type="button" variant="destructive" (click)="confirmWidgetDelete()">
+              Delete widget
+            </button>
+          </hlm-alert-dialog-footer>
+        </hlm-alert-dialog-content>
+      </hlm-alert-dialog>
 
       <hlm-dialog
         [state]="dashboardDialogMode() ? 'open' : 'closed'"
@@ -550,6 +579,7 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               <label hlmLabel for="dashboard-name">Name</label>
               <input
                 hlmInput
+                class="dashboard-field-control h-9"
                 id="dashboard-name"
                 type="text"
                 autocomplete="off"
@@ -668,16 +698,6 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
       display: block;
     }
 
-    .editor-canvas {
-      background-color: color-mix(in oklab, var(--muted) 55%, var(--background));
-      background-image: radial-gradient(
-        circle,
-        color-mix(in oklab, var(--muted-foreground) 22%, transparent) 1px,
-        transparent 1px
-      );
-      background-size: 20px 20px;
-    }
-
     .editor-preview-dialog {
       width: calc(100vw - 2rem);
       max-width: 72rem;
@@ -713,6 +733,7 @@ export class EditorComponent {
   readonly dashboardFormType = signal<DashboardType>('custom');
   readonly dashboardFormTargetId = signal('');
   readonly pendingDashboardDelete = signal<Dashboard | null>(null);
+  readonly pendingWidgetDelete = signal<string | null>(null);
   readonly selectedSavedQueryId = signal('');
   readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
 
@@ -768,6 +789,7 @@ export class EditorComponent {
     this.selectedSavedQueryId.set('');
     this.dashboardDialogMode.set(null);
     this.pendingDashboardDelete.set(null);
+    this.pendingWidgetDelete.set(null);
   });
 
   private readonly selectAvailableDashboard = effect(() => {
@@ -953,6 +975,7 @@ export class EditorComponent {
     this.dashboardDialogMode.set(null);
     this.dashboardDraft.set(null);
     this.selectedWidgetId.set(null);
+    this.pendingWidgetDelete.set(null);
     this.updateDashboardMutation.reset();
   }
 
@@ -1117,19 +1140,22 @@ export class EditorComponent {
     });
   }
 
-  updateWidgetQuery(widgetId: string, event: Event): void {
-    this.updateWidget(widgetId, { query: (event.target as HTMLTextAreaElement).value });
+  updateWidgetQuery(widgetId: string, query: string): void {
+    this.updateWidget(widgetId, { query });
   }
 
-  updateWidgetText(widgetId: string, event: Event): void {
-    const widget = this.dashboardWidgets().find((item) => item.id === widgetId);
-    if (!widget) return;
-    this.updateWidget(widgetId, {
-      properties: { ...widget.properties, text: (event.target as HTMLTextAreaElement).value },
-    });
+  updateWidgetProperties(widgetId: string, properties: TextWidgetProperties): void {
+    this.updateWidget(widgetId, { properties });
   }
 
   deleteWidget(widgetId: string): void {
+    if (this.dashboardEditing() && !this.updateDashboardMutation.isPending())
+      this.pendingWidgetDelete.set(widgetId);
+  }
+
+  confirmWidgetDelete(): void {
+    const widgetId = this.pendingWidgetDelete();
+    if (!widgetId || this.updateDashboardMutation.isPending()) return;
     const dashboard = this.dashboardDraft();
     if (!dashboard) return;
     this.dashboardDraft.set({
@@ -1137,6 +1163,7 @@ export class EditorComponent {
       definition: deleteTextWidget(normalizeDashboardDefinition(dashboard.definition), widgetId),
     });
     this.selectedWidgetId.set(null);
+    this.pendingWidgetDelete.set(null);
   }
 
   handleWidgetKeydown(event: KeyboardEvent, widget: TextWidgetDefinition): void {
@@ -1147,6 +1174,7 @@ export class EditorComponent {
     }
     if (
       !this.dashboardEditing() ||
+      this.updateDashboardMutation.isPending() ||
       !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)
     )
       return;
@@ -1172,7 +1200,7 @@ export class EditorComponent {
     update: Partial<Pick<TextWidgetDefinition, 'query' | 'properties'>>,
   ): void {
     const dashboard = this.dashboardDraft();
-    if (!dashboard) return;
+    if (!dashboard || this.updateDashboardMutation.isPending()) return;
     this.dashboardDraft.set({
       ...dashboard,
       definition: updateTextWidget(

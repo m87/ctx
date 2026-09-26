@@ -22,6 +22,34 @@ describe('DashboardCanvasComponent dragging', () => {
     vi.unstubAllGlobals();
   });
 
+  it('renders plain text without editor controls outside edit mode', async () => {
+    const definition = addTextWidget(normalizeDashboardDefinition({}), 'note');
+    const widget = {
+      ...definition.widgets[0],
+      properties: { text: 'Dashboard heading', fontSize: 32, horizontalAlign: 'center' as const },
+    };
+    const fixture = await createFixture([widget]);
+    const canvas = fixture.componentInstance;
+    fixture.componentRef.setInput('selectedWidgetId', widget.id);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.dashboard-grid-editing')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.dashboard-resize-handle')).toHaveLength(8);
+    const selected = vi.fn();
+    canvas.widgetSelected.subscribe(selected);
+    fixture.componentRef.setInput('editing', false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.dashboard-grid-editing')).toBeNull();
+    expect(fixture.nativeElement.querySelector('button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.dashboard-resize-handle')).toBeNull();
+    const content = fixture.nativeElement.querySelector('ctx-text-widget span') as HTMLSpanElement;
+    expect(content.textContent).toContain('Dashboard heading');
+    expect(content.style.fontSize).toBe('32px');
+    expect(canvas.rowCount()).toBe(widget.layout.y + widget.layout.height);
+    canvas.grid().nativeElement.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    expect(selected).not.toHaveBeenCalled();
+    expect(canvas.widgets()[0]).toEqual(widget);
+  });
+
   it('previews a palette drop, adds at the dropped cell, and rejects collisions and outside drops', async () => {
     const fixture = await createFixture();
     const canvas = fixture.componentInstance;
