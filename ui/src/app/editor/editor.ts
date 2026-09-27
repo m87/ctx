@@ -31,6 +31,7 @@ import { DashboardQueries } from '../../api/dashboard/dashboard.queries';
 import {
   CreateDashboardInput,
   Dashboard,
+  DashboardScope,
   DashboardType,
 } from '../../api/dashboard/dashboard.service';
 import { ProjectQueries } from '../../api/project/project.queries';
@@ -40,21 +41,24 @@ import { SavedQueryQueries } from '../../api/query/saved-query.queries';
 import { SavedQuery } from '../../api/query/saved-query.service';
 import { ContextListComponent } from '../context/context-list.component';
 import {
-  addTextWidget,
+  addDashboardWidget,
+  DashboardWidgetType,
+  DashboardWidgetDefinition,
+  replaceDashboardWidget,
   deleteTextWidget,
   normalizeDashboardDefinition,
   moveTextWidget,
   resizeTextWidget,
-  TextWidgetDefinition,
-  TextWidgetProperties,
-  updateTextWidget,
   updateTextWidgetLayout,
   DashboardWidgetLayout,
 } from './dashboard/dashboard-definition';
 import { DashboardCanvasComponent } from './dashboard/dashboard-canvas.component';
 import { GridPoint } from './dashboard/dashboard-layout';
 import { WidgetPaletteComponent } from './dashboard/widget-palette.component';
-import { TextWidgetPropertiesComponent } from './dashboard/widgets/text-widget-properties.component';
+import { WidgetPropertiesComponent } from './dashboard/widgets/widget-properties.component';
+import { DashboardPeriod, PERIODS } from './dashboard/metric-widget-definition';
+import { injectDashboardMetrics } from '../dashboard/dashboard-metrics';
+import { TimeZoneService } from '../shared/time-zone.service';
 import { contextQueryResultAsListItems } from '../query/query-summary.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { SearchDropdownSelectComponent } from '../shared/search-dropdown-select.component';
@@ -157,7 +161,7 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
     HlmTextareaImports,
     DashboardCanvasComponent,
     WidgetPaletteComponent,
-    TextWidgetPropertiesComponent,
+    WidgetPropertiesComponent,
     NgIcon,
     ContextListComponent,
     QueryErrorStateComponent,
@@ -432,36 +436,114 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               {{ dashboardDefinitionError() }}
             </div>
           }
-          <ctx-dashboard-canvas
-            #dashboardCanvas
-            [widgets]="dashboardWidgets()"
-            [editing]="dashboardEditing() && !updateDashboardMutation.isPending()"
-            [selectedWidgetId]="selectedWidgetId()"
-            (widgetSelected)="selectWidget($event)"
-            (widgetAdded)="addWidget($event)"
-            (widgetMoved)="moveWidgetTo($event.id, $event.layout)"
-            (widgetResized)="applyWidgetLayout($event.id, $event.layout)"
-            (widgetKeydown)="handleWidgetKeydown($event.event, $event.widget)"
-          ></ctx-dashboard-canvas>
+          @if (dashboardDraft() ?? activeDashboard(); as dashboard) {
+            @if (
+              dashboard.type === 'project' ||
+              dashboard.type === 'context' ||
+              dashboard.type === 'daily'
+            ) {
+              <section
+                class="mb-3 flex w-full max-w-[1000px] flex-wrap items-end gap-3 rounded-xl border border-border/65 bg-card p-3 shadow-xs"
+                aria-label="Dashboard preview scope"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="ui-section-label">Preview scope</div>
+                  @if (dashboard.type === 'project') {
+                    <ctx-search-dropdown-select
+                      class="mt-2 block max-w-sm"
+                      inputId="dashboard-preview-project"
+                      ariaLabel="Preview project"
+                      placeholder="Choose a project to preview"
+                      searchPlaceholder="Search projects…"
+                      [options]="projectOptions()"
+                      [value]="previewProjectId()"
+                      (selectionChange)="previewProjectId.set($event)"
+                    ></ctx-search-dropdown-select>
+                  } @else if (dashboard.type === 'context') {
+                    <ctx-search-dropdown-select
+                      class="mt-2 block max-w-sm"
+                      inputId="dashboard-preview-context"
+                      ariaLabel="Preview context"
+                      placeholder="Choose a context to preview"
+                      searchPlaceholder="Search contexts…"
+                      [options]="contextOptions()"
+                      [value]="previewContextId()"
+                      (selectionChange)="previewContextId.set($event)"
+                    ></ctx-search-dropdown-select>
+                  } @else {
+                    <label
+                      class="mt-2 flex max-w-sm flex-col gap-1 text-xs"
+                      for="dashboard-preview-date"
+                    >
+                      Preview date
+                      <input
+                        hlmInput
+                        id="dashboard-preview-date"
+                        type="date"
+                        [value]="previewDate() || timeZone.today()"
+                        (change)="setPreviewDate($event)"
+                      />
+                    </label>
+                    <p class="mt-1 text-meta text-muted-foreground">
+                      Daily Insights always uses this date, regardless of widget periods.
+                    </p>
+                  }
+                </div>
+                @if (!previewScopeReady()) {
+                  <p class="text-xs text-muted-foreground" role="status">
+                    {{
+                      dashboard.type === 'project'
+                        ? 'Choose a project to preview.'
+                        : 'Choose a context to preview.'
+                    }}
+                  </p>
+                }
+              </section>
+            }
+          }
+          <div class="w-full max-w-[1000px] overflow-x-auto">
+            <ctx-dashboard-canvas
+              #dashboardCanvas
+              [widgets]="dashboardWidgets()"
+              [results]="metrics.results()"
+              [error]="metrics.error()"
+              [editing]="dashboardEditing() && !updateDashboardMutation.isPending()"
+              [selectedWidgetId]="selectedWidgetId()"
+              (widgetSelected)="selectWidget($event)"
+              (widgetAdded)="addWidget($event.type, $event.position)"
+              (widgetMoved)="moveWidgetTo($event.id, $event.layout)"
+              (widgetResized)="applyWidgetLayout($event.id, $event.layout)"
+              (widgetKeydown)="handleWidgetKeydown($event.event, $event.widget)"
+            ></ctx-dashboard-canvas>
+          </div>
+          @if (dashboardEditing()) {
+            <p class="mt-2 w-full max-w-[1000px] text-meta text-muted-foreground lg:hidden">
+              Scroll the dashboard grid horizontally to arrange widgets.
+            </p>
+          }
           @if (dashboardEditing()) {
             <section
               class="mt-4 w-full max-w-[1000px] rounded-xl border border-border/65 bg-sidebar lg:hidden"
-              aria-label="Text widget tools"
+              aria-label="Widget tools"
             >
               <ctx-widget-palette
                 [disabled]="updateDashboardMutation.isPending()"
                 [draggable]="false"
-                (widgetAdded)="addWidget()"
+                (widgetAdded)="addWidget($event)"
               ></ctx-widget-palette>
               @if (selectedWidget(); as widget) {
-                <ctx-text-widget-properties
+                <ctx-widget-properties
                   [widget]="widget"
+                  [projects]="projectOptions()"
+                  [contexts]="contextOptions()"
+                  [tags]="tagOptions()"
+                  [daily]="dashboardDraft()?.type === 'daily'"
+                  [today]="timeZone.today()"
                   idSuffix="-mobile"
                   [disabled]="updateDashboardMutation.isPending()"
-                  (queryChange)="updateWidgetQuery(widget.id, $event)"
-                  (propertiesChange)="updateWidgetProperties(widget.id, $event)"
+                  (widgetChange)="replaceWidget($event)"
                   (deleteRequested)="deleteWidget(widget.id)"
-                ></ctx-text-widget-properties>
+                ></ctx-widget-properties>
               }
             </section>
           }
@@ -482,8 +564,8 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               <ctx-widget-palette
                 [overCanvas]="dashboardCanvas.palettePreviewVisible()"
                 [disabled]="updateDashboardMutation.isPending()"
-                (widgetAdded)="addWidget()"
-                (dragStarted)="dashboardCanvas.startPaletteDrag()"
+                (widgetAdded)="addWidget($event)"
+                (dragStarted)="dashboardCanvas.startPaletteDrag($event)"
                 (dragMoved)="dashboardCanvas.movePaletteDrag($event)"
                 (dragEnded)="dashboardCanvas.finishPaletteDrag($event)"
               ></ctx-widget-palette>
@@ -508,13 +590,17 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
             </div>
 
             @if (selectedWidget(); as widget) {
-              <ctx-text-widget-properties
+              <ctx-widget-properties
                 [widget]="widget"
+                [projects]="projectOptions()"
+                [contexts]="contextOptions()"
+                [tags]="tagOptions()"
+                [daily]="dashboardDraft()?.type === 'daily'"
+                [today]="timeZone.today()"
                 [disabled]="updateDashboardMutation.isPending()"
-                (queryChange)="updateWidgetQuery(widget.id, $event)"
-                (propertiesChange)="updateWidgetProperties(widget.id, $event)"
+                (widgetChange)="replaceWidget($event)"
                 (deleteRequested)="deleteWidget(widget.id)"
-              ></ctx-text-widget-properties>
+              ></ctx-widget-properties>
             } @else {
               <div class="flex flex-1 items-center justify-center p-5">
                 <div class="text-center text-xs text-muted-foreground">Nothing selected</div>
@@ -530,7 +616,7 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
       >
         <hlm-alert-dialog-content *brnAlertDialogContent>
           <hlm-alert-dialog-header>
-            <h3 hlmAlertDialogTitle>Delete this text widget?</h3>
+            <h3 hlmAlertDialogTitle>Delete this widget?</h3>
             <p hlmAlertDialogDescription>
               The widget will be removed from this draft. Save the dashboard to keep the change.
             </p>
@@ -593,6 +679,21 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
                 [value]="dashboardFormType()"
                 (selectionChange)="setDashboardFormType($event)"
               ></ctx-search-dropdown-select>
+            </div>
+
+            <div class="ui-field">
+              <label hlmLabel for="dashboard-period">Default metric period</label>
+              <select
+                id="dashboard-period"
+                class="ui-select-trigger w-full"
+                [value]="dashboardFormPeriod()"
+                [disabled]="dashboardMutationPending()"
+                (change)="setDashboardFormPeriod($event)"
+              >
+                @for (period of periods; track period.id) {
+                  <option [value]="period.id">{{ period.label }}</option>
+                }
+              </select>
             </div>
 
             <div class="rounded-lg border bg-muted/25 px-3 py-2.5 text-xs text-muted-foreground">
@@ -713,7 +814,7 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
 export class EditorComponent {
   readonly previewSkeletonItems = [0, 1, 2];
   readonly selectedWidgetId = signal<string | null>(null);
-  readonly dashboardWidgets = computed<readonly TextWidgetDefinition[]>(() => {
+  readonly dashboardWidgets = computed<readonly DashboardWidgetDefinition[]>(() => {
     const dashboard = this.dashboardDraft() ?? this.activeDashboard();
     if (!dashboard) return [];
     try {
@@ -751,11 +852,17 @@ export class EditorComponent {
   readonly pendingWidgetDelete = signal<string | null>(null);
   readonly selectedSavedQueryId = signal('');
   readonly selectedWorkspaceId = this.store.selectSignal(WorkspaceState.selectedWorkspaceId);
+  readonly previewProjectId = signal('');
+  readonly previewContextId = signal('');
+  readonly previewDate = signal('');
+  readonly timeZone = inject(TimeZoneService);
 
   readonly projectsQuery = injectQuery(() =>
     this.projectQueries.all(this.selectedWorkspaceId() ?? ''),
   );
-  readonly contextsQuery = injectQuery(() => this.contextQueries.list(this.selectedWorkspaceId()));
+  readonly contextsQuery = injectQuery(() =>
+    this.contextQueries.list(this.selectedWorkspaceId(), true),
+  );
   readonly savedQueriesQuery = injectQuery(() =>
     this.savedQueryQueries.list(this.selectedWorkspaceId()),
   );
@@ -769,6 +876,37 @@ export class EditorComponent {
   readonly dashboards = computed(() => this.dashboardsQuery.data() ?? []);
   readonly activeDashboard = computed(
     () => this.dashboards().find((dashboard) => dashboard.id === this.activeDashboardId()) ?? null,
+  );
+  readonly previewScope = computed<DashboardScope>(() => {
+    const type = (this.dashboardDraft() ?? this.activeDashboard())?.type;
+    if (type === 'project' && this.previewProjectId())
+      return { projectId: this.previewProjectId() };
+    if (type === 'context' && this.previewContextId())
+      return { contextId: this.previewContextId() };
+    if (type === 'daily') return { date: this.previewDate() || this.timeZone.today() };
+    return {};
+  });
+  readonly previewScopeReady = computed(() => {
+    const type = (this.dashboardDraft() ?? this.activeDashboard())?.type;
+    return type !== 'project' || !!this.previewProjectId()
+      ? type !== 'context' || !!this.previewContextId()
+      : false;
+  });
+  readonly metrics = injectDashboardMetrics(
+    () => this.dashboardDraft() ?? this.activeDashboard(),
+    () => this.previewScope(),
+    () => this.previewScopeReady(),
+  );
+  readonly periods = PERIODS;
+  readonly dashboardFormPeriod = signal<DashboardPeriod>('this_week');
+  readonly tagOptions = computed(() =>
+    [
+      ...new Set(
+        (this.contextsQuery.data() ?? []).flatMap((context) =>
+          (context.tags ?? []).map((tag) => tag.name),
+        ),
+      ),
+    ].sort(),
   );
   readonly dashboardOptions = computed<SearchSelectOption[]>(() =>
     dashboardsAsOptions(this.dashboards()),
@@ -799,6 +937,9 @@ export class EditorComponent {
 
   private readonly resetEditorOnWorkspaceChange = effect(() => {
     this.selectedWorkspaceId();
+    this.previewProjectId.set('');
+    this.previewContextId.set('');
+    this.previewDate.set('');
     this.activeDashboardId.set('');
     this.dashboardDraft.set(null);
     this.selectedSavedQueryId.set('');
@@ -934,7 +1075,14 @@ export class EditorComponent {
     ) {
       return;
     }
+    this.previewProjectId.set('');
+    this.previewContextId.set('');
+    this.previewDate.set('');
     this.activeDashboardId.set(dashboardId);
+  }
+
+  setPreviewDate(event: Event): void {
+    this.previewDate.set((event.target as HTMLInputElement).value);
   }
 
   startDashboardEditing(): void {
@@ -964,6 +1112,9 @@ export class EditorComponent {
     this.dashboardFormName.set(dashboard.name);
     this.dashboardFormType.set(dashboard.type);
     this.dashboardFormActive.set(dashboard.active);
+    this.dashboardFormPeriod.set(
+      normalizeDashboardDefinition(dashboard.definition).period ?? 'this_week',
+    );
     this.dashboardDialogContentMode.set('properties');
     this.dashboardDialogMode.set('properties');
   }
@@ -1050,6 +1201,7 @@ export class EditorComponent {
         targetId,
         name,
         active: this.dashboardFormActive(),
+        definition: { ...dashboard.definition, period: this.dashboardFormPeriod() },
       });
       this.dashboardDialogMode.set(null);
       return;
@@ -1060,7 +1212,7 @@ export class EditorComponent {
       type,
       targetId,
       name,
-      definition: { version: 1, query: '', widgets: [] },
+      definition: { version: 1, query: '', period: this.dashboardFormPeriod(), widgets: [] },
     };
 
     this.createDashboardMutation.mutate(input, {
@@ -1102,11 +1254,11 @@ export class EditorComponent {
     this.updateDashboardMutation.reset();
   }
 
-  addWidget(position?: GridPoint): void {
+  addWidget(type: DashboardWidgetType = 'text', position?: GridPoint): void {
     const dashboard = this.dashboardDraft();
     if (!dashboard || this.updateDashboardMutation.isPending()) return;
     const definition = normalizeDashboardDefinition(dashboard.definition);
-    const next = addTextWidget(definition, crypto.randomUUID(), position);
+    const next = addDashboardWidget(definition, crypto.randomUUID(), type, position);
     if (next === definition) return;
     const widget = next.widgets.at(-1);
     if (widget) {
@@ -1149,14 +1301,6 @@ export class EditorComponent {
     });
   }
 
-  updateWidgetQuery(widgetId: string, query: string): void {
-    this.updateWidget(widgetId, { query });
-  }
-
-  updateWidgetProperties(widgetId: string, properties: TextWidgetProperties): void {
-    this.updateWidget(widgetId, { properties });
-  }
-
   deleteWidget(widgetId: string): void {
     if (this.dashboardEditing() && !this.updateDashboardMutation.isPending())
       this.pendingWidgetDelete.set(widgetId);
@@ -1175,7 +1319,7 @@ export class EditorComponent {
     this.pendingWidgetDelete.set(null);
   }
 
-  handleWidgetKeydown(event: KeyboardEvent, widget: TextWidgetDefinition): void {
+  handleWidgetKeydown(event: KeyboardEvent, widget: DashboardWidgetDefinition): void {
     if (event.key === 'Escape') {
       event.stopPropagation();
       this.selectedWidgetId.set(null);
@@ -1204,19 +1348,21 @@ export class EditorComponent {
     this.dashboardDraft.set({ ...dashboard, definition: next });
   }
 
-  private updateWidget(
-    widgetId: string,
-    update: Partial<Pick<TextWidgetDefinition, 'query' | 'properties'>>,
-  ): void {
+  replaceWidget(widget: DashboardWidgetDefinition): void {
     const dashboard = this.dashboardDraft();
     if (!dashboard || this.updateDashboardMutation.isPending()) return;
     this.dashboardDraft.set({
       ...dashboard,
-      definition: updateTextWidget(
+      definition: replaceDashboardWidget(
         normalizeDashboardDefinition(dashboard.definition),
-        widgetId,
-        update,
+        widget,
       ),
     });
+  }
+
+  setDashboardFormPeriod(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    const period = PERIODS.find((period) => period.id === value);
+    if (period) this.dashboardFormPeriod.set(period.id);
   }
 }

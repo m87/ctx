@@ -1,3 +1,13 @@
+import {
+  DashboardPeriod,
+  MetricWidgetProperties,
+  GaugeWidgetProperties,
+  defaultMetricProperties,
+  defaultGaugeProperties,
+  metricSettingsError,
+  PERIODS,
+} from './metric-widget-definition';
+
 export interface DashboardWidgetLayout {
   x: number;
   y: number;
@@ -22,11 +32,32 @@ export interface TextWidgetDefinition {
   properties: TextWidgetProperties;
 }
 
+export interface KpiWidgetDefinition {
+  id: string;
+  type: 'kpi';
+  layout: DashboardWidgetLayout;
+  query: string;
+  properties: MetricWidgetProperties;
+}
+
+export interface GaugeWidgetDefinition {
+  id: string;
+  type: 'gauge';
+  layout: DashboardWidgetLayout;
+  query: string;
+  properties: GaugeWidgetProperties;
+}
+
+export type DashboardWidgetDefinition =
+  TextWidgetDefinition | KpiWidgetDefinition | GaugeWidgetDefinition;
+export type DashboardWidgetType = DashboardWidgetDefinition['type'];
+
 export interface DashboardDefinition {
   [key: string]: unknown;
   version: 1;
   query: string;
-  widgets: TextWidgetDefinition[];
+  period?: DashboardPeriod;
+  widgets: DashboardWidgetDefinition[];
 }
 
 export const TEXT_WIDGET_CATALOG_ENTRY = {
@@ -38,6 +69,51 @@ export const TEXT_WIDGET_CATALOG_ENTRY = {
   minimumLayout: { width: 2, height: 2 },
   createProperties: (): TextWidgetProperties => ({ text: 'Text' }),
 };
+
+export const WIDGET_CATALOG = [
+  TEXT_WIDGET_CATALOG_ENTRY,
+  {
+    type: 'kpi' as const,
+    label: 'KPI',
+    icon: 'lucideHash',
+    defaultLayout: { width: 4, height: 3 },
+    minimumLayout: { width: 3, height: 2 },
+    createProperties: defaultMetricProperties,
+  },
+  {
+    type: 'gauge' as const,
+    label: 'Gauge',
+    icon: 'lucideGauge',
+    defaultLayout: { width: 6, height: 5 },
+    minimumLayout: { width: 4, height: 4 },
+    createProperties: defaultGaugeProperties,
+  },
+];
+
+export function widgetCatalogEntry(type: DashboardWidgetType) {
+  return WIDGET_CATALOG.find((entry) => entry.type === type) ?? TEXT_WIDGET_CATALOG_ENTRY;
+}
+
+export function createWidget(
+  type: DashboardWidgetType,
+  id: string,
+  layout: DashboardWidgetLayout,
+): DashboardWidgetDefinition {
+  switch (type) {
+    case 'text':
+      return {
+        id,
+        type,
+        layout,
+        query: '',
+        properties: TEXT_WIDGET_CATALOG_ENTRY.createProperties(),
+      };
+    case 'kpi':
+      return { id, type, layout, query: '', properties: defaultMetricProperties() };
+    case 'gauge':
+      return { id, type, layout, query: '', properties: defaultGaugeProperties() };
+  }
+}
 
 export function normalizeDashboardDefinition(value: unknown): DashboardDefinition {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -53,18 +129,27 @@ export function normalizeDashboardDefinition(value: unknown): DashboardDefinitio
   if (typeof definition['query'] !== 'string' || !Array.isArray(definition['widgets'])) {
     throw new Error('Dashboard definition is invalid.');
   }
+  if (
+    definition['period'] !== undefined &&
+    !PERIODS.some((period) => period.id === definition['period'])
+  )
+    throw new Error('Dashboard period is invalid.');
   const widgets: unknown[] = definition['widgets'];
   for (const value of widgets) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       throw new Error('Dashboard widget is invalid.');
     }
     const widget = value as Record<string, unknown>;
-    if (widget['type'] !== 'text') {
+    if (!['text', 'kpi', 'gauge'].includes(String(widget['type']))) {
       throw new Error('This dashboard contains an unsupported widget type.');
     }
     const properties: unknown = widget['properties'];
-    if (!isTextWidgetProperties(properties)) {
-      throw new Error('Text widget settings are invalid.');
+    if (
+      widget['type'] === 'text'
+        ? !isTextWidgetProperties(properties)
+        : !!metricSettingsError(properties, widget['type'] === 'gauge')
+    ) {
+      throw new Error('Widget settings are invalid.');
     }
   }
   return structuredClone(value) as DashboardDefinition;
@@ -92,13 +177,13 @@ export function isTextWidgetProperties(value: unknown): value is TextWidgetPrope
 
 export function dashboardDefinitionWithWidgets(
   definition: DashboardDefinition,
-  widgets: TextWidgetDefinition[],
+  widgets: DashboardWidgetDefinition[],
 ): DashboardDefinition {
   return { ...definition, widgets };
 }
 
 export function firstFreeWidgetPosition(
-  widgets: readonly TextWidgetDefinition[],
+  widgets: readonly DashboardWidgetDefinition[],
   width = TEXT_WIDGET_CATALOG_ENTRY.defaultLayout.width,
   height = TEXT_WIDGET_CATALOG_ENTRY.defaultLayout.height,
 ): { x: number; y: number } | null {
@@ -119,26 +204,34 @@ export function pixelDeltaToCells(delta: number, cellSize: number): number {
   return cellSize > 0 ? Math.round(delta / cellSize) : 0;
 }
 
-export function dashboardGridRowCount(widgets: readonly TextWidgetDefinition[]): number {
+export function dashboardGridRowCount(widgets: readonly DashboardWidgetDefinition[]): number {
   return widgets.reduce(
     (count, widget) => Math.max(count, widget.layout.y + widget.layout.height),
     32,
   );
 }
 
-export function addTextWidget(
+export function addDashboardWidget(
   definition: DashboardDefinition,
   id: string,
+  type: DashboardWidgetType = 'text',
   target?: Pick<DashboardWidgetLayout, 'x' | 'y'>,
 ): DashboardDefinition {
   if (definition.widgets.length >= 200 || definition.widgets.some((widget) => widget.id === id)) {
     return definition;
   }
-  const position = target ?? firstFreeWidgetPosition(definition.widgets);
+  const entry = widgetCatalogEntry(type);
+  const position =
+    target ??
+    firstFreeWidgetPosition(
+      definition.widgets,
+      entry.defaultLayout.width,
+      entry.defaultLayout.height,
+    );
   if (!position) {
     return definition;
   }
-  const layout = { ...position, ...TEXT_WIDGET_CATALOG_ENTRY.defaultLayout };
+  const layout = { ...position, ...entry.defaultLayout };
   if (
     !Number.isSafeInteger(layout.x) ||
     !Number.isSafeInteger(layout.y) ||
@@ -149,13 +242,7 @@ export function addTextWidget(
   ) {
     return definition;
   }
-  const widget: TextWidgetDefinition = {
-    id,
-    type: 'text',
-    layout,
-    query: '',
-    properties: TEXT_WIDGET_CATALOG_ENTRY.createProperties(),
-  };
+  const widget = createWidget(type, id, layout);
   return { ...definition, widgets: [...definition.widgets, widget] };
 }
 
@@ -167,7 +254,7 @@ export function updateTextWidget(
   return {
     ...definition,
     widgets: definition.widgets.map((widget) =>
-      widget.id === widgetId
+      widget.id === widgetId && widget.type === 'text'
         ? { ...widget, ...update, properties: update.properties ?? widget.properties }
         : widget,
     ),
@@ -194,8 +281,14 @@ export function updateTextWidgetLayout(
     !Object.values(target).every(Number.isSafeInteger) ||
     target.x < 0 ||
     target.y < 0 ||
-    target.width < TEXT_WIDGET_CATALOG_ENTRY.minimumLayout.width ||
-    target.height < TEXT_WIDGET_CATALOG_ENTRY.minimumLayout.height ||
+    target.width <
+      widgetCatalogEntry(
+        definition.widgets.find((widget) => widget.id === widgetId)?.type ?? 'text',
+      ).minimumLayout.width ||
+    target.height <
+      widgetCatalogEntry(
+        definition.widgets.find((widget) => widget.id === widgetId)?.type ?? 'text',
+      ).minimumLayout.height ||
     target.x + target.width > 16 ||
     definition.widgets.some(
       (other) => other.id !== widgetId && layoutsOverlap(target, other.layout),
@@ -227,4 +320,22 @@ export function deleteTextWidget(
   widgetId: string,
 ): DashboardDefinition {
   return { ...definition, widgets: definition.widgets.filter((widget) => widget.id !== widgetId) };
+}
+
+export function addTextWidget(
+  definition: DashboardDefinition,
+  id: string,
+  target?: Pick<DashboardWidgetLayout, 'x' | 'y'>,
+): DashboardDefinition {
+  return addDashboardWidget(definition, id, 'text', target);
+}
+
+export function replaceDashboardWidget(
+  definition: DashboardDefinition,
+  widget: DashboardWidgetDefinition,
+): DashboardDefinition {
+  return {
+    ...definition,
+    widgets: definition.widgets.map((item) => (item.id === widget.id ? widget : item)),
+  };
 }

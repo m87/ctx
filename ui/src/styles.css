@@ -28,6 +28,12 @@
     grid-template-columns: repeat(16, minmax(0, 1fr));
   }
 
+  .dashboard-grid-stacked {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   .dashboard-grid-editing {
     background-image: radial-gradient(
       circle,
@@ -253,5 +259,73 @@
     outline: 1px solid var(--ring) !important;
     outline-offset: 1px;
     box-shadow: none !important;
+  }
+}
+
+@layer components {
+  .dashboard-widget-surface:not(.dashboard-text-surface) {
+    @apply rounded-xl border-border/65 p-0 shadow-xs;
+    white-space: normal;
+  }
+
+  .dashboard-metric-card {
+    @apply flex h-full min-h-0 flex-col gap-2 p-4;
+    container-type: inline-size;
+  }
+
+  .dashboard-metric-value {
+    @apply text-base font-semibold leading-tight tracking-tight tabular-nums text-foreground;
+    overflow-wrap: normal;
+  }
+
+  .dashboard-gauge-chart {
+    @apply relative flex min-h-0 w-full flex-1 items-end justify-center text-info;
+    aspect-ratio: 12 / 7;
+    max-height: 14rem;
+    min-height: 8rem;
+  }
+
+  .dashboard-gauge-svg {
+    @apply block h-full w-full;
+    object-fit: contain;
+  }
+
+  .dashboard-gauge-track,
+  .dashboard-gauge-progress {
+    fill: none;
+    stroke-width: 13;
+    stroke-linecap: round;
+  }
+
+  .dashboard-gauge-track {
+    stroke: var(--muted);
+  }
+
+  .dashboard-gauge-progress {
+    stroke: currentColor;
+  }
+
+  .dashboard-gauge-value {
+    @apply absolute inset-x-3 text-center;
+    bottom: 8%;
+  }
+
+  .dashboard-gauge-chart[data-tone='muted'] {
+    color: var(--muted-foreground);
+  }
+  .dashboard-gauge-chart[data-tone='success'] {
+    color: var(--success);
+  }
+  .dashboard-gauge-chart[data-tone='warning'] {
+    color: var(--warning);
+  }
+  .dashboard-gauge-chart[data-tone='destructive'] {
+    color: var(--destructive);
+  }
+
+  @container (max-width: 180px) {
+    .dashboard-metric-value {
+      font-size: var(--text-base);
+    }
   }
 }

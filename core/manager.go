@@ -50,7 +50,7 @@ func NewContextManager(
 		IntervalRepository:  intervalRepo,
 		WorkspaceRepository: workspaceRepo,
 		ProjectRepository:   projectRepo,
-		QueryInterpreter:    &DefaultContextQueryInterpreter{},
+		QueryInterpreter:    &PassthroughContextQueryInterpreter{},
 	}
 	manager.RunInTransaction = func(fn func(*ContextManager) error) error {
 		return fn(manager)

@@ -60,4 +60,20 @@ describe('DashboardService', () => {
     expect(deleteRequest.request.method).toBe('DELETE');
     deleteRequest.flush(null);
   });
+
+  it('evaluates dashboard metrics with the selected view scope', () => {
+    const body = {
+      workspaceId: 'workspace-1',
+      definition: { version: 1, query: '', widgets: [] },
+      timeZone: 'Europe/Warsaw',
+      firstDayOfWeek: 1,
+      scope: { projectId: 'project-1' },
+    };
+    service.evaluate(body).subscribe();
+    const request = http.expectOne('/api/dashboard/evaluate');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(body);
+    const response = { asOf: '2026-09-27T16:00:00Z', widgets: { kpi: { value: 0 } } };
+    request.flush(response);
+  });
 });

@@ -10,6 +10,7 @@ type IntervalRepository interface {
 	ListByContextId(contextId string) ([]*Interval, error)
 	GetActiveIntervalByContextId(contextId string) (*Interval, error)
 	ListByDay(date time.Time, workspaceId string) ([]*Interval, error)
+	ListOverlapping(workspaceId string, start, end time.Time) ([]*Interval, error)
 	List() ([]*Interval, error)
 	ListToSync(limit int) ([]*Interval, error)
 	SaveAll(intervals []*Interval) ([]string, error)

@@ -4,7 +4,7 @@ import { injectQuery } from '@tanstack/angular-query-experimental';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { DashboardQueries } from '../../api/dashboard/dashboard.queries';
-import { DashboardType } from '../../api/dashboard/dashboard.service';
+import { DashboardType, DashboardScope } from '../../api/dashboard/dashboard.service';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
 import { DashboardViewComponent } from './dashboard-view.component';
 
@@ -36,7 +36,7 @@ import { DashboardViewComponent } from './dashboard-view.component';
         (retry)="dashboardsQuery.refetch()"
       ></ctx-query-error-state>
     } @else if (dashboard(); as dashboard) {
-      <ctx-dashboard-view [dashboard]="dashboard"></ctx-dashboard-view>
+      <ctx-dashboard-view [dashboard]="dashboard" [scope]="scope()"></ctx-dashboard-view>
     } @else {
       <div class="ui-empty-state flex flex-col items-center gap-3 py-10">
         <p>No active dashboard for this view.</p>
@@ -47,6 +47,7 @@ import { DashboardViewComponent } from './dashboard-view.component';
 })
 export class DashboardSlotComponent {
   readonly workspaceId = input.required<string | null>();
+  readonly scope = input<DashboardScope>({});
   readonly type = input.required<Exclude<DashboardType, 'custom'>>();
   private readonly queries = inject(DashboardQueries);
   readonly dashboardsQuery = injectQuery(() => this.queries.list(this.workspaceId()));

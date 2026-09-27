@@ -2,8 +2,9 @@ import {
   DashboardWidgetLayout,
   layoutsOverlap,
   pixelDeltaToCells,
-  TextWidgetDefinition,
+  DashboardWidgetDefinition,
   TEXT_WIDGET_CATALOG_ENTRY,
+  widgetCatalogEntry,
 } from './dashboard-definition';
 
 export const DASHBOARD_COLUMNS = 16;
@@ -28,10 +29,11 @@ export function widgetResizeLayout(
   edge: WidgetResizeEdge,
   pixelDelta: GridPoint,
   cellSize: number,
+  minimum = TEXT_WIDGET_CATALOG_ENTRY.minimumLayout,
 ): DashboardWidgetLayout {
   const dx = pixelDeltaToCells(pixelDelta.x, cellSize);
   const dy = pixelDeltaToCells(pixelDelta.y, cellSize);
-  const minimum = TEXT_WIDGET_CATALOG_ENTRY.minimumLayout;
+
   let left = layout.x;
   let top = layout.y;
   let right = layout.x + layout.width;
@@ -74,11 +76,13 @@ export function isPointerOnGrid(pointer: GridPoint, geometry: DashboardGridGeome
 }
 
 export function canPlaceWidget(
-  widgets: readonly TextWidgetDefinition[],
+  widgets: readonly DashboardWidgetDefinition[],
   layout: DashboardWidgetLayout,
   excludedId?: string,
 ): boolean {
-  const minimum = TEXT_WIDGET_CATALOG_ENTRY.minimumLayout;
+  const minimum = widgetCatalogEntry(
+    widgets.find((widget) => widget.id === excludedId)?.type ?? 'text',
+  ).minimumLayout;
   return (
     Object.values(layout).every(Number.isSafeInteger) &&
     layout.x >= 0 &&

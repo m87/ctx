@@ -213,7 +213,11 @@ const EMPTY_DAY_STATS: DayStats = {
               emptyMessage="No projects tracked for this day."
             ></ctx-project-time-list>
           } @else {
-            <ctx-dashboard-slot [workspaceId]="activeWorkspaceId()" type="daily" />
+            <ctx-dashboard-slot
+              [workspaceId]="activeWorkspaceId()"
+              type="daily"
+              [scope]="{ date: selectedDate() }"
+            />
           }
         </div>
       }

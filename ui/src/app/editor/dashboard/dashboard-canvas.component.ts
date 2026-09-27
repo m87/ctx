@@ -15,9 +15,10 @@ import { CdkDrag, CdkDragEnd, CdkDragMove, DragConstrainPosition } from '@angula
 import {
   DashboardWidgetLayout,
   dashboardGridRowCount,
-  TextWidgetDefinition,
-  TextWidgetProperties,
-  TEXT_WIDGET_CATALOG_ENTRY,
+  DashboardWidgetDefinition,
+  DashboardWidgetType,
+  widgetCatalogEntry,
+  createWidget,
 } from './dashboard-definition';
 import {
   canPlaceWidget,
@@ -28,18 +29,19 @@ import {
   widgetDropLayout,
 } from './dashboard-layout';
 import { DashboardResizeHandlesComponent } from './dashboard-resize-handles.component';
-import { TextWidgetComponent } from './widgets/text-widget.component';
+import { DashboardWidgetComponent } from './widgets/dashboard-widget.component';
+import { DashboardMetricResult } from '../../../api/dashboard/dashboard.service';
 
 interface WidgetDragPreview {
   widgetId: string | null;
   layout: DashboardWidgetLayout;
-  properties: TextWidgetProperties;
+  widget: DashboardWidgetDefinition;
   valid: boolean;
 }
 
 @Component({
   selector: 'ctx-dashboard-canvas',
-  imports: [CdkDrag, DashboardResizeHandlesComponent, TextWidgetComponent],
+  imports: [CdkDrag, DashboardResizeHandlesComponent, DashboardWidgetComponent],
   host: {
     class: 'block w-full max-w-[1000px] shrink-0',
     '(document:keydown.escape)': 'cancelDrag()',
@@ -49,33 +51,37 @@ interface WidgetDragPreview {
       #grid
       class="dashboard-grid"
       [class.dashboard-grid-editing]="editing()"
+      [class.dashboard-grid-stacked]="!editing() && narrow()"
       [style.--dashboard-widget-inset.px]="widgetInset"
-      [style.grid-auto-rows.px]="cellSize()"
-      [style.min-height.px]="rowCount() * cellSize()"
+      [style.grid-auto-rows.px]="!narrow() ? cellSize() : null"
+      [style.min-height.px]="narrow() ? null : rowCount() * cellSize()"
+      [style.min-width.px]="editing() ? 720 : null"
       [style.background-size]="cellSize() + 'px ' + cellSize() + 'px'"
       [attr.aria-label]="
         editing() ? 'Dashboard grid, 16 columns by ' + rowCount() + ' rows' : 'Dashboard content'
       "
       (pointerdown)="clearSelection($event)"
     >
-      @for (widget of widgets(); track widget.id) {
+      @for (widget of presentationWidgets(); track widget.id) {
         <div
           class="dashboard-widget-slot"
           [style.grid-column]="widget.layout.x + 1 + ' / span ' + widget.layout.width"
           [style.grid-row]="widget.layout.y + 1 + ' / span ' + widget.layout.height"
+          [style.height.px]="!editing() && narrow() ? presentationHeight(widget) : null"
         >
           @if (editing()) {
             <button
               cdkDrag
               type="button"
-              class="dashboard-widget-surface dashboard-text-surface dashboard-widget-editable"
+              class="dashboard-widget-surface dashboard-widget-editable"
+              [class.dashboard-text-surface]="widget.type === 'text'"
               [class.dashboard-widget-selected]="selectedWidgetId() === widget.id"
               [class.dashboard-widget-dragging]="
                 (draggedWidget()?.id === widget.id && !cancelled) ||
                 resizingWidgetId() === widget.id
               "
               [cdkDragConstrainPosition]="keepWidgetAtOrigin"
-              [attr.aria-label]="'Text widget: ' + (widget.properties.text || 'Empty text widget')"
+              [attr.aria-label]="widgetLabel(widget)"
               [attr.aria-pressed]="selectedWidgetId() === widget.id"
               (click)="widgetSelected.emit(widget.id)"
               (keydown)="widgetKeydown.emit({ event: $event, widget })"
@@ -83,11 +89,17 @@ interface WidgetDragPreview {
               (cdkDragMoved)="moveWidgetDrag($event)"
               (cdkDragEnded)="finishWidgetDrag($event)"
             >
-              <ctx-text-widget [properties]="widget.properties" [editing]="true"></ctx-text-widget>
+              <ctx-dashboard-widget
+                [widget]="widget"
+                [editing]="true"
+                [result]="results()[widget.id]"
+                [error]="error()"
+              />
             </button>
             @if (selectedWidgetId() === widget.id) {
               <ctx-dashboard-resize-handles
                 [layout]="widget.layout"
+                [minimum]="catalogEntry(widget.type).minimumLayout"
                 [cellSize]="cellSize()"
                 [disabled]="draggedWidget() !== null"
                 [class.opacity-0]="resizingWidgetId() === widget.id"
@@ -97,8 +109,15 @@ interface WidgetDragPreview {
               ></ctx-dashboard-resize-handles>
             }
           } @else {
-            <div class="dashboard-widget-surface dashboard-text-surface">
-              <ctx-text-widget [properties]="widget.properties"></ctx-text-widget>
+            <div
+              class="dashboard-widget-surface"
+              [class.dashboard-text-surface]="widget.type === 'text'"
+            >
+              <ctx-dashboard-widget
+                [widget]="widget"
+                [result]="results()[widget.id]"
+                [error]="error()"
+              />
             </div>
           }
         </div>
@@ -111,10 +130,16 @@ interface WidgetDragPreview {
           aria-hidden="true"
         >
           <div
-            class="dashboard-widget-surface dashboard-text-surface dashboard-widget-selected"
+            class="dashboard-widget-surface dashboard-widget-selected"
             [class.dashboard-widget-invalid]="!target.valid"
+            [class.dashboard-text-surface]="target.widget.type === 'text'"
           >
-            <ctx-text-widget [properties]="target.properties" [editing]="true"></ctx-text-widget>
+            <ctx-dashboard-widget
+              [widget]="target.widget"
+              [editing]="true"
+              [result]="results()[target.widget.id]"
+              [error]="error()"
+            />
           </div>
         </div>
       }
@@ -122,18 +147,23 @@ interface WidgetDragPreview {
   `,
 })
 export class DashboardCanvasComponent {
-  readonly widgets = input.required<readonly TextWidgetDefinition[]>();
+  readonly widgets = input.required<readonly DashboardWidgetDefinition[]>();
   readonly editing = input(false);
+  readonly results = input<Record<string, DashboardMetricResult>>({});
+  readonly error = input('');
+  readonly catalogEntry = widgetCatalogEntry;
+  private paletteType: DashboardWidgetType = 'text';
   readonly selectedWidgetId = input<string | null>(null);
   readonly widgetSelected = output<string | null>();
-  readonly widgetAdded = output<GridPoint>();
+  readonly widgetAdded = output<{ type: DashboardWidgetType; position: GridPoint }>();
   readonly widgetMoved = output<{ id: string; layout: DashboardWidgetLayout }>();
   readonly widgetResized = output<{ id: string; layout: DashboardWidgetLayout }>();
-  readonly widgetKeydown = output<{ event: KeyboardEvent; widget: TextWidgetDefinition }>();
+  readonly widgetKeydown = output<{ event: KeyboardEvent; widget: DashboardWidgetDefinition }>();
   readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
   readonly widgetInset = DASHBOARD_WIDGET_INSET;
   readonly cellSize = signal(1);
-  readonly draggedWidget = signal<TextWidgetDefinition | null>(null);
+  readonly narrow = signal(false);
+  readonly draggedWidget = signal<DashboardWidgetDefinition | null>(null);
   readonly resizingWidgetId = signal<string | null>(null);
   readonly preview = signal<WidgetDragPreview | null>(null);
   readonly palettePreviewVisible = computed(() => this.preview()?.widgetId === null);
@@ -146,6 +176,16 @@ export class DashboardCanvasComponent {
     }
     const layout = this.preview()?.layout;
     return Math.max(dashboardGridRowCount(this.widgets()), layout ? layout.y + layout.height : 0);
+  });
+  readonly presentationWidgets = computed(() => {
+    const widgets = this.widgets();
+    if (this.editing() || !this.narrow()) return widgets;
+    return [...widgets].sort(
+      (left, right) =>
+        left.layout.y - right.layout.y ||
+        left.layout.x - right.layout.x ||
+        left.id.localeCompare(right.id),
+    );
   });
   cancelled = false;
   private pickup: GridPoint | undefined;
@@ -170,16 +210,24 @@ export class DashboardCanvasComponent {
   constructor() {
     afterNextRender(() => {
       const grid = this.grid().nativeElement;
-      this.cellSize.set(grid.getBoundingClientRect().width / DASHBOARD_COLUMNS);
+      const updateSize = (width: number) => {
+        this.cellSize.set(width / DASHBOARD_COLUMNS);
+        this.narrow.set(width < 600);
+      };
+      updateSize(grid.getBoundingClientRect().width);
       const observer = new ResizeObserver(([entry]) => {
-        if (entry) this.cellSize.set(entry.contentRect.width / DASHBOARD_COLUMNS);
+        if (entry) updateSize(entry.contentRect.width);
       });
       observer.observe(grid);
       this.destroyRef.onDestroy(() => observer.disconnect());
     });
   }
 
-  startWidgetDrag(widget: TextWidgetDefinition): void {
+  presentationHeight(widget: DashboardWidgetDefinition): number {
+    return widget.type === 'gauge' ? 240 : widget.type === 'kpi' ? 150 : 96;
+  }
+
+  startWidgetDrag(widget: DashboardWidgetDefinition): void {
     this.cancelled = false;
     this.pickup = undefined;
     this.draggedWidget.set(widget);
@@ -187,7 +235,7 @@ export class DashboardCanvasComponent {
     this.preview.set({
       widgetId: widget.id,
       layout: widget.layout,
-      properties: widget.properties,
+      widget,
       valid: true,
     });
   }
@@ -209,7 +257,8 @@ export class DashboardCanvasComponent {
     this.pickup = undefined;
   }
 
-  startPaletteDrag(): void {
+  startPaletteDrag(type: DashboardWidgetType): void {
+    this.paletteType = type;
     this.cancelled = false;
     this.preview.set(null);
   }
@@ -224,12 +273,12 @@ export class DashboardCanvasComponent {
     const layout = widgetDropLayout(pointer, geometry, {
       x: 0,
       y: 0,
-      ...TEXT_WIDGET_CATALOG_ENTRY.defaultLayout,
+      ...widgetCatalogEntry(this.paletteType).defaultLayout,
     });
     this.preview.set({
       widgetId: null,
       layout,
-      properties: TEXT_WIDGET_CATALOG_ENTRY.createProperties(),
+      widget: createWidget(this.paletteType, 'palette-preview', layout),
       valid: this.widgets().length < 200 && canPlaceWidget(this.widgets(), layout),
     });
   }
@@ -239,8 +288,19 @@ export class DashboardCanvasComponent {
     const target = this.preview();
     this.preview.set(null);
     if (pointer && !this.cancelled && this.editing() && target?.valid) {
-      this.widgetAdded.emit({ x: target.layout.x, y: target.layout.y });
+      this.widgetAdded.emit({
+        type: this.paletteType,
+        position: { x: target.layout.x, y: target.layout.y },
+      });
     }
+  }
+
+  widgetLabel(widget: DashboardWidgetDefinition): string {
+    return widget.type === 'text'
+      ? 'Text widget: ' + widget.properties.text
+      : widgetCatalogEntry(widget.type).label +
+          ' widget: ' +
+          (widget.properties.title || widget.properties.metric);
   }
 
   cancelDrag(): void {
@@ -249,23 +309,26 @@ export class DashboardCanvasComponent {
     this.resizingWidgetId.set(null);
   }
 
-  startWidgetResize(widget: TextWidgetDefinition): void {
+  startWidgetResize(widget: DashboardWidgetDefinition): void {
     this.cancelled = false;
     this.resizingWidgetId.set(widget.id);
     this.previewWidgetResize(widget, widget.layout);
   }
 
-  previewWidgetResize(widget: TextWidgetDefinition, layout: DashboardWidgetLayout): void {
+  previewWidgetResize(widget: DashboardWidgetDefinition, layout: DashboardWidgetLayout): void {
     if (!this.editing() || this.cancelled) return;
     this.preview.set({
       widgetId: widget.id,
       layout,
-      properties: widget.properties,
+      widget,
       valid: canPlaceWidget(this.widgets(), layout, widget.id),
     });
   }
 
-  finishWidgetResize(widget: TextWidgetDefinition, layout: DashboardWidgetLayout | null): void {
+  finishWidgetResize(
+    widget: DashboardWidgetDefinition,
+    layout: DashboardWidgetLayout | null,
+  ): void {
     this.preview.set(null);
     this.resizingWidgetId.set(null);
     if (
@@ -295,7 +358,7 @@ export class DashboardCanvasComponent {
     this.preview.set({
       widgetId: widget.id,
       layout,
-      properties: widget.properties,
+      widget,
       valid: canPlaceWidget(this.widgets(), layout, widget.id),
     });
   }

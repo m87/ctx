@@ -41,6 +41,7 @@ export class DashboardResizeHandlesComponent {
   readonly layout = input.required<DashboardWidgetLayout>();
   readonly cellSize = input.required<number>();
   readonly disabled = input(false);
+  readonly minimum = input({ width: 2, height: 2 });
   readonly resizeStarted = output<void>();
   readonly resizePreview = output<DashboardWidgetLayout>();
   readonly resizeEnded = output<DashboardWidgetLayout | null>();
@@ -108,7 +109,7 @@ export class DashboardResizeHandlesComponent {
     if (!dx && !dy) return;
     event.preventDefault();
     event.stopPropagation();
-    const layout = widgetResizeLayout(this.layout(), edge, { x: dx, y: dy }, 1);
+    const layout = widgetResizeLayout(this.layout(), edge, { x: dx, y: dy }, 1, this.minimum());
     this.resizeStarted.emit();
     this.resizeEnded.emit(layout);
   }
@@ -121,6 +122,7 @@ export class DashboardResizeHandlesComponent {
       gesture.edge,
       { x: event.clientX - gesture.start.x, y: event.clientY - gesture.start.y },
       gesture.cellSize,
+      this.minimum(),
     );
   }
 

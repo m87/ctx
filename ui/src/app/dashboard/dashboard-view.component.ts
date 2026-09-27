@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
-import { Dashboard } from '../../api/dashboard/dashboard.service';
+import { Dashboard, DashboardScope } from '../../api/dashboard/dashboard.service';
 import { DashboardCanvasComponent } from '../editor/dashboard/dashboard-canvas.component';
+import { injectDashboardMetrics } from './dashboard-metrics';
 import { normalizeDashboardDefinition } from '../editor/dashboard/dashboard-definition';
 
 @Component({
@@ -15,6 +16,8 @@ import { normalizeDashboardDefinition } from '../editor/dashboard/dashboard-defi
         <ctx-dashboard-canvas
           class="mx-auto"
           [widgets]="content.definition?.widgets ?? []"
+          [results]="metrics.results()"
+          [error]="metrics.error()"
         ></ctx-dashboard-canvas>
       } @else {
         <div class="ui-empty-state">No widgets in this dashboard yet.</div>
@@ -24,6 +27,11 @@ import { normalizeDashboardDefinition } from '../editor/dashboard/dashboard-defi
 })
 export class DashboardViewComponent {
   readonly dashboard = input.required<Dashboard>();
+  readonly scope = input<DashboardScope>({});
+  readonly metrics = injectDashboardMetrics(
+    () => this.dashboard(),
+    () => this.scope(),
+  );
   readonly content = computed(() => {
     try {
       return { definition: normalizeDashboardDefinition(this.dashboard().definition), error: '' };

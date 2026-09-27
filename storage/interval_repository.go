@@ -160,3 +160,15 @@ func (r *IntervalRepository) SaveAll(intervals []*core.Interval) ([]string, erro
 
 	return ids, nil
 }
+
+func (r *IntervalRepository) ListOverlapping(workspaceID string, start, end time.Time) ([]*core.Interval, error) {
+	var entities []*IntervalEntity
+	if err := r.db.Where("workspace_id = ? AND start < ? AND (end IS NULL OR end = ? OR end > ?)", workspaceID, end, time.Time{}, start).Find(&entities).Error; err != nil {
+		return nil, err
+	}
+	intervals := make([]*core.Interval, len(entities))
+	for i, entity := range entities {
+		intervals[i] = entity.ToModel()
+	}
+	return intervals, nil
+}

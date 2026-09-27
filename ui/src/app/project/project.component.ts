@@ -320,7 +320,11 @@ type DetailView = 'overview' | 'insights';
               </section>
             </div>
           } @else {
-            <ctx-dashboard-slot [workspaceId]="currentProject.workspaceId" type="project" />
+            <ctx-dashboard-slot
+              [workspaceId]="currentProject.workspaceId"
+              type="project"
+              [scope]="{ projectId: currentProject.id }"
+            />
           }
         </div>
       }

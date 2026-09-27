@@ -16,6 +16,7 @@ export class CacheService {
 
   afterContextCreate() {
     return this.invalidate(
+      dashboardQueryKeys.evaluations(),
       contextQueryKeys.lists(),
       contextQueryResultKeys.results(),
       projectQueryKeys.all,
@@ -25,6 +26,7 @@ export class CacheService {
 
   afterProjectChange(workspaceId: string) {
     return this.invalidate(
+      dashboardQueryKeys.evaluations(),
       projectQueryKeys.all,
       contextQueryKeys.lists(),
       contextQueryResultKeys.results(),
@@ -42,6 +44,7 @@ export class CacheService {
 
   afterActiveIntervalChange() {
     return this.invalidate(
+      dashboardQueryKeys.evaluations(),
       contextQueryKeys.lists(),
       contextQueryResultKeys.results(),
       contextQueryKeys.active(),
@@ -56,6 +59,7 @@ export class CacheService {
 
   afterContextMetadataChange(contextId: string, includeActive = false) {
     return this.invalidate(
+      dashboardQueryKeys.evaluations(),
       contextQueryKeys.lists(),
       contextQueryResultKeys.results(),
       contextQueryKeys.detail(contextId),
@@ -69,6 +73,7 @@ export class CacheService {
 
   afterBulkContextArchive() {
     return this.invalidate(
+      dashboardQueryKeys.evaluations(),
       contextQueryKeys.lists(),
       contextQueryResultKeys.results(),
       contextQueryKeys.details(),
@@ -88,6 +93,7 @@ export class CacheService {
     );
 
     return this.invalidate(
+      dashboardQueryKeys.evaluations(),
       contextQueryKeys.lists(),
       contextQueryResultKeys.results(),
       contextQueryKeys.active(),
@@ -113,7 +119,7 @@ export class CacheService {
       );
     }
 
-    return this.invalidate(...queryKeys);
+    return this.invalidate(dashboardQueryKeys.evaluations(), ...queryKeys);
   }
 
   afterIntervalDelete(intervalId: string, contextId: string) {

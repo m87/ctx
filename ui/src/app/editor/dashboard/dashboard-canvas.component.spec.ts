@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { DashboardCanvasComponent } from './dashboard-canvas.component';
 import {
   addTextWidget,
+  DashboardWidgetDefinition,
   normalizeDashboardDefinition,
   TextWidgetDefinition,
 } from './dashboard-definition';
@@ -23,10 +24,12 @@ describe('DashboardCanvasComponent dragging', () => {
   });
 
   it('renders plain text without editor controls outside edit mode', async () => {
-    const definition = addTextWidget(normalizeDashboardDefinition({}), 'note');
-    const widget = {
-      ...definition.widgets[0],
-      properties: { text: 'Dashboard heading', fontSize: 32, horizontalAlign: 'center' as const },
+    const widget: TextWidgetDefinition = {
+      id: 'note',
+      type: 'text',
+      layout: { x: 0, y: 0, width: 4, height: 3 },
+      query: '',
+      properties: { text: 'Dashboard heading', fontSize: 32, horizontalAlign: 'center' },
     };
     const fixture = await createFixture([widget]);
     const canvas = fixture.componentInstance;
@@ -55,19 +58,39 @@ describe('DashboardCanvasComponent dragging', () => {
     const canvas = fixture.componentInstance;
     const added = vi.fn();
     canvas.widgetAdded.subscribe(added);
-    canvas.startPaletteDrag();
+    canvas.startPaletteDrag('text');
     canvas.movePaletteDrag({ x: 325, y: 285 });
     expect(canvas.preview()?.layout).toEqual({ x: 4, y: 4, width: 4, height: 3 });
     expect(added).not.toHaveBeenCalled();
     canvas.finishPaletteDrag({ x: 325, y: 285 });
-    expect(added).toHaveBeenCalledExactlyOnceWith({ x: 4, y: 4 });
+    expect(added).toHaveBeenCalledExactlyOnceWith({ type: 'text', position: { x: 4, y: 4 } });
     expect(canvas.preview()).toBeNull();
 
-    canvas.startPaletteDrag();
+    canvas.startPaletteDrag('text');
     canvas.finishPaletteDrag({ x: 120, y: 80 });
-    canvas.startPaletteDrag();
+    canvas.startPaletteDrag('text');
     canvas.finishPaletteDrag({ x: 950, y: 80 });
     expect(added).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds KPI and gauge drops with their own catalog types and sizes', async () => {
+    const fixture = await createFixture();
+    const canvas = fixture.componentInstance;
+    const added = vi.fn();
+    canvas.widgetAdded.subscribe(added);
+    canvas.startPaletteDrag('kpi');
+    canvas.movePaletteDrag({ x: 325, y: 285 });
+    expect(canvas.preview()?.layout).toEqual({ x: 4, y: 4, width: 4, height: 3 });
+    expect(canvas.preview()?.widget.type).toBe('kpi');
+    canvas.finishPaletteDrag({ x: 325, y: 285 });
+    expect(added).toHaveBeenLastCalledWith({ type: 'kpi', position: { x: 4, y: 4 } });
+
+    canvas.startPaletteDrag('gauge');
+    canvas.movePaletteDrag({ x: 525, y: 485 });
+    expect(canvas.preview()?.layout).toEqual({ x: 8, y: 8, width: 6, height: 5 });
+    expect(canvas.preview()?.widget.type).toBe('gauge');
+    canvas.finishPaletteDrag({ x: 525, y: 485 });
+    expect(added).toHaveBeenLastCalledWith({ type: 'gauge', position: { x: 8, y: 8 } });
   });
 
   it('snaps consecutive real CDK gestures and resets pixel transforms before committing', async () => {
@@ -135,7 +158,7 @@ describe('DashboardCanvasComponent dragging', () => {
     const canvas = fixture.componentInstance;
     const added = vi.fn();
     canvas.widgetAdded.subscribe(added);
-    canvas.startPaletteDrag();
+    canvas.startPaletteDrag('text');
     canvas.movePaletteDrag({ x: 325, y: 285 });
     canvas.cancelDrag();
     canvas.finishPaletteDrag({ x: 325, y: 285 });
@@ -143,7 +166,7 @@ describe('DashboardCanvasComponent dragging', () => {
     expect(canvas.preview()).toBeNull();
     fixture.componentRef.setInput('editing', false);
     fixture.detectChanges();
-    canvas.startPaletteDrag();
+    canvas.startPaletteDrag('text');
     canvas.finishPaletteDrag({ x: 325, y: 285 });
     expect(added).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('button')).toBeNull();
@@ -247,7 +270,7 @@ describe('DashboardCanvasComponent dragging', () => {
   });
 });
 
-async function createFixture(widgets?: TextWidgetDefinition[]) {
+async function createFixture(widgets?: DashboardWidgetDefinition[]) {
   TestBed.configureTestingModule({ imports: [DashboardCanvasComponent] });
   const fixture = TestBed.createComponent(DashboardCanvasComponent);
   fixture.componentRef.setInput(

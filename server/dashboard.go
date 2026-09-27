@@ -17,6 +17,7 @@ func registerDashboardHandler(mux *http.ServeMux, manager *core.ContextManager) 
 	handler := &DashboardHandler{manager: manager}
 	mux.HandleFunc("GET /", handler.listDashboards)
 	mux.HandleFunc("POST /", handler.createDashboard)
+	mux.HandleFunc("POST /evaluate", handler.evaluateDashboard)
 	mux.HandleFunc("GET /{id}", handler.getDashboard)
 	mux.HandleFunc("PUT /{id}", handler.updateDashboard)
 	mux.HandleFunc("DELETE /{id}", handler.deleteDashboard)
@@ -130,4 +131,18 @@ func writeDashboardError(w http.ResponseWriter, err error, fallbackCode string, 
 		return
 	}
 	writeError(w, http.StatusInternalServerError, fallbackCode, fallbackDescription)
+}
+
+func (h *DashboardHandler) evaluateDashboard(w http.ResponseWriter, r *http.Request) {
+	var request core.DashboardEvaluationRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 2<<20)).Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid evaluation request")
+		return
+	}
+	result, err := h.manager.EvaluateDashboard(request)
+	if err != nil {
+		writeDashboardError(w, err, "FAILED_TO_EVALUATE_DASHBOARD", "Failed to evaluate dashboard")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }

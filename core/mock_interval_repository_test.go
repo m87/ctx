@@ -181,3 +181,16 @@ func (m *IntervalRepositoryMock) nextIntervalID() string {
 		}
 	}
 }
+
+func (m *IntervalRepositoryMock) ListOverlapping(workspaceID string, start, end time.Time) ([]*Interval, error) {
+	if m.listError != nil {
+		return nil, m.listError
+	}
+	result := make([]*Interval, 0)
+	for _, interval := range m.intervals {
+		if interval != nil && interval.WorkspaceId == workspaceID && timeIsSet(interval.Start) && interval.Start.Before(end) && (!timeIsSet(interval.End) || interval.End.After(start)) {
+			result = append(result, interval)
+		}
+	}
+	return result, nil
+}

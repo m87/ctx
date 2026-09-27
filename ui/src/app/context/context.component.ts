@@ -357,7 +357,11 @@ type DetailView = 'overview' | 'insights';
               [readonly]="currentContext.archived ?? false"
             ></ctx-context-interval-list>
           } @else {
-            <ctx-dashboard-slot [workspaceId]="currentContext.workspaceId" type="context" />
+            <ctx-dashboard-slot
+              [workspaceId]="currentContext.workspaceId"
+              type="context"
+              [scope]="{ contextId: currentContext.id }"
+            />
           }
         </div>
 

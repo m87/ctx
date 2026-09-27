@@ -1,4 +1,5 @@
 import {
+  addDashboardWidget,
   addTextWidget,
   dashboardGridRowCount,
   deleteTextWidget,
@@ -25,6 +26,19 @@ describe('dashboard definition', () => {
     expect(second.widgets[0].layout).toEqual({ x: 0, y: 0, width: 4, height: 3 });
     expect(second.widgets[1].layout).toEqual({ x: 4, y: 0, width: 4, height: 3 });
     expect(second.widgets[0].properties).not.toBe(second.widgets[1].properties);
+  });
+
+  it('uses the KPI and gauge catalog sizes and keeps metric properties independent', () => {
+    const empty = normalizeDashboardDefinition({});
+    const first = addDashboardWidget(empty, 'kpi-one', 'kpi');
+    const second = addDashboardWidget(first, 'kpi-two', 'kpi');
+    const gauge = addDashboardWidget(second, 'gauge-one', 'gauge');
+    expect(gauge.widgets[0].layout).toEqual({ x: 0, y: 0, width: 4, height: 3 });
+    expect(gauge.widgets[1].layout).toEqual({ x: 4, y: 0, width: 4, height: 3 });
+    expect(gauge.widgets[2].layout).toEqual({ x: 8, y: 0, width: 6, height: 5 });
+    expect(gauge.widgets[0].properties).not.toBe(gauge.widgets[1].properties);
+    if (gauge.widgets[2].type === 'gauge')
+      expect(gauge.widgets[2].properties.thresholds).toEqual([]);
   });
 
   it('converts pixel deltas, checks overlap, and expands rows', () => {

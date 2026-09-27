@@ -14,6 +14,35 @@ export interface Dashboard {
   definition: Record<string, unknown>;
 }
 
+export interface DashboardScope {
+  projectId?: string;
+  contextId?: string;
+  date?: string;
+}
+
+export interface DashboardEvaluationRequest {
+  workspaceId: string;
+  definition: Record<string, unknown>;
+  timeZone: string;
+  firstDayOfWeek: number;
+  scope: DashboardScope;
+}
+
+export interface DashboardMetricResult {
+  value: number | null;
+  unit: 'ms' | 'count' | 'percent';
+  timeZone: string;
+  start: string;
+  end: string;
+  error?: string;
+  ignoredIntervals: number;
+}
+
+export interface DashboardEvaluation {
+  asOf: string;
+  widgets: Record<string, DashboardMetricResult>;
+}
+
 export type CreateDashboardInput = Omit<Dashboard, 'id' | 'active'>;
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +64,10 @@ export class DashboardService {
 
   update(dashboard: Dashboard): Observable<Dashboard> {
     return this.http.put<Dashboard>(this.url(dashboard.id), dashboard);
+  }
+
+  evaluate(request: DashboardEvaluationRequest): Observable<DashboardEvaluation> {
+    return this.http.post<DashboardEvaluation>(this.url('evaluate'), request);
   }
 
   delete(id: string): Observable<void> {

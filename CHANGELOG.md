@@ -7,7 +7,9 @@
 <!-- ## 0.9.0 - regex autoassigne autolabel, automerge intervals, ingoring small intervals, placeholdes in linkrules e.g for jira logging view, day separtaion in contxt view -->
 <!-- ## 0.8.0 - postgresql support & search view -->
 
-## 0.7.2
+
+## 0.8.0
+- feature: data insights and lenses - dashboard with custom data visualizations and insights based on your contexts and intervals
 - enhancement: configurable timeline range — display the full day or fit the timeline to the day's intervals
 
 ## 0.7.1

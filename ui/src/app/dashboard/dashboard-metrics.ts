@@ -1,0 +1,135 @@
+import { computed, effect, inject, signal, untracked } from '@angular/core';
+import { injectQuery } from '@tanstack/angular-query-experimental';
+import { DashboardQueries } from '../../api/dashboard/dashboard.queries';
+import { Dashboard, DashboardScope } from '../../api/dashboard/dashboard.service';
+import { SettingsQueries } from '../../api/settings/settings.queries';
+import {
+  DashboardDefinition,
+  normalizeDashboardDefinition,
+} from '../editor/dashboard/dashboard-definition';
+import { TimeZoneService } from '../shared/time-zone.service';
+
+export function injectDashboardMetrics(
+  dashboard: () => Dashboard | null,
+  scope: () => DashboardScope = () => ({}),
+  enabled: () => boolean = () => true,
+) {
+  const queries = inject(DashboardQueries);
+  const timeZone = inject(TimeZoneService);
+  const settings = inject(SettingsQueries);
+  const settingsQuery = injectQuery(() => settings.settings());
+  const requestConfiguration = computed(() => {
+    const content = definition();
+    if (!content || !dashboard()) return null;
+    return {
+      workspaceId: dashboard()?.workspaceId ?? '',
+      definition: content,
+      scope: scope(),
+      timeZone: timeZone.effectiveTimeZone(),
+      firstDayOfWeek: settingsQuery.data()?.['client.general.firstDay'] === 'Sunday' ? 0 : 1,
+    };
+  });
+  const requestSignature = computed(() => {
+    const configuration = requestConfiguration();
+    if (!configuration) return '';
+    return JSON.stringify({
+      workspaceId: configuration.workspaceId,
+      scope: configuration.scope,
+      timeZone: configuration.timeZone,
+      firstDayOfWeek: configuration.firstDayOfWeek,
+      data: metricDataKey(configuration.definition),
+    });
+  });
+  const debouncedConfiguration = signal<ReturnType<typeof requestConfiguration> | null>(null);
+  const debouncedSignature = signal('');
+  effect((onCleanup) => {
+    const signature = requestSignature();
+    if (!signature) {
+      debouncedConfiguration.set(null);
+      debouncedSignature.set('');
+      return;
+    }
+    const timeout = setTimeout(() => {
+      debouncedConfiguration.set(untracked(requestConfiguration));
+      debouncedSignature.set(signature);
+    }, 300);
+    onCleanup(() => clearTimeout(timeout));
+  });
+  const definition = computed(() => {
+    try {
+      return normalizeDashboardDefinition(dashboard()?.definition ?? {});
+    } catch {
+      return null;
+    }
+  });
+  const query = injectQuery(() => {
+    const configuration = debouncedConfiguration();
+    const content = configuration?.definition;
+    const widgets = content?.widgets.filter((widget) => widget.type !== 'text') ?? [];
+    const dataKey = content ? metricDataKey(content) : {};
+    const liveScope = !configuration?.scope.date || configuration.scope.date === timeZone.today();
+    const refresh =
+      liveScope &&
+      widgets.some(
+        (widget) =>
+          widget.properties.includeRunning &&
+          ['today', 'this_week', 'this_month', 'last_7_days', 'last_30_days'].includes(
+            widget.properties.period === 'inherit'
+              ? (content?.period ?? 'this_week')
+              : widget.properties.period,
+          ),
+      )
+        ? 30_000
+        : false;
+    return queries.evaluate(
+      {
+        workspaceId: configuration?.workspaceId ?? '',
+        definition: content ?? {},
+        scope: configuration?.scope ?? {},
+        timeZone: configuration?.timeZone ?? timeZone.effectiveTimeZone(),
+        firstDayOfWeek: configuration?.firstDayOfWeek ?? 1,
+      },
+      dataKey,
+      !!content && widgets.length > 0 && enabled() && !!configuration,
+      refresh,
+    );
+  });
+  const currentConfigurationMatches = computed(() => requestSignature() === debouncedSignature());
+  return {
+    query,
+    results: computed(() =>
+      enabled() && currentConfigurationMatches() ? (query.data()?.widgets ?? {}) : {},
+    ),
+    error: computed(() =>
+      !enabled() || !currentConfigurationMatches()
+        ? ''
+        : query.isError()
+          ? 'Unable to load metric data.'
+          : query.isPaused()
+            ? 'Waiting for a connection.'
+            : '',
+    ),
+  };
+}
+
+function metricDataKey(content: DashboardDefinition) {
+  return {
+    query: content.query,
+    period: content.period,
+    widgets: content.widgets
+      .filter((widget) => widget.type !== 'text')
+      .map((widget) => ({
+        id: widget.id,
+        query: widget.query,
+        metric: widget.properties.metric,
+        period: widget.properties.period,
+        startDate: widget.properties.startDate,
+        endDate: widget.properties.endDate,
+        projectId: widget.properties.projectId,
+        contextId: widget.properties.contextId,
+        tag: widget.properties.tag,
+        archived: widget.properties.archived,
+        includeRunning: widget.properties.includeRunning,
+      })),
+  };
+}

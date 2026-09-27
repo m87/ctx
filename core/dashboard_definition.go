@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 type dashboardDefinition struct {
 	Version int               `json:"version"`
 	Query   string            `json:"query"`
+	Period  string            `json:"period,omitempty"`
 	Widgets []dashboardWidget `json:"widgets"`
 }
 
@@ -62,6 +64,9 @@ func validateDashboardDefinition(raw json.RawMessage) error {
 	if err := json.Unmarshal(raw, &definition); err != nil {
 		return invalidDefinition("dashboard definition is invalid")
 	}
+	if definition.Period != "" && !slices.Contains(dashboardPeriods, definition.Period) {
+		return invalidDefinition("invalid dashboard period")
+	}
 	if len(definition.Query) > dashboardMaxQueryLength {
 		return invalidDefinition("dashboard query exceeds 8000 characters")
 	}
@@ -80,7 +85,7 @@ func validateDashboardDefinition(raw json.RawMessage) error {
 			return invalidDefinition("widget IDs must be unique")
 		}
 		ids[widget.ID] = struct{}{}
-		if widget.Type != "text" {
+		if widget.Type != "text" && widget.Type != "kpi" && widget.Type != "gauge" {
 			return invalidDefinition(fmt.Sprintf("unknown widget type %q", widget.Type))
 		}
 		widgetValue, ok := rootWidgetAt(root, i)
@@ -93,21 +98,32 @@ func validateDashboardDefinition(raw json.RawMessage) error {
 		if _, ok := widgetValue["properties"].(map[string]interface{}); !ok {
 			return invalidDefinition("widget properties must be an object")
 		}
+		minimumWidth, minimumHeight := 2, 2
+		if widget.Type == "kpi" {
+			minimumWidth = 3
+		}
+		if widget.Type == "gauge" {
+			minimumWidth, minimumHeight = 4, 4
+		}
 		layout := widget.Layout
-		if layout.X < 0 || layout.X+layout.Width > dashboardColumnCount || layout.Y < 0 || layout.Width < 2 || layout.Height < 2 {
+		if layout.X < 0 || layout.X+layout.Width > dashboardColumnCount || layout.Y < 0 || layout.Width < minimumWidth || layout.Height < minimumHeight {
 			return invalidDefinition("widget layout is outside the grid or below its minimum size")
 		}
 		if len(widget.Query) > dashboardMaxQueryLength {
 			return invalidDefinition("widget query exceeds 8000 characters")
 		}
-		text, ok := widget.Properties["text"].(string)
-		if !ok {
-			return invalidDefinition("text widget properties.text must be a string")
-		}
-		if len(text) > dashboardMaxTextLength {
-			return invalidDefinition("text widget text exceeds 20000 characters")
-		}
-		if err := validateTextWidgetPresentation(widget.Properties); err != nil {
+		if widget.Type == "text" {
+			text, ok := widget.Properties["text"].(string)
+			if !ok {
+				return invalidDefinition("text widget properties.text must be a string")
+			}
+			if len(text) > dashboardMaxTextLength {
+				return invalidDefinition("text widget text exceeds 20000 characters")
+			}
+			if err := validateTextWidgetPresentation(widget.Properties); err != nil {
+				return err
+			}
+		} else if err := validateDashboardMetric(widget); err != nil {
 			return err
 		}
 		for j := 0; j < i; j++ {
