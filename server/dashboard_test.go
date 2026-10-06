@@ -142,6 +142,19 @@ func TestDashboardEvaluationRoutesReturnEquivalentMetricResults(t *testing.T) {
 	_, err = manager.SaveInterval(&core.Interval{ContextId: contextID, Start: &start, End: &end})
 	require.NoError(t, err)
 	definition := json.RawMessage(`{"version":1,"query":"","period":"today","widgets":[{"id":"kpi","type":"kpi","query":"","layout":{"x":0,"y":0,"width":4,"height":3},"properties":{"title":"Tracked time","description":"","metric":"duration.sum","period":"today","startDate":"","endDate":"","projectId":"","contextId":"","tag":"","archived":"include","includeRunning":false,"format":"duration","precision":0}},{"id":"gauge","type":"gauge","query":"","layout":{"x":4,"y":0,"width":6,"height":5},"properties":{"title":"Goal","description":"","metric":"duration.sum","period":"today","startDate":"","endDate":"","projectId":"","contextId":"","tag":"","archived":"include","includeRunning":false,"format":"duration","precision":0,"minimum":0,"maximum":144000000,"target":144000000,"goalMode":"at_least","thresholds":[],"showValue":true,"showTarget":true,"showPercentage":true}}]}`)
+	var definitionObject map[string]interface{}
+	require.NoError(t, json.Unmarshal(definition, &definitionObject))
+	widgets := definitionObject["widgets"].([]interface{})
+	widgets = append(widgets, map[string]interface{}{
+		"id": "radar", "type": "radar", "query": "", "layout": map[string]int{"x": 10, "y": 0, "width": 6, "height": 6},
+		"properties": map[string]interface{}{
+			"title": "Week", "description": "", "metric": "duration.sum", "period": "today", "startDate": "", "endDate": "", "projectId": "", "contextId": "", "tag": "", "archived": "include", "includeRunning": false, "format": "duration", "precision": 0,
+			"axesBy": "weekday", "axisKeys": []string{}, "scaleMaximum": nil, "targetValue": nil, "showValues": false, "showGrid": true, "showFill": true, "showSummary": true,
+		},
+	})
+	definitionObject["widgets"] = widgets
+	definition, err = json.Marshal(definitionObject)
+	require.NoError(t, err)
 	requestBody, err := json.Marshal(core.DashboardEvaluationRequest{
 		WorkspaceID: "workspace-1", Definition: definition, TimeZone: "UTC", FirstDayOfWeek: 1,
 	})
@@ -160,6 +173,9 @@ func TestDashboardEvaluationRoutesReturnEquivalentMetricResults(t *testing.T) {
 		require.Equal(t, "ms", result.Widgets["gauge"].Unit)
 		require.Equal(t, result.Widgets["kpi"].Start, result.Widgets["gauge"].Start)
 		require.Equal(t, result.Widgets["kpi"].End, result.Widgets["gauge"].End)
+		require.Equal(t, "radar", result.Widgets["radar"].Kind)
+		require.Len(t, result.Widgets["radar"].Radar.Axes, 7)
+		require.True(t, *result.Widgets["radar"].HasActivity)
 	}
 	require.Equal(t, results[0], results[1])
 }

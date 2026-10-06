@@ -1,8 +1,13 @@
 package server
 
 import (
+	"bytes"
+	"io"
+	"mime"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/m87/ctx/core"
 	ctxlog "github.com/m87/ctx/log"
@@ -14,6 +19,8 @@ type Server struct {
 	mux             *http.ServeMux
 	spa             http.Handler
 }
+
+const maxRequestBodyBytes int64 = 20 << 20
 
 func NewServer(manager *core.ContextManager, settingsManager *core.SettingsManager) *Server {
 	s := &Server{
@@ -153,15 +160,20 @@ func (s *Server) Handler() http.Handler {
 	var base http.Handler = s.mux
 
 	if s.spa == nil {
-		return withLogging(base)
+		return withLogging(withRequestBodyLimit(base, maxRequestBodyBytes))
 	}
 
 	top := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			base.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api") || strings.HasPrefix(r.URL.Path, "/context") || strings.HasPrefix(r.URL.Path, "/workspace") || strings.HasPrefix(r.URL.Path, "/interval") || strings.HasPrefix(r.URL.Path, "/version") || strings.HasPrefix(r.URL.Path, "/settings") || strings.HasPrefix(r.URL.Path, "/integrity") || strings.HasPrefix(r.URL.Path, "/sync") || strings.HasPrefix(r.URL.Path, "/project") || strings.HasPrefix(r.URL.Path, "/query/saved") || strings.HasPrefix(r.URL.Path, "/dashboard") {
+		path := r.URL.Path
+		if hasPathPrefix(path, "/api") {
+			base.ServeHTTP(w, r)
+			return
+		}
+		if isLegacyAPIPath(path) && (!acceptsHTML(r) || !isSPARoute(path)) {
 			base.ServeHTTP(w, r)
 			return
 		}
@@ -169,10 +181,81 @@ func (s *Server) Handler() http.Handler {
 		s.spa.ServeHTTP(w, r)
 	})
 
-	return withLogging(top)
+	return withLogging(withRequestBodyLimit(top, maxRequestBodyBytes))
+}
+
+func withRequestBodyLimit(next http.Handler, limit int64) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body == nil || r.Method == http.MethodGet || r.Method == http.MethodHead {
+			next.ServeHTTP(w, r)
+			return
+		}
+		defer r.Body.Close()
+		body, err := io.ReadAll(io.LimitReader(r.Body, limit+1))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Failed to read request body")
+			return
+		}
+		if int64(len(body)) > limit {
+			writeError(w, http.StatusRequestEntityTooLarge, "REQUEST_TOO_LARGE", "Request body is too large")
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
+		r.ContentLength = int64(len(body))
+		next.ServeHTTP(w, r)
+	})
+}
+
+func hasPathPrefix(path, prefix string) bool {
+	return path == prefix || strings.HasPrefix(path, prefix+"/")
+}
+
+func isLegacyAPIPath(path string) bool {
+	for _, prefix := range []string{"/context", "/workspace", "/interval", "/version", "/settings", "/integrity", "/sync", "/project", "/dashboard", "/query/saved"} {
+		if hasPathPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func isSPARoute(path string) bool {
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	switch segments[0] {
+	case "workspace", "query":
+		return len(segments) == 1 || len(segments) == 2 && segments[1] != "saved"
+	case "context", "project", "dashboard":
+		return len(segments) == 2 && segments[1] != ""
+	default:
+		return false
+	}
+}
+
+func acceptsHTML(r *http.Request) bool {
+	for _, value := range strings.Split(r.Header.Get("Accept"), ",") {
+		mediaType, params, err := mime.ParseMediaType(strings.TrimSpace(value))
+		if err == nil && mediaType == "text/html" {
+			if params["q"] == "" {
+				return true
+			}
+			quality, err := strconv.ParseFloat(params["q"], 64)
+			if err == nil && quality > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (s *Server) Listen(addr string) error {
 	ctxlog.Logger.Info("Starting server on " + addr)
-	return http.ListenAndServe(addr, s.Handler())
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           s.Handler(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	return server.ListenAndServe()
 }

@@ -72,7 +72,7 @@ func TestProjectRepository(t *testing.T) {
 		assert.NoError(t, err)
 
 		retrievedProject, err := projectRepo.GetById(id)
-		assert.Error(t, err)
+		assert.NoError(t, err)
 		assert.Nil(t, retrievedProject)
 	})
 

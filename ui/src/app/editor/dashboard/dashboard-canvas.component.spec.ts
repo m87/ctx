@@ -96,7 +96,7 @@ describe('DashboardCanvasComponent dragging', () => {
   it('snaps consecutive real CDK gestures and resets pixel transforms before committing', async () => {
     const fixture = await createFixture();
     const canvas = fixture.componentInstance;
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('[role="button"]') as HTMLElement;
     const moved = vi.fn();
     canvas.widgetMoved.subscribe((change) => {
       expect(button.style.transform).toBe('');
@@ -137,7 +137,7 @@ describe('DashboardCanvasComponent dragging', () => {
     const definition = addTextWidget(addTextWidget(normalizeDashboardDefinition({}), 'one'), 'two');
     const fixture = await createFixture(definition.widgets);
     const canvas = fixture.componentInstance;
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('[role="button"]') as HTMLElement;
     vi.spyOn(button, 'getBoundingClientRect').mockReturnValue(new DOMRect(110, 70, 180, 130));
     const moved = vi.fn();
     canvas.widgetMoved.subscribe(moved);

@@ -1,7 +1,11 @@
 import { computed, effect, inject, signal, untracked } from '@angular/core';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { DashboardQueries } from '../../api/dashboard/dashboard.queries';
-import { Dashboard, DashboardScope } from '../../api/dashboard/dashboard.service';
+import {
+  Dashboard,
+  DashboardScope,
+  DashboardWidgetViewState,
+} from '../../api/dashboard/dashboard.service';
 import { SettingsQueries } from '../../api/settings/settings.queries';
 import {
   DashboardDefinition,
@@ -18,6 +22,7 @@ export function injectDashboardMetrics(
   const timeZone = inject(TimeZoneService);
   const settings = inject(SettingsQueries);
   const settingsQuery = injectQuery(() => settings.settings());
+  const viewState = signal<Record<string, DashboardWidgetViewState>>({});
   const requestConfiguration = computed(() => {
     const content = definition();
     if (!content || !dashboard()) return null;
@@ -27,6 +32,7 @@ export function injectDashboardMetrics(
       scope: scope(),
       timeZone: timeZone.effectiveTimeZone(),
       firstDayOfWeek: settingsQuery.data()?.['client.general.firstDay'] === 'Sunday' ? 0 : 1,
+      viewState: viewState(),
     };
   });
   const requestSignature = computed(() => {
@@ -38,6 +44,7 @@ export function injectDashboardMetrics(
       timeZone: configuration.timeZone,
       firstDayOfWeek: configuration.firstDayOfWeek,
       data: metricDataKey(configuration.definition),
+      viewState: configuration.viewState,
     });
   });
   const debouncedConfiguration = signal<ReturnType<typeof requestConfiguration> | null>(null);
@@ -62,23 +69,47 @@ export function injectDashboardMetrics(
       return null;
     }
   });
+  let previousDataSignature = '';
+  effect(() => {
+    const content = definition();
+    if (!content) return;
+    const signature = JSON.stringify(metricDataKey(content));
+    if (previousDataSignature && signature !== previousDataSignature) {
+      viewState.update((current) =>
+        Object.fromEntries(
+          Object.entries(current).map(([id, state]) => [id, { ...state, page: 1 }]),
+        ),
+      );
+    }
+    previousDataSignature = signature;
+  });
   const query = injectQuery(() => {
     const configuration = debouncedConfiguration();
     const content = configuration?.definition;
     const widgets = content?.widgets.filter((widget) => widget.type !== 'text') ?? [];
-    const dataKey = content ? metricDataKey(content) : {};
+    const dataKey = content
+      ? { ...metricDataKey(content), viewState: configuration?.viewState ?? {} }
+      : {};
     const liveScope = !configuration?.scope.date || configuration.scope.date === timeZone.today();
     const refresh =
       liveScope &&
-      widgets.some(
-        (widget) =>
-          widget.properties.includeRunning &&
-          ['today', 'this_week', 'this_month', 'last_7_days', 'last_30_days'].includes(
-            widget.properties.period === 'inherit'
-              ? (content?.period ?? 'this_week')
-              : widget.properties.period,
-          ),
-      )
+      widgets.some((widget) => {
+        const period =
+          widget.properties.period === 'inherit'
+            ? (content?.period ?? 'this_week')
+            : widget.properties.period;
+        const currentRange = [
+          'today',
+          'this_week',
+          'this_month',
+          'last_7_days',
+          'last_30_days',
+          'last_3_months',
+          'last_6_months',
+          'last_12_months',
+        ].includes(period);
+        return currentRange && (widget.properties.includeRunning || widget.type === 'heatmap');
+      })
         ? 30_000
         : false;
     return queries.evaluate(
@@ -88,6 +119,7 @@ export function injectDashboardMetrics(
         scope: configuration?.scope ?? {},
         timeZone: configuration?.timeZone ?? timeZone.effectiveTimeZone(),
         firstDayOfWeek: configuration?.firstDayOfWeek ?? 1,
+        viewState: configuration?.viewState,
       },
       dataKey,
       !!content && widgets.length > 0 && enabled() && !!configuration,
@@ -97,6 +129,9 @@ export function injectDashboardMetrics(
   const currentConfigurationMatches = computed(() => requestSignature() === debouncedSignature());
   return {
     query,
+    firstDayOfWeek: computed(() =>
+      settingsQuery.data()?.['client.general.firstDay'] === 'Sunday' ? 0 : 1,
+    ),
     results: computed(() =>
       enabled() && currentConfigurationMatches() ? (query.data()?.widgets ?? {}) : {},
     ),
@@ -109,6 +144,9 @@ export function injectDashboardMetrics(
             ? 'Waiting for a connection.'
             : '',
     ),
+    setWidgetViewState(widgetId: string, state: DashboardWidgetViewState) {
+      viewState.update((current) => ({ ...current, [widgetId]: state }));
+    },
   };
 }
 
@@ -121,7 +159,7 @@ function metricDataKey(content: DashboardDefinition) {
       .map((widget) => ({
         id: widget.id,
         query: widget.query,
-        metric: widget.properties.metric,
+        metric: 'metric' in widget.properties ? widget.properties.metric : undefined,
         period: widget.properties.period,
         startDate: widget.properties.startDate,
         endDate: widget.properties.endDate,
@@ -130,6 +168,36 @@ function metricDataKey(content: DashboardDefinition) {
         tag: widget.properties.tag,
         archived: widget.properties.archived,
         includeRunning: widget.properties.includeRunning,
+        ...(widget.type === 'radar'
+          ? { axesBy: widget.properties.axesBy, axisKeys: [...widget.properties.axisKeys].sort() }
+          : {}),
+        ...(widget.type === 'bar'
+          ? {
+              groupBy: widget.properties.groupBy,
+              bucket: widget.properties.bucket,
+              sort: widget.properties.sort,
+              limit: widget.properties.limit,
+              showOther: widget.properties.showOther,
+            }
+          : {}),
+        ...(widget.type === 'line'
+          ? {
+              bucket: widget.properties.bucket,
+              seriesBy: widget.properties.seriesBy,
+              seriesLimit: widget.properties.seriesLimit,
+              valueMode: widget.properties.valueMode,
+            }
+          : {}),
+        ...(widget.type === 'table'
+          ? {
+              groupBy: widget.properties.groupBy,
+              columns: widget.properties.columns
+                .map(({ id, metric }) => ({ id, metric }))
+                .sort((a, b) => a.id.localeCompare(b.id)),
+              sort: widget.properties.sort,
+              pageSize: widget.properties.pageSize,
+            }
+          : {}),
       })),
   };
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/m87/ctx/core"
@@ -32,8 +33,8 @@ func (h *SyncHandler) UploadWorkspaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.manager.WorkspaceRepository.SaveAll(workspaces); err != nil {
-		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_WORKSPACES", "Failed to save workspaces")
+	if err := h.manager.ImportSyncWorkspaces(workspaces); err != nil {
+		writeSyncError(w, err, "FAILED_TO_SAVE_WORKSPACES", "Failed to save workspaces")
 		return
 	}
 }
@@ -45,8 +46,8 @@ func (h *SyncHandler) UploadContexts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.manager.ContextRepository.SaveAll(contexts); err != nil {
-		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_CONTEXTS", "Failed to save contexts")
+	if err := h.manager.ImportSyncContexts(contexts); err != nil {
+		writeSyncError(w, err, "FAILED_TO_SAVE_CONTEXTS", "Failed to save contexts")
 		return
 	}
 }
@@ -58,10 +59,19 @@ func (h *SyncHandler) UploadIntervals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.manager.IntervalRepository.SaveAll(intervals); err != nil {
-		writeError(w, http.StatusInternalServerError, "FAILED_TO_SAVE_INTERVALS", "Failed to save intervals")
+	if err := h.manager.ImportSyncIntervals(intervals); err != nil {
+		writeSyncError(w, err, "FAILED_TO_SAVE_INTERVALS", "Failed to save intervals")
 		return
 	}
+}
+
+func writeSyncError(w http.ResponseWriter, err error, fallbackCode, fallbackDescription string) {
+	var validationError *core.SyncValidationError
+	if errors.As(err, &validationError) {
+		writeError(w, http.StatusBadRequest, "INVALID_SYNC_ITEM", validationError.Error())
+		return
+	}
+	writeError(w, http.StatusInternalServerError, fallbackCode, fallbackDescription)
 }
 
 func (h *SyncHandler) GetWorkspacesToSync(w http.ResponseWriter, r *http.Request) {

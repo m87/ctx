@@ -57,7 +57,7 @@ func TestIntervalRepository(t *testing.T) {
 		assert.NoError(t, err)
 
 		deletedInterval, err := repo.GetById(id)
-		assert.Error(t, err)
+		assert.NoError(t, err)
 		assert.Nil(t, deletedInterval)
 	})
 

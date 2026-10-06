@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -19,6 +20,9 @@ func NewProjectRepository(db *gorm.DB) *ProjectRepository {
 func (r *ProjectRepository) GetById(id string) (*core.Project, error) {
 	var entity ProjectEntity
 	if err := r.db.First(&entity, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

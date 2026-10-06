@@ -41,6 +41,46 @@ describe('dashboard definition', () => {
       expect(gauge.widgets[2].properties.thresholds).toEqual([]);
   });
 
+  it('creates and validates radar widgets with weekday axes by default', () => {
+    const radar = addDashboardWidget(normalizeDashboardDefinition({}), 'radar', 'radar');
+    expect(radar.widgets[0].layout).toEqual({ x: 0, y: 0, width: 6, height: 6 });
+    expect(radar.widgets[0].type).toBe('radar');
+    if (radar.widgets[0].type === 'radar') {
+      expect(radar.widgets[0].properties.axesBy).toBe('weekday');
+      expect(radar.widgets[0].properties.axisKeys).toEqual([]);
+      expect(normalizeDashboardDefinition(JSON.parse(JSON.stringify(radar)))).toEqual(radar);
+      expect(() =>
+        normalizeDashboardDefinition({
+          ...radar,
+          widgets: [
+            {
+              ...radar.widgets[0],
+              properties: { ...radar.widgets[0].properties, axesBy: 'project' },
+            },
+          ],
+        }),
+      ).toThrow(/three radar axes/);
+    }
+  });
+
+  it('creates advanced chart and table definitions with their documented layouts', () => {
+    const base = normalizeDashboardDefinition({});
+    const bar = addDashboardWidget(base, 'bar', 'bar');
+    expect(bar.widgets[0].layout).toEqual({ x: 0, y: 0, width: 8, height: 5 });
+    const heatmap = addDashboardWidget(base, 'heatmap', 'heatmap');
+    const line = addDashboardWidget(base, 'line', 'line');
+    const table = addDashboardWidget(base, 'table', 'table');
+    for (const definition of [bar, heatmap, line, table]) {
+      expect(normalizeDashboardDefinition(JSON.parse(JSON.stringify(definition)))).toEqual(
+        definition,
+      );
+    }
+    if (table.widgets[0].type === 'table') {
+      expect('metric' in table.widgets[0].properties).toBe(false);
+      expect(table.widgets[0].properties.columns).toHaveLength(4);
+    }
+  });
+
   it('converts pixel deltas, checks overlap, and expands rows', () => {
     expect(pixelDeltaToCells(31, 20)).toBe(2);
     expect(
@@ -84,7 +124,7 @@ describe('dashboard definition', () => {
     expect(original.widgets[0].properties).toEqual({ text: 'Text' });
     expect(() =>
       normalizeDashboardDefinition({ ...draft, widgets: [{ ...draft.widgets[0], type: 'radar' }] }),
-    ).toThrow(/unsupported/);
+    ).toThrow(/invalid/);
     expect(() =>
       normalizeDashboardDefinition({
         ...draft,

@@ -1,7 +1,16 @@
 import { Component, input, output } from '@angular/core';
 import { CdkDrag, CdkDragEnd, CdkDragPreview, CdkDropList } from '@angular/cdk/drag-drop';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideType, lucideHash, lucideGauge } from '@ng-icons/lucide';
+import {
+  lucideType,
+  lucideHash,
+  lucideGauge,
+  lucideRadar,
+  lucideChartBar,
+  lucideCalendarDays,
+  lucideChartNoAxesCombined,
+  lucideTable,
+} from '@ng-icons/lucide';
 import { WIDGET_CATALOG, DashboardWidgetType } from './dashboard-definition';
 import { GridPoint } from './dashboard-layout';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
@@ -9,7 +18,18 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 @Component({
   selector: 'ctx-widget-palette',
   imports: [CdkDrag, CdkDragPreview, CdkDropList, NgIcon, HlmButtonImports],
-  providers: [provideIcons({ lucideType, lucideHash, lucideGauge })],
+  providers: [
+    provideIcons({
+      lucideType,
+      lucideHash,
+      lucideGauge,
+      lucideRadar,
+      lucideChartBar,
+      lucideCalendarDays,
+      lucideChartNoAxesCombined,
+      lucideTable,
+    }),
+  ],
   template: `
     <div cdkDropList [cdkDropListSortingDisabled]="true" class="grid grid-cols-2 gap-2 p-3">
       @for (entry of entries; track entry.type) {
@@ -66,6 +86,16 @@ export class WidgetPaletteComponent {
         return 'Show one value';
       case 'gauge':
         return 'Track a goal';
+      case 'radar':
+        return 'Compare categories';
+      case 'bar':
+        return 'Rank categories';
+      case 'heatmap':
+        return 'Explore daily activity';
+      case 'line':
+        return 'Track values over time';
+      case 'table':
+        return 'Compare grouped metrics';
     }
   }
 

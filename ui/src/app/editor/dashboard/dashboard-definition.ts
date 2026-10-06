@@ -2,8 +2,18 @@ import {
   DashboardPeriod,
   MetricWidgetProperties,
   GaugeWidgetProperties,
+  RadarWidgetProperties,
+  BarWidgetProperties,
+  HeatmapWidgetProperties,
+  LineWidgetProperties,
+  TableWidgetProperties,
   defaultMetricProperties,
   defaultGaugeProperties,
+  defaultRadarProperties,
+  defaultBarProperties,
+  defaultHeatmapProperties,
+  defaultLineProperties,
+  defaultTableProperties,
   metricSettingsError,
   PERIODS,
 } from './metric-widget-definition';
@@ -48,8 +58,52 @@ export interface GaugeWidgetDefinition {
   properties: GaugeWidgetProperties;
 }
 
+export interface RadarWidgetDefinition {
+  id: string;
+  type: 'radar';
+  layout: DashboardWidgetLayout;
+  query: string;
+  properties: RadarWidgetProperties;
+}
+
+export interface BarWidgetDefinition {
+  id: string;
+  type: 'bar';
+  layout: DashboardWidgetLayout;
+  query: string;
+  properties: BarWidgetProperties;
+}
+export interface HeatmapWidgetDefinition {
+  id: string;
+  type: 'heatmap';
+  layout: DashboardWidgetLayout;
+  query: string;
+  properties: HeatmapWidgetProperties;
+}
+export interface LineWidgetDefinition {
+  id: string;
+  type: 'line';
+  layout: DashboardWidgetLayout;
+  query: string;
+  properties: LineWidgetProperties;
+}
+export interface TableWidgetDefinition {
+  id: string;
+  type: 'table';
+  layout: DashboardWidgetLayout;
+  query: string;
+  properties: TableWidgetProperties;
+}
+
 export type DashboardWidgetDefinition =
-  TextWidgetDefinition | KpiWidgetDefinition | GaugeWidgetDefinition;
+  | TextWidgetDefinition
+  | KpiWidgetDefinition
+  | GaugeWidgetDefinition
+  | RadarWidgetDefinition
+  | BarWidgetDefinition
+  | HeatmapWidgetDefinition
+  | LineWidgetDefinition
+  | TableWidgetDefinition;
 export type DashboardWidgetType = DashboardWidgetDefinition['type'];
 
 export interface DashboardDefinition {
@@ -88,6 +142,47 @@ export const WIDGET_CATALOG = [
     minimumLayout: { width: 4, height: 4 },
     createProperties: defaultGaugeProperties,
   },
+  {
+    type: 'radar' as const,
+    label: 'Radar chart',
+    description: 'Compare one metric across categories.',
+    icon: 'lucideRadar',
+    defaultLayout: { width: 6, height: 6 },
+    minimumLayout: { width: 5, height: 5 },
+    createProperties: defaultRadarProperties,
+  },
+  {
+    type: 'bar' as const,
+    label: 'Bar chart',
+    icon: 'lucideChartBar',
+    defaultLayout: { width: 8, height: 5 },
+    minimumLayout: { width: 5, height: 4 },
+    createProperties: defaultBarProperties,
+  },
+  {
+    type: 'heatmap' as const,
+    label: 'Heatmap',
+    icon: 'lucideCalendarDays',
+    defaultLayout: { width: 12, height: 5 },
+    minimumLayout: { width: 6, height: 4 },
+    createProperties: defaultHeatmapProperties,
+  },
+  {
+    type: 'line' as const,
+    label: 'Line chart',
+    icon: 'lucideChartNoAxesCombined',
+    defaultLayout: { width: 8, height: 5 },
+    minimumLayout: { width: 5, height: 4 },
+    createProperties: defaultLineProperties,
+  },
+  {
+    type: 'table' as const,
+    label: 'Table',
+    icon: 'lucideTable',
+    defaultLayout: { width: 10, height: 6 },
+    minimumLayout: { width: 6, height: 4 },
+    createProperties: defaultTableProperties,
+  },
 ];
 
 export function widgetCatalogEntry(type: DashboardWidgetType) {
@@ -112,6 +207,16 @@ export function createWidget(
       return { id, type, layout, query: '', properties: defaultMetricProperties() };
     case 'gauge':
       return { id, type, layout, query: '', properties: defaultGaugeProperties() };
+    case 'radar':
+      return { id, type, layout, query: '', properties: defaultRadarProperties() };
+    case 'bar':
+      return { id, type, layout, query: '', properties: defaultBarProperties() };
+    case 'heatmap':
+      return { id, type, layout, query: '', properties: defaultHeatmapProperties() };
+    case 'line':
+      return { id, type, layout, query: '', properties: defaultLineProperties() };
+    case 'table':
+      return { id, type, layout, query: '', properties: defaultTableProperties() };
   }
 }
 
@@ -140,17 +245,32 @@ export function normalizeDashboardDefinition(value: unknown): DashboardDefinitio
       throw new Error('Dashboard widget is invalid.');
     }
     const widget = value as Record<string, unknown>;
-    if (!['text', 'kpi', 'gauge'].includes(String(widget['type']))) {
+    if (
+      !['text', 'kpi', 'gauge', 'radar', 'bar', 'heatmap', 'line', 'table'].includes(
+        String(widget['type']),
+      )
+    ) {
       throw new Error('This dashboard contains an unsupported widget type.');
     }
     const properties: unknown = widget['properties'];
     if (
       widget['type'] === 'text'
         ? !isTextWidgetProperties(properties)
-        : !!metricSettingsError(properties, widget['type'] === 'gauge')
+        : !!metricSettingsError(
+            properties,
+            widget['type'] === 'gauge',
+            widget['type'] === 'radar',
+            String(widget['type']),
+          )
     ) {
       throw new Error('Widget settings are invalid.');
     }
+    if (
+      widget['type'] === 'radar' &&
+      (properties as { axesBy?: string; axisKeys?: unknown[] }).axesBy !== 'weekday' &&
+      ((properties as { axisKeys?: unknown[] }).axisKeys?.length ?? 0) < 3
+    )
+      throw new Error('Choose at least three radar axes.');
   }
   return structuredClone(value) as DashboardDefinition;
 }

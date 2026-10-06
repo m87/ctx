@@ -85,7 +85,7 @@ func validateDashboardDefinition(raw json.RawMessage) error {
 			return invalidDefinition("widget IDs must be unique")
 		}
 		ids[widget.ID] = struct{}{}
-		if widget.Type != "text" && widget.Type != "kpi" && widget.Type != "gauge" {
+		if !slices.Contains([]string{"text", "kpi", "gauge", "radar", "bar", "heatmap", "line", "table"}, widget.Type) {
 			return invalidDefinition(fmt.Sprintf("unknown widget type %q", widget.Type))
 		}
 		widgetValue, ok := rootWidgetAt(root, i)
@@ -104,6 +104,18 @@ func validateDashboardDefinition(raw json.RawMessage) error {
 		}
 		if widget.Type == "gauge" {
 			minimumWidth, minimumHeight = 4, 4
+		}
+		if widget.Type == "radar" {
+			minimumWidth, minimumHeight = 5, 5
+		}
+		if widget.Type == "bar" || widget.Type == "line" {
+			minimumWidth, minimumHeight = 5, 4
+		}
+		if widget.Type == "heatmap" {
+			minimumWidth, minimumHeight = 6, 4
+		}
+		if widget.Type == "table" {
+			minimumWidth, minimumHeight = 6, 4
 		}
 		layout := widget.Layout
 		if layout.X < 0 || layout.X+layout.Width > dashboardColumnCount || layout.Y < 0 || layout.Width < minimumWidth || layout.Height < minimumHeight {

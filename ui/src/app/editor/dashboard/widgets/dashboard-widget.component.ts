@@ -1,14 +1,25 @@
-import { Component, computed, input } from '@angular/core';
-import { DashboardMetricResult } from '../../../../api/dashboard/dashboard.service';
+import { Component, computed, input, output } from '@angular/core';
+import {
+  DashboardMetricResult,
+  DashboardWidgetViewState,
+} from '../../../../api/dashboard/dashboard.service';
 import { DashboardWidgetDefinition } from '../dashboard-definition';
 import { PERIODS } from '../metric-widget-definition';
 import { TextWidgetComponent } from './text-widget.component';
 import { KpiWidgetComponent } from './kpi-widget.component';
 import { GaugeWidgetComponent } from './gauge-widget.component';
+import { RadarWidgetComponent } from './radar-widget.component';
+import { AdvancedWidgetComponent } from './advanced-widget.component';
 
 @Component({
   selector: 'ctx-dashboard-widget',
-  imports: [TextWidgetComponent, KpiWidgetComponent, GaugeWidgetComponent],
+  imports: [
+    TextWidgetComponent,
+    KpiWidgetComponent,
+    GaugeWidgetComponent,
+    RadarWidgetComponent,
+    AdvancedWidgetComponent,
+  ],
   host: { class: 'block h-full min-h-0 min-w-0' },
   template: `
     @let item = widget();
@@ -32,6 +43,55 @@ import { GaugeWidgetComponent } from './gauge-widget.component';
           [period]="period()"
         />
       }
+      @case ('radar') {
+        <ctx-radar-widget
+          [properties]="item.properties"
+          [result]="result()"
+          [error]="error()"
+          [period]="period()"
+          [editing]="editing()"
+        />
+      }
+      @case ('bar') {
+        <ctx-advanced-widget
+          [widget]="item"
+          [result]="result()"
+          [error]="error()"
+          [period]="period()"
+          [firstDayOfWeek]="firstDayOfWeek()"
+          (viewStateChange)="viewStateChange.emit($event)"
+        />
+      }
+      @case ('heatmap') {
+        <ctx-advanced-widget
+          [widget]="item"
+          [result]="result()"
+          [error]="error()"
+          [period]="period()"
+          [firstDayOfWeek]="firstDayOfWeek()"
+          (viewStateChange)="viewStateChange.emit($event)"
+        />
+      }
+      @case ('line') {
+        <ctx-advanced-widget
+          [widget]="item"
+          [result]="result()"
+          [error]="error()"
+          [period]="period()"
+          [firstDayOfWeek]="firstDayOfWeek()"
+          (viewStateChange)="viewStateChange.emit($event)"
+        />
+      }
+      @case ('table') {
+        <ctx-advanced-widget
+          [widget]="item"
+          [result]="result()"
+          [error]="error()"
+          [period]="period()"
+          [firstDayOfWeek]="firstDayOfWeek()"
+          (viewStateChange)="viewStateChange.emit($event)"
+        />
+      }
     }
   `,
 })
@@ -40,6 +100,8 @@ export class DashboardWidgetComponent {
   readonly editing = input(false);
   readonly result = input<DashboardMetricResult>();
   readonly error = input('');
+  readonly viewStateChange = output<DashboardWidgetViewState>();
+  readonly firstDayOfWeek = input<0 | 1>(1);
   readonly period = computed(() => {
     const result = this.result();
     if (result) {

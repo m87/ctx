@@ -14,21 +14,132 @@ type DashboardScope struct {
 }
 
 type DashboardEvaluationRequest struct {
-	WorkspaceID    string          `json:"workspaceId"`
-	Definition     json.RawMessage `json:"definition"`
-	TimeZone       string          `json:"timeZone"`
-	FirstDayOfWeek int             `json:"firstDayOfWeek"`
-	Scope          DashboardScope  `json:"scope"`
+	WorkspaceID    string                              `json:"workspaceId"`
+	Definition     json.RawMessage                     `json:"definition"`
+	TimeZone       string                              `json:"timeZone"`
+	FirstDayOfWeek int                                 `json:"firstDayOfWeek"`
+	Scope          DashboardScope                      `json:"scope"`
+	ViewState      map[string]DashboardWidgetViewState `json:"viewState,omitempty"`
+}
+
+type DashboardWidgetViewState struct {
+	Page int                 `json:"page"`
+	Sort *DashboardTableSort `json:"sort,omitempty"`
+}
+
+type DashboardTableSort struct {
+	ColumnID  string `json:"columnId"`
+	Direction string `json:"direction"`
 }
 
 type DashboardMetricResult struct {
-	Value            *float64  `json:"value"`
-	Unit             string    `json:"unit"`
-	TimeZone         string    `json:"timeZone"`
-	Start            time.Time `json:"start"`
-	End              time.Time `json:"end"`
-	Error            string    `json:"error,omitempty"`
-	IgnoredIntervals int       `json:"ignoredIntervals"`
+	Kind             string                      `json:"kind,omitempty"`
+	Value            *float64                    `json:"value"`
+	Unit             string                      `json:"unit,omitempty"`
+	TimeZone         string                      `json:"timeZone"`
+	Start            time.Time                   `json:"start"`
+	End              time.Time                   `json:"end"`
+	Error            string                      `json:"error,omitempty"`
+	IgnoredIntervals int                         `json:"ignoredIntervals"`
+	Radar            *DashboardRadarPayload      `json:"radar,omitempty"`
+	HasActivity      *bool                       `json:"hasActivity,omitempty"`
+	Categories       *DashboardCategoriesPayload `json:"categories,omitempty"`
+	Heatmap          *DashboardHeatmapPayload    `json:"heatmap,omitempty"`
+	Series           *DashboardLinePayload       `json:"series,omitempty"`
+	Table            *DashboardTablePayload      `json:"table,omitempty"`
+}
+
+type DashboardCategoriesPayload struct {
+	Unit              string              `json:"unit"`
+	Categories        []DashboardCategory `json:"categories"`
+	TotalValue        *float64            `json:"totalValue"`
+	TotalCategories   int                 `json:"totalCategories"`
+	OmittedCategories int                 `json:"omittedCategories"`
+}
+type DashboardCategory struct {
+	Key         string                `json:"key"`
+	Label       string                `json:"label"`
+	Value       *float64              `json:"value"`
+	Entity      *DashboardRadarEntity `json:"entity"`
+	Synthetic   bool                  `json:"synthetic"`
+	MemberCount int                   `json:"memberCount"`
+	Start       *time.Time            `json:"start"`
+	End         *time.Time            `json:"end"`
+	Status      string                `json:"status"`
+}
+type DashboardHeatmapPayload struct {
+	Unit       string                `json:"unit"`
+	Days       []DashboardHeatmapDay `json:"days"`
+	TotalValue *float64              `json:"totalValue"`
+	ActiveDays int                   `json:"activeDays"`
+}
+type DashboardHeatmapDay struct {
+	Date   string    `json:"date"`
+	Start  time.Time `json:"start"`
+	End    time.Time `json:"end"`
+	Value  *float64  `json:"value"`
+	Status string    `json:"status"`
+}
+type DashboardLinePayload struct {
+	Unit          string                `json:"unit"`
+	Buckets       []DashboardLineBucket `json:"buckets"`
+	Series        []DashboardLineSeries `json:"series"`
+	TotalValue    *float64              `json:"totalValue"`
+	TotalSeries   int                   `json:"totalSeries"`
+	OmittedSeries int                   `json:"omittedSeries"`
+}
+type DashboardLineBucket struct {
+	Key    string    `json:"key"`
+	Start  time.Time `json:"start"`
+	End    time.Time `json:"end"`
+	Status string    `json:"status"`
+}
+type DashboardLineSeries struct {
+	Key    string     `json:"key"`
+	Label  string     `json:"label"`
+	Values []*float64 `json:"values"`
+}
+type DashboardTablePayload struct {
+	Columns      []DashboardTablePayloadColumn `json:"columns"`
+	Rows         []DashboardTableRow           `json:"rows"`
+	Summary      map[string]*float64           `json:"summary"`
+	ColumnMaxima map[string]*float64           `json:"columnMaxima"`
+	TotalRows    int                           `json:"totalRows"`
+	Page         int                           `json:"page"`
+	PageSize     int                           `json:"pageSize"`
+	PageCount    int                           `json:"pageCount"`
+	Sort         DashboardTableSort            `json:"sort"`
+}
+type DashboardTablePayloadColumn struct {
+	ID     string `json:"id"`
+	Metric string `json:"metric"`
+	Unit   string `json:"unit"`
+}
+type DashboardTableRow struct {
+	Key    string                `json:"key"`
+	Label  string                `json:"label"`
+	Entity *DashboardRadarEntity `json:"entity"`
+	Values map[string]*float64   `json:"values"`
+}
+
+type DashboardRadarPayload struct {
+	Unit       string               `json:"unit"`
+	Axes       []DashboardRadarAxis `json:"axes"`
+	TotalValue *float64             `json:"totalValue"`
+}
+
+type DashboardRadarAxis struct {
+	Key          string                `json:"key"`
+	Label        string                `json:"label"`
+	Value        *float64              `json:"value"`
+	Status       string                `json:"status"`
+	ObservedDays *int                  `json:"observedDays"`
+	Entity       *DashboardRadarEntity `json:"entity"`
+}
+
+type DashboardRadarEntity struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
 }
 
 type DashboardEvaluation struct {
@@ -45,6 +156,18 @@ func (m *ContextManager) EvaluateDashboard(request DashboardEvaluationRequest) (
 	var definition dashboardDefinition
 	if err := json.Unmarshal(request.Definition, &definition); err != nil {
 		return nil, invalidDefinition("invalid dashboard definition")
+	}
+	widgetTypes := make(map[string]string, len(definition.Widgets))
+	for _, widget := range definition.Widgets {
+		widgetTypes[widget.ID] = widget.Type
+	}
+	for id, state := range request.ViewState {
+		if widgetTypes[id] != "table" || state.Page < 1 {
+			return nil, invalidDefinition("invalid table view state")
+		}
+		if state.Sort != nil && (state.Sort.Direction != "asc" && state.Sort.Direction != "desc" || state.Sort.ColumnID == "") {
+			return nil, invalidDefinition("invalid table view sort")
+		}
 	}
 	workspace, err := m.WorkspaceRepository.GetById(request.WorkspaceID)
 	if err != nil {
@@ -109,6 +232,13 @@ func (m *ContextManager) EvaluateDashboard(request DashboardEvaluationRequest) (
 		}
 		period := ranges[widget.ID]
 		metric := DashboardMetricResult{Unit: dashboardMetricUnit(p.Metric), TimeZone: request.TimeZone, Start: period.start.UTC(), End: period.end.UTC()}
+		if widget.Type == "radar" {
+			metric.Kind = "radar"
+			metric.Radar = &DashboardRadarPayload{Unit: metric.Unit, Axes: []DashboardRadarAxis{}}
+			hasActivity := false
+			metric.HasActivity = &hasActivity
+		}
+		initializeDashboardAdvancedResult(&metric, widget.Type)
 		if queryErr != nil {
 			metric.Error = queryErr.Error()
 			result.Widgets[widget.ID] = metric
@@ -131,6 +261,73 @@ func (m *ContextManager) EvaluateDashboard(request DashboardEvaluationRequest) (
 		}
 		baseIDs := dashboardContextIDs(base, request.Scope, dashboardMetricProperties{Archived: "include"})
 		selectedIDs := dashboardContextIDs(selected, request.Scope, p)
+		if widget.Type == "radar" {
+			var projects []*Project
+			if p.AxesBy == "project" {
+				projects, err = m.ProjectRepository.ListIncludingArchived(request.WorkspaceID)
+				if err != nil {
+					return nil, err
+				}
+			}
+			payload, ignored, radarErr := evaluateDashboardRadar(intervals, contexts, projects, selectedIDs, baseIDs, period, asOf, location, request.FirstDayOfWeek, p)
+			if radarErr != nil {
+				metric.Error = radarErr.Error()
+			} else {
+				metric.Radar, metric.IgnoredIntervals = payload, ignored
+				hasActivity := aggregateDashboardIntervals(intervals, selectedIDs, period, asOf, p.IncludeRunning).duration > 0
+				metric.HasActivity = &hasActivity
+			}
+			result.Widgets[widget.ID] = metric
+			continue
+		}
+		if widget.Type == "bar" {
+			payload, ignored, barErr := evaluateDashboardBar(intervals, contexts, selectedIDs, baseIDs, period, asOf, request.FirstDayOfWeek, p)
+			if barErr != nil {
+				metric.Error = barErr.Error()
+			} else {
+				metric.Categories, metric.IgnoredIntervals = payload, ignored
+				active := aggregateDashboardIntervals(intervals, selectedIDs, period, asOf, p.IncludeRunning).duration > 0
+				metric.HasActivity = &active
+			}
+			result.Widgets[widget.ID] = metric
+			continue
+		}
+		if widget.Type == "heatmap" {
+			payload, ignored, heatmapErr := evaluateDashboardHeatmap(intervals, selectedIDs, baseIDs, period, asOf, p)
+			if heatmapErr != nil {
+				metric.Error = heatmapErr.Error()
+			} else {
+				metric.Heatmap, metric.IgnoredIntervals = payload, ignored
+				active := payload.ActiveDays > 0
+				metric.HasActivity = &active
+			}
+			result.Widgets[widget.ID] = metric
+			continue
+		}
+		if widget.Type == "line" {
+			payload, ignored, lineErr := evaluateDashboardLine(intervals, contexts, selectedIDs, baseIDs, period, asOf, request.FirstDayOfWeek, p)
+			if lineErr != nil {
+				metric.Error = lineErr.Error()
+			} else {
+				metric.Series, metric.IgnoredIntervals = payload, ignored
+				active := aggregateDashboardIntervals(intervals, selectedIDs, period, asOf, p.IncludeRunning).duration > 0
+				metric.HasActivity = &active
+			}
+			result.Widgets[widget.ID] = metric
+			continue
+		}
+		if widget.Type == "table" {
+			payload, ignored, tableErr := evaluateDashboardTable(intervals, contexts, selectedIDs, baseIDs, period, asOf, p, request.ViewState[widget.ID])
+			if tableErr != nil {
+				metric.Error = tableErr.Error()
+			} else {
+				metric.Table, metric.IgnoredIntervals = payload, ignored
+				active := aggregateDashboardIntervals(intervals, selectedIDs, period, asOf, p.IncludeRunning).duration > 0
+				metric.HasActivity = &active
+			}
+			result.Widgets[widget.ID] = metric
+			continue
+		}
 		aggregate := aggregateDashboardIntervals(intervals, selectedIDs, period, asOf, p.IncludeRunning)
 		value := aggregate.value(p.Metric)
 		if p.Metric == "time_share.ratio" {
@@ -253,6 +450,10 @@ func dashboardMetricPeriod(p dashboardMetricProperties, inherited string, reques
 	}
 	start, end := today, today.AddDate(0, 0, 1)
 	switch period {
+	case "last_3_months", "last_6_months", "last_12_months":
+		months := map[string]int{"last_3_months": 3, "last_6_months": 6, "last_12_months": 12}[period]
+		start = time.Date(today.Year(), today.Month()-time.Month(months-1), 1, 0, 0, 0, 0, location)
+		end = time.Date(today.Year(), today.Month()+1, 1, 0, 0, 0, 0, location)
 	case "today":
 	case "yesterday":
 		start, end = today.AddDate(0, 0, -1), today
@@ -317,6 +518,9 @@ func aggregateDashboardIntervals(intervals []*Interval, ids map[string]bool, per
 			continue
 		}
 		start := *interval.Start
+		if end.After(asOf) {
+			end = asOf
+		}
 		if !end.After(start) {
 			result.ignored++
 			continue

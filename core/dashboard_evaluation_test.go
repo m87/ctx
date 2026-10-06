@@ -43,6 +43,38 @@ func TestEvaluateDashboardTimeShareUsesDashboardScopeAsDenominator(t *testing.T)
 	}
 }
 
+func TestEvaluateDashboardRadarGroupsWeekdayValuesOnSharedAxes(t *testing.T) {
+	test := NewTestContextManager()
+	endOfPeriod := time.Date(2026, time.September, 28, 0, 0, 0, 0, time.UTC)
+	test.TimeProvider.Set(time.Date(2026, time.September, 27, 16, 0, 0, 0, time.UTC))
+	day := time.Date(2026, time.September, 21, 8, 0, 0, 0, time.UTC)
+	dayEnd := day.Add(2 * time.Hour)
+	test.Intervals.Seed(&Interval{Id: "monday", ContextId: TestContextID, WorkspaceId: TestWorkspaceID, Start: &day, End: &dayEnd})
+	definition, err := json.Marshal(map[string]interface{}{
+		"version": 1, "query": "", "widgets": []interface{}{map[string]interface{}{
+			"id": "radar", "type": "radar", "layout": map[string]int{"x": 0, "y": 0, "width": 6, "height": 6}, "query": "",
+			"properties": map[string]interface{}{
+				"title": "Week", "description": "", "metric": "duration.sum", "period": "last_7_days", "startDate": "", "endDate": "",
+				"projectId": "", "contextId": "", "tag": "", "archived": "include", "includeRunning": false, "format": "duration", "precision": 1,
+				"axesBy": "weekday", "axisKeys": []string{}, "scaleMaximum": nil, "targetValue": nil, "showValues": false, "showGrid": true, "showFill": true, "showSummary": true,
+			},
+		}},
+	})
+	require.NoError(t, err)
+	result, err := test.Manager.EvaluateDashboard(DashboardEvaluationRequest{WorkspaceID: TestWorkspaceID, Definition: definition, TimeZone: "UTC", FirstDayOfWeek: 1})
+	require.NoError(t, err)
+	widget := result.Widgets["radar"]
+	require.Equal(t, "radar", widget.Kind)
+	require.NotNil(t, widget.Radar)
+	require.Len(t, widget.Radar.Axes, 7)
+	require.Equal(t, "Monday", widget.Radar.Axes[0].Label)
+	require.Equal(t, float64(2*time.Hour/time.Millisecond), *widget.Radar.Axes[0].Value)
+	require.Equal(t, float64(0), *widget.Radar.Axes[1].Value)
+	require.Equal(t, float64(2*time.Hour/time.Millisecond), *widget.Radar.TotalValue)
+	require.True(t, *widget.HasActivity)
+	require.True(t, endOfPeriod.Equal(widget.End))
+}
+
 func TestEvaluateDashboardPassthroughQueryDoesNotFilterOrReject(t *testing.T) {
 	test := NewTestContextManager()
 	now := time.Date(2026, time.September, 27, 16, 0, 0, 0, time.UTC)
@@ -78,6 +110,63 @@ func TestEvaluateDashboardCountsOverlappingIntervalsIndependently(t *testing.T) 
 	result, err := test.Manager.EvaluateDashboard(DashboardEvaluationRequest{WorkspaceID: TestWorkspaceID, Definition: definition, TimeZone: "UTC"})
 	require.NoError(t, err)
 	require.Equal(t, float64(2*time.Hour/time.Millisecond), *result.Widgets["metric"].Value)
+}
+
+func TestEvaluateDashboardBarAndHeatmapPayloads(t *testing.T) {
+	test := NewTestContextManager()
+	now := time.Date(2026, time.September, 27, 16, 0, 0, 0, time.UTC)
+	test.TimeProvider.Set(now)
+	start := time.Date(2026, time.September, 26, 23, 30, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	test.Intervals.Seed(&Interval{Id: "overnight", ContextId: TestContextID, WorkspaceId: TestWorkspaceID, Start: &start, End: &end})
+	common := map[string]interface{}{"title": "", "description": "", "metric": "duration.sum", "startDate": "", "endDate": "", "projectId": "", "contextId": "", "tag": "", "archived": "include", "includeRunning": false, "format": "duration", "precision": 0}
+	bar := map[string]interface{}{"id": "bar", "type": "bar", "layout": map[string]int{"x": 0, "y": 0, "width": 8, "height": 5}, "query": "", "properties": map[string]interface{}{}}
+	barProperties := bar["properties"].(map[string]interface{})
+	for k, v := range common {
+		barProperties[k] = v
+	}
+	for k, v := range map[string]interface{}{"period": "today", "groupBy": "context", "bucket": nil, "orientation": "horizontal", "sort": map[string]interface{}{"by": "value", "direction": "desc"}, "limit": 10, "showOther": false, "showValues": true, "showGrid": true, "showSummary": true} {
+		barProperties[k] = v
+	}
+	heat := map[string]interface{}{"id": "heat", "type": "heatmap", "layout": map[string]int{"x": 8, "y": 0, "width": 8, "height": 5}, "query": "", "properties": map[string]interface{}{}}
+	heatProperties := heat["properties"].(map[string]interface{})
+	for k, v := range common {
+		heatProperties[k] = v
+	}
+	for k, v := range map[string]interface{}{"period": "last_3_months", "scaleMode": "auto", "thresholds": []interface{}{}, "showMonthLabels": true, "showDayLabels": true, "showLegend": true, "showSummary": true} {
+		heatProperties[k] = v
+	}
+	definition, _ := json.Marshal(map[string]interface{}{"version": 1, "query": "", "widgets": []interface{}{bar, heat}})
+	result, err := test.Manager.EvaluateDashboard(DashboardEvaluationRequest{WorkspaceID: TestWorkspaceID, Definition: definition, TimeZone: "UTC", FirstDayOfWeek: 1})
+	require.NoError(t, err)
+	barResult := result.Widgets["bar"]
+	require.Equal(t, "categories", barResult.Kind)
+	require.Len(t, barResult.Categories.Categories, 1)
+	require.Equal(t, float64(30*time.Minute/time.Millisecond), *barResult.Categories.Categories[0].Value)
+	heatResult := result.Widgets["heat"]
+	require.Equal(t, "heatmap", heatResult.Kind)
+	require.Len(t, heatResult.Heatmap.Days, 92)
+	require.Equal(t, "future", heatResult.Heatmap.Days[len(heatResult.Heatmap.Days)-1].Status)
+	require.Equal(t, 2, heatResult.Heatmap.ActiveDays)
+}
+
+func TestEvaluateDashboardTableUsesColumnMetricsAndClampsViewPage(t *testing.T) {
+	test := NewTestContextManager()
+	test.TimeProvider.Set(time.Date(2026, time.September, 27, 16, 0, 0, 0, time.UTC))
+	start := time.Date(2026, time.September, 27, 8, 0, 0, 0, time.UTC)
+	end := start.Add(90 * time.Minute)
+	test.Intervals.Seed(&Interval{Id: "session", ContextId: TestContextID, WorkspaceId: TestWorkspaceID, Start: &start, End: &end})
+	properties := map[string]interface{}{"title": "", "description": "", "period": "today", "startDate": "", "endDate": "", "projectId": "", "contextId": "", "tag": "", "archived": "include", "includeRunning": false, "groupBy": "context", "columns": []interface{}{map[string]interface{}{"id": "time", "metric": "duration.sum", "label": "Time", "visible": true, "format": "duration", "precision": float64(1), "showBar": true}, map[string]interface{}{"id": "sessions", "metric": "sessions.count", "label": "Sessions", "visible": true, "format": "number", "precision": float64(0), "showBar": false}}, "sort": map[string]interface{}{"columnId": "time", "direction": "desc"}, "pageSize": 10, "showSummary": true}
+	definition, _ := json.Marshal(map[string]interface{}{"version": 1, "query": "", "widgets": []interface{}{map[string]interface{}{"id": "table", "type": "table", "layout": map[string]int{"x": 0, "y": 0, "width": 10, "height": 6}, "query": "", "properties": properties}}})
+	result, err := test.Manager.EvaluateDashboard(DashboardEvaluationRequest{WorkspaceID: TestWorkspaceID, Definition: definition, TimeZone: "UTC", ViewState: map[string]DashboardWidgetViewState{"table": {Page: 3}}})
+	require.NoError(t, err)
+	widget := result.Widgets["table"]
+	require.Equal(t, "table", widget.Kind)
+	require.Len(t, widget.Table.Columns, 2)
+	require.Len(t, widget.Table.Rows, 1)
+	require.Equal(t, 1, widget.Table.Page)
+	require.Equal(t, 1, widget.Table.PageCount)
+	require.Equal(t, float64(90*time.Minute/time.Millisecond), *widget.Table.Summary["time"])
 }
 
 func metricDefinition(metric, archived, query string) json.RawMessage {

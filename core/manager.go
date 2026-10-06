@@ -676,7 +676,7 @@ func (m *ContextManager) syncWorkspaces(remoteClient *RemoteClient) error {
 	m.reportSyncProgress(SyncDirectionDownload, "workspaces", 0, len(workspacesToSync))
 	current = 0
 	for batch := range slices.Chunk(workspacesToSync, batchSize) {
-		if _, err := m.WorkspaceRepository.SaveAll(batch); err != nil {
+		if err := m.ImportSyncWorkspaces(batch); err != nil {
 			return err
 		}
 		current += len(batch)
@@ -712,7 +712,7 @@ func (m *ContextManager) syncContexts(remoteClient *RemoteClient) error {
 	current = 0
 	m.reportSyncProgress(SyncDirectionDownload, "contexts", 0, len(contextsToSync))
 	for batch := range slices.Chunk(contextsToSync, batchSize) {
-		if _, err := m.ContextRepository.SaveAll(batch); err != nil {
+		if err := m.ImportSyncContexts(batch); err != nil {
 			return err
 		}
 		current += len(batch)
@@ -747,7 +747,7 @@ func (m *ContextManager) syncIntervals(remoteClient *RemoteClient) error {
 	current = 0
 	m.reportSyncProgress(SyncDirectionDownload, "intervals", 0, len(intervalsToSync))
 	for batch := range slices.Chunk(intervalsToSync, batchSize) {
-		if _, err := m.IntervalRepository.SaveAll(batch); err != nil {
+		if err := m.ImportSyncIntervals(batch); err != nil {
 			return err
 		}
 		current += len(batch)

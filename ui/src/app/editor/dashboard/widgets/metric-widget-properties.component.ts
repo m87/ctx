@@ -5,7 +5,11 @@ import { HlmLabelImports } from '@spartan-ng/helm/label';
 import { HlmTextareaImports } from '@spartan-ng/helm/textarea';
 import { SearchDropdownSelectComponent } from '../../../shared/search-dropdown-select.component';
 import { SearchSelectOption } from '../../../shared/search-select.component';
-import { GaugeWidgetDefinition, KpiWidgetDefinition } from '../dashboard-definition';
+import {
+  GaugeWidgetDefinition,
+  KpiWidgetDefinition,
+  RadarWidgetDefinition,
+} from '../dashboard-definition';
 import {
   METRICS,
   PERIODS,
@@ -16,9 +20,13 @@ import {
   MetricTone,
   metricInfo,
   metricSettingsError,
+  RadarWidgetProperties,
 } from '../metric-widget-definition';
 
-type MetricWidget = KpiWidgetDefinition | GaugeWidgetDefinition;
+import { RadarWidgetPropertiesComponent } from './radar-widget-properties.component';
+
+type MetricWidget = KpiWidgetDefinition | GaugeWidgetDefinition | RadarWidgetDefinition;
+type MetricProperties = MetricWidget['properties'];
 
 @Component({
   selector: 'ctx-metric-widget-properties',
@@ -28,11 +36,12 @@ type MetricWidget = KpiWidgetDefinition | GaugeWidgetDefinition;
     HlmLabelImports,
     HlmTextareaImports,
     SearchDropdownSelectComponent,
+    RadarWidgetPropertiesComponent,
   ],
   host: { class: 'block min-h-0 overflow-y-auto' },
   template: `
     <fieldset class="flex min-w-0 flex-col gap-4 p-3" [disabled]="disabled()">
-      <legend class="sr-only">{{ widget().type === 'kpi' ? 'KPI' : 'Gauge' }} settings</legend>
+      <legend class="sr-only">{{ gauge() ? 'Gauge' : radar() ? 'Radar' : 'KPI' }} settings</legend>
       @for (field of textFields; track field.key) {
         <div class="ui-field">
           <label hlmLabel [for]="fieldId(field.key)">{{ field.label }}</label>
@@ -325,6 +334,17 @@ type MetricWidget = KpiWidgetDefinition | GaugeWidgetDefinition;
           </details>
         </section>
       }
+      @if (radar(); as p) {
+        <ctx-radar-widget-properties
+          [properties]="p"
+          [widgetId]="widget().id"
+          [idSuffix]="idSuffix()"
+          [projects]="projects()"
+          [contexts]="contexts()"
+          [unitResetNotice]="unitResetNotice()"
+          (propertiesChange)="update($event)"
+        />
+      }
       @if (error()) {
         <p class="text-xs text-destructive" role="alert">{{ error() }}</p>
       }
@@ -405,6 +425,10 @@ export class MetricWidgetPropertiesComponent {
     const widget = this.widget();
     return widget.type === 'gauge' ? widget.properties : null;
   });
+  readonly radar = computed<RadarWidgetProperties | null>(() => {
+    const widget = this.widget();
+    return widget.type === 'radar' ? widget.properties : null;
+  });
   readonly unitLabel = computed(() =>
     this.metric().unit === 'ms' ? 'hours' : this.metric().unit === 'percent' ? '%' : 'count',
   );
@@ -466,6 +490,9 @@ export class MetricWidgetPropertiesComponent {
       const maximum = unit === 'ms' ? 144000000 : 100;
       Object.assign(update, { minimum: 0, maximum, target: maximum, thresholds: [] });
       this.unitResetNotice.set('Scale, goal, and thresholds reset for the new unit.');
+    } else if (this.radar() && unit !== this.metric().unit) {
+      Object.assign(update, { scaleMaximum: null, targetValue: null });
+      this.unitResetNotice.set('Scale and target reset for the new unit.');
     } else {
       this.unitResetNotice.set('');
     }
@@ -565,14 +592,16 @@ export class MetricWidgetPropertiesComponent {
     const p = this.gauge();
     if (p) this.update({ thresholds: p.thresholds.filter((_, i) => i !== index) });
   }
-  update(patch: Partial<GaugeWidgetProperties>): boolean {
+  update(patch: Partial<MetricProperties>): boolean {
     if (this.disabled()) return false;
     const widget = this.widget();
     const properties = { ...widget.properties, ...patch };
-    const error = metricSettingsError(properties, widget.type === 'gauge');
+    const error = metricSettingsError(properties, widget.type === 'gauge', widget.type === 'radar');
     this.error.set(error);
     if (error) return false;
     if (widget.type === 'gauge')
+      this.widgetChange.emit({ ...widget, properties: { ...widget.properties, ...patch } });
+    else if (widget.type === 'radar')
       this.widgetChange.emit({ ...widget, properties: { ...widget.properties, ...patch } });
     else this.widgetChange.emit({ ...widget, properties });
     return true;

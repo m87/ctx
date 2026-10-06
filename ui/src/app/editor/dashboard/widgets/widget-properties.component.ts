@@ -3,10 +3,15 @@ import { SearchSelectOption } from '../../../shared/search-select.component';
 import { DashboardWidgetDefinition, TextWidgetProperties } from '../dashboard-definition';
 import { TextWidgetPropertiesComponent } from './text-widget-properties.component';
 import { MetricWidgetPropertiesComponent } from './metric-widget-properties.component';
+import { AdvancedWidgetPropertiesComponent } from './advanced-widget-properties.component';
 
 @Component({
   selector: 'ctx-widget-properties',
-  imports: [TextWidgetPropertiesComponent, MetricWidgetPropertiesComponent],
+  imports: [
+    TextWidgetPropertiesComponent,
+    MetricWidgetPropertiesComponent,
+    AdvancedWidgetPropertiesComponent,
+  ],
   host: { class: 'block min-h-0 overflow-y-auto' },
   template: `
     @let item = widget();
@@ -19,7 +24,7 @@ import { MetricWidgetPropertiesComponent } from './metric-widget-properties.comp
         (queryChange)="setQuery($event)"
         (deleteRequested)="deleteRequested.emit()"
       />
-    } @else {
+    } @else if (item.type === 'kpi' || item.type === 'gauge' || item.type === 'radar') {
       <ctx-metric-widget-properties
         [widget]="item"
         [disabled]="disabled()"
@@ -31,6 +36,17 @@ import { MetricWidgetPropertiesComponent } from './metric-widget-properties.comp
         [tags]="tags()"
         (widgetChange)="widgetChange.emit($event)"
         (deleteRequested)="deleteRequested.emit()"
+      />
+    } @else if (
+      item.type === 'bar' ||
+      item.type === 'heatmap' ||
+      item.type === 'line' ||
+      item.type === 'table'
+    ) {
+      <ctx-advanced-widget-properties
+        [widget]="item"
+        [disabled]="disabled()"
+        (widgetChange)="widgetChange.emit($event)"
       />
     }
   `,

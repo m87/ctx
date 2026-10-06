@@ -163,7 +163,7 @@ detail(contextId: string) {
 
 ## Documentation and compatibility
 
-- Update `README.md` when setup, configuration, commands, modes, or user-visible behavior changes.
+- Modify `README.md` only when the user explicitly requests README changes. Changes to setup, configuration, commands, modes, or user-visible behavior do not authorize README updates on their own.
 - Update `CHANGELOG.md` only when the task includes a release-facing change or explicitly requests a changelog entry; follow its existing format.
 - Preserve CLI output formats (`text`, `json`, `yaml`, and `shell`) and remote/local command parity.
 - Preserve the `/api` routes and legacy root routes unless removal is explicitly in scope.

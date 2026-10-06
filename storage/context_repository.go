@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -19,6 +20,9 @@ func NewContextRepository(db *gorm.DB) *ContextRepository {
 func (r *ContextRepository) GetById(id string) (*core.Context, error) {
 	var context ContextEntity
 	if err := r.db.Preload("Tags").Preload("ProjectMetadata").First(&context, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

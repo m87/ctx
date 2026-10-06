@@ -93,13 +93,21 @@ func (h *IntervalHandler) moveInterval(w http.ResponseWriter, r *http.Request) {
 	}
 
 	interval, err := h.manager.IntervalRepository.GetById(id)
-	if err != nil || interval == nil {
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_INTERVAL", "Failed to get interval")
+		return
+	}
+	if interval == nil {
 		writeError(w, http.StatusNotFound, "INTERVAL_NOT_FOUND", "Interval not found")
 		return
 	}
 
 	context, err := h.manager.ContextRepository.GetById(targetId)
-	if err != nil || context == nil {
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "FAILED_TO_GET_CONTEXT", "Failed to get target context")
+		return
+	}
+	if context == nil {
 		writeError(w, http.StatusNotFound, "TARGET_CONTEXT_NOT_FOUND", "Target context not found")
 		return
 	}

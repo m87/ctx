@@ -54,7 +54,7 @@ func TestContextRepository(t *testing.T) {
 		require.NoError(t, err)
 
 		deletedContext, err := repo.GetById(id)
-		require.Error(t, err)
+		require.NoError(t, err)
 		require.Nil(t, deletedContext)
 	})
 

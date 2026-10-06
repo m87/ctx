@@ -70,9 +70,10 @@ interface WidgetDragPreview {
           [style.height.px]="!editing() && narrow() ? presentationHeight(widget) : null"
         >
           @if (editing()) {
-            <button
+            <div
               cdkDrag
-              type="button"
+              role="button"
+              tabindex="0"
               class="dashboard-widget-surface dashboard-widget-editable"
               [class.dashboard-text-surface]="widget.type === 'text'"
               [class.dashboard-widget-selected]="selectedWidgetId() === widget.id"
@@ -84,7 +85,7 @@ interface WidgetDragPreview {
               [attr.aria-label]="widgetLabel(widget)"
               [attr.aria-pressed]="selectedWidgetId() === widget.id"
               (click)="widgetSelected.emit(widget.id)"
-              (keydown)="widgetKeydown.emit({ event: $event, widget })"
+              (keydown)="onWidgetKeydown($event, widget)"
               (cdkDragStarted)="startWidgetDrag(widget)"
               (cdkDragMoved)="moveWidgetDrag($event)"
               (cdkDragEnded)="finishWidgetDrag($event)"
@@ -94,8 +95,12 @@ interface WidgetDragPreview {
                 [editing]="true"
                 [result]="results()[widget.id]"
                 [error]="error()"
+                [firstDayOfWeek]="firstDayOfWeek()"
+                (viewStateChange)="
+                  widgetViewStateChange.emit({ widgetId: widget.id, state: $event })
+                "
               />
-            </button>
+            </div>
             @if (selectedWidgetId() === widget.id) {
               <ctx-dashboard-resize-handles
                 [layout]="widget.layout"
@@ -117,6 +122,10 @@ interface WidgetDragPreview {
                 [widget]="widget"
                 [result]="results()[widget.id]"
                 [error]="error()"
+                [firstDayOfWeek]="firstDayOfWeek()"
+                (viewStateChange)="
+                  widgetViewStateChange.emit({ widgetId: widget.id, state: $event })
+                "
               />
             </div>
           }
@@ -139,6 +148,10 @@ interface WidgetDragPreview {
               [editing]="true"
               [result]="results()[target.widget.id]"
               [error]="error()"
+              [firstDayOfWeek]="firstDayOfWeek()"
+              (viewStateChange)="
+                widgetViewStateChange.emit({ widgetId: target.widget.id, state: $event })
+              "
             />
           </div>
         </div>
@@ -150,6 +163,7 @@ export class DashboardCanvasComponent {
   readonly widgets = input.required<readonly DashboardWidgetDefinition[]>();
   readonly editing = input(false);
   readonly results = input<Record<string, DashboardMetricResult>>({});
+  readonly firstDayOfWeek = input<0 | 1>(1);
   readonly error = input('');
   readonly catalogEntry = widgetCatalogEntry;
   private paletteType: DashboardWidgetType = 'text';
@@ -159,6 +173,10 @@ export class DashboardCanvasComponent {
   readonly widgetMoved = output<{ id: string; layout: DashboardWidgetLayout }>();
   readonly widgetResized = output<{ id: string; layout: DashboardWidgetLayout }>();
   readonly widgetKeydown = output<{ event: KeyboardEvent; widget: DashboardWidgetDefinition }>();
+  readonly widgetViewStateChange = output<{
+    widgetId: string;
+    state: import('../../../api/dashboard/dashboard.service').DashboardWidgetViewState;
+  }>();
   readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
   readonly widgetInset = DASHBOARD_WIDGET_INSET;
   readonly cellSize = signal(1);
@@ -224,7 +242,11 @@ export class DashboardCanvasComponent {
   }
 
   presentationHeight(widget: DashboardWidgetDefinition): number {
-    return widget.type === 'gauge' ? 240 : widget.type === 'kpi' ? 150 : 96;
+    return widget.type === 'gauge' || widget.type === 'radar'
+      ? 240
+      : widget.type === 'kpi'
+        ? 150
+        : 96;
   }
 
   startWidgetDrag(widget: DashboardWidgetDefinition): void {
@@ -300,7 +322,8 @@ export class DashboardCanvasComponent {
       ? 'Text widget: ' + widget.properties.text
       : widgetCatalogEntry(widget.type).label +
           ' widget: ' +
-          (widget.properties.title || widget.properties.metric);
+          (widget.properties.title ||
+            ('metric' in widget.properties ? widget.properties.metric : ''));
   }
 
   cancelDrag(): void {
@@ -344,6 +367,17 @@ export class DashboardCanvasComponent {
   clearSelection(event: PointerEvent): void {
     if (this.editing() && event.target === this.grid().nativeElement)
       this.widgetSelected.emit(null);
+  }
+
+  onWidgetKeydown(event: KeyboardEvent, widget: DashboardWidgetDefinition): void {
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target !== event.currentTarget &&
+      target.closest('button, a, input, select, textarea, [role="gridcell"], [tabindex="0"]')
+    )
+      return;
+    this.widgetKeydown.emit({ event, widget });
   }
 
   private updateWidgetPreview(pointer: GridPoint): void {

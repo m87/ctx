@@ -26,9 +26,9 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 	}
 
 	db, err := gorm.Open(sqlite.New(sqlite.Config{
-		DSN:        path,
+		DSN:        sqliteDSN(path),
 		DriverName: "sqlite",
-	}), &gorm.Config{})
+	}), &gorm.Config{NowFunc: func() time.Time { return time.Now().UTC() }})
 
 	if err != nil {
 		return nil, err
@@ -42,11 +42,15 @@ func initSqliteStorage(path string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db.Config.NowFunc = func() time.Time {
-		return time.Now().UTC()
-	}
-
 	return db, nil
+}
+
+func sqliteDSN(path string) string {
+	separator := "?"
+	if strings.Contains(path, "?") {
+		separator = "&"
+	}
+	return path + separator + "_pragma=busy_timeout%285000%29&_pragma=foreign_keys%281%29"
 }
 
 func Migrate(db *gorm.DB) error {
@@ -105,16 +109,12 @@ func configureSqlite(db *gorm.DB, path string) error {
 		sqliteDB.SetMaxIdleConns(1)
 	}
 
-	if err := db.Exec("PRAGMA foreign_keys = ON").Error; err != nil {
+	var fkEnabled int
+	if err := db.Raw("PRAGMA foreign_keys").Scan(&fkEnabled).Error; err != nil {
 		return err
 	}
 
-	var fkEnabeld int
-	if err := db.Raw("PRAGMA foreign_keys").Scan(&fkEnabeld).Error; err != nil {
-		return err
-	}
-
-	if fkEnabeld != 1 {
+	if fkEnabled != 1 {
 		return NewErrForeignKeyDisabled()
 	}
 

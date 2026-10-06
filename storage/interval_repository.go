@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"sort"
 	"time"
 
@@ -20,6 +21,9 @@ func NewIntervalRepository(db *gorm.DB) *IntervalRepository {
 func (r *IntervalRepository) GetById(id string) (*core.Interval, error) {
 	var entity IntervalEntity
 	if err := r.db.First(&entity, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
