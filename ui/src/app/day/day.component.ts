@@ -10,7 +10,7 @@ import { ContextListComponent } from '../context/context-list.component';
 import { ContextListItem } from '../context/context-list-item.component';
 import { DistributionComponent, DistributionItem } from '../shared/distribution.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
-import { colorHash, durationAsHM } from '../utils';
+import { colorHash, durationAsDecimalHours, durationAsHM } from '../utils';
 import { Store } from '@ngxs/store';
 import { WorkspaceState } from '../sidebar/workspace.state';
 import { TimeZoneService } from '../shared/time-zone.service';
@@ -134,6 +134,7 @@ const EMPTY_DAY_STATS: DayStats = {
               Total tracked
             </div>
             <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
+            <div class="text-caption text-muted-foreground">{{ totalTrackedDecimal() }}</div>
           </div>
           <div class="rounded-lg border bg-card px-3 py-2.5">
             <div class="text-caption uppercase tracking-label text-muted-foreground">Contexts</div>
@@ -415,13 +416,13 @@ export class DayComponent {
 
   readonly summaryViewTabId = computed(() => `${this.summaryView()}-tab`);
 
-  totalTracked = computed(() => {
-    const duration = this.dayStats().contextStats.reduce(
-      (sum, context) => sum + context.duration,
-      0,
-    );
-    return durationAsHM(duration);
-  });
+  totalDuration = computed(() =>
+    this.dayStats().contextStats.reduce((sum, context) => sum + context.duration, 0),
+  );
+
+  totalTracked = computed(() => durationAsHM(this.totalDuration()));
+
+  totalTrackedDecimal = computed(() => durationAsDecimalHours(this.totalDuration()));
 
   totalSessions = computed(() =>
     this.dayStats().contextStats.reduce((sum, context) => sum + context.intervalCount, 0),

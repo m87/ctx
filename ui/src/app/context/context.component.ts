@@ -19,7 +19,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ContextQueries } from '../../api/context/context.queries';
 import { injectMutation, injectQuery } from '@tanstack/angular-query-experimental';
 import { ContextMutations } from '../../api/context/context.mutations';
-import { colorHash, durationAsH, durationAsM } from '../utils';
+import { colorHash, durationAsDecimalHours, durationAsH, durationAsM } from '../utils';
 import { Store } from '@ngxs/store';
 import { SelectProject, WorkspaceState } from '../sidebar/workspace.state';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
@@ -313,6 +313,7 @@ type DetailView = 'overview' | 'insights';
                     <div class="text-lg font-semibold">
                       {{ parseDuration(contextStats()?.totalDuration) }}
                     </div>
+                    <div class="text-caption text-muted-foreground">{{ totalTimeDecimal() }}</div>
                   </div>
                   <div hlmCard class="w-full p-3 rounded-lg border">
                     <h3
@@ -324,6 +325,7 @@ type DetailView = 'overview' | 'insights';
                     <div class="text-lg font-semibold">
                       {{ parseDuration(contextStats()?.duration) }}
                     </div>
+                    <div class="text-caption text-muted-foreground">{{ todayDecimal() }}</div>
                   </div>
                   <div hlmCard class="w-full p-3 rounded-lg border">
                     <h3
@@ -525,6 +527,10 @@ export class ContextComponent {
     this.contextQueries.stats(this.contextId(), this.today(), this.timeZone.effectiveTimeZone()),
   );
   contextStats = computed(() => this.contextStatsQuery.data());
+  totalTimeDecimal = computed(() =>
+    durationAsDecimalHours(this.contextStats()?.totalDuration ?? 0),
+  );
+  todayDecimal = computed(() => durationAsDecimalHours(this.contextStats()?.duration ?? 0));
   readonly contextLinkIntervalBounds = computed(() => {
     let start: string | undefined;
     let end: string | undefined;

@@ -38,3 +38,13 @@ export function durationAsHM(duration: number) {
   }
   return '0m';
 }
+
+export function durationAsDecimalHours(duration: number) {
+  const minutes = durationAsH(duration) * 60 + durationAsM(duration);
+  const hundredths = Math.round((minutes * 100) / 60);
+  const whole = Math.floor(hundredths / 100);
+  const fraction = String(hundredths % 100)
+    .padStart(2, '0')
+    .replace(/0+$/, '');
+  return fraction ? `${whole}.${fraction}h` : `${whole}h`;
+}

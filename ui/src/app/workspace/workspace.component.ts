@@ -16,7 +16,7 @@ import { ContextListItem } from '../context/context-list-item.component';
 import { DistributionComponent, DistributionItem } from '../shared/distribution.component';
 import { NameComponent, NameSaveValue } from '../shared/name.component';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
-import { colorHash, durationAsHM } from '../utils';
+import { colorHash, durationAsDecimalHours, durationAsHM } from '../utils';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import {
   ProjectTimeListComponent,
@@ -141,6 +141,7 @@ const EMPTY_WORKSPACE_STATS: WorkspaceStats = {
                   Total tracked
                 </div>
                 <div class="text-base font-semibold mt-1">{{ totalTracked() }}</div>
+                <div class="text-caption text-muted-foreground">{{ totalTrackedDecimal() }}</div>
               </div>
               <div class="rounded-lg border bg-card px-3 py-2.5">
                 <div class="text-caption uppercase tracking-label text-muted-foreground">
@@ -413,6 +414,9 @@ export class WorkspaceComponent {
   readonly summaryViewTabId = computed(() => `workspace-${this.summaryView()}-tab`);
   readonly totalTracked = computed(
     () => durationAsHM(this.workspaceStats().totalDuration).trim() || '0m',
+  );
+  readonly totalTrackedDecimal = computed(() =>
+    durationAsDecimalHours(this.workspaceStats().totalDuration),
   );
   readonly topContext = computed(() => this.allSummaryContexts()[0]?.name ?? '-');
 

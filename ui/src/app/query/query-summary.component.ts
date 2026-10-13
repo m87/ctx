@@ -10,7 +10,7 @@ import {
 } from '../shared/project-time-list.component';
 import { summarizeContextsByProject, UNASSIGNED_PROJECT_ID } from '../shared/project-time-summary';
 import { QueryErrorStateComponent } from '../shared/query-error-state.component';
-import { colorHash, durationAsHM } from '../utils';
+import { colorHash, durationAsDecimalHours, durationAsHM } from '../utils';
 
 type SummaryView = 'contexts' | 'projects';
 
@@ -88,6 +88,7 @@ export function contextQueryResultAsListItems(
             Total tracked
           </div>
           <div class="mt-1 text-base font-semibold">{{ totalTracked() }}</div>
+          <div class="text-caption text-muted-foreground">{{ totalTrackedDecimal() }}</div>
         </div>
         <div class="rounded-lg border bg-card px-3 py-2.5">
           <div class="text-caption uppercase tracking-label text-muted-foreground">Contexts</div>
@@ -212,6 +213,9 @@ export class QuerySummaryComponent {
   );
   readonly totalTracked = computed(
     () => durationAsHM(this.result()?.totalDuration ?? 0).trim() || '0m',
+  );
+  readonly totalTrackedDecimal = computed(() =>
+    durationAsDecimalHours(this.result()?.totalDuration ?? 0),
   );
   readonly topContext = computed(() => {
     const top = this.contexts()[0];
