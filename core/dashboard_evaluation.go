@@ -14,22 +14,11 @@ type DashboardScope struct {
 }
 
 type DashboardEvaluationRequest struct {
-	WorkspaceID    string                              `json:"workspaceId"`
-	Definition     json.RawMessage                     `json:"definition"`
-	TimeZone       string                              `json:"timeZone"`
-	FirstDayOfWeek int                                 `json:"firstDayOfWeek"`
-	Scope          DashboardScope                      `json:"scope"`
-	ViewState      map[string]DashboardWidgetViewState `json:"viewState,omitempty"`
-}
-
-type DashboardWidgetViewState struct {
-	Page int                 `json:"page"`
-	Sort *DashboardTableSort `json:"sort,omitempty"`
-}
-
-type DashboardTableSort struct {
-	ColumnID  string `json:"columnId"`
-	Direction string `json:"direction"`
+	WorkspaceID    string          `json:"workspaceId"`
+	Definition     json.RawMessage `json:"definition"`
+	TimeZone       string          `json:"timeZone"`
+	FirstDayOfWeek int             `json:"firstDayOfWeek"`
+	Scope          DashboardScope  `json:"scope"`
 }
 
 type DashboardMetricResult struct {
@@ -105,10 +94,6 @@ type DashboardTablePayload struct {
 	Summary      map[string]*float64           `json:"summary"`
 	ColumnMaxima map[string]*float64           `json:"columnMaxima"`
 	TotalRows    int                           `json:"totalRows"`
-	Page         int                           `json:"page"`
-	PageSize     int                           `json:"pageSize"`
-	PageCount    int                           `json:"pageCount"`
-	Sort         DashboardTableSort            `json:"sort"`
 }
 type DashboardTablePayloadColumn struct {
 	ID     string `json:"id"`
@@ -156,18 +141,6 @@ func (m *ContextManager) EvaluateDashboard(request DashboardEvaluationRequest) (
 	var definition dashboardDefinition
 	if err := json.Unmarshal(request.Definition, &definition); err != nil {
 		return nil, invalidDefinition("invalid dashboard definition")
-	}
-	widgetTypes := make(map[string]string, len(definition.Widgets))
-	for _, widget := range definition.Widgets {
-		widgetTypes[widget.ID] = widget.Type
-	}
-	for id, state := range request.ViewState {
-		if widgetTypes[id] != "table" || state.Page < 1 {
-			return nil, invalidDefinition("invalid table view state")
-		}
-		if state.Sort != nil && (state.Sort.Direction != "asc" && state.Sort.Direction != "desc" || state.Sort.ColumnID == "") {
-			return nil, invalidDefinition("invalid table view sort")
-		}
 	}
 	workspace, err := m.WorkspaceRepository.GetById(request.WorkspaceID)
 	if err != nil {
@@ -317,7 +290,7 @@ func (m *ContextManager) EvaluateDashboard(request DashboardEvaluationRequest) (
 			continue
 		}
 		if widget.Type == "table" {
-			payload, ignored, tableErr := evaluateDashboardTable(intervals, contexts, selectedIDs, baseIDs, period, asOf, p, request.ViewState[widget.ID])
+			payload, ignored, tableErr := evaluateDashboardTable(intervals, contexts, selectedIDs, baseIDs, period, asOf, p)
 			if tableErr != nil {
 				metric.Error = tableErr.Error()
 			} else {

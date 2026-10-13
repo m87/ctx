@@ -19,7 +19,6 @@ import { normalizeDashboardDefinition } from '../editor/dashboard/dashboard-defi
           [results]="metrics.results()"
           [error]="metrics.error()"
           [firstDayOfWeek]="metrics.firstDayOfWeek()"
-          (widgetViewStateChange)="metrics.setWidgetViewState($event.widgetId, $event.state)"
         ></ctx-dashboard-canvas>
       } @else {
         <div class="ui-empty-state">No widgets in this dashboard yet.</div>

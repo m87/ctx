@@ -1,18 +1,16 @@
 import { Component, computed, input, signal } from '@angular/core';
+import { ChartOptions } from '@tanstack/charts/angular';
 import {
   DashboardMetricResult,
   DashboardRadarAxis,
 } from '../../../../api/dashboard/dashboard.service';
 import { RadarWidgetProperties, formatMetric, metricInfo } from '../metric-widget-definition';
-import {
-  radarClosedPolygon,
-  radarEffectiveMaximum,
-  radarPoint,
-  radarSegments,
-} from './radar-chart-geometry';
+import { ChartFrameComponent } from './chart-frame.component';
+import { radarChartDefinition, radarEffectiveMaximum } from './radar-chart-definition';
 
 @Component({
   selector: 'ctx-radar-widget',
+  imports: [ChartFrameComponent],
   host: { class: 'dashboard-metric-card' },
   template: `
     <header class="min-w-0">
@@ -57,73 +55,8 @@ import {
         No data for this period.
       </p>
     } @else {
-      <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-1">
-        <svg
-          viewBox="0 0 300 260"
-          role="img"
-          [attr.aria-label]="title() + ', ' + scaleDescription() + ', ' + activeAxisLabel()"
-          [attr.tabindex]="editing() ? -1 : 0"
-          class="dashboard-radar-svg"
-          (focus)="selectAxis(0)"
-          (keydown)="moveAxis($event)"
-        >
-          <desc>{{ title() }}. {{ scaleDescription() }}. Use arrow keys to inspect axes.</desc>
-          @if (properties().showGrid) {
-            @for (ring of rings; track ring) {
-              <polygon [attr.points]="ringPoints(ring)" class="dashboard-radar-grid" />
-            }
-            @for (axis of axes(); track axis.key; let i = $index) {
-              <path [attr.d]="axisLine(i)" class="dashboard-radar-grid" />
-            }
-          }
-          @if (targetPath()) {
-            <path [attr.d]="targetPath()" class="dashboard-radar-target" />
-          }
-          @if (fillPath()) {
-            <path [attr.d]="fillPath()" class="dashboard-radar-fill" />
-          }
-          @for (segment of segments(); track $index) {
-            <path [attr.d]="segment" class="dashboard-radar-series" />
-          }
-          @for (axis of axes(); track axis.key; let i = $index) {
-            @if (axis.value !== null) {
-              <circle
-                [attr.cx]="point(i, axis.value).x"
-                [attr.cy]="point(i, axis.value).y"
-                r="3"
-                class="dashboard-radar-dot"
-                (mouseenter)="selectAxis(i)"
-                (click)="selectAxis(i)"
-              />
-            }
-            <text
-              [attr.x]="labelPoint(i).x"
-              [attr.y]="labelPoint(i).y"
-              text-anchor="middle"
-              class="dashboard-radar-label"
-              (mouseenter)="selectAxis(i)"
-              (click)="selectAxis(i)"
-            >
-              {{ shortLabel(axis.label) }}
-              <title>{{ axis.label }}: {{ format(axis.value) }}</title>
-            </text>
-            @if (properties().showValues && axis.value !== null) {
-              <text
-                [attr.x]="labelPoint(i).x"
-                [attr.y]="labelPoint(i).y + 12"
-                text-anchor="middle"
-                class="dashboard-radar-value-label"
-              >
-                {{ format(axis.value) }}
-              </text>
-            }
-          }
-          @if (activeAxis(); as axis) {
-            <g class="dashboard-radar-focus" aria-hidden="true">
-              <circle [attr.cx]="focusPoint().x" [attr.cy]="focusPoint().y" r="9" />
-            </g>
-          }
-        </svg>
+      <div class="flex min-h-0 flex-1 flex-col gap-1">
+        <ctx-chart-frame class="max-h-96" [chart]="options()" />
         @if (activeAxis(); as axis) {
           <p class="text-center text-caption text-muted-foreground" aria-live="polite">
             <strong class="font-medium text-foreground">{{ axis.label }}</strong
@@ -206,7 +139,6 @@ export class RadarWidgetComponent {
   readonly error = input('');
   readonly period = input('');
   readonly editing = input(false);
-  readonly rings = [0.25, 0.5, 0.75, 1];
   readonly activeIndex = signal(0);
   readonly radar = computed(() => {
     const result = this.result();
@@ -245,94 +177,32 @@ export class RadarWidgetComponent {
       this.properties().scaleMaximum !== null &&
       this.effectiveMaximum() > (this.properties().scaleMaximum ?? 0),
   );
-  readonly fillPath = computed(() =>
-    this.properties().showFill
-      ? radarClosedPolygon(
-          this.axes().map((axis) => axis.value),
-          this.effectiveMaximum(),
-        )
-      : null,
-  );
-  readonly targetPath = computed(() => {
-    const target = this.properties().targetValue;
-    return target === null
-      ? null
-      : radarClosedPolygon(
-          this.axes().map(() => target),
-          this.effectiveMaximum(),
-        );
-  });
-  readonly segments = computed(() =>
-    radarSegments(
-      this.axes().map((axis) => axis.value),
-      this.effectiveMaximum(),
-    ),
-  );
   readonly incompleteCount = computed(
     () => this.axes().filter((axis) => axis.value === null).length,
   );
   readonly activeAxis = computed(() => this.axes()[this.activeIndex()] ?? null);
-  readonly focusPoint = computed(() => {
-    const axis = this.activeAxis();
-    return axis ? this.point(this.activeIndex(), axis.value ?? 0) : { x: 150, y: 130 };
-  });
-  readonly activeAxisLabel = computed(() =>
-    this.activeAxis()
-      ? `${this.activeAxis()?.label}: ${this.format(this.activeAxis()?.value ?? null)}`
-      : 'No radar axes',
-  );
   readonly summaryLabel = computed(() =>
     this.properties().axesBy === 'weekday' ? 'Period total' : 'Selected categories',
   );
+  readonly options = computed<ChartOptions>(() => ({
+    definition: radarChartDefinition(this.axes(), this.properties(), this.effectiveMaximum(), {
+      value: (value) => this.format(value),
+      metric: this.metricLabel(),
+    }),
+    ariaLabel: `${this.title()}, ${this.scaleDescription()}`,
+    ariaDescription: 'Use arrow keys to inspect axes.',
+    tabIndex: this.editing() ? -1 : 0,
+    onFocusChange: (point) => {
+      const index = this.axes().findIndex((axis) => axis.key === point?.xValue);
+      if (index >= 0) this.activeIndex.set(index);
+    },
+  }));
   readonly scaleDescription = computed(
     () =>
       `Shared scale from zero to ${this.format(this.effectiveMaximum())}. Values use radial distance.`,
   );
 
-  point(index: number, value: number | null) {
-    return radarPoint(
-      index,
-      Math.max(1, this.axes().length),
-      Math.max(0, (value ?? 0) / this.effectiveMaximum()),
-    );
-  }
-  labelPoint(index: number) {
-    return radarPoint(index, Math.max(1, this.axes().length), 1.18);
-  }
-  axisLine(index: number) {
-    const point = radarPoint(index, this.axes().length, 1);
-    return `M 150 130 L ${point.x} ${point.y}`;
-  }
-  ringPoints(ratio: number) {
-    return this.axes()
-      .map((_, i) => {
-        const point = radarPoint(i, this.axes().length, ratio);
-        return `${point.x},${point.y}`;
-      })
-      .join(' ');
-  }
-  shortLabel(label: string) {
-    return this.axes().length === 7 && label.length > 2 ? label.slice(0, 2) : label;
-  }
   format(value: number | null) {
     return value === null ? '—' : formatMetric(value, this.properties());
-  }
-  selectAxis(index: number) {
-    this.activeIndex.set(index);
-  }
-  moveAxis(event: KeyboardEvent) {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.activeIndex.update((i) => (i + 1) % this.axes().length);
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.activeIndex.update((i) => (i - 1 + this.axes().length) % this.axes().length);
-    } else if (event.key === 'Home') {
-      event.preventDefault();
-      this.activeIndex.set(0);
-    } else if (event.key === 'End') {
-      event.preventDefault();
-      this.activeIndex.set(this.axes().length - 1);
-    }
   }
 }

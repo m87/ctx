@@ -1,8 +1,5 @@
-import { Component, computed, input, output } from '@angular/core';
-import {
-  DashboardMetricResult,
-  DashboardWidgetViewState,
-} from '../../../../api/dashboard/dashboard.service';
+import { Component, computed, input } from '@angular/core';
+import { DashboardMetricResult } from '../../../../api/dashboard/dashboard.service';
 import { DashboardWidgetDefinition } from '../dashboard-definition';
 import { PERIODS } from '../metric-widget-definition';
 import { TextWidgetComponent } from './text-widget.component';
@@ -44,13 +41,17 @@ import { AdvancedWidgetComponent } from './advanced-widget.component';
         />
       }
       @case ('radar') {
-        <ctx-radar-widget
-          [properties]="item.properties"
-          [result]="result()"
-          [error]="error()"
-          [period]="period()"
-          [editing]="editing()"
-        />
+        @defer {
+          <ctx-radar-widget
+            [properties]="item.properties"
+            [result]="result()"
+            [error]="error()"
+            [period]="period()"
+            [editing]="editing()"
+          />
+        } @placeholder {
+          <p role="status" class="p-4 text-sm text-muted-foreground">Loading…</p>
+        }
       }
       @case ('bar') {
         <ctx-advanced-widget
@@ -59,7 +60,7 @@ import { AdvancedWidgetComponent } from './advanced-widget.component';
           [error]="error()"
           [period]="period()"
           [firstDayOfWeek]="firstDayOfWeek()"
-          (viewStateChange)="viewStateChange.emit($event)"
+          [editing]="editing()"
         />
       }
       @case ('heatmap') {
@@ -69,7 +70,7 @@ import { AdvancedWidgetComponent } from './advanced-widget.component';
           [error]="error()"
           [period]="period()"
           [firstDayOfWeek]="firstDayOfWeek()"
-          (viewStateChange)="viewStateChange.emit($event)"
+          [editing]="editing()"
         />
       }
       @case ('line') {
@@ -79,7 +80,7 @@ import { AdvancedWidgetComponent } from './advanced-widget.component';
           [error]="error()"
           [period]="period()"
           [firstDayOfWeek]="firstDayOfWeek()"
-          (viewStateChange)="viewStateChange.emit($event)"
+          [editing]="editing()"
         />
       }
       @case ('table') {
@@ -89,7 +90,7 @@ import { AdvancedWidgetComponent } from './advanced-widget.component';
           [error]="error()"
           [period]="period()"
           [firstDayOfWeek]="firstDayOfWeek()"
-          (viewStateChange)="viewStateChange.emit($event)"
+          [editing]="editing()"
         />
       }
     }
@@ -100,7 +101,6 @@ export class DashboardWidgetComponent {
   readonly editing = input(false);
   readonly result = input<DashboardMetricResult>();
   readonly error = input('');
-  readonly viewStateChange = output<DashboardWidgetViewState>();
   readonly firstDayOfWeek = input<0 | 1>(1);
   readonly period = computed(() => {
     const result = this.result();

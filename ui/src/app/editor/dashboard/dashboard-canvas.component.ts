@@ -96,9 +96,6 @@ interface WidgetDragPreview {
                 [result]="results()[widget.id]"
                 [error]="error()"
                 [firstDayOfWeek]="firstDayOfWeek()"
-                (viewStateChange)="
-                  widgetViewStateChange.emit({ widgetId: widget.id, state: $event })
-                "
               />
             </div>
             @if (selectedWidgetId() === widget.id) {
@@ -123,9 +120,6 @@ interface WidgetDragPreview {
                 [result]="results()[widget.id]"
                 [error]="error()"
                 [firstDayOfWeek]="firstDayOfWeek()"
-                (viewStateChange)="
-                  widgetViewStateChange.emit({ widgetId: widget.id, state: $event })
-                "
               />
             </div>
           }
@@ -149,9 +143,6 @@ interface WidgetDragPreview {
               [result]="results()[target.widget.id]"
               [error]="error()"
               [firstDayOfWeek]="firstDayOfWeek()"
-              (viewStateChange)="
-                widgetViewStateChange.emit({ widgetId: target.widget.id, state: $event })
-              "
             />
           </div>
         </div>
@@ -173,10 +164,6 @@ export class DashboardCanvasComponent {
   readonly widgetMoved = output<{ id: string; layout: DashboardWidgetLayout }>();
   readonly widgetResized = output<{ id: string; layout: DashboardWidgetLayout }>();
   readonly widgetKeydown = output<{ event: KeyboardEvent; widget: DashboardWidgetDefinition }>();
-  readonly widgetViewStateChange = output<{
-    widgetId: string;
-    state: import('../../../api/dashboard/dashboard.service').DashboardWidgetViewState;
-  }>();
   readonly grid = viewChild.required<ElementRef<HTMLElement>>('grid');
   readonly widgetInset = DASHBOARD_WIDGET_INSET;
   readonly cellSize = signal(1);

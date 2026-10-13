@@ -308,7 +308,7 @@ func evaluateDashboardLine(intervals []*Interval, contexts []*Context, selected,
 	return payload, total.ignored, nil
 }
 
-func evaluateDashboardTable(intervals []*Interval, contexts []*Context, selected, base map[string]bool, period dashboardPeriodRange, asOf time.Time, p dashboardMetricProperties, view DashboardWidgetViewState) (*DashboardTablePayload, int, error) {
+func evaluateDashboardTable(intervals []*Interval, contexts []*Context, selected, base map[string]bool, period dashboardPeriodRange, asOf time.Time, p dashboardMetricProperties) (*DashboardTablePayload, int, error) {
 	type row struct {
 		value    DashboardTableRow
 		activity float64
@@ -371,29 +371,14 @@ func evaluateDashboardTable(intervals []*Interval, contexts []*Context, selected
 		value := dashboardMetricValue(intervals, selected, base, period, asOf, metric, aggregateDashboardIntervals(intervals, selected, period, asOf, p.IncludeRunning))
 		payload.Summary[column.ID] = value
 	}
-	sortColumn := ""
-	direction := "desc"
-	if view.Sort != nil {
-		sortColumn = view.Sort.ColumnID
-		direction = view.Sort.Direction
-	}
-	if sortColumn == "" && p.Sort != nil {
-		sortColumn, _ = p.Sort["columnId"].(string)
-		if v, ok := p.Sort["direction"].(string); ok {
-			direction = v
+	sortColumn, direction := "time", "desc"
+	if p.Sort != nil {
+		if columnID, ok := p.Sort["columnId"].(string); ok && columnID != "" {
+			sortColumn = columnID
 		}
-	}
-	if sortColumn == "" {
-		sortColumn = "time"
-	}
-	valid := sortColumn == "group"
-	for _, c := range p.Columns {
-		if c.ID == sortColumn && c.Visible {
-			valid = true
+		if value, ok := p.Sort["direction"].(string); ok {
+			direction = value
 		}
-	}
-	if !valid || direction != "asc" && direction != "desc" {
-		return nil, 0, invalidDefinition("invalid table view sort")
 	}
 	sort.SliceStable(payload.Rows, func(i, j int) bool {
 		a, b := payload.Rows[i], payload.Rows[j]
@@ -425,25 +410,6 @@ func evaluateDashboardTable(intervals []*Interval, contexts []*Context, selected
 		}
 		return less
 	})
-	pageSize := p.PageSize
-	page := view.Page
-	if page < 1 {
-		page = 1
-	}
-	pageCount := (payload.TotalRows + pageSize - 1) / pageSize
-	if payload.TotalRows > 0 && page > pageCount {
-		page = pageCount
-	}
-	payload.Page = page
-	payload.PageSize = pageSize
-	payload.PageCount = pageCount
-	payload.Sort = DashboardTableSort{ColumnID: sortColumn, Direction: direction}
-	start := (page - 1) * pageSize
-	if start > len(payload.Rows) {
-		start = len(payload.Rows)
-	}
-	end := min(start+pageSize, len(payload.Rows))
-	payload.Rows = payload.Rows[start:end]
 	return payload, aggregateDashboardIntervals(intervals, selected, period, asOf, p.IncludeRunning).ignored, nil
 }
 

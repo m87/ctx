@@ -152,6 +152,14 @@ func TestDashboardEvaluationRoutesReturnEquivalentMetricResults(t *testing.T) {
 			"axesBy": "weekday", "axisKeys": []string{}, "scaleMaximum": nil, "targetValue": nil, "showValues": false, "showGrid": true, "showFill": true, "showSummary": true,
 		},
 	})
+	widgets = append(widgets, map[string]interface{}{
+		"id": "table", "type": "table", "query": "", "layout": map[string]int{"x": 0, "y": 6, "width": 10, "height": 6},
+		"properties": map[string]interface{}{
+			"title": "", "description": "", "period": "today", "startDate": "", "endDate": "", "projectId": "", "contextId": "", "tag": "", "archived": "include", "includeRunning": false,
+			"groupBy": "context", "pageSize": 10, "showSummary": true, "sort": map[string]interface{}{"columnId": "time", "direction": "desc"},
+			"columns": []interface{}{map[string]interface{}{"id": "time", "metric": "duration.sum", "label": "Time", "visible": true, "format": "duration", "precision": 1, "showBar": true}},
+		},
+	})
 	definitionObject["widgets"] = widgets
 	definition, err = json.Marshal(definitionObject)
 	require.NoError(t, err)
@@ -165,8 +173,9 @@ func TestDashboardEvaluationRoutesReturnEquivalentMetricResults(t *testing.T) {
 		response := httptest.NewRecorder()
 		server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPost, path, bytes.NewReader(requestBody)))
 		require.Equal(t, http.StatusOK, response.Code)
+		responseBody := append([]byte(nil), response.Body.Bytes()...)
 		var result core.DashboardEvaluation
-		require.NoError(t, json.NewDecoder(response.Body).Decode(&result))
+		require.NoError(t, json.Unmarshal(responseBody, &result))
 		results = append(results, &result)
 		require.Equal(t, now, result.AsOf)
 		require.Equal(t, float64(time.Hour/time.Millisecond), *result.Widgets["kpi"].Value)
@@ -176,6 +185,22 @@ func TestDashboardEvaluationRoutesReturnEquivalentMetricResults(t *testing.T) {
 		require.Equal(t, "radar", result.Widgets["radar"].Kind)
 		require.Len(t, result.Widgets["radar"].Radar.Axes, 7)
 		require.True(t, *result.Widgets["radar"].HasActivity)
+		require.Equal(t, "table", result.Widgets["table"].Kind)
+		require.Equal(t, 1, result.Widgets["table"].Table.TotalRows)
+		require.Len(t, result.Widgets["table"].Table.Rows, 1)
+		require.Equal(t, "Focus", result.Widgets["table"].Table.Rows[0].Label)
+		var raw struct {
+			Widgets map[string]struct {
+				Table map[string]json.RawMessage `json:"table"`
+			} `json:"widgets"`
+		}
+		require.NoError(t, json.Unmarshal(responseBody, &raw))
+		for _, key := range []string{"columns", "rows", "summary", "columnMaxima", "totalRows"} {
+			require.Contains(t, raw.Widgets["table"].Table, key)
+		}
+		for _, key := range []string{"page", "pageSize", "pageCount", "sort"} {
+			require.NotContains(t, raw.Widgets["table"].Table, key)
+		}
 	}
 	require.Equal(t, results[0], results[1])
 }

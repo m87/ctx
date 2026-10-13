@@ -1,11 +1,7 @@
 import { computed, effect, inject, signal, untracked } from '@angular/core';
 import { injectQuery } from '@tanstack/angular-query-experimental';
 import { DashboardQueries } from '../../api/dashboard/dashboard.queries';
-import {
-  Dashboard,
-  DashboardScope,
-  DashboardWidgetViewState,
-} from '../../api/dashboard/dashboard.service';
+import { Dashboard, DashboardScope } from '../../api/dashboard/dashboard.service';
 import { SettingsQueries } from '../../api/settings/settings.queries';
 import {
   DashboardDefinition,
@@ -22,7 +18,6 @@ export function injectDashboardMetrics(
   const timeZone = inject(TimeZoneService);
   const settings = inject(SettingsQueries);
   const settingsQuery = injectQuery(() => settings.settings());
-  const viewState = signal<Record<string, DashboardWidgetViewState>>({});
   const requestConfiguration = computed(() => {
     const content = definition();
     if (!content || !dashboard()) return null;
@@ -32,7 +27,6 @@ export function injectDashboardMetrics(
       scope: scope(),
       timeZone: timeZone.effectiveTimeZone(),
       firstDayOfWeek: settingsQuery.data()?.['client.general.firstDay'] === 'Sunday' ? 0 : 1,
-      viewState: viewState(),
     };
   });
   const requestSignature = computed(() => {
@@ -44,7 +38,6 @@ export function injectDashboardMetrics(
       timeZone: configuration.timeZone,
       firstDayOfWeek: configuration.firstDayOfWeek,
       data: metricDataKey(configuration.definition),
-      viewState: configuration.viewState,
     });
   });
   const debouncedConfiguration = signal<ReturnType<typeof requestConfiguration> | null>(null);
@@ -69,27 +62,11 @@ export function injectDashboardMetrics(
       return null;
     }
   });
-  let previousDataSignature = '';
-  effect(() => {
-    const content = definition();
-    if (!content) return;
-    const signature = JSON.stringify(metricDataKey(content));
-    if (previousDataSignature && signature !== previousDataSignature) {
-      viewState.update((current) =>
-        Object.fromEntries(
-          Object.entries(current).map(([id, state]) => [id, { ...state, page: 1 }]),
-        ),
-      );
-    }
-    previousDataSignature = signature;
-  });
   const query = injectQuery(() => {
     const configuration = debouncedConfiguration();
     const content = configuration?.definition;
     const widgets = content?.widgets.filter((widget) => widget.type !== 'text') ?? [];
-    const dataKey = content
-      ? { ...metricDataKey(content), viewState: configuration?.viewState ?? {} }
-      : {};
+    const dataKey = content ? metricDataKey(content) : {};
     const liveScope = !configuration?.scope.date || configuration.scope.date === timeZone.today();
     const refresh =
       liveScope &&
@@ -119,7 +96,6 @@ export function injectDashboardMetrics(
         scope: configuration?.scope ?? {},
         timeZone: configuration?.timeZone ?? timeZone.effectiveTimeZone(),
         firstDayOfWeek: configuration?.firstDayOfWeek ?? 1,
-        viewState: configuration?.viewState,
       },
       dataKey,
       !!content && widgets.length > 0 && enabled() && !!configuration,
@@ -144,9 +120,6 @@ export function injectDashboardMetrics(
             ? 'Waiting for a connection.'
             : '',
     ),
-    setWidgetViewState(widgetId: string, state: DashboardWidgetViewState) {
-      viewState.update((current) => ({ ...current, [widgetId]: state }));
-    },
   };
 }
 
@@ -195,7 +168,6 @@ function metricDataKey(content: DashboardDefinition) {
                 .map(({ id, metric }) => ({ id, metric }))
                 .sort((a, b) => a.id.localeCompare(b.id)),
               sort: widget.properties.sort,
-              pageSize: widget.properties.pageSize,
             }
           : {}),
       })),

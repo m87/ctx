@@ -515,7 +515,6 @@ export function queryPreviewSummary(result: ContextQueryResult | undefined): str
               (widgetMoved)="moveWidgetTo($event.id, $event.layout)"
               (widgetResized)="applyWidgetLayout($event.id, $event.layout)"
               (widgetKeydown)="handleWidgetKeydown($event.event, $event.widget)"
-              (widgetViewStateChange)="metrics.setWidgetViewState($event.widgetId, $event.state)"
             ></ctx-dashboard-canvas>
           </div>
           @if (dashboardEditing()) {

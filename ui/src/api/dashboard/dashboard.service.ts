@@ -26,15 +26,6 @@ export interface DashboardEvaluationRequest {
   timeZone: string;
   firstDayOfWeek: number;
   scope: DashboardScope;
-  viewState?: Record<
-    string,
-    { page: number; sort?: { columnId: string; direction: 'asc' | 'desc' } }
-  >;
-}
-
-export interface DashboardWidgetViewState {
-  page: number;
-  sort?: { columnId: string; direction: 'asc' | 'desc' };
 }
 
 interface DashboardMetricResultMetadata {
@@ -142,10 +133,6 @@ export interface DashboardTablePayload {
   summary: Record<string, number | null>;
   columnMaxima: Record<string, number | null>;
   totalRows: number;
-  page: number;
-  pageSize: number;
-  pageCount: number;
-  sort: { columnId: string; direction: 'asc' | 'desc' };
 }
 
 export interface DashboardRadarPayload {

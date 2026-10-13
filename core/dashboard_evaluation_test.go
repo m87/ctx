@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -150,23 +151,142 @@ func TestEvaluateDashboardBarAndHeatmapPayloads(t *testing.T) {
 	require.Equal(t, 2, heatResult.Heatmap.ActiveDays)
 }
 
-func TestEvaluateDashboardTableUsesColumnMetricsAndClampsViewPage(t *testing.T) {
+func tableDashboardDefinition(t *testing.T, groupBy string, sort map[string]interface{}) json.RawMessage {
+	t.Helper()
+	column := func(id, metric, label, format string, precision float64, showBar bool) map[string]interface{} {
+		return map[string]interface{}{"id": id, "metric": metric, "label": label, "visible": true, "format": format, "precision": precision, "showBar": showBar}
+	}
+	properties := map[string]interface{}{
+		"title": "", "description": "", "period": "today", "startDate": "", "endDate": "", "projectId": "", "contextId": "", "tag": "", "archived": "include", "includeRunning": false,
+		"groupBy": groupBy,
+		"columns": []interface{}{
+			column("time", "duration.sum", "Time", "duration", 1, true),
+			column("average", "duration.mean", "Average", "duration", 1, false),
+			column("sessions", "sessions.count", "Sessions", "number", 0, false),
+		},
+		"sort": sort, "pageSize": 10, "showSummary": true,
+	}
+	definition, err := json.Marshal(map[string]interface{}{"version": 1, "query": "", "widgets": []interface{}{map[string]interface{}{"id": "table", "type": "table", "layout": map[string]int{"x": 0, "y": 0, "width": 10, "height": 6}, "query": "", "properties": properties}}})
+	require.NoError(t, err)
+	return definition
+}
+
+func seedTableContexts(test *TestContextManager, extraEmpty int) {
+	day := time.Date(2026, time.September, 27, 8, 0, 0, 0, time.UTC)
+	names := map[string]string{"ctx-a": "alpha", "ctx-b": "Beta", "ctx-c": "Charlie", "ctx-d": "Delta", "ctx-empty": "Echo"}
+	minutes := map[string]int{"ctx-a": 30, "ctx-b": 90, "ctx-c": 90, "ctx-d": 45, "ctx-empty": 0}
+	contexts := []*Context{}
+	intervals := []*Interval{}
+	for _, id := range []string{"ctx-a", "ctx-b", "ctx-c", "ctx-d", "ctx-empty"} {
+		contexts = append(contexts, &Context{Id: id, Name: names[id], WorkspaceId: TestWorkspaceID, Status: "inactive"})
+		if minutes[id] > 0 {
+			start := day
+			end := start.Add(time.Duration(minutes[id]) * time.Minute)
+			intervals = append(intervals, &Interval{Id: "interval-" + id, ContextId: id, WorkspaceId: TestWorkspaceID, Start: &start, End: &end})
+		}
+	}
+	for index := 0; index < extraEmpty; index++ {
+		id := fmt.Sprintf("ctx-extra-%02d", index)
+		start := day.Add(time.Hour + time.Duration(index)*15*time.Minute)
+		end := start.Add(time.Duration(index+1) * time.Minute)
+		contexts = append(contexts, &Context{Id: id, Name: fmt.Sprintf("Extra %02d", index), WorkspaceId: TestWorkspaceID, Status: "inactive"})
+		intervals = append(intervals, &Interval{Id: "interval-" + id, ContextId: id, WorkspaceId: TestWorkspaceID, Start: &start, End: &end})
+	}
+	test.Contexts.Seed(contexts...)
+	test.Intervals.Seed(intervals...)
+}
+
+func evaluateTable(t *testing.T, test *TestContextManager, definition json.RawMessage) *DashboardTablePayload {
+	t.Helper()
+	result, err := test.Manager.EvaluateDashboard(DashboardEvaluationRequest{WorkspaceID: TestWorkspaceID, Definition: definition, TimeZone: "UTC"})
+	require.NoError(t, err)
+	widget := result.Widgets["table"]
+	require.Empty(t, widget.Error)
+	require.Equal(t, "table", widget.Kind)
+	return widget.Table
+}
+
+func tableRowLabels(table *DashboardTablePayload) []string {
+	labels := make([]string, 0, len(table.Rows))
+	for _, row := range table.Rows {
+		labels = append(labels, row.Label)
+	}
+	return labels
+}
+
+func TestEvaluateDashboardTableUsesColumnMetrics(t *testing.T) {
 	test := NewTestContextManager()
 	test.TimeProvider.Set(time.Date(2026, time.September, 27, 16, 0, 0, 0, time.UTC))
 	start := time.Date(2026, time.September, 27, 8, 0, 0, 0, time.UTC)
 	end := start.Add(90 * time.Minute)
 	test.Intervals.Seed(&Interval{Id: "session", ContextId: TestContextID, WorkspaceId: TestWorkspaceID, Start: &start, End: &end})
-	properties := map[string]interface{}{"title": "", "description": "", "period": "today", "startDate": "", "endDate": "", "projectId": "", "contextId": "", "tag": "", "archived": "include", "includeRunning": false, "groupBy": "context", "columns": []interface{}{map[string]interface{}{"id": "time", "metric": "duration.sum", "label": "Time", "visible": true, "format": "duration", "precision": float64(1), "showBar": true}, map[string]interface{}{"id": "sessions", "metric": "sessions.count", "label": "Sessions", "visible": true, "format": "number", "precision": float64(0), "showBar": false}}, "sort": map[string]interface{}{"columnId": "time", "direction": "desc"}, "pageSize": 10, "showSummary": true}
-	definition, _ := json.Marshal(map[string]interface{}{"version": 1, "query": "", "widgets": []interface{}{map[string]interface{}{"id": "table", "type": "table", "layout": map[string]int{"x": 0, "y": 0, "width": 10, "height": 6}, "query": "", "properties": properties}}})
-	result, err := test.Manager.EvaluateDashboard(DashboardEvaluationRequest{WorkspaceID: TestWorkspaceID, Definition: definition, TimeZone: "UTC", ViewState: map[string]DashboardWidgetViewState{"table": {Page: 3}}})
+	table := evaluateTable(t, test, tableDashboardDefinition(t, "context", map[string]interface{}{"columnId": "time", "direction": "desc"}))
+	require.Len(t, table.Columns, 3)
+	require.Len(t, table.Rows, 1)
+	require.Equal(t, 1, table.TotalRows)
+	require.Equal(t, float64(90*time.Minute/time.Millisecond), *table.Summary["time"])
+	require.Equal(t, float64(90*time.Minute/time.Millisecond), *table.ColumnMaxima["time"])
+}
+
+func TestEvaluateDashboardTableReturnsEveryRowSortedByTheSavedSort(t *testing.T) {
+	newTest := func(extra int) *TestContextManager {
+		test := NewTestContextManager()
+		test.TimeProvider.Set(time.Date(2026, time.September, 27, 16, 0, 0, 0, time.UTC))
+		seedTableContexts(test, extra)
+		return test
+	}
+	sorted := func(column, direction string) map[string]interface{} {
+		return map[string]interface{}{"columnId": column, "direction": direction}
+	}
+
+	t.Run("duration descending keeps ties ordered by key and returns more rows than the page size", func(t *testing.T) {
+		table := evaluateTable(t, newTest(8), tableDashboardDefinition(t, "context", sorted("time", "desc")))
+		require.Len(t, table.Rows, 12)
+		require.Equal(t, 12, table.TotalRows)
+		require.Equal(t, []string{"Beta", "Charlie", "Delta", "alpha"}, tableRowLabels(table)[:4])
+	})
+
+	t.Run("duration ascending keeps ties ordered by key too", func(t *testing.T) {
+		table := evaluateTable(t, newTest(0), tableDashboardDefinition(t, "context", sorted("time", "asc")))
+		require.Equal(t, []string{"alpha", "Delta", "Beta", "Charlie"}, tableRowLabels(table))
+	})
+
+	t.Run("group sort ignores case", func(t *testing.T) {
+		table := evaluateTable(t, newTest(0), tableDashboardDefinition(t, "context", sorted("group", "asc")))
+		require.Equal(t, []string{"alpha", "Beta", "Charlie", "Delta"}, tableRowLabels(table))
+		table = evaluateTable(t, newTest(0), tableDashboardDefinition(t, "context", sorted("group", "desc")))
+		require.Equal(t, []string{"Delta", "Charlie", "Beta", "alpha"}, tableRowLabels(table))
+	})
+
+	t.Run("the summary and column maxima cover all rows", func(t *testing.T) {
+		table := evaluateTable(t, newTest(0), tableDashboardDefinition(t, "context", sorted("time", "desc")))
+		require.Equal(t, float64(255*time.Minute/time.Millisecond), *table.Summary["time"])
+		require.Equal(t, float64(90*time.Minute/time.Millisecond), *table.ColumnMaxima["time"])
+	})
+}
+
+func TestEvaluateDashboardTablePayloadHasNoServerPaging(t *testing.T) {
+	test := NewTestContextManager()
+	test.TimeProvider.Set(time.Date(2026, time.September, 27, 16, 0, 0, 0, time.UTC))
+	seedTableContexts(test, 0)
+	result, err := test.Manager.EvaluateDashboard(DashboardEvaluationRequest{WorkspaceID: TestWorkspaceID, Definition: tableDashboardDefinition(t, "context", map[string]interface{}{"columnId": "time", "direction": "desc"}), TimeZone: "UTC"})
 	require.NoError(t, err)
-	widget := result.Widgets["table"]
-	require.Equal(t, "table", widget.Kind)
-	require.Len(t, widget.Table.Columns, 2)
-	require.Len(t, widget.Table.Rows, 1)
-	require.Equal(t, 1, widget.Table.Page)
-	require.Equal(t, 1, widget.Table.PageCount)
-	require.Equal(t, float64(90*time.Minute/time.Millisecond), *widget.Table.Summary["time"])
+	encoded, err := json.Marshal(result.Widgets["table"].Table)
+	require.NoError(t, err)
+	var payload map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(encoded, &payload))
+	for _, key := range []string{"columns", "rows", "summary", "columnMaxima", "totalRows"} {
+		require.Contains(t, payload, key)
+	}
+	for _, key := range []string{"page", "pageSize", "pageCount", "sort"} {
+		require.NotContains(t, payload, key)
+	}
+}
+
+func TestEvaluateDashboardTableIgnoresLegacyViewState(t *testing.T) {
+	var request DashboardEvaluationRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"workspaceId":"w","definition":{},"timeZone":"UTC","viewState":{"table":{"page":3,"sort":{"columnId":"time","direction":"asc"}}}}`), &request))
+	require.Equal(t, "w", request.WorkspaceID)
 }
 
 func metricDefinition(metric, archived, query string) json.RawMessage {
